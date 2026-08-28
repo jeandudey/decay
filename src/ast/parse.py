@@ -26,7 +26,7 @@ def enc(n):
         out[k] = e
     return out
 
-def dump(path):
+def parse(path):
     with open(path, encoding="utf-8") as f:
         src = f.read()
     return json.dumps(enc(mparser.Parser(src, path).parse()))

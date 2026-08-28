@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod ast;
 mod config;
 mod eval;
@@ -5,7 +7,10 @@ mod git_cache;
 
 use {
     crate::{
-        ast::{eval, lower, raw::Node},
+        ast::{
+            eval,
+            parse, //
+        },
         config::Config,
         git_cache::GitCache,
     },
@@ -16,21 +21,12 @@ use {
     eyre::{
         Context,
         ContextCompat,
-        OptionExt,
         bail, //
-    },
-    pyo3::{
-        ffi::c_str,
-        prelude::*, //
     },
     std::{
         env,
-        ffi::CStr,
         fs,
-        path::{
-            Path,
-            PathBuf, //
-        },
+        path::PathBuf, //
     },
 };
 
@@ -46,8 +42,6 @@ enum Command {
     /// Generate Buck build files
     Buckify,
 }
-
-static DUMPER: &CStr = c_str!(include_str!("dumper.py"));
 
 fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
@@ -71,9 +65,8 @@ fn main() -> eyre::Result<()> {
                 }
 
                 let ast = parse(&root_meson_file).wrap_err("Failed to parse meson.build file")?;
-                let code_block = lower(ast)?;
-                println!("{code_block:?}");
-                eval(&code_block)?;
+                //println!("{ast:?}");
+                eval(&ast)?;
                 //let code_block = match ast {
                 //    Node::CodeBlock(v) => v,
                 //    _ => bail!("No root code block"),
@@ -92,23 +85,6 @@ fn main() -> eyre::Result<()> {
     }
 
     Ok(())
-}
-
-fn parse(path: impl AsRef<Path>) -> eyre::Result<Node> {
-    let json = Python::attach(|py| {
-        let module = PyModule::from_code(py, DUMPER, c"dumper.py", c"dumper")
-            .wrap_err("Failed to load dumper.py module")?;
-        let json = module
-            .getattr("dump")?
-            .call1((path
-                .as_ref()
-                .to_str()
-                .ok_or_eyre("Failed to convert path into a string")?,))?
-            .extract::<String>()?;
-        Ok::<_, eyre::Report>(json)
-    })?;
-
-    serde_json::from_str(&json).wrap_err("Failed to parse JSON AST")
 }
 
 fn cache_dir() -> eyre::Result<PathBuf> {

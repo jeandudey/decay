@@ -1,9 +1,36 @@
-use serde::Deserialize;
+use {
+    eyre::{
+        Context,
+        OptionExt, //
+    },
+    pyo3::{
+        ffi::c_str,
+        prelude::*, //
+    },
+    serde::Deserialize,
+    std::{
+        ffi::CStr,
+        path::Path, //
+    }, //
+};
 
-#[derive(Debug, Deserialize)]
-pub struct Pair {
-    pub key: Node,
-    pub value: Node,
+static PARSE_PY: &CStr = c_str!(include_str!("parse.py"));
+
+pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Node> {
+    let json = Python::attach(|py| {
+        let module = PyModule::from_code(py, PARSE_PY, c"parse.py", c"parse")
+            .wrap_err("Failed to load dumper.py module")?;
+        let json = module
+            .getattr("parse")?
+            .call1((path
+                .as_ref()
+                .to_str()
+                .ok_or_eyre("Failed to convert path into a string")?,))?
+            .extract::<String>()?;
+        Ok::<_, eyre::Report>(json)
+    })?;
+
+    serde_json::from_str(&json).wrap_err("Failed to parse JSON AST")
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,7 +57,7 @@ pub enum Node {
     Comparison {
         ctype: String,
         left: Box<Node>,
-        operator: Box<Option<Node>>,
+        operator: Option<Box<Node>>,
         right: Box<Node>,
     },
     #[serde(rename = "ElseNode")]
@@ -69,7 +96,7 @@ pub enum Node {
     },
     #[serde(rename = "NotNode")]
     Not {
-        operator: Box<Option<Node>>,
+        operator: Option<Box<Node>>,
         value: Box<Node>,
     },
     #[serde(rename = "NumberNode")]
@@ -77,12 +104,12 @@ pub enum Node {
     #[serde(rename = "OrNode")]
     Or {
         left: Box<Node>,
-        operator: Box<Option<Node>>,
+        operator: Option<Box<Node>>,
         right: Box<Node>,
     },
     #[serde(rename = "PlusAssignmentNode")]
     PlusAssignment {
-        operator: Box<Option<Node>>,
+        operator: Option<Box<Node>>,
         value: Box<Node>,
         var_name: Box<Node>,
     },
@@ -116,6 +143,19 @@ impl Node {
             _ => None,
         }
     }
+
+    pub fn as_code_block(&self) -> Option<&[Node]> {
+        match self {
+            Node::CodeBlock { lines } => Some(lines),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Pair {
+    pub key: Node,
+    pub value: Node,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,50 +1,51 @@
-use std::collections::HashMap;
+use {
+    crate::ast::interp::Interp,
+    eyre::{
+        Context,
+        bail, //
+    },
+    std::{
+        collections::HashMap,
+        path::Path,
+        str::FromStr, //
+    },
+};
 
-use eyre::{Ok, OptionExt, bail};
+mod interp;
+mod lower;
+mod raw;
 
-pub mod raw;
-
-#[derive(Debug)]
-pub struct CodeBlock {
-    pub statements: Vec<Statement>,
+pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Block> {
+    let node = raw::parse(path)?;
+    let block = lower::block(&node).wrap_err("Failed to lower AST")?;
+    Ok(block)
 }
 
 #[derive(Debug)]
-pub enum Statement {
-    Function(Function),
+pub struct Block(pub Vec<Stmt>);
+
+#[derive(Debug)]
+pub enum Stmt {
+    Expr(Expr),
+    Assign(AssignStmt),
+    If(IfStmt),
 }
 
 #[derive(Debug)]
-pub struct Function {
-    pub name: String,
-    pub args: Vec<Value>,
-    pub kwargs: HashMap<String, Value>,
-}
-
-#[derive(Debug)]
-pub enum Value {
+pub enum Expr {
+    Id(String),
     String(String),
-    Array(Vec<Value>),
+    Array(Vec<Expr>),
+    Number(i64),
+    Bool(bool),
+    Call(Call),
+    Method(Method),
+    Index(Index),
+    UnOp(UnOp),
+    BinOp(BinOp),
 }
 
-impl Value {
-    fn from_raw(node: &raw::Node) -> eyre::Result<Self> {
-        Ok(match node {
-            raw::Node::String { value, .. } => Value::String(value.clone()),
-            raw::Node::Array { args } => {
-                let argument = args.as_argument().ok_or_eyre("expected argument node")?;
-                Value::Array(
-                    argument
-                        .arguments
-                        .iter()
-                        .map(Value::from_raw)
-                        .collect::<eyre::Result<Vec<_>>>()?,
-                )
-            }
-            _ => bail!("Unexpected value node {node:?}"),
-        })
-    }
-
+impl Expr {
     pub fn as_string(&self) -> eyre::Result<&str> {
         match self {
             Self::String(v) => Ok(v),
@@ -53,45 +54,79 @@ impl Value {
     }
 }
 
-pub fn lower(ast: raw::Node) -> eyre::Result<CodeBlock> {
-    match ast {
-        raw::Node::CodeBlock { lines } => {
-            let mut statements = Vec::new();
-            for line in lines {
-                match line {
-                    raw::Node::Function { name, args } => {
-                        let mut lowered_args = Vec::new();
+#[derive(Debug)]
+pub struct Call {
+    pub name: String,
+    pub args: Args,
+}
 
-                        let argument = args.as_argument().ok_or_eyre("expected argument node")?;
-                        for arg in &argument.arguments {
-                            lowered_args.push(Value::from_raw(arg)?);
-                        }
+#[derive(Debug)]
+pub struct Method {
+    pub obj: Box<Expr>,
+    pub name: String,
+    pub args: Args,
+}
 
-                        let mut kwargs = HashMap::new();
-                        for kwarg in &argument.kwargs {
-                            let id = kwarg
-                                .key
-                                .as_id()
-                                .ok_or_eyre("expected identifier for keyword argument")?
-                                .to_owned();
-                            kwargs.insert(id, Value::from_raw(&kwarg.value)?);
-                        }
-                        statements.push(Statement::Function(Function {
-                            name: name
-                                .as_id()
-                                .ok_or_eyre("Function name is not an identifier")?
-                                .to_owned(),
-                            args: lowered_args,
-                            kwargs,
-                        }));
-                    }
-                    _ => (), /* eprintln!("unhandled line {line:?}") */
-                }
-            }
-            Ok(CodeBlock { statements })
+#[derive(Debug)]
+pub struct Args {
+    pub positional: Vec<Expr>,
+    pub kwargs: HashMap<String, Expr>,
+}
+
+#[derive(Debug)]
+pub struct Index {
+    pub obj: Box<Expr>,
+    pub index: Box<Expr>,
+}
+
+#[derive(Debug)]
+pub struct UnOp {
+    pub kind: UnOpKind,
+    pub val: Box<Expr>,
+}
+
+#[derive(Debug)]
+pub enum UnOpKind {
+    Not,
+}
+
+#[derive(Debug)]
+pub struct BinOp {
+    pub kind: BinOpKind,
+    pub lhs: Box<Expr>,
+    pub rhs: Box<Expr>,
+}
+
+#[derive(Debug)]
+pub enum BinOpKind {
+    Eq,
+    Ne,
+    Or,
+}
+
+impl FromStr for BinOpKind {
+    type Err = eyre::Report;
+
+    fn from_str(s: &str) -> eyre::Result<Self> {
+        match s {
+            "==" => Ok(BinOpKind::Eq),
+            "!=" => Ok(BinOpKind::Ne),
+            _ => bail!("unknown binary operator type {s}"),
         }
-        _ => todo!(),
     }
+}
+
+#[derive(Debug)]
+pub struct AssignStmt {
+    pub name: String,
+    pub value: Expr,
+    pub is_plus: bool,
+}
+
+#[derive(Debug)]
+pub struct IfStmt {
+    pub arms: Vec<(Expr, Block)>,
+    pub else_: Option<Block>,
 }
 
 #[derive(Debug)]
@@ -99,29 +134,31 @@ pub struct MesonProject {
     pub name: String,
 }
 
-pub fn eval(ast: &CodeBlock) -> eyre::Result<MesonProject> {
-    let mut meson_project = None;
-
-    for statement in &ast.statements {
-        match statement {
-            Statement::Function(function) => match function.name.as_str() {
-                "project" => {
-                    let mut args = function.args.iter();
-                    let name = args.next().ok_or_eyre("Missing project name")?;
-                }
-                "subdir" => {
-                    let dir = function
-                        .args
-                        .get(0)
-                        .ok_or_eyre("Expected directory name")?
-                        .as_string()?;
-                    println!("TODO GO INTO SUBDIR {dir:?}");
-                }
-                _ => todo!("{function:?}"),
-            },
-            _ => bail!("Unhandled statement {statement:?}"),
-        }
-    }
-
-    meson_project.ok_or_eyre("Meson project not initialized")
+pub fn eval(block: &Block) -> eyre::Result<MesonProject> {
+    let mut interp = Interp::new();
+    interp.exec_block(block)?;
+    //let mut meson_project = None;
+    //for statement in &ast.0 {
+    //    match statement {
+    //        Stmt::(function) => match function.name.as_str() {
+    //            "project" => {
+    //                let mut args = function.args.positional.iter();
+    //                let name = args.next().ok_or_eyre("Missing project name")?;
+    //            }
+    //            "subdir" => {
+    //                let dir = function
+    //                    .args
+    //                    .positional
+    //                    .get(0)
+    //                    .ok_or_eyre("Expected directory name")?
+    //                    .as_string()?;
+    //                println!("TODO GO INTO SUBDIR {dir:?}");
+    //            }
+    //            _ => todo!("{function:?}"),
+    //        },
+    //        _ => bail!("Unhandled statement {statement:?}"),
+    //    }
+    //}
+    //meson_project.ok_or_eyre("Meson project not initialized")
+    todo!("{block:?}")
 }
