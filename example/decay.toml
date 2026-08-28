@@ -1,0 +1,5 @@
+third_party_dir = "third-party/meson"
+
+[[project]]
+repo = "https://github.com/anholt/libepoxy"
+rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973"
