@@ -2,7 +2,6 @@
 
 mod ast;
 mod config;
-mod eval;
 mod git_cache;
 
 use {
