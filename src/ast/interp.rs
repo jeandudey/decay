@@ -1,26 +1,27 @@
 use {
     crate::ast::{
-        Args,
-        Block,
-        Call,
-        Expr,
-        Method,
-        Stmt, //
+        Args, Block, Call, Expr, Method, Stmt,
+        sym::{Env, Setting, SettingId},
     },
-    eyre::{Ok, OptionExt, bail},
+    eyre::{
+        Ok,
+        OptionExt,
+        bail, //
+    },
     std::{
         collections::{
             BTreeMap,
             HashMap, //
         },
         path::PathBuf,
-        rc::Rc,
+        rc::Rc, //
     },
 };
 
 #[derive(Debug)]
 pub struct Interp<'a> {
     systems: &'a HashMap<String, String>,
+    env: Env,
     project: Project,
     vars: HashMap<String, Val>,
 }
@@ -36,6 +37,7 @@ impl<'a> Interp<'a> {
 
         Self {
             systems,
+            env: Env::new(),
             project: Project {
                 name: String::new(),
                 languages: Vec::new(),
@@ -165,6 +167,7 @@ impl<'a> Interp<'a> {
                 match name {
                     "prefix" => Ok(Val::String("/usr".into())),
                     "libdir" => Ok(Val::String("lib".into())),
+                    "libexecdir" => Ok(Val::String("libexec".into())),
                     "datadir" => Ok(Val::String("share".into())),
                     "includedir" => Ok(Val::String("include".into())),
                     _ => bail!("Unknown option {name}"),
@@ -185,6 +188,13 @@ impl<'a> Interp<'a> {
                         .ok_or_eyre("Failed to convert path to a string")?
                         .to_owned(),
                 ))
+            }
+            "configuration_data" => {
+                if !positional.is_empty() {
+                    bail!("configuration data arguments not yet implemented");
+                }
+
+                Ok(Val::Obj(Rc::new(Obj::CfgData(HashMap::new()))))
             }
             _ => bail!(
                 "Unknown function call {} args {positional:?} {keyword:?}",
@@ -208,6 +218,9 @@ impl<'a> Interp<'a> {
                             .clone(),
                     ));
                 }
+                (Obj::Meson, "project_name") => {
+                    return Ok(Val::String(self.project.name.clone()));
+                }
                 (Obj::Meson, "get_compiler") => {
                     let compiler = positional
                         .first()
@@ -219,11 +232,39 @@ impl<'a> Interp<'a> {
                         .ok_or_eyre("expected compiler argument")?;
 
                     match compiler {
-                        "c" => return Ok(Val::Obj(Rc::new(Obj::CCompiler))),
+                        "c" => return Ok(Val::Obj(Rc::new(Obj::Compiler(Lang::C)))),
                         _ => bail!("Unknow compiler for get_compiler {compiler}"),
                     }
                 }
-                (Obj::Machine(_), "system") => {}
+                (Obj::Machine(_), "system") => {
+                    let id = self.env.intern(Setting {
+                        key: "machine:host_system".into(),
+                        choices: self.systems.keys().cloned().collect(),
+                    })?;
+                    return Ok(Val::Sym(id));
+                }
+                (Obj::CfgData(data), "set_quoted") => {
+                    eprintln!("todo set_quoted");
+                    return Ok(Val::Unset);
+                }
+                (Obj::CfgData(data), "set") => {
+                    eprintln!("todo set");
+                    return Ok(Val::Unset);
+                }
+                (Obj::Compiler(lang), "has_header") => {
+                    let header = positional
+                        .first()
+                        .map(|v| v.as_str().ok_or_eyre("Header should be a string"))
+                        .transpose()?
+                        .ok_or_eyre("Expected header")?;
+                    let id = self.intern_bool(format!(
+                        "probe:{}:has_header:{header}",
+                        match lang {
+                            Lang::C => "c",
+                        }
+                    ))?;
+                    return Ok(Val::Sym(id));
+                }
                 (obj, name) => {
                     bail!("Unknown method `{name}` for obj {obj:?} args {positional:?} {keyword:?}")
                 }
@@ -231,6 +272,10 @@ impl<'a> Interp<'a> {
         }
 
         match (obj, method.name.as_str()) {
+            (Val::String(s), "format") => {
+                eprintln!("todo format");
+                Ok(Val::String(s.clone()))
+            }
             (Val::String(s), "split") => {
                 let pat = positional
                     .first()
@@ -280,6 +325,14 @@ impl<'a> Interp<'a> {
         }
         Ok((positional, keyword))
     }
+
+    fn intern_bool(&mut self, key: String) -> eyre::Result<SettingId> {
+        let id = self.env.intern(Setting {
+            key,
+            choices: vec!["true".into(), "false".into()],
+        })?;
+        Ok(id)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -288,6 +341,7 @@ enum Val {
     Obj(Rc<Obj>),
     Array(Vec<Val>),
     Int(i64),
+    Sym(SettingId),
     Unset,
 }
 
@@ -309,9 +363,15 @@ impl Val {
 
 #[derive(Debug, Clone)]
 enum Obj {
-    CCompiler,
+    Compiler(Lang),
     Machine(MachineKind),
     Meson,
+    CfgData(HashMap<String, String>),
+}
+
+#[derive(Debug, Clone)]
+enum Lang {
+    C,
 }
 
 #[derive(Debug, Clone)]

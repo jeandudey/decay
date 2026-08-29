@@ -59,11 +59,13 @@ fn main() -> eyre::Result<()> {
             for project in &config.projects {
                 let project_dir = git_cache.checkout(&project)?;
                 let root_meson_file = project_dir.join("meson.build");
+                let root_meson_options = project_dir.join("meson_options.txt");
                 if !root_meson_file.exists() {
                     bail!("Project does not contain a meson.build file");
                 }
 
-                let ast = parse(&root_meson_file).wrap_err("Failed to parse meson.build file")?;
+                let ast = parse(&root_meson_file, &root_meson_options)
+                    .wrap_err("Failed to parse meson.build file")?;
                 //println!("{ast:?}");
                 eval(&ast, &config.systems)?;
                 //let code_block = match ast {

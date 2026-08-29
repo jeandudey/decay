@@ -15,11 +15,12 @@ use {
 };
 
 static PARSE_PY: &CStr = c_str!(include_str!("parse.py"));
+static PARSE_OPTIONS_PY: &CStr = c_str!(include_str!("parse_options.py"));
 
 pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Node> {
     let json = Python::attach(|py| {
         let module = PyModule::from_code(py, PARSE_PY, c"parse.py", c"parse")
-            .wrap_err("Failed to load dumper.py module")?;
+            .wrap_err("Failed to load parse.py module")?;
         let json = module
             .getattr("parse")?
             .call1((path
@@ -31,6 +32,24 @@ pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Node> {
     })?;
 
     serde_json::from_str(&json).wrap_err("Failed to parse JSON AST")
+}
+
+pub fn parse_options(path: impl AsRef<Path>) -> eyre::Result<String> {
+    let json = Python::attach(|py| {
+        let module =
+            PyModule::from_code(py, PARSE_OPTIONS_PY, c"parse_options.py", c"parse_options")
+                .inspect_err(|err| err.print(py))
+                .wrap_err("Failed to load parse_options.py module")?;
+        let json = module
+            .getattr("parse")?
+            .call1((path
+                .as_ref()
+                .to_str()
+                .ok_or_eyre("Failed to convert path into a string")?,))?
+            .extract::<String>()?;
+        Ok::<_, eyre::Report>(json)
+    })?;
+    Ok(json)
 }
 
 #[derive(Debug, Deserialize)]

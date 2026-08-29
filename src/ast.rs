@@ -1,5 +1,8 @@
 use {
-    crate::ast::interp::Interp,
+    crate::ast::{
+        interp::Interp,
+        option::MesonOption, //
+    },
     eyre::{
         Context,
         bail, //
@@ -13,10 +16,23 @@ use {
 
 mod interp;
 mod lower;
+mod option;
 mod raw;
+mod sym;
 
-pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Block> {
-    let node = raw::parse(path)?;
+pub fn parse(
+    meson_build: impl AsRef<Path>,
+    meson_options: impl AsRef<Path>,
+) -> eyre::Result<Block> {
+    let options: Option<Vec<MesonOption>> = if meson_options.as_ref().exists() {
+        Some(serde_json::from_str(&raw::parse_options(meson_options)?)?)
+    } else {
+        None
+    };
+
+    println!("{options:?}");
+
+    let node = raw::parse(meson_build)?;
     let block = lower::block(&node).wrap_err("Failed to lower AST")?;
     Ok(block)
 }
