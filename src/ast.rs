@@ -194,5 +194,4 @@ pub fn eval(
     //    }
     //}
     //meson_project.ok_or_eyre("Meson project not initialized")
-    todo!("{block:?}")
 }

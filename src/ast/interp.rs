@@ -1,7 +1,8 @@
 use {
     crate::ast::{
-        Args, BinOp, BinOpKind, Block, Call, Expr, IfStmt, Method, ProjectOptionKind,
-        ProjectOptions, Stmt, UnOpKind,
+        Args, BinOp, BinOpKind, Block, Call,
+        Expr::{self, Array},
+        IfStmt, Method, ProjectOptionKind, ProjectOptions, Stmt, UnOpKind,
         interp::Flow::Normal,
         sym::{
             Cond,
@@ -341,6 +342,58 @@ impl<'a> Interp<'a> {
                 self.flow = Flow::Abort;
                 Ok(Val::Unset)
             }
+            "dependency" => {
+                let name = positional
+                    .first()
+                    .ok_or_eyre("Expected dependency name")?
+                    .as_str()
+                    .ok_or_eyre("Option name should be a string")?;
+
+                let required = match keyword.get("required") {
+                    Some(v) => v.truth(&self.env)?,
+                    None => Cond::True,
+                };
+
+                let found = if matches!(required, Cond::True) {
+                    Cond::True
+                } else {
+                    self.intern_bool(format!("dep:{name}"))
+                        .map(|id| Cond::Is(id, 0))?
+                };
+
+                Ok(Val::Obj(Rc::new(Obj::Dep(Dep {
+                    name: name.to_owned(),
+                    found,
+                }))))
+            }
+            "find_program" => {
+                let name = positional
+                    .first()
+                    .ok_or_eyre("Expected program name")?
+                    .as_str()
+                    .ok_or_eyre("Program name should be a string")?;
+
+                Ok(Val::Obj(Rc::new(Obj::Program(Program {
+                    name: name.to_owned(),
+                    found: Cond::True, /* TODO */
+                }))))
+            }
+            "files" => {
+                // TODO
+                Ok(Val::Array(positional.clone()))
+            }
+            "include_directories" => {
+                // TODO
+                Ok(Val::Array(positional.clone()))
+            }
+            "subdir" => {
+                // TODO
+                Ok(Val::Unset)
+            }
+            "message" => {
+                // TODO
+                Ok(Val::Unset)
+            }
             _ => bail!(
                 "Unknown function call {} args {positional:?} {keyword:?}",
                 call.name
@@ -438,6 +491,15 @@ impl<'a> Interp<'a> {
                             }
                         ))
                         .map(Val::Sym);
+                }
+                (Obj::Dep(dep), "partial_dependency") => {
+                    return Ok(Val::Obj(Rc::new(Obj::Dep(dep.clone()))));
+                }
+                (Obj::Dep(dep), "found") => {
+                    return Ok(cond_val(&self.env, dep.found.clone()));
+                }
+                (Obj::Program(program), "found") => {
+                    return Ok(cond_val(&self.env, program.found.clone()));
                 }
                 (obj, name) => {
                     bail!("Unknown method `{name}` for obj {obj:?} args {positional:?} {keyword:?}")
@@ -637,6 +699,8 @@ enum Obj {
     Machine(MachineKind),
     Meson,
     CfgData(HashMap<String, String>),
+    Dep(Dep),
+    Program(Program),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -647,6 +711,18 @@ enum Lang {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum MachineKind {
     Host,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Dep {
+    name: String,
+    found: Cond,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Program {
+    name: String,
+    found: Cond,
 }
 
 #[derive(Debug)]
