@@ -34,7 +34,7 @@ pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Node> {
     serde_json::from_str(&json).wrap_err("Failed to parse JSON AST")
 }
 
-pub fn parse_options(path: impl AsRef<Path>) -> eyre::Result<String> {
+pub fn parse_options(path: impl AsRef<Path>) -> eyre::Result<Vec<OptionNode>> {
     let json = Python::attach(|py| {
         let module =
             PyModule::from_code(py, PARSE_OPTIONS_PY, c"parse_options.py", c"parse_options")
@@ -49,7 +49,8 @@ pub fn parse_options(path: impl AsRef<Path>) -> eyre::Result<String> {
             .extract::<String>()?;
         Ok::<_, eyre::Report>(json)
     })?;
-    Ok(json)
+
+    serde_json::from_str(&json).wrap_err("Failed to parse JSON AST")
 }
 
 #[derive(Debug, Deserialize)]
@@ -183,4 +184,25 @@ pub struct Argument {
     pub arguments: Vec<Node>,
     #[serde(default)]
     pub kwargs: Vec<Pair>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind")]
+pub enum OptionNode {
+    #[serde(rename = "UserBooleanOption")]
+    Bool {
+        name: String,
+        value: bool,
+        #[serde(default)]
+        description: Option<String>,
+        deprecated: bool,
+    },
+    #[serde(rename = "UserComboOption")]
+    Combo {
+        name: String,
+        value: String,
+        choices: Vec<String>,
+        description: Option<String>,
+        deprecated: bool,
+    },
 }

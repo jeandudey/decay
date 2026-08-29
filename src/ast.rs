@@ -1,8 +1,5 @@
 use {
-    crate::ast::{
-        interp::Interp,
-        option::OptionNode, //
-    },
+    crate::ast::interp::Interp,
     eyre::{
         Context,
         bail, //
@@ -11,21 +8,21 @@ use {
         collections::HashMap,
         path::Path,
         str::FromStr, //
-    },
+    }, //
 };
 
 mod interp;
 mod lower;
-mod option;
 mod raw;
 mod sym;
 
 pub fn parse(
     meson_build: impl AsRef<Path>,
     meson_options: impl AsRef<Path>,
-) -> eyre::Result<Block> {
-    let options: Option<Vec<OptionNode>> = if meson_options.as_ref().exists() {
-        Some(serde_json::from_str(&raw::parse_options(meson_options)?)?)
+) -> eyre::Result<(Block, Option<ProjectOptions>)> {
+    let options = if meson_options.as_ref().exists() {
+        let options = raw::parse_options(meson_options)?;
+        Some(lower::options(&options))
     } else {
         None
     };
@@ -34,7 +31,7 @@ pub fn parse(
 
     let node = raw::parse(meson_build)?;
     let block = lower::block(&node).wrap_err("Failed to lower AST")?;
-    Ok(block)
+    Ok((block, options))
 }
 
 #[derive(Debug)]
@@ -114,8 +111,9 @@ pub struct BinOp {
     pub rhs: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOpKind {
+    Add,
     Eq,
     Ne,
     Or,
@@ -143,7 +141,22 @@ pub struct AssignStmt {
 #[derive(Debug)]
 pub struct IfStmt {
     pub arms: Vec<(Expr, Block)>,
-    pub else_: Option<Block>,
+    pub elseblock: Option<Block>,
+}
+
+pub type ProjectOptions = HashMap<String, ProjectOption>;
+
+#[derive(Debug)]
+pub struct ProjectOption {
+    pub description: Option<String>,
+    pub kind: ProjectOptionKind,
+    pub deprecated: bool,
+}
+
+#[derive(Debug)]
+pub enum ProjectOptionKind {
+    Bool { value: bool },
+    Combo { choices: Vec<String>, value: String },
 }
 
 #[derive(Debug)]
@@ -151,8 +164,12 @@ pub struct MesonProject {
     pub name: String,
 }
 
-pub fn eval(block: &Block, systems: &HashMap<String, String>) -> eyre::Result<MesonProject> {
-    let mut interp = Interp::new(systems);
+pub fn eval(
+    block: &Block,
+    options: Option<&ProjectOptions>,
+    systems: &HashMap<String, String>,
+) -> eyre::Result<MesonProject> {
+    let mut interp = Interp::new(options, systems);
     interp.exec_block(block)?;
     //let mut meson_project = None;
     //for statement in &ast.0 {

@@ -64,10 +64,10 @@ fn main() -> eyre::Result<()> {
                     bail!("Project does not contain a meson.build file");
                 }
 
-                let ast = parse(&root_meson_file, &root_meson_options)
+                let (ast, options) = parse(&root_meson_file, &root_meson_options)
                     .wrap_err("Failed to parse meson.build file")?;
                 //println!("{ast:?}");
-                eval(&ast, &config.systems)?;
+                eval(&ast, options.as_ref(), &config.systems)?;
                 //let code_block = match ast {
                 //    Node::CodeBlock(v) => v,
                 //    _ => bail!("No root code block"),

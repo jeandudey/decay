@@ -10,16 +10,22 @@ use {
         IfStmt,
         Index,
         Method,
+        ProjectOption,
+        ProjectOptionKind,
+        ProjectOptions,
         Stmt,
         UnOp,
         UnOpKind,
-        raw::Node, //
+        raw::{
+            Node,
+            OptionNode, //
+        }, //
     },
     eyre::{
         OptionExt,
         bail, //
     },
-    std::str::FromStr,
+    std::{collections::HashMap, str::FromStr},
 };
 
 pub fn block(node: &Node) -> eyre::Result<Block> {
@@ -48,7 +54,7 @@ pub fn block(node: &Node) -> eyre::Result<Block> {
                             _ => bail!("expected if node"),
                         })
                         .collect::<eyre::Result<_>>()?,
-                    else_: match &**elseblock {
+                    elseblock: match &**elseblock {
                         Node::Empty => None,
                         Node::Else { block: else_block } => block(&else_block).map(Some)?,
                         _ => bail!("expected else node"),
@@ -191,4 +197,42 @@ fn id(node: &Node) -> eyre::Result<String> {
         .as_id()
         .ok_or_eyre("function name is not an identifier")?
         .to_owned())
+}
+
+pub fn options(options: &[OptionNode]) -> ProjectOptions {
+    options
+        .iter()
+        .map(|v| match v {
+            OptionNode::Bool {
+                name,
+                value,
+                description,
+                deprecated,
+            } => (
+                name.clone(),
+                ProjectOption {
+                    description: description.clone(),
+                    kind: ProjectOptionKind::Bool { value: *value },
+                    deprecated: *deprecated,
+                },
+            ),
+            OptionNode::Combo {
+                name,
+                value,
+                choices,
+                description,
+                deprecated,
+            } => (
+                name.clone(),
+                ProjectOption {
+                    description: description.clone(),
+                    kind: ProjectOptionKind::Combo {
+                        choices: choices.clone(),
+                        value: value.clone(),
+                    },
+                    deprecated: *deprecated,
+                },
+            ),
+        })
+        .collect()
 }

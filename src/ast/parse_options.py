@@ -11,7 +11,7 @@ def parse(path):
     oi = OptionInterpreter(store, '')
     oi.process(path)
     return json.dumps([{
-        'name': str(k),
+        'name': str(k).removeprefix(':'),
         'kind': type(v).__name__,
         'value': v.value,
         'description': v.description,
