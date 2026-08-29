@@ -1,5 +1,15 @@
 third_party_dir = "third-party/meson"
 
+[systems]
+android = "prelude//os/constraints:os[android]"
+darwin = "prelude//os/constraints:os[macos]"
+freebsd = "prelude//os/constraints:os[freebsd]"
+linux = "prelude//os/constraints:os[linux]"
+netbsd = "prelude//os/constraints:os[netbsd]"
+windows = "prelude//os/constraints:os[windows]"
+sunos = "prelude//os/constraints:os[illumos]"
+fuchsia = "prelude//os/constraints:os[fuchsia]"
+
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
 rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973"

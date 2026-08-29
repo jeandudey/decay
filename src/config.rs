@@ -9,18 +9,20 @@ use {
         Sha256, //
     },
     std::{
+        collections::HashMap,
         fs,
         path::{
             Path,
             PathBuf, //
         },
     },
-    url::Url, //
+    url::Url,
 };
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub third_party_dir: PathBuf,
+    pub systems: HashMap<String, String>,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
 }

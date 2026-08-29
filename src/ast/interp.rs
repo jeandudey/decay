@@ -9,23 +9,33 @@ use {
     },
     eyre::{Ok, OptionExt, bail},
     std::{
-        collections::{BTreeMap, HashMap},
+        collections::{
+            BTreeMap,
+            HashMap, //
+        },
+        path::PathBuf,
         rc::Rc,
     },
 };
 
 #[derive(Debug)]
-pub struct Interp {
+pub struct Interp<'a> {
+    systems: &'a HashMap<String, String>,
     project: Project,
     vars: HashMap<String, Val>,
 }
 
-impl Interp {
-    pub fn new() -> Self {
+impl<'a> Interp<'a> {
+    pub fn new(systems: &'a HashMap<String, String>) -> Self {
         let mut vars = HashMap::new();
         vars.insert("meson".into(), Val::Obj(Rc::new(Obj::Meson)));
+        vars.insert(
+            "host_machine".into(),
+            Val::Obj(Rc::new(Obj::Machine(MachineKind::Host))),
+        );
 
         Self {
+            systems,
             project: Project {
                 name: String::new(),
                 languages: Vec::new(),
@@ -69,20 +79,27 @@ impl Interp {
                 Some(Val::Unset) | None => bail!("Undefined variable `{id}`"),
                 Some(v) => Ok(v.clone()),
             },
+            Expr::Number(v) => Ok(Val::Int(*v)),
             Expr::Array(array) => Ok(Val::Array(
                 array
                     .iter()
                     .map(|v| self.eval(v))
                     .collect::<eyre::Result<_>>()?,
             )),
+            Expr::Index(index) => {
+                let obj = self.eval(&index.obj)?;
+                let idx = self.eval(&index.index)?;
+                self.index(obj, idx)
+            }
             _ => bail!("{expr:?}"),
         }
     }
 
     fn call(&mut self, call: &Call) -> eyre::Result<Val> {
+        let (positional, keyword) = self.eval_args(&call.args)?;
+
         match call.name.as_str() {
             "project" => {
-                let (positional, keyword) = self.eval_args(&call.args)?;
                 self.project.name = positional
                     .first()
                     .ok_or_eyre("Expected project name")?
@@ -138,7 +155,41 @@ impl Interp {
 
                 Ok(Val::Unset)
             }
-            _ => bail!("Unknown function call {}", call.name),
+            "get_option" => {
+                let name = positional
+                    .first()
+                    .ok_or_eyre("Expected option name")?
+                    .as_str()
+                    .ok_or_eyre("Option name should be a string")?;
+
+                match name {
+                    "prefix" => Ok(Val::String("/usr".into())),
+                    "libdir" => Ok(Val::String("lib".into())),
+                    "datadir" => Ok(Val::String("share".into())),
+                    "includedir" => Ok(Val::String("include".into())),
+                    _ => bail!("Unknown option {name}"),
+                }
+            }
+            "join_paths" => {
+                let segments = positional
+                    .iter()
+                    .map(|v| v.as_str().ok_or_eyre("path segments should strings"))
+                    .collect::<eyre::Result<Vec<_>>>()?;
+
+                let path = segments
+                    .iter()
+                    .fold(PathBuf::new(), |path, segment| path.join(segment));
+
+                Ok(Val::String(
+                    path.to_str()
+                        .ok_or_eyre("Failed to convert path to a string")?
+                        .to_owned(),
+                ))
+            }
+            _ => bail!(
+                "Unknown function call {} args {positional:?} {keyword:?}",
+                call.name
+            ),
         }
     }
 
@@ -157,10 +208,59 @@ impl Interp {
                             .clone(),
                     ));
                 }
-                _ => bail!("Unknown method `{}`", method.name),
+                (Obj::Meson, "get_compiler") => {
+                    let compiler = positional
+                        .first()
+                        .map(|v| {
+                            v.as_str()
+                                .ok_or_eyre("compiler argument should be a string")
+                        })
+                        .transpose()?
+                        .ok_or_eyre("expected compiler argument")?;
+
+                    match compiler {
+                        "c" => return Ok(Val::Obj(Rc::new(Obj::CCompiler))),
+                        _ => bail!("Unknow compiler for get_compiler {compiler}"),
+                    }
+                }
+                (Obj::Machine(_), "system") => {}
+                (obj, name) => {
+                    bail!("Unknown method `{name}` for obj {obj:?} args {positional:?} {keyword:?}")
+                }
             }
         }
-        Ok(Val::Unset)
+
+        match (obj, method.name.as_str()) {
+            (Val::String(s), "split") => {
+                let pat = positional
+                    .first()
+                    .map(|v| {
+                        v.as_str()
+                            .map(|v| v.to_owned())
+                            .ok_or_eyre("split expects a string argument")
+                    })
+                    .transpose()?
+                    .ok_or_eyre("split expects a string argument")?;
+
+                Ok(Val::Array(
+                    s.split(&pat).map(|v| Val::String(v.to_owned())).collect(),
+                ))
+            }
+            (Val::String(s), "to_int") => Ok(i64::from_str_radix(&s, 10).map(Val::Int)?),
+            (obj, name) => {
+                bail!("Unknown method {name} on {obj:?} args {positional:?} {keyword:?}")
+            }
+        }
+    }
+
+    fn index(&mut self, obj: Val, idx: Val) -> eyre::Result<Val> {
+        match (obj, idx) {
+            (Val::Array(v), Val::Int(idx)) => v
+                .get(usize::try_from(idx)?)
+                .ok_or_eyre("index out of bounds")
+                .cloned(),
+            (obj, idx) => bail!("Unknow indexing method: {obj:?} {idx:?}"),
+        }
     }
 
     fn eval_args(&mut self, args: &Args) -> eyre::Result<(Vec<Val>, BTreeMap<String, Val>)> {
@@ -187,6 +287,7 @@ enum Val {
     String(String),
     Obj(Rc<Obj>),
     Array(Vec<Val>),
+    Int(i64),
     Unset,
 }
 
@@ -208,7 +309,14 @@ impl Val {
 
 #[derive(Debug, Clone)]
 enum Obj {
+    CCompiler,
+    Machine(MachineKind),
     Meson,
+}
+
+#[derive(Debug, Clone)]
+enum MachineKind {
+    Host,
 }
 
 #[derive(Debug)]

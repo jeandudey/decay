@@ -135,8 +135,8 @@ pub struct MesonProject {
     pub name: String,
 }
 
-pub fn eval(block: &Block) -> eyre::Result<MesonProject> {
-    let mut interp = Interp::new();
+pub fn eval(block: &Block, systems: &HashMap<String, String>) -> eyre::Result<MesonProject> {
+    let mut interp = Interp::new(systems);
     interp.exec_block(block)?;
     //let mut meson_project = None;
     //for statement in &ast.0 {

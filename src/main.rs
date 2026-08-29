@@ -65,7 +65,7 @@ fn main() -> eyre::Result<()> {
 
                 let ast = parse(&root_meson_file).wrap_err("Failed to parse meson.build file")?;
                 //println!("{ast:?}");
-                eval(&ast)?;
+                eval(&ast, &config.systems)?;
                 //let code_block = match ast {
                 //    Node::CodeBlock(v) => v,
                 //    _ => bail!("No root code block"),
