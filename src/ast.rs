@@ -1,7 +1,7 @@
 use {
     crate::ast::{
         interp::Interp,
-        option::MesonOption, //
+        option::OptionNode, //
     },
     eyre::{
         Context,
@@ -24,7 +24,7 @@ pub fn parse(
     meson_build: impl AsRef<Path>,
     meson_options: impl AsRef<Path>,
 ) -> eyre::Result<Block> {
-    let options: Option<Vec<MesonOption>> = if meson_options.as_ref().exists() {
+    let options: Option<Vec<OptionNode>> = if meson_options.as_ref().exists() {
         Some(serde_json::from_str(&raw::parse_options(meson_options)?)?)
     } else {
         None
