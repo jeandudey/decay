@@ -8,7 +8,10 @@ use {
         Stmt, //
     },
     eyre::{Ok, OptionExt, bail},
-    std::{collections::HashMap, rc::Rc},
+    std::{
+        collections::{BTreeMap, HashMap},
+        rc::Rc,
+    },
 };
 
 #[derive(Debug)]
@@ -26,7 +29,9 @@ impl Interp {
             project: Project {
                 name: String::new(),
                 languages: Vec::new(),
-                version: String::new(),
+                version: None,
+                default_options: None,
+                license: None,
             },
             vars,
         }
@@ -64,6 +69,12 @@ impl Interp {
                 Some(Val::Unset) | None => bail!("Undefined variable `{id}`"),
                 Some(v) => Ok(v.clone()),
             },
+            Expr::Array(array) => Ok(Val::Array(
+                array
+                    .iter()
+                    .map(|v| self.eval(v))
+                    .collect::<eyre::Result<_>>()?,
+            )),
             _ => bail!("{expr:?}"),
         }
     }
@@ -71,7 +82,7 @@ impl Interp {
     fn call(&mut self, call: &Call) -> eyre::Result<Val> {
         match call.name.as_str() {
             "project" => {
-                let (positional) = self.eval_args(&call.args)?;
+                let (positional, keyword) = self.eval_args(&call.args)?;
                 self.project.name = positional
                     .first()
                     .ok_or_eyre("Expected project name")?
@@ -88,7 +99,43 @@ impl Interp {
                             .map(|v| v.to_owned())
                     })
                     .collect::<eyre::Result<_>>()?;
-                println!("{:?}", self.project);
+
+                self.project.version = keyword
+                    .get("version")
+                    .map(|v| {
+                        v.as_str()
+                            .map(|v| v.to_owned())
+                            .ok_or_eyre("version should be a string")
+                    })
+                    .transpose()?;
+
+                self.project.default_options = keyword
+                    .get("default_options")
+                    .map(|v| {
+                        v.as_array()
+                            .map(|v| {
+                                v.iter()
+                                    .map(|v| {
+                                        v.as_str()
+                                            .map(|v| v.to_owned())
+                                            .ok_or_eyre("default_option values should be a string")
+                                    })
+                                    .collect::<eyre::Result<Vec<_>>>()
+                            })
+                            .ok_or_eyre("default_options should be an array")
+                            .flatten()
+                    })
+                    .transpose()?;
+
+                self.project.license = keyword
+                    .get("license")
+                    .map(|v| {
+                        v.as_str()
+                            .map(|v| v.to_owned())
+                            .ok_or_eyre("license should be a string")
+                    })
+                    .transpose()?;
+
                 Ok(Val::Unset)
             }
             _ => bail!("Unknown function call {}", call.name),
@@ -97,12 +144,18 @@ impl Interp {
 
     fn method(&mut self, method: &Method) -> eyre::Result<Val> {
         let obj = self.eval(&method.obj)?;
-        let positional = self.eval_args(&method.args);
+        let (positional, keyword) = self.eval_args(&method.args)?;
 
         if let Val::Obj(obj) = &obj {
             match (&**obj, method.name.as_str()) {
                 (Obj::Meson, "project_version") => {
-                    return Ok(Val::String(self.project.version.clone()));
+                    return Ok(Val::String(
+                        self.project
+                            .version
+                            .as_ref()
+                            .ok_or_eyre("No project version")?
+                            .clone(),
+                    ));
                 }
                 _ => bail!("Unknown method `{}`", method.name),
             }
@@ -110,13 +163,22 @@ impl Interp {
         Ok(Val::Unset)
     }
 
-    fn eval_args(&mut self, args: &Args) -> eyre::Result<(Vec<Val>)> {
+    fn eval_args(&mut self, args: &Args) -> eyre::Result<(Vec<Val>, BTreeMap<String, Val>)> {
         let positional = args
             .positional
             .iter()
             .map(|arg| self.eval(arg))
             .collect::<eyre::Result<Vec<_>>>()?;
-        Ok((positional))
+
+        let mut keyword = BTreeMap::new();
+        for key in &args.order {
+            let value = args
+                .kwargs
+                .get(key)
+                .ok_or_eyre("order and kwargs should have the same keys")?;
+            keyword.insert(key.clone(), self.eval(value)?);
+        }
+        Ok((positional, keyword))
     }
 }
 
@@ -124,6 +186,7 @@ impl Interp {
 enum Val {
     String(String),
     Obj(Rc<Obj>),
+    Array(Vec<Val>),
     Unset,
 }
 
@@ -131,6 +194,13 @@ impl Val {
     fn as_str(&self) -> Option<&str> {
         match self {
             Val::String(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    fn as_array(&self) -> Option<&[Val]> {
+        match self {
+            Val::Array(v) => Some(v),
             _ => None,
         }
     }
@@ -145,5 +215,7 @@ enum Obj {
 struct Project {
     name: String,
     languages: Vec<String>,
-    version: String,
+    version: Option<String>,
+    default_options: Option<Vec<String>>,
+    license: Option<String>,
 }

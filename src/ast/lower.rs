@@ -91,14 +91,12 @@ fn args(node: &Node) -> eyre::Result<Args> {
         kwargs: node
             .kwargs
             .iter()
-            .map(|pair| {
-                let id = pair
-                    .key
-                    .as_id()
-                    .ok_or_eyre("expected identifier for keyword argument")?
-                    .to_owned();
-                Ok((id, expr(&pair.value)?))
-            })
+            .map(|pair| Ok((id(&pair.key)?, expr(&pair.value)?)))
+            .collect::<eyre::Result<_>>()?,
+        order: node
+            .kwargs
+            .iter()
+            .map(|pair| id(&pair.key))
             .collect::<eyre::Result<_>>()?,
     })
 }
