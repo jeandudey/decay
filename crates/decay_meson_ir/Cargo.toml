@@ -1,0 +1,8 @@
+[package]
+name = "decay_meson_ir"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+decay_meson_ast.workspace = true
+tracing.workspace = true

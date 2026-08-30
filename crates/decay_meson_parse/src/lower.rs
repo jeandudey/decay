@@ -118,7 +118,7 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
         } else {
             Expr::FormatString(value.clone())
         }),
-        Node::Number { value, .. } => Ok(Expr::Number(*value)),
+        Node::Number { value, .. } => Ok(Expr::Int(*value)),
         Node::Boolean { value } => Ok(Expr::Bool(*value)),
         Node::Array { args } => args
             .expect_argument()?
@@ -204,7 +204,7 @@ fn method(source_object: &Node, name: &Node, method_args: &Node) -> eyre::Result
 fn assign_stmt(name: &Node, value: &Node, is_plus: bool) -> eyre::Result<AssignStmt> {
     Ok(AssignStmt {
         name: name.expect_id()?,
-        value: expr(value)?,
+        val: expr(value)?,
         is_plus,
     })
 }

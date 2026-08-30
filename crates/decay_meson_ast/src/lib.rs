@@ -24,7 +24,7 @@ pub enum Expr {
     FormatString(String),
     Array(Vec<Expr>),
     Dict(Dict),
-    Number(i64),
+    Int(i64),
     Bool(bool),
     Call(Call),
     Method(Method),
@@ -124,7 +124,7 @@ pub struct Ternary {
 #[derive(Debug)]
 pub struct AssignStmt {
     pub name: String,
-    pub value: Expr,
+    pub val: Expr,
     pub is_plus: bool,
 }
 

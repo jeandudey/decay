@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_variables)]
 
 mod ast;
 mod config;
@@ -23,6 +23,7 @@ use {
         fs,
         path::PathBuf, //
     },
+    tracing::info,
     tracing_subscriber::{
         EnvFilter,
         fmt::format::FmtSpan, //
@@ -63,7 +64,16 @@ fn main() -> eyre::Result<()> {
 
             for project in &config.projects {
                 let project_dir = git_cache.checkout(&project)?;
-                eval(&project_dir, &config.systems)?;
+                let ast = decay_meson_parse::parse_build(&project_dir.join("meson.build"))?;
+                let ir = decay_meson_ir::normalize(&ast);
+                info!(
+                    "{}",
+                    ir.iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                );
+                //eval(&project_dir, &config.systems)?;
             }
         }
     }

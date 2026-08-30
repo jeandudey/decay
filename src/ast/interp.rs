@@ -146,7 +146,7 @@ impl<'a> Interp<'a> {
                 self.eval(expr)?;
             }
             Stmt::Assign(assign) => {
-                let value = self.eval(&assign.value)?;
+                let value = self.eval(&assign.val)?;
                 let value = if assign.is_plus {
                     let old = self
                         .vars
@@ -162,7 +162,6 @@ impl<'a> Interp<'a> {
             }
             Stmt::If(stmt) => self.exec_if(stmt)?,
             Stmt::Foreach(stmt) => self.exec_foreach(stmt)?,
-            _ => todo!("{stmt:?}"),
         }
 
         Ok(())
@@ -408,7 +407,7 @@ impl<'a> Interp<'a> {
                 }
                 Some(v) => Ok(v.clone()),
             },
-            Expr::Number(v) => Ok(Val::Int(*v)),
+            Expr::Int(v) => Ok(Val::Int(*v)),
             Expr::Array(array) => Ok(Val::Array(
                 array
                     .iter()
