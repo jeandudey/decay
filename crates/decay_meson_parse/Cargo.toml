@@ -1,0 +1,12 @@
+[package]
+name = "decay_meson_parse"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+decay_meson_ast.workspace = true
+eyre.workspace = true
+pyo3.workspace = true
+tracing.workspace = true
+serde.workspace = true
+serde_json.workspace = true

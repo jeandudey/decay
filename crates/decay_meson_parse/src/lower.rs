@@ -1,10 +1,5 @@
 use {
-    crate::ast::{
-        raw::{
-            Node,
-            OptionNode, //
-        }, //
-    },
+    crate::node::Node,
     decay_meson_ast::{
         Args,
         AssignStmt,
@@ -18,9 +13,6 @@ use {
         IfStmt,
         Index,
         Method,
-        ProjectOption,
-        ProjectOptionKind,
-        ProjectOptions,
         Stmt,
         Ternary,
         UnOp,
@@ -31,7 +23,6 @@ use {
         bail, //
     },
     std::str::FromStr,
-    tracing::warn,
 };
 
 pub fn block(node: &Node) -> eyre::Result<Block> {
@@ -67,15 +58,7 @@ pub fn block(node: &Node) -> eyre::Result<Block> {
                     },
                 }));
             }
-            Node::PlusAssignment {
-                var_name,
-                value,
-                operator,
-            } => {
-                if let Some(op) = operator {
-                    warn!(?op, "unhandled operator");
-                }
-
+            Node::PlusAssignment { var_name, value } => {
                 stmts.push(assign_stmt(var_name, value, true).map(Stmt::Assign)?);
             }
             Node::ForeachClause {
@@ -86,7 +69,7 @@ pub fn block(node: &Node) -> eyre::Result<Block> {
                 stmts.push(Stmt::Foreach(ForeachStmt {
                     names: varnames
                         .iter()
-                        .map(|v| id(v))
+                        .map(|v| v.expect_id())
                         .collect::<eyre::Result<Vec<_>>>()?,
                     iter: expr(items)?,
                     body: block(&body)?,
@@ -100,13 +83,13 @@ pub fn block(node: &Node) -> eyre::Result<Block> {
 
 fn lower_call(name: &Node, call_args: &Node) -> eyre::Result<Call> {
     Ok(Call {
-        name: id(name)?,
+        name: name.expect_id()?,
         args: args(call_args)?,
     })
 }
 
 fn args(node: &Node) -> eyre::Result<Args> {
-    let node = node.as_argument().ok_or_eyre("expected argument node")?;
+    let node = node.expect_argument()?;
 
     Ok(Args {
         positional: node
@@ -117,12 +100,12 @@ fn args(node: &Node) -> eyre::Result<Args> {
         kwargs: node
             .kwargs
             .iter()
-            .map(|pair| Ok((id(&pair.key)?, expr(&pair.value)?)))
+            .map(|pair| Ok((pair.key.expect_id()?, expr(&pair.value)?)))
             .collect::<eyre::Result<_>>()?,
         order: node
             .kwargs
             .iter()
-            .map(|pair| id(&pair.key))
+            .map(|pair| pair.key.expect_id())
             .collect::<eyre::Result<_>>()?,
     })
 }
@@ -130,12 +113,15 @@ fn args(node: &Node) -> eyre::Result<Args> {
 fn expr(node: &Node) -> eyre::Result<Expr> {
     match node {
         Node::Id { value } => Ok(Expr::Id(value.clone())),
-        Node::String { value, .. } => Ok(Expr::String(value.clone())),
+        Node::String { value, is_fstring } => Ok(if *is_fstring {
+            Expr::String(value.clone())
+        } else {
+            Expr::FormatString(value.clone())
+        }),
         Node::Number { value, .. } => Ok(Expr::Number(*value)),
         Node::Boolean { value } => Ok(Expr::Bool(*value)),
         Node::Array { args } => args
-            .as_argument()
-            .ok_or_eyre("expected argument node")?
+            .expect_argument()?
             .arguments
             .iter()
             .map(expr)
@@ -151,47 +137,20 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
             obj: expr(iobject).map(Box::new)?,
             index: expr(index).map(Box::new)?,
         })),
-        Node::Comparison {
-            ctype,
-            left,
-            operator,
-            right,
-        } => {
-            if let Some(op) = operator {
-                warn!(?op, "unhandled operator");
-            }
-
-            Ok(Expr::BinOp(BinOp {
-                kind: BinOpKind::from_str(ctype)?,
-                lhs: expr(left).map(Box::new)?,
-                rhs: expr(right).map(Box::new)?,
-            }))
-        }
-        Node::Or {
-            left,
-            operator,
-            right,
-        } => {
-            if let Some(op) = operator {
-                warn!(?op, "unhandled operator");
-            }
-
-            Ok(Expr::BinOp(BinOp {
-                kind: BinOpKind::Or,
-                lhs: expr(left).map(Box::new)?,
-                rhs: expr(right).map(Box::new)?,
-            }))
-        }
-        Node::Not { operator, value } => {
-            if let Some(op) = operator {
-                warn!(?op, "unhandled operator");
-            }
-
-            Ok(Expr::UnOp(UnOp {
-                kind: UnOpKind::Not,
-                val: expr(value).map(Box::new)?,
-            }))
-        }
+        Node::Comparison { ctype, left, right } => Ok(Expr::BinOp(BinOp {
+            kind: BinOpKind::from_str(ctype)?,
+            lhs: expr(left).map(Box::new)?,
+            rhs: expr(right).map(Box::new)?,
+        })),
+        Node::Or { left, right } => Ok(Expr::BinOp(BinOp {
+            kind: BinOpKind::Or,
+            lhs: expr(left).map(Box::new)?,
+            rhs: expr(right).map(Box::new)?,
+        })),
+        Node::Not { value } => Ok(Expr::UnOp(UnOp {
+            kind: UnOpKind::Not,
+            val: expr(value).map(Box::new)?,
+        })),
         Node::ArithmeticNode {
             left,
             right,
@@ -223,19 +182,10 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
         })),
         Node::Dict { args } => Ok(Expr::Dict(Dict {
             args: args
-                .as_argument()
-                .ok_or_eyre("Expected argument node")?
+                .expect_argument()?
                 .kwargs
                 .iter()
-                .map(|pair| {
-                    Ok((
-                        pair.key
-                            .as_string()
-                            .ok_or_eyre("Expected string for dict key")?
-                            .to_owned(),
-                        expr(&pair.value)?,
-                    ))
-                })
+                .map(|pair| Ok((pair.key.expect_string()?, expr(&pair.value)?)))
                 .collect::<eyre::Result<_>>()?,
             order: Vec::new(),
         })),
@@ -246,57 +196,15 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
 fn method(source_object: &Node, name: &Node, method_args: &Node) -> eyre::Result<Method> {
     Ok(Method {
         obj: expr(source_object).map(Box::new)?,
-        name: id(name)?,
+        name: name.expect_id()?,
         args: args(method_args)?,
     })
 }
 
 fn assign_stmt(name: &Node, value: &Node, is_plus: bool) -> eyre::Result<AssignStmt> {
     Ok(AssignStmt {
-        name: id(name)?,
+        name: name.expect_id()?,
         value: expr(value)?,
         is_plus,
     })
-}
-
-fn id(node: &Node) -> eyre::Result<String> {
-    Ok(node.as_id().ok_or_eyre("not an identifier")?.to_owned())
-}
-
-pub fn options(options: &[OptionNode]) -> ProjectOptions {
-    options
-        .iter()
-        .map(|v| match v {
-            OptionNode::Bool {
-                name,
-                value,
-                description,
-                deprecated,
-            } => (
-                name.clone(),
-                ProjectOption {
-                    description: description.clone(),
-                    kind: ProjectOptionKind::Bool { value: *value },
-                    deprecated: *deprecated,
-                },
-            ),
-            OptionNode::Combo {
-                name,
-                value,
-                choices,
-                description,
-                deprecated,
-            } => (
-                name.clone(),
-                ProjectOption {
-                    description: description.clone(),
-                    kind: ProjectOptionKind::Combo {
-                        choices: choices.clone(),
-                        value: value.clone(),
-                    },
-                    deprecated: *deprecated,
-                },
-            ),
-        })
-        .collect()
 }

@@ -158,6 +158,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "decay_meson_ast",
+ "decay_meson_parse",
  "eyre",
  "hex",
  "pyo3",
@@ -176,6 +177,18 @@ name = "decay_meson_ast"
 version = "0.1.0"
 dependencies = [
  "eyre",
+]
+
+[[package]]
+name = "decay_meson_parse"
+version = "0.1.0"
+dependencies = [
+ "decay_meson_ast",
+ "eyre",
+ "pyo3",
+ "serde",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]

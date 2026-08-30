@@ -1,14 +1,9 @@
 use {
-    crate::ast::{
-        self,
-        lower,
-        raw,
-        sym::{
-            Cond,
-            Env,
-            Setting,
-            SettingId, //
-        }, //
+    crate::ast::sym::{
+        Cond,
+        Env,
+        Setting,
+        SettingId, //
     },
     decay_meson_ast::{
         Args,
@@ -24,6 +19,10 @@ use {
         ProjectOptions,
         Stmt,
         UnOpKind, //
+    },
+    decay_meson_parse::{
+        parse_build,
+        parse_options, //
     },
     eyre::{
         Context,
@@ -101,8 +100,7 @@ impl<'a> Interp<'a> {
 
         let options = dir.join("meson_options.txt");
         if options.exists() {
-            let options = raw::parse_options(options)?;
-            self.options = Some(lower::options(&options));
+            self.options = Some(parse_options(&options)?);
         } else {
             self.options = None;
         };
@@ -121,7 +119,7 @@ impl<'a> Interp<'a> {
             bail!("Already executed");
         }
 
-        let block = ast::parse(&path)?;
+        let block = parse_build(&path)?;
         self.dirs.push(dir);
         let saved_flow = self.flow;
         let saved_pc = self.pc.clone();
@@ -432,6 +430,10 @@ impl<'a> Interp<'a> {
                 }
             }
             Expr::BinOp(binop) => self.eval_binop(&binop),
+            Expr::FormatString(s) => {
+                warn!(%s, "format string not yet supported");
+                Ok(Val::String(s.clone()))
+            }
             _ => bail!("{expr:?}"),
         }
     }
@@ -1295,7 +1297,7 @@ fn collect_elements(
             }
         }
         Val::Unset => {}
-        other => bail!("foreach expected an array"),
+        _ => bail!("foreach expected an array"),
     }
     Ok(())
 }

@@ -21,6 +21,7 @@ pub enum Stmt {
 pub enum Expr {
     Id(String),
     String(String),
+    FormatString(String),
     Array(Vec<Expr>),
     Dict(Dict),
     Number(i64),

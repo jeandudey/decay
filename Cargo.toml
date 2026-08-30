@@ -4,6 +4,7 @@ members = ["crates/*"]
 [workspace.dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
 decay_meson_ast = { path = "crates/decay_meson_ast" }
+decay_meson_parse = { path = "crates/decay_meson_parse" }
 eyre = "0.6.14"
 hex = "0.4.3"
 pyo3 = { version = "0.29.2", features = ["auto-initialize"] }
@@ -24,6 +25,7 @@ edition = "2024"
 [dependencies]
 clap.workspace = true
 decay_meson_ast.workspace = true
+decay_meson_parse.workspace = true
 eyre.workspace = true
 hex.workspace = true
 pyo3.workspace = true
