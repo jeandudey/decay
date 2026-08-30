@@ -157,6 +157,7 @@ name = "decay"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "decay_meson_ast",
  "eyre",
  "hex",
  "pyo3",
@@ -168,6 +169,13 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "z3",
+]
+
+[[package]]
+name = "decay_meson_ast"
+version = "0.1.0"
+dependencies = [
+ "eyre",
 ]
 
 [[package]]

@@ -1,5 +1,11 @@
 use {
     crate::ast::{
+        raw::{
+            Node,
+            OptionNode, //
+        }, //
+    },
+    decay_meson_ast::{
         Args,
         AssignStmt,
         BinOp,
@@ -18,11 +24,7 @@ use {
         Stmt,
         Ternary,
         UnOp,
-        UnOpKind,
-        raw::{
-            Node,
-            OptionNode, //
-        }, //
+        UnOpKind, //
     },
     eyre::{
         OptionExt,

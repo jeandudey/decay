@@ -1,6 +1,16 @@
 use {
     crate::ast::{
         self,
+        lower,
+        raw,
+        sym::{
+            Cond,
+            Env,
+            Setting,
+            SettingId, //
+        }, //
+    },
+    decay_meson_ast::{
         Args,
         BinOp,
         BinOpKind,
@@ -13,15 +23,7 @@ use {
         ProjectOptionKind,
         ProjectOptions,
         Stmt,
-        UnOpKind,
-        lower,
-        raw,
-        sym::{
-            Cond,
-            Env,
-            Setting,
-            SettingId, //
-        }, //
+        UnOpKind, //
     },
     eyre::{
         Context,

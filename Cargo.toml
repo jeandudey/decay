@@ -1,10 +1,9 @@
-[package]
-name = "decay"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = ["crates/*"]
 
-[dependencies]
+[workspace.dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
+decay_meson_ast = { path = "crates/decay_meson_ast" }
 eyre = "0.6.14"
 hex = "0.4.3"
 pyo3 = { version = "0.29.2", features = ["auto-initialize"] }
@@ -16,3 +15,23 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { version = "2.5.8", features = ["serde"] }
 z3 = "0.21.0"
+
+[package]
+name = "decay"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap.workspace = true
+decay_meson_ast.workspace = true
+eyre.workspace = true
+hex.workspace = true
+pyo3.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true
+z3.workspace = true
