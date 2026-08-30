@@ -1,18 +1,23 @@
 use {
     decay_meson_ast as ast,
     std::{
+        collections::HashMap,
         fmt::{
             self,
             Display, //
-        }, //
+        },
     },
 };
 
+mod fold;
 mod lower;
 
 pub fn normalize(block: &ast::Block) -> Vec<Stmt> {
     let mut ctx = lower::Lower::new();
-    ctx.block(&block.0)
+    let mut block = ctx.block(&block.0);
+    let mut env = HashMap::new();
+    fold::fold_block(&mut block, &mut env);
+    block
 }
 
 #[derive(Debug)]
@@ -27,12 +32,18 @@ pub enum Stmt {
     If(IfStmt),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Atom {
     Var(String),
     String(String),
     Int(i64),
     Bool(bool),
+}
+
+impl Atom {
+    pub fn is_lit(&self) -> bool {
+        !matches!(self, Atom::Var(_))
+    }
 }
 
 #[derive(Debug)]
