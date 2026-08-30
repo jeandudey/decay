@@ -261,29 +261,75 @@ impl<'a> Interp<'a> {
     }
 
     fn exec_foreach(&mut self, stmt: &ForeachStmt) -> eyre::Result<()> {
-        let items = self.eval(&stmt.items)?;
-        let items: Vec<(Option<String>, Val)> = match &items {
-            Val::Dict(v) => v
-                .iter()
-                .map(|(k, v)| (Some(k.clone()), v.clone()))
-                .collect(),
-            other => require_concrete_array(other, "foreach")?
-                .into_iter()
-                .map(|v| (None, v))
-                .collect(),
-        };
-        for (k, v) in items {
-            match (stmt.varnames.len(), k) {
-                (1, _) => {
-                    self.vars.insert(stmt.varnames[0].clone(), v);
+        let iter = self.eval(&stmt.iter)?;
+
+        let entries: Vec<(Vec<(String, Val)>, Cond)> = match &iter {
+            Val::Dict(d) => {
+                if stmt.names.len() != 2 {
+                    bail!("iterating a dict needs two loop variables");
                 }
-                (2, Some(k)) => {
-                    self.vars.insert(stmt.varnames[0].clone(), Val::String(k));
-                    self.vars.insert(stmt.varnames[1].clone(), v);
-                }
-                _ => bail!("foreach binding count does not match the iterable"),
+                d.iter()
+                    .map(|(k, v)| {
+                        (
+                            vec![
+                                (stmt.names[0].clone(), Val::String(k.clone())),
+                                (stmt.names[1].clone(), v.clone()),
+                            ],
+                            Cond::True,
+                        )
+                    })
+                    .collect()
             }
-            self.exec_block(&stmt.body)?;
+            other => {
+                if stmt.names.len() != 1 {
+                    bail!("iterating an array needs exactly one loop variable");
+                }
+
+                let items = self.iter_elements(other)?;
+                items
+                    .into_iter()
+                    .map(|(v, c)| (vec![(stmt.names[0].clone(), v)], c))
+                    .collect()
+            }
+        };
+
+        let n_entries = entries.len();
+        for (idx, (bindings, cond)) in entries.into_iter().enumerate() {
+            let g = self.env.and(vec![self.pc.clone(), cond.clone()]);
+            if !self.env.sat(&g) {
+                continue;
+            }
+
+            if cond.is_true() {
+                for (n, v) in bindings {
+                    self.vars.insert(n, v);
+                }
+                self.exec_block(&stmt.body)?;
+            } else {
+                // Present only on some configurations: fork and merge, the same
+                // way a single-armed `if` would.
+                let before = self.vars.clone();
+                for (n, v) in bindings {
+                    self.vars.insert(n, v);
+                }
+                match self.run_branch(g.clone(), &stmt.body)? {
+                    None => self.vars = before, // the body called error()
+                    Some(after) => {
+                        let skipped = self.env.and(vec![self.pc.clone(), self.env.not(&cond)]);
+                        self.merge(vec![(g, after), (skipped, before)]);
+                    }
+                }
+                // Harmless if nothing follows: there are no iterations left to
+                // make conditional.
+                if !(self.flow == Flow::Normal || idx + 1 == n_entries) {
+                    bail!(
+                        "`break`/`continue` under a guarded loop element has no static \
+                         translation: it would make the remaining iterations conditional \
+                         on a build option"
+                    );
+                }
+            }
+
             match self.flow {
                 Flow::Break => {
                     self.flow = Flow::Normal;
@@ -291,10 +337,52 @@ impl<'a> Interp<'a> {
                 }
                 Flow::Continue => self.flow = Flow::Normal,
                 Flow::Abort => break,
-                Flow::Normal => (),
+                Flow::Normal => {}
             }
         }
+
         Ok(())
+    }
+
+    fn iter_elements(&mut self, v: &Val) -> eyre::Result<Vec<(Val, Cond)>> {
+        let mut raw = Vec::new();
+        collect_elements(&self.env, v, &Cond::True, &mut raw)?;
+
+        let mut merged: Vec<(Val, Cond)> = Vec::new();
+        let mut slot_of: Vec<usize> = Vec::with_capacity(raw.len());
+        for (val, c) in &raw {
+            let existing = merged
+                .iter()
+                .position(|(v2, c2)| v2 == val && !(c2.is_true() && c.is_true()));
+            match existing {
+                Some(i) => {
+                    merged[i].1 = self.env.or(vec![merged[i].1.clone(), c.clone()]);
+                    slot_of.push(i);
+                }
+                None => {
+                    merged.push((val.clone(), c.clone()));
+                    slot_of.push(merged.len() - 1);
+                }
+            }
+        }
+
+        // Arms that disagree on relative order would silently pick one, which
+        // can change link order. Say so rather than guess quietly.
+        let mut by_cond: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+        for (i, (_, c)) in raw.iter().enumerate() {
+            by_cond
+                .entry(format!("{c:?}"))
+                .or_default()
+                .push(slot_of[i]);
+        }
+        for (_, seq) in by_cond {
+            if seq.windows(2).any(|w| w[0] > w[1]) {
+                warn!(?self.pc, "foreach arms disagree on element order; the first arm's order was used, which may change link order");
+                break;
+            }
+        }
+
+        Ok(merged)
     }
 
     fn add(&mut self, a: &Val, b: &Val) -> eyre::Result<Val> {
@@ -1176,5 +1264,51 @@ fn require_concrete_array(v: &Val, what: &str) -> eyre::Result<Vec<Val>> {
             bail!("{what} needs a concrete array but the value depends on a build option")
         }
         _ => bail!("{what} expected an array"),
+    }
+}
+
+fn collect_elements(
+    env: &Env,
+    v: &Val,
+    ctx: &Cond,
+    out: &mut Vec<(Val, Cond)>,
+) -> eyre::Result<()> {
+    match v {
+        Val::Array(items) => {
+            for i in items.iter() {
+                collect_element(env, i, ctx, out);
+            }
+        }
+        Val::Concat(parts) => {
+            for p in parts.iter() {
+                collect_elements(env, p, ctx, out)?;
+            }
+        }
+        Val::Guarded(arms) => {
+            for (g, x) in arms.iter() {
+                let c = env.and(vec![ctx.clone(), g.clone()]);
+                if env.sat(&c) {
+                    collect_elements(env, x, &c, out)?;
+                }
+            }
+        }
+        Val::Unset => {}
+        other => bail!("foreach expected an array"),
+    }
+    Ok(())
+}
+
+fn collect_element(env: &Env, item: &Val, ctx: &Cond, out: &mut Vec<(Val, Cond)>) {
+    match item {
+        Val::Guarded(arms) => {
+            for (g, x) in arms.iter() {
+                let c = env.and(vec![ctx.clone(), g.clone()]);
+                if env.sat(&c) {
+                    collect_element(env, x, &c, out);
+                }
+            }
+        }
+        Val::Unset => {}
+        other => out.push((other.clone(), ctx.clone())),
     }
 }

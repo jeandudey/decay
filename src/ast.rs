@@ -151,8 +151,8 @@ pub struct IfStmt {
 
 #[derive(Debug)]
 pub struct ForeachStmt {
-    pub varnames: Vec<String>,
-    pub items: Expr,
+    pub names: Vec<String>,
+    pub iter: Expr,
     pub body: Block,
 }
 

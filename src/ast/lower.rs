@@ -82,11 +82,11 @@ pub fn block(node: &Node) -> eyre::Result<Block> {
                 body,
             } => {
                 stmts.push(Stmt::Foreach(ForeachStmt {
-                    varnames: varnames
+                    names: varnames
                         .iter()
                         .map(|v| id(v))
                         .collect::<eyre::Result<Vec<_>>>()?,
-                    items: expr(items)?,
+                    iter: expr(items)?,
                     body: block(&body)?,
                 }));
             }

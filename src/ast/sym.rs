@@ -234,3 +234,9 @@ pub enum Cond {
     And(Vec<Cond>),
     Or(Vec<Cond>),
 }
+
+impl Cond {
+    pub fn is_true(&self) -> bool {
+        matches!(self, Cond::True)
+    }
+}
