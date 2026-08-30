@@ -1,17 +1,30 @@
 use {
     crate::ast::{
-        Args, BinOp, BinOpKind, Block, Call,
-        Expr::{self, Array},
-        IfStmt, Method, ProjectOptionKind, ProjectOptions, Stmt, UnOpKind,
-        interp::Flow::Normal,
+        self,
+        Args,
+        BinOp,
+        BinOpKind,
+        Block,
+        Call,
+        Expr,
+        ForeachStmt,
+        IfStmt,
+        Method,
+        ProjectOptionKind,
+        ProjectOptions,
+        Stmt,
+        UnOpKind,
+        lower,
+        raw,
         sym::{
             Cond,
             Env,
             Setting,
             SettingId, //
-        },
+        }, //
     },
     eyre::{
+        Context,
         Ok,
         OptionExt,
         bail, //
@@ -19,27 +32,42 @@ use {
     std::{
         collections::{
             BTreeMap,
-            HashMap, //
+            HashMap,
+            HashSet, //
         },
         mem,
-        path::PathBuf,
+        path::{
+            Path,
+            PathBuf, //
+        },
         rc::Rc,
+    },
+    tracing::{
+        debug,
+        instrument,
+        trace,
+        warn, //
     },
 };
 
 #[derive(Debug)]
 pub struct Interp<'a> {
-    options: Option<&'a ProjectOptions>,
+    options: Option<ProjectOptions>,
     systems: &'a HashMap<String, String>,
     env: Env,
     project: Project,
     vars: HashMap<String, Val>,
     pc: Cond,
     flow: Flow,
+
+    dirs: Vec<PathBuf>,
+    visited: HashSet<PathBuf>,
 }
 
 impl<'a> Interp<'a> {
-    pub fn new(options: Option<&'a ProjectOptions>, systems: &'a HashMap<String, String>) -> Self {
+    pub fn new(
+        /* options: Option<&'a ProjectOptions>, */ systems: &'a HashMap<String, String>,
+    ) -> Self {
         let mut vars = HashMap::new();
         vars.insert("meson".into(), Val::Obj(Rc::new(Obj::Meson)));
         vars.insert(
@@ -48,7 +76,7 @@ impl<'a> Interp<'a> {
         );
 
         Self {
-            options,
+            options: None,
             systems,
             env: Env::new(),
             project: Project {
@@ -60,8 +88,46 @@ impl<'a> Interp<'a> {
             },
             vars,
             pc: Cond::True,
-            flow: Normal,
+            flow: Flow::Normal,
+            dirs: Vec::new(),
+            visited: HashSet::new(),
         }
+    }
+
+    pub fn run(&mut self, root: impl AsRef<Path>) -> eyre::Result<()> {
+        let dir = root.as_ref().canonicalize()?;
+
+        let options = dir.join("meson_options.txt");
+        if options.exists() {
+            let options = raw::parse_options(options)?;
+            self.options = Some(lower::options(&options));
+        } else {
+            self.options = None;
+        };
+
+        self.exec_file(dir)
+    }
+
+    fn exec_file(&mut self, dir: PathBuf) -> eyre::Result<()> {
+        let path = dir
+            .join("meson.build")
+            .canonicalize()
+            .wrap_err_with(|| dir.display().to_string())
+            .wrap_err("Failed to canonicalize directory")?;
+
+        if !self.visited.insert(path.clone()) {
+            bail!("Already executed");
+        }
+
+        let block = ast::parse(&path)?;
+        self.dirs.push(dir);
+        let saved_flow = self.flow;
+        let saved_pc = self.pc.clone();
+        let r = self.exec_block(&block);
+        self.flow = saved_flow;
+        self.pc = saved_pc;
+        self.dirs.pop();
+        r
     }
 
     pub fn exec_block(&mut self, block: &Block) -> eyre::Result<()> {
@@ -91,15 +157,18 @@ impl<'a> Interp<'a> {
                 } else {
                     value
                 };
+                trace!(name = %assign.name, "assign");
                 self.vars.insert(assign.name.clone(), value);
             }
             Stmt::If(stmt) => self.exec_if(stmt)?,
+            Stmt::Foreach(stmt) => self.exec_foreach(stmt)?,
             _ => todo!("{stmt:?}"),
         }
 
         Ok(())
     }
 
+    #[instrument(skip(self, stmt))]
     fn exec_if(&mut self, stmt: &IfStmt) -> eyre::Result<()> {
         let entry_pc = self.pc.clone();
 
@@ -115,10 +184,8 @@ impl<'a> Interp<'a> {
             not_taken = self.env.and(vec![not_taken, self.env.not(&c)]);
 
             if !self.env.sat(&g) {
-                println!("not sat");
                 continue;
             } else {
-                println!("sat");
             }
 
             if let Some(st) = self.run_branch(g.clone(), block)? {
@@ -129,10 +196,20 @@ impl<'a> Interp<'a> {
             }
         }
 
-        if let Some(elseblock) = &stmt.elseblock {
-            self.exec_block(&elseblock)?;
+        let else_g = self.env.and(vec![entry_pc.clone(), not_taken]);
+        if self.env.sat(&else_g) {
+            let st = match &stmt.elseblock {
+                Some(block) => self.run_branch(else_g.clone(), block)?,
+                None => Some(self.vars.clone()),
+            };
+
+            if let Some(st) = st {
+                branches.push((else_g, st));
+            }
         }
 
+        self.pc = entry_pc;
+        self.merge(branches);
         Ok(())
     }
 
@@ -155,6 +232,71 @@ impl<'a> Interp<'a> {
         Ok(Some(out))
     }
 
+    fn merge(&mut self, branches: Vec<(Cond, HashMap<String, Val>)>) {
+        let live: Vec<&(Cond, HashMap<String, Val>)> = branches.iter().collect();
+        if live.is_empty() {
+            return;
+        }
+        if live.len() == 1 {
+            self.vars = live[0].1.clone();
+            return;
+        }
+        let mut names: Vec<&String> = Vec::new();
+        for (_, m) in &live {
+            for k in m.keys() {
+                if !names.contains(&k) {
+                    names.push(k);
+                }
+            }
+        }
+        let mut out = HashMap::new();
+        for n in names {
+            let arms: Vec<(Cond, Val)> = live
+                .iter()
+                .map(|(g, m)| (g.clone(), m.get(n).cloned().unwrap_or(Val::Unset)))
+                .collect();
+            out.insert(n.clone(), guarded(&self.env, arms));
+        }
+        self.vars = out;
+    }
+
+    fn exec_foreach(&mut self, stmt: &ForeachStmt) -> eyre::Result<()> {
+        let items = self.eval(&stmt.items)?;
+        let items: Vec<(Option<String>, Val)> = match &items {
+            Val::Dict(v) => v
+                .iter()
+                .map(|(k, v)| (Some(k.clone()), v.clone()))
+                .collect(),
+            other => require_concrete_array(other, "foreach")?
+                .into_iter()
+                .map(|v| (None, v))
+                .collect(),
+        };
+        for (k, v) in items {
+            match (stmt.varnames.len(), k) {
+                (1, _) => {
+                    self.vars.insert(stmt.varnames[0].clone(), v);
+                }
+                (2, Some(k)) => {
+                    self.vars.insert(stmt.varnames[0].clone(), Val::String(k));
+                    self.vars.insert(stmt.varnames[1].clone(), v);
+                }
+                _ => bail!("foreach binding count does not match the iterable"),
+            }
+            self.exec_block(&stmt.body)?;
+            match self.flow {
+                Flow::Break => {
+                    self.flow = Flow::Normal;
+                    break;
+                }
+                Flow::Continue => self.flow = Flow::Normal,
+                Flow::Abort => break,
+                Flow::Normal => (),
+            }
+        }
+        Ok(())
+    }
+
     fn add(&mut self, a: &Val, b: &Val) -> eyre::Result<Val> {
         if a.is_arrayish() || b.is_arrayish() {
             return Ok(concat(vec![a.lift_array(), b.lift_array()]));
@@ -172,7 +314,10 @@ impl<'a> Interp<'a> {
             Expr::Call(call) => self.call(call),
             Expr::Method(method) => self.method(method),
             Expr::Id(id) => match self.vars.get(id) {
-                Some(Val::Unset) | None => bail!("Undefined variable `{id}`"),
+                Some(Val::Unset) | None => {
+                    trace!(%id, dir = %self.dirs.last().unwrap().display(), ?self.pc, ?self.vars, "undefined variable");
+                    bail!("Undefined variable `{id}`")
+                }
                 Some(v) => Ok(v.clone()),
             },
             Expr::Number(v) => Ok(Val::Int(*v)),
@@ -267,6 +412,7 @@ impl<'a> Interp<'a> {
                     .ok_or_eyre("Expected option name")?
                     .as_str()
                     .ok_or_eyre("Option name should be a string")?;
+                debug!(%name, "get_option");
 
                 match name {
                     "prefix" => Ok(Val::String("/usr".into())),
@@ -282,7 +428,7 @@ impl<'a> Interp<'a> {
                         })?;
                         Ok(Val::Sym(id))
                     }
-                    name if let Some(options) = self.options => {
+                    name if let Some(options) = &self.options => {
                         if let Some(option) = options.get(name) {
                             match &option.kind {
                                 ProjectOptionKind::Bool { .. } => {
@@ -336,7 +482,7 @@ impl<'a> Interp<'a> {
                     })
                     .collect::<eyre::Result<Vec<_>>>()?
                     .join(" ");
-                println!("{text}");
+                trace!("error({text})");
                 let neg = self.env.not(&self.pc);
                 self.env.assume(&neg);
                 self.flow = Flow::Abort;
@@ -379,20 +525,40 @@ impl<'a> Interp<'a> {
                 }))))
             }
             "files" => {
-                // TODO
+                warn!("unimplemented files");
                 Ok(Val::Array(positional.clone()))
             }
             "include_directories" => {
-                // TODO
+                warn!("unimplemented include_directories");
                 Ok(Val::Array(positional.clone()))
             }
             "subdir" => {
-                // TODO
+                let dir = positional
+                    .first()
+                    .ok_or_eyre("Expected directory")?
+                    .as_str()
+                    .ok_or_eyre("Directory should be a string")?;
+
+                let dir = self.dirs.last().unwrap().join(dir);
+                self.exec_file(dir)?;
+
                 Ok(Val::Unset)
             }
             "message" => {
-                // TODO
+                warn!("unimplemented message");
                 Ok(Val::Unset)
+            }
+            "install_headers" => {
+                warn!("unimplemented install_headers");
+                Ok(Val::Unset)
+            }
+            "configure_file" => {
+                warn!("unimplemented configure_file");
+                Ok(Val::Unset)
+            }
+            "custom_target" => {
+                warn!("unimplemented custom_target");
+                Ok(Val::Obj(Rc::new(Obj::CustomTgt)))
             }
             _ => bail!(
                 "Unknown function call {} args {positional:?} {keyword:?}",
@@ -443,15 +609,15 @@ impl<'a> Interp<'a> {
                     return Ok(Val::Sym(id));
                 }
                 (Obj::CfgData(data), "set_quoted") => {
-                    eprintln!("todo set_quoted");
+                    warn!("unimplemented set_quoted");
                     return Ok(Val::Unset);
                 }
                 (Obj::CfgData(data), "set") => {
-                    eprintln!("todo set");
+                    warn!("unimplemented set");
                     return Ok(Val::Unset);
                 }
                 (Obj::CfgData(data), "set10") => {
-                    eprintln!("todo set10");
+                    warn!("unimplemented set10");
                     return Ok(Val::Unset);
                 }
                 (Obj::Compiler(lang), "has_header") => {
@@ -468,12 +634,12 @@ impl<'a> Interp<'a> {
                     ))?;
                     return Ok(Val::Sym(id));
                 }
-                (Obj::Compiler(lang), "get_id") => {
-                    // TODO.
+                (Obj::Compiler(_), "get_id") => {
+                    warn!("unimplemented compiler.get_id");
                     return Ok(Val::String("gnu".into()));
                 }
-                (Obj::Compiler(lang), "get_supported_arguments") => {
-                    // TODO.
+                (Obj::Compiler(_), "get_supported_arguments") => {
+                    warn!("unimplemented compiler.get_supported_arguments");
                     return Ok(Val::Array(positional));
                 }
                 (Obj::Compiler(lang), "find_library") => {
@@ -482,6 +648,8 @@ impl<'a> Interp<'a> {
                         .map(|v| v.as_str().ok_or_eyre("Name should be a string"))
                         .transpose()?
                         .ok_or_eyre("Expected name")?;
+
+                    trace!(%name, "find_library");
 
                     return self
                         .intern_bool(format!(
@@ -509,7 +677,7 @@ impl<'a> Interp<'a> {
 
         match (obj, method.name.as_str()) {
             (Val::String(s), "format") => {
-                eprintln!("todo format");
+                warn!(%s, "unimplemented format");
                 Ok(Val::String(s.clone()))
             }
             (Val::String(s), "split") => {
@@ -551,12 +719,13 @@ impl<'a> Interp<'a> {
     }
 
     fn eval_binop(&mut self, binop: &BinOp) -> eyre::Result<Val> {
-        if matches!(binop.kind, BinOpKind::Or) {
+        if matches!(binop.kind, BinOpKind::And | BinOpKind::Or) {
             let l = self.eval(&binop.lhs)?;
             let lc = l.truth(&self.env)?;
             let r = self.eval(&binop.rhs)?;
             let rc = r.truth(&self.env)?;
             let c = match binop.kind {
+                BinOpKind::And => self.env.and(vec![lc, rc]),
                 _ => self.env.or(vec![lc, rc]),
             };
             return Ok(cond_val(&self.env, c));
@@ -614,6 +783,7 @@ enum Val {
     String(String),
     Obj(Rc<Obj>),
     Array(Vec<Val>),
+    Dict(BTreeMap<String, Val>),
     Int(i64),
     Sym(SettingId),
     Guarded(Vec<(Cond, Val)>),
@@ -701,6 +871,7 @@ enum Obj {
     CfgData(HashMap<String, String>),
     Dep(Dep),
     Program(Program),
+    CustomTgt,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -745,6 +916,13 @@ fn binop_concrete(env: &Env, kind: BinOpKind, a: &Val, b: &Val) -> eyre::Result<
             };
             Ok(cond_val(env, c))
         }
+        BinOpKind::Add => match (a, b) {
+            (Val::Int(a), Val::Int(b)) => Ok(Val::Int(a + b)),
+            (Val::String(a), Val::String(b)) => Ok(Val::String(format!("{a}{b}"))),
+            (Val::Array(_), Val::Array(_)) => Ok(Val::Concat(vec![a.lift_array(), b.lift_array()])),
+            _ => todo!("Add {a:?} {b:?}"),
+        },
+        BinOpKind::And => bail!("should be handled in eval_binop"),
         _ => todo!("{kind:?}"),
     }
 }
@@ -809,7 +987,7 @@ where
 fn guarded(env: &Env, arms: Vec<(Cond, Val)>) -> Val {
     let v = guarded_flat(env, arms);
     match &v {
-        Val::Guarded(a) => todo!(),
+        Val::Guarded(a) if a.iter().all(|(_, x)| x.is_arrayish()) => factor(env, a),
         _ => v,
     }
 }
@@ -856,6 +1034,93 @@ fn guarded_flat(env: &Env, arms: Vec<(Cond, Val)>) -> Val {
     Val::Guarded(grouped)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Tok {
+    Elem(Val),
+    Chunk(Val),
+}
+
+fn tokens(v: &Val, out: &mut Vec<Tok>) {
+    match v {
+        Val::Array(items) => out.extend(items.iter().cloned().map(Tok::Elem)),
+        Val::Concat(parts) => {
+            for p in parts.iter() {
+                tokens(p, out);
+            }
+        }
+        other => out.push(Tok::Chunk(other.clone())),
+    }
+}
+
+fn untokens(toks: &[Tok]) -> Val {
+    let mut parts: Vec<Val> = Vec::new();
+    let mut run: Vec<Val> = Vec::new();
+    for t in toks {
+        match t {
+            Tok::Elem(v) => run.push(v.clone()),
+            Tok::Chunk(v) => {
+                if !run.is_empty() {
+                    parts.push(Val::Array(std::mem::take(&mut run)));
+                }
+                parts.push(v.clone());
+            }
+        }
+    }
+    if !run.is_empty() {
+        parts.push(Val::Array(run));
+    }
+    concat(parts)
+}
+
+fn factor(env: &Env, arms: &[(Cond, Val)]) -> Val {
+    let toks: Vec<Vec<Tok>> = arms
+        .iter()
+        .map(|(_, v)| {
+            let mut t = Vec::new();
+            tokens(v, &mut t);
+            t
+        })
+        .collect();
+    let min = toks.iter().map(|t| t.len()).min().unwrap_or(0);
+
+    let mut head = 0;
+    while head < min && toks.iter().all(|t| t[head] == toks[0][head]) {
+        head += 1;
+    }
+    let mut tail = 0;
+    while tail < min - head
+        && toks
+            .iter()
+            .all(|t| t[t.len() - 1 - tail] == toks[0][toks[0].len() - 1 - tail])
+    {
+        tail += 1;
+    }
+    if head == 0 && tail == 0 {
+        return Val::Guarded(arms.to_vec());
+    }
+
+    let middles: Vec<(Cond, Val)> = arms
+        .iter()
+        .zip(&toks)
+        .map(|((g, _), t)| (g.clone(), untokens(&t[head..t.len() - tail])))
+        .collect();
+    let mid = guarded_flat(env, middles);
+    // `guarded_flat` collapses when every middle is equal, which is how a whole
+    // conditional disappears once the branches turn out to agree.
+    let mut parts = Vec::new();
+    if head > 0 {
+        parts.push(untokens(&toks[0][..head]));
+    }
+    if !matches!(mid, Val::Unset) {
+        parts.push(mid);
+    }
+    if tail > 0 {
+        let t = &toks[0];
+        parts.push(untokens(&t[t.len() - tail..]));
+    }
+    concat(parts)
+}
+
 fn cond_val(env: &Env, c: Cond) -> Val {
     match c {
         Cond::True => Val::Bool(true),
@@ -894,5 +1159,22 @@ fn concat(parts: Vec<Val>) -> Val {
         0 => Val::Array(Vec::new()),
         1 => fused.pop().unwrap(),
         _ => Val::Concat(fused),
+    }
+}
+
+fn require_concrete_array(v: &Val, what: &str) -> eyre::Result<Vec<Val>> {
+    match v {
+        Val::Array(v) => Ok(v.clone()),
+        Val::Concat(parts) => {
+            let mut out = Vec::new();
+            for p in parts.iter() {
+                out.extend(require_concrete_array(p, what)?);
+            }
+            Ok(out)
+        }
+        Val::Guarded(_) => {
+            bail!("{what} needs a concrete array but the value depends on a build option")
+        }
+        _ => bail!("{what} expected an array"),
     }
 }

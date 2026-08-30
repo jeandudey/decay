@@ -1,12 +1,21 @@
 use {
-    eyre::{OptionExt, bail},
+    eyre::{
+        OptionExt,
+        bail, //
+    },
     std::{
         cell::RefCell,
         collections::HashMap, //
     },
+    tracing::instrument,
     z3::{
-        Context, SatResult, Solver,
-        ast::{Bool, Int},
+        Context,
+        SatResult,
+        Solver,
+        ast::{
+            Bool,
+            Int, //
+        }, //
     },
 };
 
@@ -26,6 +35,8 @@ pub struct Env {
     consts: RefCell<Vec<Int>>,
     index: RefCell<HashMap<String, SettingId>>,
     settings: RefCell<Vec<Setting>>,
+    z3_cache: RefCell<HashMap<Cond, Bool>>,
+    sat_cache: RefCell<HashMap<Cond, bool>>,
 }
 
 impl Env {
@@ -36,6 +47,8 @@ impl Env {
             consts: RefCell::new(Vec::new()),
             index: RefCell::new(HashMap::new()),
             settings: RefCell::new(Vec::new()),
+            z3_cache: RefCell::new(HashMap::new()),
+            sat_cache: RefCell::new(HashMap::new()),
         }
     }
 
@@ -167,26 +180,30 @@ impl Env {
     pub fn assume(&self, c: &Cond) {
         let b = self.to_z3(c);
         self.solver.assert(&b);
-        //self.sat_cache.borrow_mut().clear();
+        self.sat_cache.borrow_mut().clear();
     }
 
+    #[instrument(skip_all, ret)]
     pub fn sat(&self, c: &Cond) -> bool {
         match c {
             Cond::True => return true,
             Cond::False => return false,
             _ => (),
         }
-        //if let Some(v) = self.sat_cache.borrow().get(c) {
-        //    return *v;
-        //}
+        if let Some(v) = self.sat_cache.borrow().get(c) {
+            return *v;
+        }
         let b = self.to_z3(c);
         let r = matches!(self.solver.check_assumptions(&[b]), SatResult::Sat);
-        //self.sat
+        self.sat_cache.borrow_mut().insert(c.clone(), r);
         r
     }
 
     fn to_z3(&self, c: &Cond) -> Bool {
-        match c {
+        if let Some(b) = self.z3_cache.borrow().get(c) {
+            return b.clone();
+        }
+        let b = match c {
             Cond::True => Bool::from_bool(true),
             Cond::False => Bool::from_bool(false),
             Cond::Is(s, j) => {
@@ -203,7 +220,9 @@ impl Env {
                 let refs: Vec<&Bool> = parts.iter().collect();
                 Bool::or(&refs)
             }
-        }
+        };
+        self.z3_cache.borrow_mut().insert(c.clone(), b.clone());
+        b
     }
 }
 

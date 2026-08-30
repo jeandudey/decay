@@ -6,12 +6,9 @@ mod git_cache;
 
 use {
     crate::{
-        ast::{
-            eval,
-            parse, //
-        },
+        ast::eval,
         config::Config,
-        git_cache::GitCache,
+        git_cache::GitCache, //
     },
     clap::{
         Parser,
@@ -19,13 +16,16 @@ use {
     },
     eyre::{
         Context,
-        ContextCompat,
-        bail, //
+        ContextCompat, //
     },
     std::{
         env,
         fs,
         path::PathBuf, //
+    },
+    tracing_subscriber::{
+        EnvFilter,
+        fmt::format::FmtSpan, //
     },
 };
 
@@ -45,6 +45,11 @@ enum Command {
 fn main() -> eyre::Result<()> {
     let cli = Cli::parse();
 
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::new("trace,z3=off"))
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
+
     match cli.command {
         Command::Buckify => {
             let config = Config::from_file("decay.toml")?;
@@ -58,29 +63,7 @@ fn main() -> eyre::Result<()> {
 
             for project in &config.projects {
                 let project_dir = git_cache.checkout(&project)?;
-                let root_meson_file = project_dir.join("meson.build");
-                let root_meson_options = project_dir.join("meson_options.txt");
-                if !root_meson_file.exists() {
-                    bail!("Project does not contain a meson.build file");
-                }
-
-                let (ast, options) = parse(&root_meson_file, &root_meson_options)
-                    .wrap_err("Failed to parse meson.build file")?;
-                //println!("{ast:?}");
-                eval(&ast, options.as_ref(), &config.systems)?;
-                //let code_block = match ast {
-                //    Node::CodeBlock(v) => v,
-                //    _ => bail!("No root code block"),
-                //};
-
-                //for line in code_block.lines {
-                //    match line {
-                //        Node::Function(func) => {
-                //            eval(func)?;
-                //        }
-                //        _ => bail!("Unhandled node: {line:?}"),
-                //    }
-                //}
+                eval(&project_dir, &config.systems)?;
             }
         }
     }

@@ -31,7 +31,9 @@ pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Node> {
         Ok::<_, eyre::Report>(json)
     })?;
 
-    serde_json::from_str(&json).wrap_err("Failed to parse JSON AST")
+    serde_json::from_str(&json)
+        .wrap_err_with(|| json)
+        .wrap_err("Failed to parse JSON AST")
 }
 
 pub fn parse_options(path: impl AsRef<Path>) -> eyre::Result<Vec<OptionNode>> {
@@ -141,18 +143,42 @@ pub enum Node {
     },
     #[serde(rename = "SymbolNode")]
     Symbol { value: String },
-    #[serde(rename = "WhitespaceNode")]
-    Whitespace {
-        block_indent: bool,
-        is_continuation: bool,
-        value: String,
+    #[serde(rename = "ForeachClauseNode")]
+    ForeachClause {
+        varnames: Vec<Node>,
+        items: Box<Node>,
+        #[serde(rename = "block")]
+        body: Box<Node>,
     },
+    #[serde(rename = "ArithmeticNode")]
+    ArithmeticNode {
+        left: Box<Node>,
+        right: Box<Node>,
+        operation: String,
+    },
+    #[serde(rename = "AndNode")]
+    And { left: Box<Node>, right: Box<Node> },
+    #[serde(rename = "TernaryNode")]
+    Ternary {
+        condition: Box<Node>,
+        trueblock: Box<Node>,
+        falseblock: Box<Node>,
+    },
+    #[serde(rename = "DictNode")]
+    Dict { args: Box<Node> },
 }
 
 impl Node {
     pub fn as_id(&self) -> Option<&str> {
         match self {
             Node::Id { value } => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&str> {
+        match self {
+            Node::String { value, .. } => Some(value),
             _ => None,
         }
     }

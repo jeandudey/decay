@@ -6,7 +6,9 @@ use {
         BinOpKind,
         Block,
         Call,
+        Dict,
         Expr,
+        ForeachStmt,
         IfStmt,
         Index,
         Method,
@@ -14,6 +16,7 @@ use {
         ProjectOptionKind,
         ProjectOptions,
         Stmt,
+        Ternary,
         UnOp,
         UnOpKind,
         raw::{
@@ -25,7 +28,8 @@ use {
         OptionExt,
         bail, //
     },
-    std::{collections::HashMap, str::FromStr},
+    std::str::FromStr,
+    tracing::warn,
 };
 
 pub fn block(node: &Node) -> eyre::Result<Block> {
@@ -67,10 +71,24 @@ pub fn block(node: &Node) -> eyre::Result<Block> {
                 operator,
             } => {
                 if let Some(op) = operator {
-                    eprintln!("unhandled operator {op:?}");
+                    warn!(?op, "unhandled operator");
                 }
 
                 stmts.push(assign_stmt(var_name, value, true).map(Stmt::Assign)?);
+            }
+            Node::ForeachClause {
+                varnames,
+                items,
+                body,
+            } => {
+                stmts.push(Stmt::Foreach(ForeachStmt {
+                    varnames: varnames
+                        .iter()
+                        .map(|v| id(v))
+                        .collect::<eyre::Result<Vec<_>>>()?,
+                    items: expr(items)?,
+                    body: block(&body)?,
+                }));
             }
             _ => bail!("Unexpected statement {line:?}"),
         }
@@ -138,7 +156,7 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
             right,
         } => {
             if let Some(op) = operator {
-                eprintln!("unhandled operator {op:?}");
+                warn!(?op, "unhandled operator");
             }
 
             Ok(Expr::BinOp(BinOp {
@@ -153,7 +171,7 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
             right,
         } => {
             if let Some(op) = operator {
-                eprintln!("unhandled operator {op:?}");
+                warn!(?op, "unhandled operator");
             }
 
             Ok(Expr::BinOp(BinOp {
@@ -164,7 +182,7 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
         }
         Node::Not { operator, value } => {
             if let Some(op) = operator {
-                eprintln!("unhandled operator {op:?}");
+                warn!(?op, "unhandled operator");
             }
 
             Ok(Expr::UnOp(UnOp {
@@ -172,6 +190,53 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
                 val: expr(value).map(Box::new)?,
             }))
         }
+        Node::ArithmeticNode {
+            left,
+            right,
+            operation,
+        } => {
+            let kind = match operation.as_str() {
+                "add" => BinOpKind::Add,
+                _ => bail!("Unknown arithmetic operation {operation}"),
+            };
+            Ok(Expr::BinOp(BinOp {
+                kind,
+                lhs: expr(left).map(Box::new)?,
+                rhs: expr(right).map(Box::new)?,
+            }))
+        }
+        Node::And { left, right } => Ok(Expr::BinOp(BinOp {
+            kind: BinOpKind::And,
+            lhs: expr(left).map(Box::new)?,
+            rhs: expr(right).map(Box::new)?,
+        })),
+        Node::Ternary {
+            condition,
+            trueblock,
+            falseblock,
+        } => Ok(Expr::Ternary(Ternary {
+            condition: expr(condition).map(Box::new)?,
+            trueblock: expr(trueblock).map(Box::new)?,
+            falseblock: expr(falseblock).map(Box::new)?,
+        })),
+        Node::Dict { args } => Ok(Expr::Dict(Dict {
+            args: args
+                .as_argument()
+                .ok_or_eyre("Expected argument node")?
+                .kwargs
+                .iter()
+                .map(|pair| {
+                    Ok((
+                        pair.key
+                            .as_string()
+                            .ok_or_eyre("Expected string for dict key")?
+                            .to_owned(),
+                        expr(&pair.value)?,
+                    ))
+                })
+                .collect::<eyre::Result<_>>()?,
+            order: Vec::new(),
+        })),
         _ => bail!("Unexpected expression node {node:?}"),
     }
 }
@@ -193,10 +258,7 @@ fn assign_stmt(name: &Node, value: &Node, is_plus: bool) -> eyre::Result<AssignS
 }
 
 fn id(node: &Node) -> eyre::Result<String> {
-    Ok(node
-        .as_id()
-        .ok_or_eyre("function name is not an identifier")?
-        .to_owned())
+    Ok(node.as_id().ok_or_eyre("not an identifier")?.to_owned())
 }
 
 pub fn options(options: &[OptionNode]) -> ProjectOptions {

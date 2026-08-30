@@ -8,7 +8,7 @@ use {
         collections::HashMap,
         path::Path,
         str::FromStr, //
-    }, //
+    },
 };
 
 mod interp;
@@ -16,22 +16,10 @@ mod lower;
 mod raw;
 mod sym;
 
-pub fn parse(
-    meson_build: impl AsRef<Path>,
-    meson_options: impl AsRef<Path>,
-) -> eyre::Result<(Block, Option<ProjectOptions>)> {
-    let options = if meson_options.as_ref().exists() {
-        let options = raw::parse_options(meson_options)?;
-        Some(lower::options(&options))
-    } else {
-        None
-    };
-
-    println!("{options:?}");
-
-    let node = raw::parse(meson_build)?;
+pub fn parse(path: impl AsRef<Path>) -> eyre::Result<Block> {
+    let node = raw::parse(path)?;
     let block = lower::block(&node).wrap_err("Failed to lower AST")?;
-    Ok((block, options))
+    Ok(block)
 }
 
 #[derive(Debug)]
@@ -42,6 +30,7 @@ pub enum Stmt {
     Expr(Expr),
     Assign(AssignStmt),
     If(IfStmt),
+    Foreach(ForeachStmt),
 }
 
 #[derive(Debug)]
@@ -49,6 +38,7 @@ pub enum Expr {
     Id(String),
     String(String),
     Array(Vec<Expr>),
+    Dict(Dict),
     Number(i64),
     Bool(bool),
     Call(Call),
@@ -56,6 +46,7 @@ pub enum Expr {
     Index(Index),
     UnOp(UnOp),
     BinOp(BinOp),
+    Ternary(Ternary),
 }
 
 impl Expr {
@@ -65,6 +56,12 @@ impl Expr {
             _ => bail!("expected string value"),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Dict {
+    pub args: HashMap<String, Expr>,
+    pub order: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -114,6 +111,7 @@ pub struct BinOp {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinOpKind {
     Add,
+    And,
     Eq,
     Ne,
     Or,
@@ -132,6 +130,13 @@ impl FromStr for BinOpKind {
 }
 
 #[derive(Debug)]
+pub struct Ternary {
+    pub condition: Box<Expr>,
+    pub trueblock: Box<Expr>,
+    pub falseblock: Box<Expr>,
+}
+
+#[derive(Debug)]
 pub struct AssignStmt {
     pub name: String,
     pub value: Expr,
@@ -142,6 +147,13 @@ pub struct AssignStmt {
 pub struct IfStmt {
     pub arms: Vec<(Expr, Block)>,
     pub elseblock: Option<Block>,
+}
+
+#[derive(Debug)]
+pub struct ForeachStmt {
+    pub varnames: Vec<String>,
+    pub items: Expr,
+    pub body: Block,
 }
 
 pub type ProjectOptions = HashMap<String, ProjectOption>;
@@ -165,33 +177,10 @@ pub struct MesonProject {
 }
 
 pub fn eval(
-    block: &Block,
-    options: Option<&ProjectOptions>,
+    root: impl AsRef<Path>,
     systems: &HashMap<String, String>,
 ) -> eyre::Result<MesonProject> {
-    let mut interp = Interp::new(options, systems);
-    interp.exec_block(block)?;
-    //let mut meson_project = None;
-    //for statement in &ast.0 {
-    //    match statement {
-    //        Stmt::(function) => match function.name.as_str() {
-    //            "project" => {
-    //                let mut args = function.args.positional.iter();
-    //                let name = args.next().ok_or_eyre("Missing project name")?;
-    //            }
-    //            "subdir" => {
-    //                let dir = function
-    //                    .args
-    //                    .positional
-    //                    .get(0)
-    //                    .ok_or_eyre("Expected directory name")?
-    //                    .as_string()?;
-    //                println!("TODO GO INTO SUBDIR {dir:?}");
-    //            }
-    //            _ => todo!("{function:?}"),
-    //        },
-    //        _ => bail!("Unhandled statement {statement:?}"),
-    //    }
-    //}
-    //meson_project.ok_or_eyre("Meson project not initialized")
+    let mut interp = Interp::new(systems);
+    interp.run(root)?;
+    todo!("{interp:?}")
 }
