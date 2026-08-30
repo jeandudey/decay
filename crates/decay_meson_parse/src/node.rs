@@ -73,8 +73,6 @@ pub(crate) enum Node {
     },
     #[serde(rename = "StringNode")]
     String { is_fstring: bool, value: String },
-    //#[serde(rename = "SymbolNode")]
-    //Symbol { value: String },
     #[serde(rename = "ForeachClauseNode")]
     ForeachClause {
         varnames: Vec<Node>,
