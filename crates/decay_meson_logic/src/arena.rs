@@ -17,6 +17,10 @@ impl Pc {
     pub const FALSE: Self = Self(0);
     pub const TRUE: Self = Self(1);
 
+    pub fn from_bool(value: bool) -> Self {
+        if value { Self::TRUE } else { Self::FALSE }
+    }
+
     pub fn is_false(&self) -> bool {
         *self == Self::FALSE
     }

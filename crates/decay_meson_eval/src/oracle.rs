@@ -26,6 +26,18 @@ pub trait Oracle {
         ["gcc", "clang", "msvc"].map(str::to_owned).to_vec()
     }
 
+    /// The answer to a toolchain probe, when it follows from something the
+    /// importer already knows.
+    ///
+    /// `name` is the check (`has_function`) and `what` its argument
+    /// (`dlvsym`). Answering here keeps the probe out of the generated build:
+    /// either it is settled everywhere, or it is a question about the
+    /// operating system, which the build already has a constraint for.
+    fn probe(&self, name: &str, what: &str) -> Option<Probe> {
+        let _ = (name, what);
+        None
+    }
+
     /// Whether toolchain and dependency probes (`cc.has_header`,
     /// `dependency()`, ...) should be left open.
     ///
@@ -34,6 +46,16 @@ pub trait Oracle {
     fn probes_are_open(&self) -> bool {
         true
     }
+}
+
+/// What a toolchain probe answers, when the configuration knows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Probe {
+    /// The same answer in every configuration.
+    Fixed(bool),
+    /// True exactly on these systems, named as the importer's configuration
+    /// names them.
+    Systems(Vec<String>),
 }
 
 /// A value pinned by the importer's configuration.

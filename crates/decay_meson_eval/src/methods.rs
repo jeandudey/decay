@@ -10,6 +10,7 @@ use {
             Module,
             Obj, //
         },
+        oracle::Probe,
         val::Value,
     },
     decay_build_ir::External,
@@ -18,6 +19,7 @@ use {
         Pc,
         Solver,
         Var,
+        VarId,
         VarKind,
         Variant,
         Variational, //
@@ -318,13 +320,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             return Ok(self.pure(Value::from(choices[0].clone())));
         }
 
-        let id = self.logic.declare(Var {
-            key: format!("machine:{}:{property}", machine.as_str()),
-            description: Some(format!("{} machine {property}", machine.as_str())),
-            kind: VarKind::Machine,
-            choices: choices.clone(),
-            default: 0,
-        });
+        let id = self.machine_var(machine, property, choices.clone());
 
         let mut out = Variational::empty();
         for (i, choice) in choices.iter().enumerate() {
@@ -337,6 +333,71 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
         out.normalize(&mut self.logic);
         Ok(out)
+    }
+
+    /// The variable standing for a machine property left open.
+    fn machine_var(&mut self, machine: Machine, property: &str, choices: Vec<String>) -> VarId {
+        self.logic.declare(Var {
+            key: format!("machine:{}:{property}", machine.as_str()),
+            description: Some(format!("{} machine {property}", machine.as_str())),
+            kind: VarKind::Machine,
+            choices,
+            default: 0,
+        })
+    }
+
+    /// The condition for the code being compiled for one of `systems`.
+    ///
+    /// This is the host machine, the one meson compiles for. A build that was
+    /// told which system it targets gets a plain answer and no variable at all.
+    fn host_system_is(&mut self, systems: &[String], probe: &str) -> eyre::Result<Pc> {
+        let known = self.oracle.systems();
+        for system in systems {
+            if !known.iter().any(|k| k == system) {
+                bail!(
+                    "`{probe}` is configured for system `{system}`, which is not one of \
+                     the systems the importer was configured with"
+                );
+            }
+        }
+
+        if let Some(pinned) = self.oracle.machine(Machine::Host, "system") {
+            return Ok(Pc::from_bool(systems.iter().any(|s| *s == pinned)));
+        }
+        match known.len() {
+            0 => bail!("`{probe}` answers by system but no systems were configured"),
+            1 => return Ok(Pc::from_bool(systems.contains(&known[0]))),
+            _ => {}
+        }
+
+        let id = self.machine_var(Machine::Host, "system", known.clone());
+        let choices = known
+            .iter()
+            .enumerate()
+            .filter(|(_, k)| systems.iter().any(|s| s == *k))
+            .map(|(i, _)| i as u32);
+        Ok(self.logic.any_of(id, choices))
+    }
+
+    /// The condition for a compiler probe having succeeded.
+    ///
+    /// Most probes become a knob of their own, because the importer cannot run
+    /// the compiler. One the configuration ties to the operating system asks
+    /// the machine instead, so the generated build selects on the system it
+    /// already knows rather than on a second, redundant constraint.
+    fn probe_cond(&mut self, lang: Lang, name: &str, what: &str) -> eyre::Result<Pc> {
+        match self.oracle.probe(name, what) {
+            Some(Probe::Fixed(answer)) => Ok(Pc::from_bool(answer)),
+            Some(Probe::Systems(systems)) => {
+                self.host_system_is(&systems, &format!("{name}({what})"))
+            }
+            None => {
+                let key = format!("probe:{}:{name}:{what}", lang.as_str());
+                let description =
+                    format!("`{what}` is available to the {} compiler", lang.as_str());
+                Ok(self.probe(&key, description))
+            }
+        }
     }
 
     // -- compilers --------------------------------------------------------
@@ -367,8 +428,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                     Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
                     None => Rc::from("expr"),
                 };
-                let key = format!("probe:{}:{name}:{what}", lang.as_str());
-                let cond = self.probe(&key, format!("`{what}` is available to the {} compiler", lang.as_str()));
+                let cond = self.probe_cond(lang, name, &what)?;
                 Ok(self.bool_value(cond))
             }
             "sizeof" | "alignment" => bail!(

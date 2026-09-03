@@ -3,13 +3,15 @@ use {
         Config,
         Machine,
         OptionValue,
+        ProbeValue,
         Project, //
     },
     decay_meson_eval::{
         obj,
         oracle::{
             Oracle,
-            Pinned, //
+            Pinned,
+            Probe, //
         },
     },
     std::rc::Rc,
@@ -49,6 +51,13 @@ impl Oracle for ConfigOracle<'_> {
             OptionValue::List(v) => {
                 Pinned::List(v.iter().map(|s| Rc::from(s.as_str())).collect())
             }
+        })
+    }
+
+    fn probe(&self, name: &str, what: &str) -> Option<Probe> {
+        Some(match self.config.probes.get(&format!("{name}:{what}"))? {
+            ProbeValue::Fixed(v) => Probe::Fixed(*v),
+            ProbeValue::Systems(v) => Probe::Systems(v.clone()),
         })
     }
 

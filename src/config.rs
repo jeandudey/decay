@@ -37,6 +37,16 @@ pub struct Config {
     /// `cc.find_library('dl')`).
     #[serde(default)]
     pub dependencies: BTreeMap<String, String>,
+    /// Answers to compiler probes the importer would otherwise have to leave
+    /// open, keyed by the check and its argument (`has_function:dlvsym`).
+    ///
+    /// A probe listed here with a set of systems is a question about the
+    /// operating system in disguise, and the generated build selects on the
+    /// system constraint it already has instead of carrying a second one that
+    /// always agrees with it. A probe listed with `true` or `false` is settled
+    /// everywhere and disappears entirely.
+    #[serde(default)]
+    pub probes: BTreeMap<String, ProbeValue>,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
 }
@@ -46,6 +56,15 @@ impl Config {
         let file = fs::read_to_string(path).wrap_err("Failed to load configuration file")?;
         toml::from_str(&file).wrap_err("Failed to parse configuration file")
     }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum ProbeValue {
+    /// The same answer in every configuration.
+    Fixed(bool),
+    /// True exactly on these systems, named as `[systems]` names them.
+    Systems(Vec<String>),
 }
 
 #[derive(Debug, Deserialize)]

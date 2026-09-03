@@ -102,14 +102,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_function:dlvsym`: `dlvsym` is available to the c compiler
-constraint(
-    name = "has_function_dlvsym",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `prog:doxygen`: `doxygen` is available
 constraint(
     name = "doxygen",

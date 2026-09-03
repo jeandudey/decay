@@ -1104,24 +1104,6 @@ cxx_binary(
             }),
         }),
         "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
     }),
     linker_flags = [
         "-rdynamic",
@@ -1272,24 +1254,6 @@ cxx_binary(
                             "-we4071",
                             "-we4819",
                             "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
                         ],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
@@ -1515,36 +1479,6 @@ cxx_binary(
                                     "-we4071",
                                     "-we4819",
                                     "/utf-8",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv1_CM[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv1_cm[true]": select({
-                            "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                            "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv1_cm[false]": select({
-                            "//third-party/meson/constraints:libGLESv1_CM[true]": select({
-                                "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                                "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                                    "-D_XOPEN_SOURCE",
-                                    "-D_POSIX_C_SOURCE=200809L",
                                 ],
                             }),
                             "//third-party/meson/constraints:libGLESv1_CM[false]": [],
@@ -1810,36 +1744,6 @@ cxx_binary(
             }),
         }),
         "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv2[true]": select({
-                            "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                            "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv2[false]": select({
-                            "//third-party/meson/constraints:libGLESv2[true]": select({
-                                "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                                "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                                    "-D_XOPEN_SOURCE",
-                                    "-D_POSIX_C_SOURCE=200809L",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
     }) + [
         "-DGLES_VERSION=2",
     ],
@@ -2023,34 +1927,6 @@ cxx_binary(
                                 "/utf-8",
                             ],
                         }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/libepoxy/constraints:glx[auto]": select({
-                            "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                            "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/libepoxy/constraints:glx[yes]": select({
-                            "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                            "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/libepoxy/constraints:glx[no]": [],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
                 }),
@@ -2357,24 +2233,6 @@ cxx_binary(
             }),
             "//third-party/meson/libepoxy/constraints:tests[false]": [],
         }),
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-            "//third-party/meson/constraints:has_function_dlvsym[false]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
     }),
     deps = [
         ":glx_common",
@@ -2530,24 +2388,6 @@ cxx_binary(
             }),
         }),
         "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
     }),
     deps = [
         ":glx_common",
@@ -2678,24 +2518,6 @@ cxx_binary(
                             "-we4071",
                             "-we4819",
                             "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
                         ],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
@@ -2842,24 +2664,6 @@ cxx_binary(
             }),
         }),
         "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
     }),
     deps = [
         ":glx_common",
@@ -2990,24 +2794,6 @@ cxx_binary(
                             "-we4071",
                             "-we4819",
                             "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
                         ],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
@@ -3152,28 +2938,6 @@ cxx_binary(
                                 "-we4071",
                                 "-we4819",
                                 "/utf-8",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:default_library[both]": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:default_library[shared]": [],
-                        "//third-party/meson/constraints:default_library[static]": select({
-                            "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                            "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
                             ],
                         }),
                         "//third-party/meson/constraints:default_library[both]": [],
@@ -3339,24 +3103,6 @@ cxx_binary(
             }),
         }),
         "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
     }),
     linker_flags = [
         "-Wl,-z,now",
@@ -3424,43 +3170,40 @@ cxx_binary(
             "DEFAULT": select({
                 "//third-party/meson/libepoxy/constraints:x11[true]": select({
                     "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [],
+                        "//third-party/meson/constraints:compiler[msvc]": [],
+                        "DEFAULT": [
+                            "-Wpointer-arith",
+                            "-Wmissing-declarations",
+                            "-Wformat=2",
+                            "-Wstrict-prototypes",
+                            "-Wmissing-prototypes",
+                            "-Wnested-externs",
+                            "-Wbad-function-cast",
+                            "-Wold-style-definition",
+                            "-Wdeclaration-after-statement",
+                            "-Wunused",
+                            "-Wuninitialized",
+                            "-Wshadow",
+                            "-Wmissing-noreturn",
+                            "-Wmissing-format-attribute",
+                            "-Wredundant-decls",
+                            "-Wlogical-op",
+                            "-Werror=implicit",
+                            "-Werror=nonnull",
+                            "-Werror=init-self",
+                            "-Werror=main",
+                            "-Werror=missing-braces",
+                            "-Werror=sequence-point",
+                            "-Werror=return-type",
+                            "-Werror=trigraphs",
+                            "-Werror=array-bounds",
+                            "-Werror=write-strings",
+                            "-Werror=address",
+                            "-Werror=int-to-pointer-cast",
+                            "-Werror=pointer-to-int-cast",
+                            "-fno-strict-aliasing",
+                            "-Wno-int-conversion",
+                        ],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
                 }),
@@ -3474,31 +3217,28 @@ cxx_binary(
             "DEFAULT": select({
                 "//third-party/meson/libepoxy/constraints:x11[true]": select({
                     "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [],
+                        "//third-party/meson/constraints:compiler[gcc]": [],
+                        "//third-party/meson/constraints:compiler[clang]": [],
+                        "//third-party/meson/constraints:compiler[msvc]": [
+                            "-we4002",
+                            "-we4003",
+                            "-w14010",
+                            "-we4013",
+                            "-w14016",
+                            "-we4020",
+                            "-we4021",
+                            "-we4027",
+                            "-we4029",
+                            "-we4033",
+                            "-we4035",
+                            "-we4045",
+                            "-we4047",
+                            "-we4049",
+                            "-we4053",
+                            "-we4071",
+                            "-we4819",
+                            "/utf-8",
+                        ],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
                 }),
@@ -3520,12 +3260,9 @@ cxx_binary(
                 "//third-party/meson/libepoxy/constraints:glx[no]": [],
                 "DEFAULT": select({
                     "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/constraints:has_function_dlvsym[true]": [
-                                ":dl",
-                            ],
-                            "//third-party/meson/constraints:has_function_dlvsym[false]": [],
-                        }),
+                        "//third-party/meson/constraints:x11[true]": [
+                            ":dl",
+                        ],
                         "//third-party/meson/constraints:x11[false]": [],
                     }),
                     "//third-party/meson/libepoxy/constraints:x11[false]": [],
@@ -3542,12 +3279,7 @@ cxx_binary(
             ],
             "DEFAULT": select({
                 "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                    }),
+                    "//third-party/meson/constraints:x11[true]": [],
                     "//third-party/meson/constraints:x11[false]": [
                         "//third-party/meson/constraints:unsatisfiable[yes]",
                     ],
@@ -3581,43 +3313,40 @@ cxx_binary(
             "DEFAULT": select({
                 "//third-party/meson/libepoxy/constraints:x11[true]": select({
                     "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [],
+                        "//third-party/meson/constraints:compiler[msvc]": [],
+                        "DEFAULT": [
+                            "-Wpointer-arith",
+                            "-Wmissing-declarations",
+                            "-Wformat=2",
+                            "-Wstrict-prototypes",
+                            "-Wmissing-prototypes",
+                            "-Wnested-externs",
+                            "-Wbad-function-cast",
+                            "-Wold-style-definition",
+                            "-Wdeclaration-after-statement",
+                            "-Wunused",
+                            "-Wuninitialized",
+                            "-Wshadow",
+                            "-Wmissing-noreturn",
+                            "-Wmissing-format-attribute",
+                            "-Wredundant-decls",
+                            "-Wlogical-op",
+                            "-Werror=implicit",
+                            "-Werror=nonnull",
+                            "-Werror=init-self",
+                            "-Werror=main",
+                            "-Werror=missing-braces",
+                            "-Werror=sequence-point",
+                            "-Werror=return-type",
+                            "-Werror=trigraphs",
+                            "-Werror=array-bounds",
+                            "-Werror=write-strings",
+                            "-Werror=address",
+                            "-Werror=int-to-pointer-cast",
+                            "-Werror=pointer-to-int-cast",
+                            "-fno-strict-aliasing",
+                            "-Wno-int-conversion",
+                        ],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
                 }),
@@ -3631,31 +3360,28 @@ cxx_binary(
             "DEFAULT": select({
                 "//third-party/meson/libepoxy/constraints:x11[true]": select({
                     "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [],
+                        "//third-party/meson/constraints:compiler[gcc]": [],
+                        "//third-party/meson/constraints:compiler[clang]": [],
+                        "//third-party/meson/constraints:compiler[msvc]": [
+                            "-we4002",
+                            "-we4003",
+                            "-w14010",
+                            "-we4013",
+                            "-w14016",
+                            "-we4020",
+                            "-we4021",
+                            "-we4027",
+                            "-we4029",
+                            "-we4033",
+                            "-we4035",
+                            "-we4045",
+                            "-we4047",
+                            "-we4049",
+                            "-we4053",
+                            "-we4071",
+                            "-we4819",
+                            "/utf-8",
+                        ],
                     }),
                     "//third-party/meson/constraints:x11[false]": [],
                 }),
@@ -3677,12 +3403,9 @@ cxx_binary(
                 "//third-party/meson/libepoxy/constraints:glx[no]": [],
                 "DEFAULT": select({
                     "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/constraints:has_function_dlvsym[true]": [
-                                ":dl",
-                            ],
-                            "//third-party/meson/constraints:has_function_dlvsym[false]": [],
-                        }),
+                        "//third-party/meson/constraints:x11[true]": [
+                            ":dl",
+                        ],
                         "//third-party/meson/constraints:x11[false]": [],
                     }),
                     "//third-party/meson/libepoxy/constraints:x11[false]": [],
@@ -3699,12 +3422,7 @@ cxx_binary(
             ],
             "DEFAULT": select({
                 "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:has_function_dlvsym[true]": [],
-                        "//third-party/meson/constraints:has_function_dlvsym[false]": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                    }),
+                    "//third-party/meson/constraints:x11[true]": [],
                     "//third-party/meson/constraints:x11[false]": [
                         "//third-party/meson/constraints:unsatisfiable[yes]",
                     ],
