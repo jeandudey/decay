@@ -86,6 +86,7 @@ fn buckify() -> eyre::Result<()> {
         systems: config.systems.clone(),
         compilers: config.compilers.clone(),
         dependencies: config.dependencies.clone(),
+        programs: config.programs.clone(),
     };
 
     // Every project is executed before anything is written: the constraints

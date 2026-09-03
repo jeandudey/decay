@@ -715,10 +715,23 @@ impl<'a, S: Solver> Interp<'a, S> {
             path: path.clone(),
         });
 
-        let found = if in_tree {
+        let found = if in_tree || self.oracle.has_program(&name) {
             Pc::TRUE
         } else {
-            self.dependency_found(&key, &name, required)
+            // Not a configuration knob: nothing a platform could set would make
+            // a program appear, because the build never looks outside its own
+            // graph for one. So it is absent, and the configurations that
+            // insisted on it are the ones that cannot be configured.
+            if required.is_true() {
+                bail!(
+                    "find_program('{name}') is required, but it is not in the project and \
+                     nothing supplies it; add `programs.{name} = \"//some:target\"` to the \
+                     importer configuration"
+                );
+            }
+            let optional = self.logic.not(required);
+            self.logic.assume(optional);
+            Pc::FALSE
         };
 
         let value = self.program_obj(Program {

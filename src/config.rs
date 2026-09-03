@@ -39,6 +39,15 @@ pub struct Config {
     /// `cc.find_library('dl')`).
     #[serde(default)]
     pub dependencies: BTreeMap<String, String>,
+    /// Binary targets for the tools a build runs, keyed by the name meson looks
+    /// up (`find_program('doxygen')`).
+    ///
+    /// A build graph cannot reach outside itself for a tool, so a program is
+    /// found only when it is a script in the project or is named here. Anything
+    /// else is absent, and whatever the build would have done with it is left
+    /// out.
+    #[serde(default)]
+    pub programs: BTreeMap<String, String>,
     /// Answers to compiler probes the importer would otherwise have to leave
     /// open, keyed by the check and its argument (`has_function:dlvsym`).
     ///

@@ -101,19 +101,3 @@ constraint(
     default = "false",
     visibility = ["PUBLIC"],
 )
-
-# external dependency `prog:doxygen`: `doxygen` is available
-constraint(
-    name = "doxygen",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `prog:dot`: `dot` is available
-constraint(
-    name = "dot",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)

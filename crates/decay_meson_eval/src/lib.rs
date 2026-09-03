@@ -730,7 +730,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             return *id;
         }
 
-        let external = ["dep:", "lib:", "prog:"]
+        let external = ["dep:", "lib:"]
             .iter()
             .any(|prefix| key.starts_with(prefix));
 

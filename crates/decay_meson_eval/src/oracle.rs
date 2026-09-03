@@ -13,6 +13,17 @@ pub trait Oracle {
     /// A value the user pinned for a build option.
     fn option(&self, name: &str) -> Option<Pinned>;
 
+    /// Whether the importer was given a target for a program the build looks
+    /// up on the machine it runs on.
+    ///
+    /// A build system's tools are not part of what it produces, and a build
+    /// graph has no way to reach outside itself for one, so a program nobody
+    /// supplied is absent rather than a question left open.
+    fn has_program(&self, name: &str) -> bool {
+        let _ = name;
+        false
+    }
+
     /// A machine property the user pinned, e.g. `system` or `cpu_family`.
     fn machine(&self, machine: Machine, property: &str) -> Option<String>;
 

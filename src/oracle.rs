@@ -83,6 +83,10 @@ impl Oracle for ConfigOracle<'_> {
         })
     }
 
+    fn has_program(&self, name: &str) -> bool {
+        self.config.programs.contains_key(name)
+    }
+
     fn machine(&self, machine: obj::Machine, property: &str) -> Option<String> {
         self.machine_config(machine)
             .property(property)

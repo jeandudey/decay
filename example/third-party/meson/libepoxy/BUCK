@@ -8,7 +8,6 @@ git_fetch(
     repo = "https://github.com/anholt/libepoxy",
     rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973",
     sub_targets = [
-        "doc/Doxyfile.in",
         "include/epoxy/common.h",
         "include/epoxy/egl.h",
         "include/epoxy/gl.h",
@@ -3715,60 +3714,6 @@ cxx_binary(
             }),
         }),
         "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
-    visibility = ["PUBLIC"],
-)
-
-genrule(
-    name = "Doxyfile",
-    out = "Doxyfile",
-    cmd = "sed" + " '-es|@PACKAGE_NAME@|libepoxy|g' '-es|@PACKAGE_VERSION@|1.5.10|g' '-es|@top_srcdir@|.|g' '-es|@top_builddir@|.|g'" + select({
-        "//third-party/meson/libepoxy/constraints:docs[true]": select({
-            "//third-party/meson/constraints:doxygen[true]": select({
-                "//third-party/meson/constraints:dot[true]": "",
-                "//third-party/meson/constraints:dot[false]": " '-es|@HAVE_DOT@|NO|g'",
-            }),
-            "//third-party/meson/constraints:doxygen[false]": "",
-        }),
-        "//third-party/meson/libepoxy/constraints:docs[false]": "",
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:docs[true]": select({
-            "//third-party/meson/constraints:doxygen[true]": select({
-                "//third-party/meson/constraints:dot[true]": " '-es|@HAVE_DOT@|YES|g'",
-                "//third-party/meson/constraints:dot[false]": "",
-            }),
-            "//third-party/meson/constraints:doxygen[false]": "",
-        }),
-        "//third-party/meson/libepoxy/constraints:docs[false]": "",
-    }) + " $(location :libepoxy.git[doc/Doxyfile.in]) > $OUT",
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:docs[true]": select({
-            "//third-party/meson/constraints:doxygen[true]": [],
-            "//third-party/meson/constraints:doxygen[false]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-        }),
-        "//third-party/meson/libepoxy/constraints:docs[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
-    visibility = ["PUBLIC"],
-)
-
-genrule(
-    name = "epoxy-docs",
-    out = "html",
-    cmd = " doxygen $(location :Doxyfile)",
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:docs[true]": select({
-            "//third-party/meson/constraints:doxygen[true]": [],
-            "//third-party/meson/constraints:doxygen[false]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-        }),
-        "//third-party/meson/libepoxy/constraints:docs[false]": [
             "//third-party/meson/constraints:unsatisfiable[yes]",
         ],
     }),

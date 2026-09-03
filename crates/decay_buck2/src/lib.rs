@@ -119,6 +119,8 @@ pub struct Labels {
     /// Targets that already provide a dependency the meson build looked up
     /// outside itself, keyed by the name meson used.
     pub dependencies: BTreeMap<String, String>,
+    /// Binary targets for the tools the build runs, keyed the same way.
+    pub programs: BTreeMap<String, String>,
 }
 
 impl Labels {
@@ -411,7 +413,7 @@ fn render_target<S: Solver>(
             attrs.push(("out", format!("{:?}", a.outs.first().cloned().unwrap_or_default())));
             attrs.push((
                 "cmd",
-                command(graph, logic, selects, target),
+                command(graph, logic, selects, known, target),
             ));
         }
         Kind::ConfigHeader => {
@@ -748,6 +750,7 @@ fn command<S: Solver>(
     graph: &Graph,
     logic: &mut Logic<S>,
     selects: &Selects,
+    known: &Labels,
     target: &Target,
 ) -> String {
     let inputs: Vec<String> = target
@@ -778,7 +781,14 @@ fn command<S: Solver>(
                             _ => location,
                         }
                     }
-                    Kind::External(External::Program { name, .. }) => name.clone(),
+                    // A tool is run, not linked or copied, so it is named as
+                    // an executable rather than by its output path — and it
+                    // never becomes a target of this build.
+                    Kind::External(External::Program { name, .. }) => match known.programs.get(name)
+                    {
+                        Some(label) => format!("$(exe {label})"),
+                        None => name.clone(),
+                    },
                     _ => format!("$(location :{})", dep.name),
                 }
             }

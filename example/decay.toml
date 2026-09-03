@@ -23,6 +23,15 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # A GNU extension: which libc is in use decides it, not which kernel.
 "has_function:dlvsym" = "prelude//abi/constraints:abi[gnu]"
 
+# The tools a build runs. A build graph cannot reach outside itself for one, so
+# a program is found only when it is a script in the project — libepoxy's
+# `src/gen_dispatch.py` is — or is named here. Anything else is absent, and what
+# the build would have done with it is left out: nothing here means no doxygen,
+# so libepoxy's documentation targets are not generated at all.
+#
+# [programs]
+# doxygen = "//third-party/tools:doxygen"
+
 # Meson looks these up outside the build. Point them at real targets so the
 # generated files do not fall back to an empty stub.
 [dependencies]
