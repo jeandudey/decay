@@ -120,11 +120,7 @@ _cflags_compiler = select({
 _deps = [
     ":libepoxy-dep",
 ]
-_needs_tests = [
-    "//third-party/meson/libepoxy/constraints:tests[true]",
-]
-_needs_tests_x11_egl = [
-    "//third-party/meson/libepoxy/constraints:tests[true]",
+_needs_x11_egl = [
     "//third-party/meson/libepoxy/constraints:x11[true]",
     "//third-party/meson/constraints:x11[true]",
 ] + select({
@@ -213,8 +209,7 @@ _deps_egl_dl = [
     ],
     "//third-party/meson/constraints:dl[false]": [],
 })
-_needs_tests_x11_glx = [
-    "//third-party/meson/libepoxy/constraints:tests[true]",
+_needs_x11_glx2 = [
     "//third-party/meson/libepoxy/constraints:x11[true]",
     "//third-party/meson/constraints:x11[true]",
 ] + select({
@@ -234,8 +229,7 @@ _deps_dl = [
     ],
     "//third-party/meson/constraints:dl[false]": [],
 })
-_needs_tests_x11_abi = [
-    "//third-party/meson/libepoxy/constraints:tests[true]",
+_needs_x11_abi_glx = [
     "//third-party/meson/libepoxy/constraints:x11[true]",
     "//third-party/meson/constraints:x11[true]",
     "prelude//abi/constraints:abi[gnu]",
@@ -666,7 +660,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler,
     deps = _deps,
-    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -680,7 +673,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler,
     deps = _deps,
-    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -698,7 +690,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler,
     deps = _deps,
-    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -711,7 +702,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler,
     deps = _deps,
-    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -728,7 +718,7 @@ cxx_library(
     compiler_flags = _cflags_compiler,
     deps = _deps,
     preferred_linkage = "static",
-    target_compatible_with = _needs_tests_x11_egl,
+    target_compatible_with = _needs_x11_egl,
     visibility = ["PUBLIC"],
 )
 
@@ -742,7 +732,7 @@ cxx_binary(
     compiler_flags = _cflags_compiler_abi,
     linker_flags = _ldflags,
     deps = _deps_egl_dl,
-    target_compatible_with = _needs_tests_x11_egl,
+    target_compatible_with = _needs_x11_egl,
     visibility = ["PUBLIC"],
 )
 
@@ -756,7 +746,7 @@ cxx_binary(
     compiler_flags = _cflags_compiler_abi,
     linker_flags = _ldflags,
     deps = _deps_egl_dl,
-    target_compatible_with = _needs_tests_x11_egl,
+    target_compatible_with = _needs_x11_egl,
     visibility = ["PUBLIC"],
 )
 
@@ -833,7 +823,6 @@ cxx_binary(
     linker_flags = _ldflags,
     deps = _deps_egl_dl,
     target_compatible_with = [
-        "//third-party/meson/libepoxy/constraints:tests[true]",
         "//third-party/meson/libepoxy/constraints:x11[true]",
         "//third-party/meson/constraints:x11[true]",
     ] + select({
@@ -926,7 +915,6 @@ cxx_binary(
     linker_flags = _ldflags,
     deps = _deps_egl_dl,
     target_compatible_with = [
-        "//third-party/meson/libepoxy/constraints:tests[true]",
         "//third-party/meson/libepoxy/constraints:x11[true]",
         "//third-party/meson/constraints:x11[true]",
     ] + select({
@@ -957,7 +945,6 @@ cxx_binary(
     linker_flags = _ldflags,
     deps = _deps_egl_dl,
     target_compatible_with = [
-        "//third-party/meson/libepoxy/constraints:tests[true]",
         "//third-party/meson/libepoxy/constraints:x11[true]",
         "//third-party/meson/constraints:x11[true]",
     ] + select({
@@ -988,7 +975,7 @@ cxx_library(
     compiler_flags = _cflags_compiler,
     deps = _deps,
     preferred_linkage = "static",
-    target_compatible_with = _needs_tests_x11_glx,
+    target_compatible_with = _needs_x11_glx2,
     visibility = ["PUBLIC"],
 )
 
@@ -1015,7 +1002,7 @@ cxx_binary(
         ],
         "//third-party/meson/constraints:dl[false]": [],
     }),
-    target_compatible_with = _needs_tests_x11_glx,
+    target_compatible_with = _needs_x11_glx2,
     visibility = ["PUBLIC"],
 )
 
@@ -1028,7 +1015,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler_abi,
     deps = _deps_dl,
-    target_compatible_with = _needs_tests_x11_glx,
+    target_compatible_with = _needs_x11_glx2,
     visibility = ["PUBLIC"],
 )
 
@@ -1041,7 +1028,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler_abi,
     deps = _deps_dl,
-    target_compatible_with = _needs_tests_x11_glx,
+    target_compatible_with = _needs_x11_glx2,
     visibility = ["PUBLIC"],
 )
 
@@ -1054,7 +1041,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler_abi,
     deps = _deps_dl,
-    target_compatible_with = _needs_tests_x11_glx,
+    target_compatible_with = _needs_x11_glx2,
     visibility = ["PUBLIC"],
 )
 
@@ -1067,7 +1054,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_compiler_abi,
     deps = _deps_dl,
-    target_compatible_with = _needs_tests_x11_glx,
+    target_compatible_with = _needs_x11_glx2,
     visibility = ["PUBLIC"],
 )
 
@@ -1146,7 +1133,6 @@ cxx_binary(
     ],
     deps = _deps_dl,
     target_compatible_with = [
-        "//third-party/meson/libepoxy/constraints:tests[true]",
         "//third-party/meson/libepoxy/constraints:x11[true]",
         "//third-party/meson/constraints:x11[true]",
         "//third-party/meson/constraints:default_library[static]",
@@ -1172,7 +1158,7 @@ cxx_binary(
         "-Wl,-z,now",
     ],
     deps = _deps_dl,
-    target_compatible_with = _needs_tests_x11_glx,
+    target_compatible_with = _needs_x11_glx2,
     visibility = ["PUBLIC"],
 )
 
@@ -1190,7 +1176,7 @@ cxx_binary(
     compiler_flags = _cflags_compiler,
     linker_flags = _ldflags,
     deps = _deps_dl,
-    target_compatible_with = _needs_tests_x11_abi,
+    target_compatible_with = _needs_x11_abi_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -1208,7 +1194,7 @@ cxx_binary(
     compiler_flags = _cflags_compiler,
     linker_flags = _ldflags,
     deps = _deps_dl,
-    target_compatible_with = _needs_tests_x11_abi,
+    target_compatible_with = _needs_x11_abi_glx,
     visibility = ["PUBLIC"],
 )
 

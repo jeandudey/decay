@@ -27,11 +27,3 @@ constraint(
     default = "true",
     visibility = ["PUBLIC"],
 )
-
-# build option `option:tests`: Build the test suite
-constraint(
-    name = "tests",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)

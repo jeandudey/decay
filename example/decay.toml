@@ -47,3 +47,4 @@ options.prefix = "/usr/local"
 options.libdir = "lib"
 options.datadir = "share"
 options.includedir = "include"
+options.tests = true
