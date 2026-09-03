@@ -285,6 +285,16 @@ pub struct Project {
     pub host_machine: Machine,
     #[serde(default)]
     pub build_machine: Machine,
+    /// Other projects in this file that must be imported before this one,
+    /// named the way `short_name()` spells them (`glib`, `graphene`).
+    ///
+    /// A `dependency()` here resolves against a sibling only once that sibling
+    /// has been executed, so a consumer has to name every provider it looks
+    /// up. Projects whose `depends` are all already imported run in parallel;
+    /// left empty everywhere, projects run in file order, one at a time, as
+    /// they always have.
+    #[serde(default)]
+    pub depends: Vec<String>,
 }
 
 impl Project {

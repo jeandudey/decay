@@ -50,6 +50,8 @@ mod config;
 mod git_cache;
 mod oracle;
 mod packages;
+mod pool;
+mod schedule;
 mod sources;
 
 #[derive(Parser)]
@@ -98,7 +100,6 @@ fn resolve_jobs(flag: Option<usize>) -> usize {
 }
 
 fn buckify(jobs: usize) -> eyre::Result<()> {
-    let _ = jobs;
     let config = Config::from_file("decay.toml")?;
 
     let cache_dir = cache_dir()?;
@@ -107,86 +108,35 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
     }
     let git_cache = GitCache::new(&cache_dir);
 
-    // Every project is executed before anything is written: the constraints
-    // that come from meson rather than from a project are declared once, and
-    // that set is only known once every project has been looked at. Projects
-    // execute in the order `decay.toml` lists them, so what one of them
-    // provides is known in time for a later one's `dependency()` to resolve
-    // against it.
-    let mut packages = Packages::default();
-    let mut imported = Vec::new();
-    for project in &config.projects {
-        let done = execute(&git_cache, &config, project, &packages)?;
-        packages.register(&done.package, &done.graph);
-        imported.push(done);
-    }
-
-    let labels = decay_buck2::Labels {
-        systems: config.systems.clone(),
-        compilers: config.compilers.clone(),
-        // What a sibling project provides answers a `dependency()` lookup the
-        // same way an explicit entry would; an explicit one still overrides
-        // it, for the rare case where it has to.
-        dependencies: packages
-            .targets()
-            .chain(
-                config
-                    .dependencies
-                    .iter()
-                    .filter_map(|(name, dep)| Some((name.clone(), dep.target()?.to_owned()))),
-            )
-            .collect(),
-        programs: config.programs.clone(),
-    };
-
-    let shared_dir = config.third_party_dir.join(SHARED_CONSTRAINTS);
-    let shared = decay_buck2::Shared::collect(
-        package_path(&shared_dir)?,
-        imported.iter().map(|p| &p.graph),
+    // Projects run in the order `decay.toml` lists them, one wave at a time, so
+    // what one of them provides is known in time for a later one's
+    // `dependency()` to resolve against it. Projects whose `depends` are all in
+    // earlier waves run at once; with no `depends` anywhere this is one project
+    // per wave, exactly as it always was.
+    let schedule = schedule::plan(&config.projects)?;
+    info!(
+        projects = config.projects.len(),
+        waves = schedule.waves.len(),
+        jobs,
+        "importing",
     );
 
-    // The projects are written first: a constraint nothing selects on is not
-    // declared, and what selects on what is only known once they are generated.
-    let mut generated = Vec::new();
-    for project in &mut imported {
-        let start = Instant::now();
-        let build = decay_buck2::emit(
-            &project.graph,
-            &mut project.logic,
-            &labels,
-            &shared,
-            &project.out,
-            &project.package,
-        )
-        .wrap_err_with(|| format!("Failed to generate build files for `{}`", project.name))?;
-        generated.push(build);
-        info!(
-            dir = %project.out.display(),
-            emit_ms = start.elapsed().as_millis(),
-            "wrote build files",
-        );
-    }
-
-    shared.write(&labels, &decay_buck2::Used::everywhere(generated), &shared_dir)?;
-    info!(dir = %shared_dir.display(), "wrote shared constraints");
-
-    Ok(())
+    pool::import(&config, &git_cache, &schedule, jobs)
 }
 
 /// Where the constraints shared by every imported project live, relative to the
 /// third-party directory.
-const SHARED_CONSTRAINTS: &str = "constraints";
+pub(crate) const SHARED_CONSTRAINTS: &str = "constraints";
 
 /// A project that has been executed and is waiting to be written out.
-struct Imported {
-    name: String,
+pub(crate) struct Imported {
     out: PathBuf,
     package: String,
     graph: Graph,
     logic: Logic<Z3Solver>,
 }
 
-fn execute(
+pub(crate) fn execute(
     git_cache: &GitCache,
     config: &Config,
     project: &Project,
@@ -236,7 +186,6 @@ fn execute(
 
     let out = config.third_party_dir.join(&name);
     Ok(Imported {
-        name,
         package: package_path(&out)?,
         out,
         graph,
@@ -245,7 +194,7 @@ fn execute(
 }
 
 /// A path as buck2 spells it in a label.
-fn package_path(path: &Path) -> eyre::Result<String> {
+pub(crate) fn package_path(path: &Path) -> eyre::Result<String> {
     Ok(path
         .to_str()
         .wrap_err("The output directory is not valid UTF-8")?
