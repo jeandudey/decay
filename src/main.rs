@@ -108,11 +108,10 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
     }
     let git_cache = GitCache::new(&cache_dir);
 
-    // Projects run in the order `decay.toml` lists them, one wave at a time, so
-    // what one of them provides is known in time for a later one's
-    // `dependency()` to resolve against it. Projects whose `depends` are all in
-    // earlier waves run at once; with no `depends` anywhere this is one project
-    // per wave, exactly as it always was.
+    // Projects run one wave at a time, so what one provides is known in time
+    // for a later one's `dependency()` to resolve against it. A project whose
+    // `depends` are all in earlier waves — a project with no `depends` among
+    // them — runs alongside its wave-mates, up to `-j` at once.
     let schedule = schedule::plan(&config.projects)?;
     info!(
         projects = config.projects.len(),

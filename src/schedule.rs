@@ -2,10 +2,11 @@
 //!
 //! A project's `depends` names the siblings that must finish before it starts,
 //! because a `dependency()` on one of them only resolves once it has been
-//! executed and registered (see [`crate::packages`]). Everything else about the
-//! run stays sequential-looking: waves are produced in order, and within a wave
-//! project indices keep their `decay.toml` order, so what accumulates into
-//! `Packages` is a pure function of the project set, not of timing.
+//! executed and registered (see [`crate::packages`]). Projects that name no
+//! `depends` are taken to be independent and share the first wave. Waves are
+//! produced in order and, within a wave, project indices keep their `decay.toml`
+//! order, so what accumulates into `Packages` is a pure function of the project
+//! set, not of how many workers ran or which finished first.
 
 use {
     crate::config::Project,
@@ -27,18 +28,12 @@ pub struct Schedule {
 
 /// Plan the run for `projects`.
 ///
-/// With no `depends` anywhere the plan is the historical one: one project per
-/// wave, in file order. Otherwise waves come from the `depends` DAG. Errors on
-/// an unknown or self `depends`, a duplicated project name, or a cycle.
+/// Waves come from the `depends` DAG. A project that names no `depends` has no
+/// predecessors and lands in the first wave, so a file with no `depends` at all
+/// is a single wave of every project. Errors on an unknown or self `depends`, a
+/// duplicated project name, or a cycle.
 pub fn plan(projects: &[Project]) -> eyre::Result<Schedule> {
     let names: Vec<String> = projects.iter().map(|p| p.repo.short_name()).collect();
-
-    // No `depends` at all: keep the strict sequential fold, unchanged.
-    if projects.iter().all(|p| p.depends.is_empty()) {
-        return Ok(Schedule {
-            waves: (0..projects.len()).map(|i| vec![i]).collect(),
-        });
-    }
 
     let mut index_by_name: HashMap<&str, usize> = HashMap::with_capacity(names.len());
     for (i, name) in names.iter().enumerate() {
@@ -146,10 +141,10 @@ mod tests {
     }
 
     #[test]
-    fn no_depends_is_one_project_per_wave() {
+    fn no_depends_is_one_parallel_wave() {
         let projects = [project("a", &[]), project("b", &[]), project("c", &[])];
         let schedule = plan(&projects).unwrap();
-        assert_eq!(schedule.waves, vec![vec![0], vec![1], vec![2]]);
+        assert_eq!(schedule.waves, vec![vec![0, 1, 2]]);
     }
 
     #[test]
@@ -209,12 +204,8 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_name_is_an_error_once_depends_used() {
-        let projects = [
-            project("dup", &[]),
-            project("dup", &[]),
-            project("x", &["dup"]),
-        ];
+    fn duplicate_name_is_an_error() {
+        let projects = [project("dup", &[]), project("dup", &[])];
         assert!(plan(&projects).unwrap_err().to_string().contains("both called"));
     }
 

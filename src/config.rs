@@ -289,10 +289,10 @@ pub struct Project {
     /// named the way `short_name()` spells them (`glib`, `graphene`).
     ///
     /// A `dependency()` here resolves against a sibling only once that sibling
-    /// has been executed, so a consumer has to name every provider it looks
-    /// up. Projects whose `depends` are all already imported run in parallel;
-    /// left empty everywhere, projects run in file order, one at a time, as
-    /// they always have.
+    /// has been executed, so a consumer has to name every provider it looks up.
+    /// A project that names nothing is taken to be independent and runs in the
+    /// first wave alongside every other such project; `-j` then decides how many
+    /// of them go at once.
     #[serde(default)]
     pub depends: Vec<String>,
 }
