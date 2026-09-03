@@ -115,6 +115,11 @@ pub(crate) fn import(
     let total = projects.len();
     let owner = |idx: usize| idx % workers;
 
+    // Bring the embedded Python interpreter and the meson parser modules up on
+    // this thread before any worker touches them: the first import is not safe
+    // to race.
+    decay_meson_parse::warmup()?;
+
     thread::scope(|scope| -> eyre::Result<()> {
         let (done_tx, done_rx) = mpsc::channel::<Done>();
         let mut inbox: Vec<mpsc::Sender<Job>> = Vec::with_capacity(workers);

@@ -15,6 +15,8 @@ mod option_lower;
 mod option_node;
 mod py;
 
+pub use py::warmup;
+
 #[instrument(level = "trace", err, skip_all, fields(path = %path.display()))]
 pub fn parse_build(path: &Path) -> eyre::Result<Block> {
     let json = py::parse_build(path)
