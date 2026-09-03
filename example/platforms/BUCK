@@ -7,6 +7,9 @@
 platform(
     name = "x11",
     constraint_values = [
+        # Not meson's: the probes decay.toml answers from the ABI select on the
+        # prelude's own constraint, so a glibc target says so here.
+        "prelude//abi/constraints:abi[gnu]",
         "//third-party/meson/constraints:x11[true]",
         "//third-party/meson/constraints:egl[true]",
         "//third-party/meson/constraints:gl[true]",

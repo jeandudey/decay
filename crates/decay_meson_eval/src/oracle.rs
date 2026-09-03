@@ -55,7 +55,21 @@ pub enum Probe {
     Fixed(bool),
     /// True exactly on these systems, named as the importer's configuration
     /// names them.
+    ///
+    /// Distinct from [`Probe::Constraint`] because the system is already a
+    /// variable of its own: an answer that depends on it has to ask that
+    /// variable, or the two could disagree.
     Systems(Vec<String>),
+    /// True exactly when the constraint `setting` holds one of `values`.
+    Constraint {
+        /// Label of the constraint setting, e.g. `prelude//abi/constraints:abi`.
+        setting: String,
+        /// Every value of the setting the configuration mentions. Whatever it
+        /// does not mention is one further choice the importer cannot name.
+        domain: Vec<String>,
+        /// The values this probe holds for, a subset of `domain`.
+        values: Vec<String>,
+    },
 }
 
 /// A value pinned by the importer's configuration.

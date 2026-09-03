@@ -10,11 +10,13 @@ use {
     },
     std::{
         collections::BTreeMap,
+        fmt,
         fs,
         path::{
             Path,
             PathBuf, //
         },
+        str::FromStr,
     },
     url::Url,
 };
@@ -40,11 +42,9 @@ pub struct Config {
     /// Answers to compiler probes the importer would otherwise have to leave
     /// open, keyed by the check and its argument (`has_function:dlvsym`).
     ///
-    /// A probe listed here with a set of systems is a question about the
-    /// operating system in disguise, and the generated build selects on the
-    /// system constraint it already has instead of carrying a second one that
-    /// always agrees with it. A probe listed with `true` or `false` is settled
-    /// everywhere and disappears entirely.
+    /// A probe listed here follows from a constraint the build already has, so
+    /// it selects on that instead of carrying a second constraint that would
+    /// always have to be set to agree with it.
     #[serde(default)]
     pub probes: BTreeMap<String, ProbeValue>,
     #[serde(rename = "project")]
@@ -54,17 +54,171 @@ pub struct Config {
 impl Config {
     pub fn from_file(path: impl AsRef<Path>) -> eyre::Result<Self> {
         let file = fs::read_to_string(path).wrap_err("Failed to load configuration file")?;
-        toml::from_str(&file).wrap_err("Failed to parse configuration file")
+        let config: Self =
+            toml::from_str(&file).wrap_err("Failed to parse configuration file")?;
+        config.check()?;
+        Ok(config)
+    }
+
+    fn check(&self) -> eyre::Result<()> {
+        for (probe, answer) in &self.probes {
+            let check = || -> eyre::Result<()> {
+                let Some(setting) = answer.setting()? else {
+                    return Ok(());
+                };
+                if !self.is_system_setting(setting) {
+                    return Ok(());
+                }
+                // The system is already a variable of its own, and an answer
+                // that names the same constraint has to go through it. That
+                // only works for the values `[systems]` maps.
+                for value in answer.values() {
+                    if self.system_named(value).is_none() {
+                        return Err(eyre!(
+                            "`{value}` is a value of the constraint `[systems]` selects on, \
+                             but no system there maps to it"
+                        ));
+                    }
+                }
+                Ok(())
+            };
+            check().wrap_err_with(|| format!("Probe `{probe}` cannot be answered"))?;
+        }
+        Ok(())
+    }
+
+    /// Whether `setting` is the constraint `[systems]` selects on.
+    pub fn is_system_setting(&self, setting: &str) -> bool {
+        let prefix = format!("{setting}[");
+        self.systems
+            .values()
+            .any(|label| label.starts_with(&prefix))
+    }
+
+    /// The system `[systems]` maps onto exactly this constraint value.
+    pub fn system_named(&self, value: &ConstraintValue) -> Option<&str> {
+        let label = value.to_string();
+        self.systems
+            .iter()
+            .find(|(_, mapped)| **mapped == label)
+            .map(|(system, _)| system.as_str())
+    }
+
+    /// Every value of `setting` the configuration mentions.
+    ///
+    /// A constraint declared elsewhere has values the importer never sees, so
+    /// what it can tell apart is exactly what it was told about.
+    pub fn constraint_domain(&self, setting: &str) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for value in self.probes.values().flat_map(ProbeValue::values) {
+            if value.setting == setting && !out.contains(&value.value) {
+                out.push(value.value.clone());
+            }
+        }
+        out.sort();
+        out
     }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
+/// What a compiler probe answers, as the configuration states it.
+#[derive(Debug)]
 pub enum ProbeValue {
     /// The same answer in every configuration.
     Fixed(bool),
-    /// True exactly on these systems, named as `[systems]` names them.
-    Systems(Vec<String>),
+    /// True exactly when this constraint value is selected.
+    One(ConstraintValue),
+    /// True when any one of these is, all values of the same setting.
+    Any(Vec<ConstraintValue>),
+}
+
+impl ProbeValue {
+    /// The constraint values this answer holds for.
+    pub fn values(&self) -> &[ConstraintValue] {
+        match self {
+            ProbeValue::Fixed(_) => &[],
+            ProbeValue::One(value) => std::slice::from_ref(value),
+            ProbeValue::Any(values) => values,
+        }
+    }
+
+    /// The setting every value belongs to, which they all must share: the
+    /// executor turns the answer into a choice of one constraint, and two
+    /// settings are two independent choices.
+    pub fn setting(&self) -> eyre::Result<Option<&str>> {
+        let mut values = self.values().iter();
+        let Some(first) = values.next() else {
+            return Ok(None);
+        };
+        for other in values {
+            if other.setting != first.setting {
+                return Err(eyre!(
+                    "`{}` and `{}` are values of different constraints, which \
+                     cannot both answer one probe",
+                    first,
+                    other
+                ));
+            }
+        }
+        Ok(Some(&first.setting))
+    }
+}
+
+impl<'de> Deserialize<'de> for ProbeValue {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        // Parsed in a second pass rather than by an untagged enum of the final
+        // types, which would report only that nothing matched.
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Fixed(bool),
+            One(String),
+            Any(Vec<String>),
+        }
+
+        let parse = |text: &str| text.parse().map_err(serde::de::Error::custom);
+        Ok(match Raw::deserialize(de)? {
+            Raw::Fixed(settled) => ProbeValue::Fixed(settled),
+            Raw::One(text) => ProbeValue::One(parse(&text)?),
+            Raw::Any(texts) => ProbeValue::Any(
+                texts
+                    .iter()
+                    .map(|text| parse(text))
+                    .collect::<Result<_, _>>()?,
+            ),
+        })
+    }
+}
+
+/// One value of one constraint, written the way a `select()` key is:
+/// `prelude//abi/constraints:abi[gnu]`.
+#[derive(Debug, Clone)]
+pub struct ConstraintValue {
+    /// Label of the constraint setting, without the value.
+    pub setting: String,
+    pub value: String,
+}
+
+impl FromStr for ConstraintValue {
+    type Err = eyre::Report;
+
+    fn from_str(text: &str) -> eyre::Result<Self> {
+        let rest = text.strip_suffix(']').ok_or_else(|| {
+            eyre!("`{text}` is not a constraint value; write it as `//some:setting[value]`")
+        })?;
+        let (setting, value) = rest.split_once('[').ok_or_else(|| {
+            eyre!("`{text}` is not a constraint value; write it as `//some:setting[value]`")
+        })?;
+        Ok(Self {
+            setting: setting.to_owned(),
+            value: value.to_owned(),
+        })
+    }
+}
+
+impl fmt::Display for ConstraintValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}[{}]", self.setting, self.value)
+    }
 }
 
 #[derive(Debug, Deserialize)]

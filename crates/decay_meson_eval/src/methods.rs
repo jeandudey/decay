@@ -16,6 +16,7 @@ use {
     decay_build_ir::External,
     decay_meson_ast::Loc,
     decay_meson_logic::{
+        ANY_OTHER,
         Pc,
         Solver,
         Var,
@@ -379,6 +380,32 @@ impl<'a, S: Solver> Interp<'a, S> {
         Ok(self.logic.any_of(id, choices))
     }
 
+    /// The condition for a foreign constraint holding one of `values`.
+    ///
+    /// The importer did not declare this constraint and cannot know every value
+    /// it has, so the values the configuration named become choices and
+    /// everything else is one more.
+    fn constraint_is(&mut self, setting: &str, domain: Vec<String>, values: &[String]) -> Pc {
+        let mut choices = domain;
+        choices.push(ANY_OTHER.to_owned());
+        let id = self.logic.declare(Var {
+            key: format!("constraint:{setting}"),
+            description: Some(format!("the `{setting}` constraint")),
+            kind: VarKind::Constraint,
+            // Nothing else is what a build that says nothing gets, so it is the
+            // value the `select()` falls back to.
+            default: choices.len() - 1,
+            choices: choices.clone(),
+        });
+
+        let holds = choices
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| values.iter().any(|v| v == *c))
+            .map(|(i, _)| i as u32);
+        self.logic.any_of(id, holds)
+    }
+
     /// The condition for a compiler probe having succeeded.
     ///
     /// Most probes become a knob of their own, because the importer cannot run
@@ -391,6 +418,11 @@ impl<'a, S: Solver> Interp<'a, S> {
             Some(Probe::Systems(systems)) => {
                 self.host_system_is(&systems, &format!("{name}({what})"))
             }
+            Some(Probe::Constraint {
+                setting,
+                domain,
+                values,
+            }) => Ok(self.constraint_is(&setting, domain, &values)),
             None => {
                 let key = format!("probe:{}:{name}:{what}", lang.as_str());
                 let description =

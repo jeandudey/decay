@@ -55,7 +55,8 @@ impl Shared {
             }
         }
 
-        let names = names::assign_by_key(&vars);
+        let named: Vec<Var> = vars.iter().filter(|var| !is_foreign(var)).cloned().collect();
+        let names = names::assign_by_key(&named);
         Self {
             package,
             vars,
@@ -69,9 +70,10 @@ impl Shared {
         Some(format!("//{}:{name}[{value}]", self.package))
     }
 
-    /// Whether this variable is declared here rather than by a project.
+    /// Whether this variable is meson's rather than a project's, and so is not
+    /// the project package's to declare.
     pub(crate) fn owns(&self, var: &Var) -> bool {
-        self.names.contains_key(&var.key)
+        self.vars.iter().any(|seen| seen.key == var.key)
     }
 
     /// The label of a value no platform sets, used to mark a target that must
@@ -114,7 +116,9 @@ impl Shared {
             if known.is_external(var) {
                 continue;
             }
-            let name = self.names.get(&var.key).expect("every variable was named");
+            let Some(name) = self.names.get(&var.key) else {
+                continue;
+            };
             out.push_str(&crate::render_constraint(var, name));
         }
 
@@ -128,6 +132,18 @@ fn is_shared(var: &Var) -> bool {
         // Only the options a project declares itself are its own: two projects
         // may each declare `tests` and mean unrelated things.
         VarKind::Option => false,
-        VarKind::BuiltinOption | VarKind::Machine | VarKind::Probe | VarKind::Dependency => true,
+        VarKind::BuiltinOption
+        | VarKind::Machine
+        | VarKind::Probe
+        | VarKind::Dependency
+        // Not declared anywhere in the generated build, but it belongs to
+        // meson's side of the split rather than to the project.
+        | VarKind::Constraint => true,
     }
+}
+
+/// Whether a variable stands for a constraint that already exists elsewhere,
+/// and so needs neither a name nor a declaration here.
+fn is_foreign(var: &Var) -> bool {
+    var.kind == VarKind::Constraint
 }

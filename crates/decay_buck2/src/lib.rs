@@ -22,6 +22,7 @@ use {
         TargetId, //
     },
     decay_meson_logic::{
+        ANY_OTHER,
         Logic,
         Pc,
         Solver,
@@ -56,6 +57,10 @@ pub use shared::Shared;
 /// Where the constraints a project needs are declared, relative to the
 /// project's own directory.
 const CONSTRAINTS: &str = "constraints";
+
+/// Prefix of the key of a variable standing for a constraint declared outside
+/// the generated build; the rest of the key is the setting's label.
+const CONSTRAINT: &str = "constraint:";
 
 /// Generate build files for `graph` into `out`.
 ///
@@ -117,12 +122,21 @@ pub struct Labels {
 }
 
 impl Labels {
-    fn lookup(&self, var: &Var, choice: &str) -> Option<&String> {
+    fn lookup(&self, var: &Var, choice: &str) -> Option<String> {
+        // A constraint the configuration named carries its own label: the
+        // setting is the key and the choice is the value.
+        if var.kind == VarKind::Constraint {
+            let setting = var.key.strip_prefix(CONSTRAINT)?;
+            if choice == ANY_OTHER {
+                return None;
+            }
+            return Some(format!("{setting}[{choice}]"));
+        }
         if var.key.starts_with("machine:") && var.key.ends_with(":system") {
-            return self.systems.get(choice);
+            return self.systems.get(choice).cloned();
         }
         if var.key.starts_with("compiler:") {
-            return self.compilers.get(choice);
+            return self.compilers.get(choice).cloned();
         }
         None
     }
@@ -160,7 +174,7 @@ fn resolve_labels(
         let values = names::values(var);
         for (choice, name) in var.choices.iter().enumerate() {
             let label = match known.lookup(var, name) {
-                Some(label) => label.clone(),
+                Some(label) => label,
                 None if external => continue,
                 // Meson's own constraints live in one place, shared by every
                 // imported project.
@@ -244,6 +258,7 @@ fn describe(var: &Var) -> String {
         VarKind::Machine => "machine property",
         VarKind::Probe => "toolchain probe",
         VarKind::Dependency => "external dependency",
+        VarKind::Constraint => "constraint",
     };
     match &var.description {
         Some(text) => format!("{what} `{}`: {text}", var.key),

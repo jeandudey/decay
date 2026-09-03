@@ -82,7 +82,20 @@ pub enum VarKind {
     Probe,
     /// Whether an external dependency is available.
     Dependency,
+    /// A constraint from outside the importer, named in its configuration and
+    /// selected on directly. The importer knows only the values that
+    /// configuration mentions, so [`ANY_OTHER`] stands for the rest.
+    Constraint,
 }
+
+/// The choice standing for "any value nobody named".
+///
+/// A constraint the importer was handed a label for is not one it declares, so
+/// it cannot know every value the setting has. The values the configuration
+/// mentions are choices of their own and everything else is this one lump,
+/// which is what a `select()` renders as `DEFAULT`. Not a legal buck2 value
+/// name, so it cannot collide with a real one.
+pub const ANY_OTHER: &str = "*";
 
 /// The declaration of a configuration variable.
 #[derive(Debug, Clone, PartialEq, Eq)]

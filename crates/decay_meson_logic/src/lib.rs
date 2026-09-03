@@ -5,6 +5,7 @@ mod var;
 
 pub use {
     arena::{
+        ANY_OTHER,
         Arena,
         Node,
         Pc,

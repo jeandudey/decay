@@ -10,18 +10,18 @@ windows = "prelude//os/constraints:os[windows]"
 sunos = "prelude//os/constraints:os[illumos]"
 fuchsia = "prelude//os/constraints:os[fuchsia]"
 
-# Compiler probes whose answer the importer already knows, keyed by the check
-# and its argument. Listing one here keeps it out of the generated build: a set
-# of systems means the probe is a question about the operating system, so the
-# build selects on [systems] above instead of on a constraint that would always
-# have to be set to agree with it. `true` or `false` settles it everywhere.
+# Compiler probes the importer does not have to ask, keyed by the check and its
+# argument. An answer is a constraint value, or a list of values of one
+# constraint, and the generated build selects on that instead of carrying a
+# probe constraint of its own that would always have to be set to agree with it.
+# `true` or `false` settles a probe everywhere and it disappears.
 #
-# Only put a probe here when the answer really does follow from the system.
+# Only put a probe here when the answer really does follow from the constraint.
 # `KHR/khrplatform.h`, for instance, ships with the Khronos headers rather than
-# with any libc, so it stays a build-time choice.
+# with any libc or OS, so it stays a build-time choice.
 [probes]
-# A GNU extension, so glibc has it and the other libcs do not.
-"has_function:dlvsym" = ["linux"]
+# A GNU extension: which libc is in use decides it, not which kernel.
+"has_function:dlvsym" = "prelude//abi/constraints:abi[gnu]"
 
 # Meson looks these up outside the build. Point them at real targets so the
 # generated files do not fall back to an empty stub.

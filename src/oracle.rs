@@ -55,9 +55,31 @@ impl Oracle for ConfigOracle<'_> {
     }
 
     fn probe(&self, name: &str, what: &str) -> Option<Probe> {
-        Some(match self.config.probes.get(&format!("{name}:{what}"))? {
-            ProbeValue::Fixed(v) => Probe::Fixed(*v),
-            ProbeValue::Systems(v) => Probe::Systems(v.clone()),
+        let answer = self.config.probes.get(&format!("{name}:{what}"))?;
+        if let ProbeValue::Fixed(settled) = answer {
+            return Some(Probe::Fixed(*settled));
+        }
+
+        // Checked when the configuration was loaded.
+        let setting = answer.setting().ok().flatten()?;
+        let values = answer.values();
+
+        // An answer that names the constraint the system is selected on has to
+        // ask the system variable itself. Two variables on one constraint could
+        // disagree, and the generated `select()`s would key on both.
+        if self.config.is_system_setting(setting) {
+            let systems = values
+                .iter()
+                .filter_map(|value| self.config.system_named(value))
+                .map(str::to_owned)
+                .collect();
+            return Some(Probe::Systems(systems));
+        }
+
+        Some(Probe::Constraint {
+            setting: setting.to_owned(),
+            domain: self.config.constraint_domain(setting),
+            values: values.iter().map(|value| value.value.clone()).collect(),
         })
     }
 
