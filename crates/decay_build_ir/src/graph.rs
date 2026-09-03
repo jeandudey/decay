@@ -3,6 +3,7 @@ use {
         Attrs,
         Install,
         Kind,
+        Package,
         Project,
         Target,
         TargetId,
@@ -32,6 +33,8 @@ pub struct Graph {
     pub tests: Vec<Test>,
     /// Files the project installs outside of a target's own output.
     pub installs: Vec<Install>,
+    /// `pkg-config` modules the project makes available to others.
+    pub provides: Vec<Package>,
     /// Names already handed out, so generated names stay unique.
     used_names: HashMap<String, u32>,
 }

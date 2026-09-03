@@ -38,7 +38,7 @@ pub struct Config {
     /// outside itself, keyed by the name meson uses (`dependency('x11')`,
     /// `cc.find_library('dl')`).
     #[serde(default)]
-    pub dependencies: BTreeMap<String, String>,
+    pub dependencies: BTreeMap<String, DependencyValue>,
     /// Binary targets for the tools a build runs, keyed by the name meson looks
     /// up (`find_program('doxygen')`).
     ///
@@ -126,6 +126,47 @@ impl Config {
         }
         out.sort();
         out
+    }
+}
+
+/// A target that answers a `dependency()` lookup, as the configuration states
+/// it.
+///
+/// The plain string form (`x11 = "//third-party/system:X11"`) is what most
+/// entries need: a label to use once the dependency is found. A table form
+/// adds the `pkg-config` variables the build reads off it, for a dependency
+/// like `iso-codes` that a project queries rather than links.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum DependencyValue {
+    Target(String),
+    Full {
+        target: Option<String>,
+        #[serde(default)]
+        variables: BTreeMap<String, String>,
+    },
+}
+
+impl DependencyValue {
+    /// The build-file label to use once the dependency is found, if any.
+    pub fn target(&self) -> Option<&str> {
+        match self {
+            DependencyValue::Target(target) => Some(target),
+            DependencyValue::Full { target, .. } => target.as_deref(),
+        }
+    }
+
+    /// The `pkg-config` variables the configuration answers for this
+    /// dependency.
+    pub fn variables(&self) -> impl Iterator<Item = (&str, &str)> {
+        let variables = match self {
+            DependencyValue::Target(_) => None,
+            DependencyValue::Full { variables, .. } => Some(variables),
+        };
+        variables
+            .into_iter()
+            .flatten()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
     }
 }
 

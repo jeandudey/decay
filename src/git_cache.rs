@@ -65,6 +65,25 @@ impl GitCache {
             return Ok(());
         }
 
+        // A project pinned to a full commit hash names exactly the one object
+        // worth having, so fetch only that, shallowly, instead of every
+        // branch's entire history. GitHub and GitLab both serve an arbitrary
+        // reachable commit this way; a host that refuses falls through to the
+        // full fetch below.
+        if project.is_full_sha() {
+            let ref_name = format!("refs/decay/{}", project.rev);
+            let shallow = git()
+                .arg("--git-dir")
+                .arg(db)
+                .args(&["fetch", "--depth", "1", "--quiet"])
+                .arg(project.repo.0.to_string())
+                .arg(format!("{}:{ref_name}", project.rev))
+                .output();
+            if shallow.is_ok_and(|out| out.status.success()) && has_commit(db, &project.rev) {
+                return Ok(());
+            }
+        }
+
         run_git(
             git()
                 .arg("--git-dir")
@@ -87,17 +106,22 @@ impl GitCache {
         let tmp = parent.join(format!(".tmp-{}-{oid}", process::id()));
         let _ = fs::remove_dir_all(&tmp);
 
+        // A worktree checks out `oid` straight from the shared object store: no
+        // second copy of the repository, unlike a local clone of a shallow
+        // `db` (git refuses to hardlink one of those, and falls back to
+        // copying every object again).
+        let _ = git()
+            .arg("--git-dir")
+            .arg(db)
+            .args(&["worktree", "prune", "--quiet"])
+            .output();
         run_git(
             git()
-                .args(&["clone", "--quiet", "--local", "--no-checkout"])
+                .arg("--git-dir")
                 .arg(db)
-                .arg(&tmp),
-        )?;
-        run_git(
-            git()
-                .arg("-C")
+                .args(&["worktree", "add", "--quiet", "--detach"])
                 .arg(&tmp)
-                .args(&["checkout", "--quiet", "--detach", oid]),
+                .arg(oid),
         )?;
 
         fs::write(tmp.join(".ok"), &[])?;

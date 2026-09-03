@@ -20,3 +20,21 @@ cxx_library(
     exported_linker_flags = ["-lEGL"],
     visibility = ["PUBLIC"],
 )
+
+cxx_library(
+    name = "FFI",
+    exported_linker_flags = ["-lffi"],
+    visibility = ["PUBLIC"],
+)
+
+cxx_library(
+    name = "Z",
+    exported_linker_flags = ["-lz"],
+    visibility = ["PUBLIC"],
+)
+
+cxx_library(
+    name = "PCRE2",
+    exported_linker_flags = ["-lpcre2-8"],
+    visibility = ["PUBLIC"],
+)

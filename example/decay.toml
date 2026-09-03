@@ -23,6 +23,41 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # A GNU extension: which libc is in use decides it, not which kernel.
 "has_function:dlvsym" = "prelude//abi/constraints:abi[gnu]"
 
+# Whether graphene's fast paths compile follows from the CPU and the
+# compiler, not from a knob a generated build should carry of its own —
+# `name:` in `cc.compiles(..., name: '...')` is the key, since the snippet
+# itself is no way to write one. This is what lets `sse2`/`gcc_vector`/
+# `arm_neon` stay real, open options instead of being pinned off: graphene's
+# own build selects on these directly, same as any other probe.
+"compiles:SSE intrinsics" = "prelude//cpu/constraints:cpu[x86_64]"
+"compiles:ARM NEON intrinsics" = [
+    "prelude//cpu/constraints:cpu[arm32]",
+    "prelude//cpu/constraints:cpu[arm64]",
+]
+# Really also excludes 32-bit x86/ARM, which the compiler constraint alone
+# cannot express; narrower than the real check, but MSVC (the case that
+# matters) is excluded correctly.
+"compiles:GCC vector intrinsics" = [
+    "//third-party/meson/constraints:compiler[gcc]",
+    "//third-party/meson/constraints:compiler[clang]",
+]
+
+# graphene publishes the same fast-path answers as `pkg-config` variables
+# (`graphene_has_sse2` and friends); gtk4 reads them back with
+# `dependency('graphene-gobject-1.0').get_variable(...)`. That is a
+# different variable, in a different project's configuration space, so it
+# needs its own answer here — tied to the same constraints as above, so the
+# two always agree.
+"dependency:graphene-gobject-1.0:graphene_has_sse2" = "prelude//cpu/constraints:cpu[x86_64]"
+"dependency:graphene-gobject-1.0:graphene_has_gcc" = [
+    "//third-party/meson/constraints:compiler[gcc]",
+    "//third-party/meson/constraints:compiler[clang]",
+]
+"dependency:graphene-gobject-1.0:graphene_has_neon" = [
+    "prelude//cpu/constraints:cpu[arm32]",
+    "prelude//cpu/constraints:cpu[arm64]",
+]
+
 # The tools a build runs. A build graph cannot reach outside itself for one, so
 # a program is found only when it is a script in the project — libepoxy's
 # `src/gen_dispatch.py` is — or is named here. Anything else is absent, and what
@@ -31,20 +66,32 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 #
 # [programs]
 # doxygen = "//third-party/tools:doxygen"
+[programs]
+"glib-compile-resources" = "//third-party/tools:glib-compile-resources"
+"glib-mkenums" = "//third-party/tools:glib-mkenums"
+"glib-genmarshal" = "//third-party/tools:glib-genmarshal"
 
-# Meson looks these up outside the build. Point them at real targets so the
-# generated files do not fall back to an empty stub.
+# Meson looks these up outside the build. Only a dependency the build truly
+# cannot reach itself needs an entry: a system library nothing here provides,
+# like these three. gtk4's `dependency('epoxy')` and `dependency('iso-codes')`
+# need none — libepoxy and iso-codes are imported below, and what each of
+# them provides (`pkg.generate()`'s `epoxy`, iso-codes' own generated `.pc`)
+# is exactly what a `dependency()` lookup elsewhere would ask for, resolved
+# automatically against the project that actually answers it.
 [dependencies]
 x11 = "//third-party/system:X11"
 gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
+libffi = "//third-party/system:FFI"
+zlib = "//third-party/system:Z"
+"libpcre2-8" = "//third-party/system:PCRE2"
 
 [[project]]
-repo = "https://github.com/anholt/libepoxy"
-rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973"
-host_machine.system = "linux"
+repo = "https://gitlab.gnome.org/GNOME/glib.git"
+# Pinned to tag 2.88.3.
+rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
 options.prefix = "/usr/local"
 options.libdir = "lib"
 options.datadir = "share"
 options.includedir = "include"
-options.tests = true
+

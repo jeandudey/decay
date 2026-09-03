@@ -4,7 +4,11 @@ use {
         ProjectOptions, //
     },
     decay_meson_eval::Sources,
-    std::path::Path,
+    eyre::Context,
+    std::path::{
+        Path,
+        PathBuf, //
+    },
 };
 
 /// Reads the project straight off disk, parsing with meson's own parser.
@@ -25,5 +29,30 @@ impl Sources for DiskSources {
 
     fn is_file(&self, path: &Path) -> bool {
         path.is_file()
+    }
+
+    fn read(&self, path: &Path) -> eyre::Result<String> {
+        std::fs::read_to_string(path)
+            .wrap_err_with(|| format!("Failed to read `{}`", path.display()))
+    }
+
+    fn list_dir(&self, dir: &Path) -> Vec<PathBuf> {
+        let mut out = Vec::new();
+        walk(dir, dir, &mut out);
+        out
+    }
+}
+
+fn walk(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            walk(root, &path, out);
+        } else if let Ok(rel) = path.strip_prefix(root) {
+            out.push(rel.to_path_buf());
+        }
     }
 }

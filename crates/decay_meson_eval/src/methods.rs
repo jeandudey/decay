@@ -123,19 +123,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let lang = Lang::from_str(&lang)?;
                 Ok(self.pure(Value::Obj(Obj::Compiler(lang))))
             }
-            // Source and build roots have no meaning outside a configured
-            // build tree; the placeholders keep string building working.
+            // A path in the source tree, not a plain string: a project that
+            // joins one with `/` and hands the result to a command, as
+            // iso-codes does to find its own `data/`, means the fetched
+            // checkout, and `command()` has to turn it back into a reference
+            // to that checkout rather than a path that means nothing once the
+            // build runs somewhere else.
             (
                 Obj::Meson,
                 "source_root" | "project_source_root" | "global_source_root" | "current_source_dir",
             ) => {
-                let dir = self.cur_dir().display().to_string();
-                let v = if name == "current_source_dir" && !dir.is_empty() {
-                    dir
+                let dir = if name == "current_source_dir" {
+                    self.cur_dir().display().to_string()
                 } else {
-                    ".".to_owned()
+                    String::new()
                 };
-                Ok(self.pure(Value::from(v)))
+                Ok(self.pure(Value::Obj(Obj::File(Rc::from(dir.as_str())))))
             }
             (
                 Obj::Meson,
@@ -168,6 +171,9 @@ impl<'a, S: Solver> Interp<'a, S> {
 
             // -- dependencies --
             (Obj::Dep(dep), "found") => Ok(self.bool_value(dep.found)),
+            // The one method a disabler actually defines: always absent,
+            // wherever it stands in for a dependency or a program.
+            (Obj::Disabler, "found") => Ok(self.bool_value(Pc::FALSE)),
             (Obj::Dep(dep), "type_name") => Ok(self.pure(Value::str(dep.type_name))),
             (Obj::Dep(dep), "name") => {
                 let v = dep.name.clone();
@@ -192,6 +198,20 @@ impl<'a, S: Solver> Interp<'a, S> {
                         None => None,
                     },
                 };
+
+                // An availability flag the importer answers from a constraint
+                // stays a real build-time choice — e.g. whether SSE2 is
+                // available follows from the CPU — instead of collapsing to
+                // whatever the dependency's own default build happened to be.
+                if let Some(k) = &key
+                    && let Some(probe) = self.oracle.dependency_variable(&dep.name, k)
+                {
+                    let description = format!("`{k}` of `{}` is set", dep.name);
+                    let cond =
+                        self.resolve_probe(Some(probe), &format!("dep_var:{}:{k}", dep.name), description)?;
+                    return Ok(self.flag_value(cond));
+                }
+
                 let found = key
                     .and_then(|k| {
                         dep.variables
@@ -237,17 +257,29 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
 
             // -- modules --
-            (Obj::Module(Module::PkgConfig), "generate") => {
-                // A `.pc` file describes an installed library to other build
-                // systems; it has no counterpart in the generated graph.
-                debug!("pkgconfig.generate() has no build-graph equivalent; skipping");
-                Ok(self.pure(Value::Unset))
-            }
+            (Obj::Module(Module::PkgConfig), "generate") => self.fn_pkgconfig_generate(args),
+            (Obj::Module(Module::GNOME), "compile_resources") => self.fn_compile_resources(args),
+            (Obj::Module(Module::GNOME), "mkenums") => self.fn_mkenums(args),
+            (Obj::Module(Module::GNOME), "mkenums_simple") => self.fn_mkenums_simple(args),
+            (Obj::Module(Module::GNOME), "genmarshal") => self.fn_genmarshal(args),
             (Obj::Module(Module::Fs), "exists" | "is_file" | "is_dir") => {
                 let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
                 let resolved = self.resolve(&path);
                 let exists = self.sources.exists(&self.root.join(&resolved));
                 Ok(self.bool_value(if exists { self.pc } else { Pc::FALSE }))
+            }
+            (Obj::Module(Module::Fs), "read") => {
+                let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
+                let resolved = self.resolve(&path);
+                let content = self.sources.read(&self.root.join(&resolved))?;
+                Ok(self.pure(Value::from(content)))
+            }
+            (Obj::Module(Module::I18n), "gettext") => {
+                // A ninja build compiles `.mo` files only at `meson install`
+                // time, not as part of the normal build; there is nothing here
+                // for a build graph without an install step to depend on.
+                debug!("i18n.gettext() has no build-graph equivalent; skipping");
+                Ok(self.pure(Value::Unset))
             }
             (Obj::Module(m), _) => bail!("module `{m:?}` has no method `{name}`"),
 
@@ -290,6 +322,12 @@ impl<'a, S: Solver> Interp<'a, S> {
         machine: Machine,
         property: &str,
     ) -> eyre::Result<Variational<Value>> {
+        // A cross file can set `subsystem` apart from `system` (say, `ios`
+        // under `darwin`); nothing here models cross files at all, so the
+        // two are answered as the very same variable, exactly like a
+        // native build where nobody set one differently.
+        let property = if property == "subsystem" { "system" } else { property };
+
         if let Some(pinned) = self.oracle.machine(machine, property) {
             return Ok(self.pure(Value::from(pinned)));
         }
@@ -413,22 +451,26 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// the machine instead, so the generated build selects on the system it
     /// already knows rather than on a second, redundant constraint.
     fn probe_cond(&mut self, lang: Lang, name: &str, what: &str) -> eyre::Result<Pc> {
-        match self.oracle.probe(name, what) {
+        let answer = self.oracle.probe(name, what);
+        let key = format!("probe:{}:{name}:{what}", lang.as_str());
+        let description = format!("`{what}` is available to the {} compiler", lang.as_str());
+        self.resolve_probe(answer, &key, description)
+    }
+
+    /// Turn an [`Oracle`] answer into a condition, the way [`Self::probe_cond`]
+    /// does, but for anything else the importer answers the same way — a
+    /// dependency's `pkg-config` flag, say. `key`/`description` name the
+    /// fresh variable declared when the importer says nothing at all.
+    fn resolve_probe(&mut self, answer: Option<Probe>, key: &str, description: String) -> eyre::Result<Pc> {
+        match answer {
             Some(Probe::Fixed(answer)) => Ok(Pc::from_bool(answer)),
-            Some(Probe::Systems(systems)) => {
-                self.host_system_is(&systems, &format!("{name}({what})"))
-            }
+            Some(Probe::Systems(systems)) => self.host_system_is(&systems, key),
             Some(Probe::Constraint {
                 setting,
                 domain,
                 values,
             }) => Ok(self.constraint_is(&setting, domain, &values)),
-            None => {
-                let key = format!("probe:{}:{name}:{what}", lang.as_str());
-                let description =
-                    format!("`{what}` is available to the {} compiler", lang.as_str());
-                Ok(self.probe(&key, description))
-            }
+            None => Ok(self.probe(key, description)),
         }
     }
 
@@ -455,10 +497,26 @@ impl<'a, S: Solver> Interp<'a, S> {
             // Probes: the importer cannot compile anything, so each answer
             // becomes a configuration knob the build can be told about.
             "has_header" | "check_header" | "has_function" | "has_type" | "has_member"
-            | "has_header_symbol" | "compiles" | "links" | "run" | "symbols_have_underscore_prefix" => {
+            | "has_header_symbol" | "symbols_have_underscore_prefix" => {
                 let what = match args.at(0) {
                     Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
                     None => Rc::from("expr"),
+                };
+                let cond = self.probe_cond(lang, name, &what)?;
+                Ok(self.bool_value(cond))
+            }
+            // A source snippet makes an unwieldy, fragile probe key — and, if
+            // it spans several lines, an invalid one to write into a
+            // generated file at all. `name:` is exactly what meson has these
+            // take for identifying the check to a person; prefer it, falling
+            // back to the snippet only when the project gave no name.
+            "compiles" | "links" | "run" => {
+                let what = match self.opt_string(args, "name")? {
+                    Some(n) => n,
+                    None => match args.at(0) {
+                        Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
+                        None => Rc::from("expr"),
+                    },
                 };
                 let cond = self.probe_cond(lang, name, &what)?;
                 Ok(self.bool_value(cond))
@@ -765,6 +823,12 @@ impl<'a, S: Solver> Interp<'a, S> {
         match name {
             "to_string" => Ok(self.pure(Value::str(if b { "true" } else { "false" }))),
             "to_int" => Ok(self.pure(Value::Int(i64::from(b)))),
+            // `cc.run()` really returns a result object with `.returncode()`
+            // and friends; a run is modelled as a single probe of whether it
+            // behaved as expected, same as `has_function` and the rest, so
+            // `.returncode()` on that answer reads the way `== 0` checks on
+            // it expect: 0 when it did, 1 when it did not.
+            "returncode" => Ok(self.pure(Value::Int(if b { 0 } else { 1 }))),
             other => bail!("a bool has no method `{other}`"),
         }
     }

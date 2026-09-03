@@ -105,6 +105,23 @@ pub trait Sources {
     fn is_file(&self, path: &Path) -> bool {
         self.exists(path)
     }
+
+    /// The text content of a file in the source tree, for `fs.read()`.
+    ///
+    /// Reading straight from the pinned checkout is faithful here in a way it
+    /// would not be for a compiled artifact: the content at this commit is
+    /// exactly what a real configure run would have read too.
+    fn read(&self, path: &Path) -> eyre::Result<String>;
+
+    /// Every file under `dir` in the source tree, recursively, as paths
+    /// relative to it.
+    ///
+    /// Meson gives a compiled file free quote-include access to everything
+    /// under one of its `include_directories()`, because `-I` is real
+    /// filesystem access; a project rarely lists such a header explicitly.
+    /// Listing straight from the pinned checkout is how the importer answers
+    /// that without needing the project to.
+    fn list_dir(&self, dir: &Path) -> Vec<PathBuf>;
 }
 
 /// Execute the project rooted at `root` and return its build graph.
@@ -157,6 +174,15 @@ pub struct Interp<'a, S: Solver> {
     probe_vars: HashMap<String, VarId>,
     /// Interned external dependency targets, keyed the same way.
     externals: HashMap<String, TargetId>,
+
+    /// `add_project_arguments()` / `add_global_arguments()`: meson applies
+    /// these to every target the project compiles, regardless of whether the
+    /// call comes before or after a given `library()`/`executable()`, so they
+    /// are collected here and only merged into every compiled target once the
+    /// whole project has run, in [`Self::finish`].
+    project_args: Variational<String>,
+    /// The same, for `add_project_link_arguments()` / `add_global_link_arguments()`.
+    project_link_args: Variational<String>,
 }
 
 impl<'a, S: Solver> Interp<'a, S> {
@@ -188,6 +214,8 @@ impl<'a, S: Solver> Interp<'a, S> {
             option_vars: HashMap::new(),
             probe_vars: HashMap::new(),
             externals: HashMap::new(),
+            project_args: Variational::empty(),
+            project_link_args: Variational::empty(),
         }
     }
 
@@ -207,6 +235,28 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub fn finish(self) -> (Graph, Logic<S>) {
         let mut graph = self.graph;
         graph.options = self.logic.vars().to_vec();
+
+        // `add_project_arguments()` reaches every target the project
+        // compiles, not just ones declared after the call, so it is applied
+        // here rather than at the call site.
+        if !self.project_args.is_empty() || !self.project_link_args.is_empty() {
+            for target in &mut graph.targets {
+                if !matches!(
+                    target.kind,
+                    Kind::StaticLibrary | Kind::SharedLibrary | Kind::Library { .. } | Kind::Executable
+                ) {
+                    continue;
+                }
+                let mut args = self.project_args.clone();
+                args.extend(std::mem::take(&mut target.attrs.compile_args));
+                target.attrs.compile_args = args;
+
+                let mut link_args = self.project_link_args.clone();
+                link_args.extend(std::mem::take(&mut target.attrs.link_args));
+                target.attrs.link_args = link_args;
+            }
+        }
+
         (graph, self.logic)
     }
 
@@ -639,6 +689,21 @@ impl<'a, S: Solver> Interp<'a, S> {
         out
     }
 
+    /// Like [`Self::bool_value`], but `"1"`/`"0"`: how a `pkg-config`
+    /// availability flag reads, e.g. `graphene_has_sse2`.
+    pub(crate) fn flag_value(&mut self, cond: Pc) -> Variational<Value> {
+        let pc = self.pc;
+        let yes = self.logic.and(pc, cond);
+        let no = {
+            let n = self.logic.not(cond);
+            self.logic.and(pc, n)
+        };
+        let mut out = Variational::empty();
+        out.push(Variant::new(yes, Value::str("1")));
+        out.push(Variant::new(no, Value::str("0")));
+        out
+    }
+
     /// The configurations in which a value is true.
     pub(crate) fn truth(&mut self, value: &Variational<Value>) -> eyre::Result<Pc> {
         let mut out = Pc::FALSE;
@@ -646,6 +711,8 @@ impl<'a, S: Solver> Interp<'a, S> {
             match &variant.value {
                 Value::Bool(true) => out = self.logic.or(out, variant.cond),
                 Value::Bool(false) => {}
+                // Falsy on its own, the same as `.found()` on it.
+                Value::Obj(Obj::Disabler) => {}
                 Value::Unset => bail!("a condition read a value that was never set"),
                 other => bail!("expected a bool in a condition, found a {}", other.type_name()),
             }
@@ -862,10 +929,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn strings(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<Rc<str>>> {
         let mut out = Variational::empty();
         for variant in self.flat(v) {
-            let s = variant
-                .value
-                .as_str()
-                .cloned()
+            let s = string_arg(&variant.value)
                 .ok_or_else(|| eyre::eyre!("expected a string, found a {}", variant.value.type_name()))?;
             out.push(Variant::new(variant.cond, s));
         }
@@ -877,10 +941,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn one_string(&mut self, v: &Variational<Value>) -> eyre::Result<Rc<str>> {
         let flat = self.flat(v);
         match flat.as_slice() {
-            [only] => only
-                .value
-                .as_str()
-                .cloned()
+            [only] => string_arg(&only.value)
                 .ok_or_else(|| eyre::eyre!("expected a string, found a {}", only.value.type_name())),
             [] => bail!("expected a string, found nothing"),
             _ => bail!(
@@ -987,6 +1048,17 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     pub(crate) fn warn_unsupported(&self, what: &str, loc: Loc) {
         warn!(at = %self.here(loc), "{what} is not modelled; ignoring");
+    }
+}
+
+/// A value read the way meson reads a string argument: a plain string, or a
+/// source-tree path standing in for one, as `find_program()` already has to
+/// accept from `project_source_root() / 'scripts' / 'x.py'`.
+fn string_arg(v: &Value) -> Option<Rc<str>> {
+    match v {
+        Value::Str(s) => Some(s.clone()),
+        Value::Obj(Obj::File(p)) => Some(p.clone()),
+        _ => None,
     }
 }
 

@@ -57,6 +57,45 @@ pub trait Oracle {
     fn probes_are_open(&self) -> bool {
         true
     }
+
+    /// The `pkg-config` variables of a dependency, e.g. `prefix` for
+    /// `dependency('iso-codes').get_variable(pkgconfig: 'prefix')`.
+    ///
+    /// A dependency is still found or not as a build-time choice; this only
+    /// supplies what its variables would read once it is. Left empty, a build
+    /// that asks for one in a configuration where the dependency is found
+    /// fails to import rather than silently making one up.
+    fn dependency_variables(&self, name: &str) -> Vec<(String, String)> {
+        let _ = name;
+        Vec::new()
+    }
+
+    /// Whether a dependency is known to be found, when the importer already
+    /// knows for certain — e.g. it names another project the importer is
+    /// building anyway, not something that may or may not be on a machine.
+    ///
+    /// Left `None`, whether it is found stays a build-time choice, same as an
+    /// environment probe.
+    fn dependency_found(&self, name: &str) -> Option<bool> {
+        let _ = name;
+        None
+    }
+
+    /// The answer to a dependency's `1`-or-`0` `pkg-config` variable (an
+    /// availability flag, the way `graphene_has_sse2` is), when it follows
+    /// from something the importer already knows — answered the same way as
+    /// [`Oracle::probe`], and for the same reason: whether SSE2 is available
+    /// follows from the CPU, not from a knob a generated build should carry
+    /// of its own.
+    ///
+    /// Left unanswered, a project reading the variable with no fallback of
+    /// its own fails to import rather than a value being made up for it —
+    /// same as [`Oracle::dependency_variables`], just for a flag instead of a
+    /// fixed string.
+    fn dependency_variable(&self, dep: &str, variable: &str) -> Option<Probe> {
+        let _ = (dep, variable);
+        None
+    }
 }
 
 /// What a toolchain probe answers, when the configuration knows.

@@ -101,3 +101,179 @@ constraint(
     default = "false",
     visibility = ["PUBLIC"],
 )
+
+# external dependency `lib:opengl32`: `opengl32` is available
+constraint(
+    name = "opengl32",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:gdi32`: `gdi32` is available
+constraint(
+    name = "gdi32",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# machine property `machine:host:cpu_family`: host machine cpu_family
+constraint(
+    name = "cpu_family",
+    values = ["x86", "x86_64", "arm", "aarch64", "riscv32", "riscv64", "ppc64", "s390x", "mips64", "loongarch64", "wasm32"],
+    default = "x86",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:m`: `m` is available
+constraint(
+    name = "m",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:stdlib.h`: `stdlib.h` is available to the c compiler
+constraint(
+    name = "has_header_stdlib_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:stdint.h`: `stdint.h` is available to the c compiler
+constraint(
+    name = "has_header_stdint_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:stdbool.h`: `stdbool.h` is available to the c compiler
+constraint(
+    name = "has_header_stdbool_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:memory.h`: `memory.h` is available to the c compiler
+constraint(
+    name = "has_header_memory_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:pthread.h`: `pthread.h` is available to the c compiler
+constraint(
+    name = "has_header_pthread_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:memalign`: `memalign` is available to the c compiler
+constraint(
+    name = "has_function_memalign",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:_aligned_malloc`: `_aligned_malloc` is available to the c compiler
+constraint(
+    name = "has_function_aligned_malloc",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:aligned_alloc`: `aligned_alloc` is available to the c compiler
+constraint(
+    name = "has_function_aligned_alloc",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:posix_memalign`: `posix_memalign` is available to the c compiler
+constraint(
+    name = "has_function_posix_memalign",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:sincosf`: `sincosf` is available to the c compiler
+constraint(
+    name = "has_function_sincosf",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:isinff`: `isinff` is available to the c compiler
+constraint(
+    name = "has_function_isinff",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:isnanf`: `isnanf` is available to the c compiler
+constraint(
+    name = "has_function_isnanf",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# meson build option `option:debug`
+constraint(
+    name = "debug",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# meson build option `option:optimization`
+constraint(
+    name = "optimization",
+    values = ["plain", "0", "g", "1", "2", "3", "s"],
+    default = "0",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:gobject-2.0`: `gobject-2.0` is available
+constraint(
+    name = "gobject_2_0",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:InitOnceExecuteOnce`: `InitOnceExecuteOnce` is available to the c compiler
+constraint(
+    name = "compiles_InitOnceExecuteOnce",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:run:IEEE 754 floating-point division`: `IEEE 754 floating-point division` is available to the c compiler
+constraint(
+    name = "run_IEEE_754_floating_point_division",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:mutest-1`: `mutest-1` is available
+constraint(
+    name = "mutest_1",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)

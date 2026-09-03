@@ -6,6 +6,7 @@ use {
             ConfigData,
             Dep,
             Entry,
+            Lang,
             Module,
             Obj,
             Program, //
@@ -20,7 +21,9 @@ use {
         Install,
         Kind,
         Linkage,
+        Package,
         Source,
+        TargetId,
         Test, //
     },
     decay_meson_ast::{
@@ -39,7 +42,10 @@ use {
         bail, //
     },
     std::{
-        path::PathBuf,
+        path::{
+            Path,
+            PathBuf, //
+        },
         rc::Rc,
         str::FromStr, //
     },
@@ -90,6 +96,13 @@ impl<'a, S: Solver> Interp<'a, S> {
                 self.warn_unsupported("install_subdir()", loc);
                 Ok(self.pure(Value::Unset))
             }
+            "install_symlink" => {
+                // A symlink to another install's output, not a file of its
+                // own; nothing installs anything yet, so there is no graph to
+                // add it to.
+                debug!("install_symlink() has no build-graph equivalent; skipping");
+                Ok(self.pure(Value::Unset))
+            }
 
             // -- values --
             "configuration_data" => {
@@ -98,8 +111,17 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
             "environment" => Ok(self.pure(Value::Obj(Obj::Env))),
             "join_paths" => self.fn_join_paths(args),
-            "disabler" => bail!("`disabler()` is not supported"),
-            "is_disabler" => Ok(self.bool_value(Pc::FALSE)),
+            "disabler" => Ok(self.pure(Value::Obj(Obj::Disabler))),
+            "is_disabler" => {
+                let arg = args.at(0).ok_or_eyre("expected a value")?;
+                let mut out = Variational::empty();
+                for variant in arg.variants() {
+                    let is = matches!(variant.value, Value::Obj(Obj::Disabler));
+                    out.push(Variant::new(variant.cond, Value::Bool(is)));
+                }
+                out.normalize(&mut self.logic);
+                Ok(out)
+            }
 
             // -- diagnostics and flow --
             "error" => self.fn_error(args),
@@ -139,14 +161,49 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
 
             // -- global compiler flags --
-            "add_project_arguments"
-            | "add_global_arguments"
-            | "add_project_link_arguments"
-            | "add_global_link_arguments"
-            | "add_test_setup"
-            | "add_languages" => {
+            //
+            // Not distinguished by `language:`, the same simplification a
+            // target's own `c_args`/`cpp_args`/... already make: every
+            // language's flags land in the one `compile_args` a target has.
+            // `add_global_*` differs from `add_project_*` only for
+            // subprojects, which this importer does not model as anything
+            // other than an independent project of their own, so both are
+            // handled the same way.
+            "add_project_arguments" | "add_global_arguments" => {
+                let flags = self.flag_args(args)?;
+                self.project_args.extend(flags);
+                Ok(self.pure(Value::Unset))
+            }
+            "add_project_link_arguments" | "add_global_link_arguments" => {
+                let flags = self.flag_args(args)?;
+                self.project_link_args.extend(flags);
+                Ok(self.pure(Value::Unset))
+            }
+            "add_test_setup" => {
                 self.warn_unsupported(&format!("`{name}()`"), loc);
                 Ok(self.pure(Value::Unset))
+            }
+
+            // A name this executor already knows how to answer
+            // `meson.get_compiler()` for is as available as any other
+            // compiler capability defaults to; anything else genuinely
+            // cannot be claimed.
+            "add_languages" => {
+                let mut known = true;
+                for arg in &args.pos {
+                    for s in self.strings(arg)?.into_variants() {
+                        if Lang::from_str(&s.value).is_err() {
+                            known = false;
+                        }
+                    }
+                }
+                let found = Pc::from_bool(known);
+                let required = self.required(args)?;
+                if !required.is_false() {
+                    let must = self.logic.implies(required, found);
+                    self.logic.assume(must);
+                }
+                Ok(self.bool_value(found))
             }
 
             "run_command" => bail!(
@@ -337,7 +394,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
         // Headers listed as sources are not compiled; splitting them out here
         // keeps the backend from having to guess by extension.
-        let (srcs, headers) = self.split_headers(srcs);
+        let (srcs, mut headers) = self.split_headers(srcs);
 
         let mut deps = Variational::empty();
         if let Some(v) = args.get("dependencies") {
@@ -355,6 +412,8 @@ impl<'a, S: Solver> Interp<'a, S> {
         if let Some(v) = args.get("include_directories") {
             include_dirs.extend(self.include_dirs(v)?);
         }
+
+        self.list_headers(&include_dirs, &mut headers);
 
         let mut compile_args = Variational::empty();
         for key in ["c_args", "cpp_args", "objc_args", "objcpp_args", "args"] {
@@ -439,6 +498,34 @@ impl<'a, S: Solver> Interp<'a, S> {
         let output = self
             .opt_string(args, "output")?
             .ok_or_eyre("configure_file() needs an `output:`")?;
+
+        // A `command:` makes this behave like `custom_target()`: an
+        // arbitrary command produces the output, rather than a template or
+        // `#define`s substituted from a `configuration:`.
+        if let Some(command_arg) = args.get("command") {
+            let dir = self.cur_dir().to_path_buf();
+            let id = self.graph.add(&output, &dir, self.pc, Kind::Custom);
+
+            let mut srcs = Variational::empty();
+            if let Some(v) = args.get("input") {
+                srcs.extend(self.sources(v)?);
+            }
+            let mut cmd = Variational::empty();
+            cmd.extend(self.command(command_arg)?);
+
+            let install = self.flag(args, "install", Pc::FALSE)?;
+            let install_dir = self.opt_string(args, "install_dir")?.map(|v| v.to_string());
+
+            let target = self.graph.target_mut(id);
+            target.attrs.srcs = srcs;
+            target.attrs.outs = vec![output.to_string()];
+            target.attrs.cmd = cmd;
+            target.attrs.install = install;
+            target.attrs.install_dir = install_dir;
+
+            return Ok(self.pure(Value::Obj(Obj::Target(id))));
+        }
+
         let dir = self.cur_dir().to_path_buf();
         let id = self.graph.add(&output, &dir, self.pc, Kind::ConfigHeader);
 
@@ -452,6 +539,22 @@ impl<'a, S: Solver> Interp<'a, S> {
             None => Variational::empty(),
         };
 
+        // A `.pc` file is how a project tells the outside world about itself;
+        // resolve it the way a real configure step would, straight from the
+        // template and the configuration already computed above, so another
+        // project's `dependency()` can read it back instead of decay.toml
+        // having to repeat what is already known right here.
+        if output.ends_with(".pc")
+            && let Some(Source::File(path)) = &template
+        {
+            let variables = self.pc_variables(path, &defines);
+            self.graph.provides.push(Package {
+                name: output.trim_end_matches(".pc").to_owned(),
+                target: None,
+                variables,
+            });
+        }
+
         let install = self.flag(args, "install", Pc::FALSE)?;
         let install_dir = self.opt_string(args, "install_dir")?.map(|v| v.to_string());
 
@@ -463,6 +566,431 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.install_dir = install_dir;
 
         Ok(self.pure(Value::Obj(Obj::Target(id))))
+    }
+
+    /// The `pkg-config` variables a `.pc` file would actually contain, found
+    /// by substituting `defines` into `template` and reading the result back
+    /// as pkg-config itself would, rather than guessing at what a configure
+    /// step would have produced.
+    fn pc_variables(&mut self, path: &Path, defines: &Variational<decay_build_ir::Define>) -> Vec<(String, String)> {
+        let Ok(mut text) = self.sources.read(&self.root.join(path)) else {
+            return Vec::new();
+        };
+        for (name, value) in single_valued(defines) {
+            text = text.replace(&format!("@{name}@"), &value);
+        }
+        parse_pc_variables(&text)
+    }
+
+    /// The target for a build tool a gnome-module function runs itself,
+    /// resolved the same way `find_program(name)` would be — in the project,
+    /// mapped in the importer's configuration, or a hard failure, since a
+    /// generator module always requires its tool.
+    fn tool(&mut self, name: &str) -> eyre::Result<TargetId> {
+        let tool_args = CallArgs {
+            pos: vec![self.pure(Value::str(name))],
+            kw: Vec::new(),
+        };
+        let found = self.fn_find_program(&tool_args)?;
+        let Value::Obj(Obj::Program(program)) = &found.variants()[0].value else {
+            unreachable!("find_program() always returns a Program")
+        };
+        Ok(program.target)
+    }
+
+    /// `gnome.compile_resources()`: a `glib-compile-resources` genrule.
+    ///
+    /// `input` is often itself generated (gtk4 builds most of its
+    /// `.gresource.xml` files with a small Python script), so its resource
+    /// list cannot be read at import time the way a real `.pc.in` template
+    /// can. Rather than parse it, this hands the compiler the whole
+    /// `source_dir` as a directory — a real one has to exist, since buck2
+    /// otherwise has nothing to give it filesystem access to at all — and
+    /// lets it resolve each referenced file itself, same as meson does.
+    /// Anything meson would only have found in the build directory has to
+    /// reach the compiler through `dependencies:` instead, which this does
+    /// not yet wire in.
+    pub(crate) fn fn_compile_resources(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let tool_target = self.tool("glib-compile-resources")?;
+
+        let id = self.one_string(args.at(0).ok_or_eyre("gnome.compile_resources() needs a name")?)?;
+        let input = args.at(1).ok_or_eyre("gnome.compile_resources() needs an input")?;
+        let resolved = self.sources(input)?;
+        let Some(first) = resolved.variants().first() else {
+            bail!("gnome.compile_resources('{id}') has no input");
+        };
+        let input_source = first.value.clone();
+
+        // `meson.current_source_dir()` (the usual `source_dir:`) is already
+        // project-relative; a plain string, the way meson reads any path, is
+        // relative to wherever this call sits.
+        let mut source_dirs = Vec::new();
+        match args.get("source_dir") {
+            Some(v) => {
+                for variant in self.flat(v) {
+                    match &variant.value {
+                        Value::Obj(Obj::File(p)) => source_dirs.push(p.to_string()),
+                        Value::Str(s) => source_dirs.push(self.resolve(s)),
+                        other => bail!("`source_dir:` expects a string, found a {}", other.type_name()),
+                    }
+                }
+            }
+            None => source_dirs.push(self.cur_dir().display().to_string()),
+        }
+        let real_dirs: Vec<PathBuf> = source_dirs
+            .iter()
+            .map(PathBuf::from)
+            .filter(|d| self.sources.exists(&self.root.join(d)))
+            .collect();
+        if real_dirs.is_empty() {
+            bail!(
+                "gnome.compile_resources('{id}') names no `source_dir` that is a real \
+                 directory in the project"
+            );
+        }
+
+        let dir = self.cur_dir().to_path_buf();
+        let target_id = self.graph.add(&id, &dir, self.pc, Kind::Custom);
+
+        let mut srcs = Variational::empty();
+        srcs.push(Variant::new(self.pc, input_source.clone()));
+
+        let c_name = self
+            .opt_string(args, "c_name")?
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| {
+                id.chars()
+                    .map(|c| if c.is_alphanumeric() { c } else { '_' })
+                    .collect()
+            });
+
+        let mut cmd = Variational::empty();
+        cmd.push(Variant::new(self.pc, CmdArg::Target(tool_target)));
+        cmd.push(Variant::new(self.pc, CmdArg::Literal("--generate-source".to_owned())));
+        for real_dir in real_dirs {
+            cmd.push(Variant::new(self.pc, CmdArg::Literal("--sourcedir".to_owned())));
+            cmd.push(Variant::new(self.pc, CmdArg::File(real_dir)));
+        }
+        cmd.push(Variant::new(self.pc, CmdArg::Literal(format!("--c-name={c_name}"))));
+        cmd.push(Variant::new(self.pc, CmdArg::Literal("--target".to_owned())));
+        cmd.push(Variant::new(self.pc, CmdArg::Outputs));
+        if let Some(v) = args.get("extra_args") {
+            for s in self.strings(v)?.into_variants() {
+                cmd.push(Variant::new(s.cond, CmdArg::Literal(s.value.to_string())));
+            }
+        }
+        cmd.push(Variant::new(
+            self.pc,
+            match input_source {
+                Source::File(path) => CmdArg::File(path),
+                Source::Generated(gid) => CmdArg::Target(gid),
+            },
+        ));
+
+        let target = self.graph.target_mut(target_id);
+        target.attrs.srcs = srcs;
+        target.attrs.outs = vec![format!("{id}.c")];
+        target.attrs.cmd = cmd;
+
+        Ok(self.pure(Value::list(vec![Variant::new(
+            self.pc,
+            Value::Obj(Obj::Target(target_id)),
+        )])))
+    }
+
+    /// `gnome.mkenums()`: one `glib-mkenums` genrule per template given —
+    /// meson runs the tool once per template file, scanning `sources:` for
+    /// enum/flags declarations each time, and returns the results in the
+    /// same order it was given the templates (`[c, h]`, conventionally).
+    ///
+    /// The templates meson bundles for the no-`*_template:` form are not
+    /// reproduced here; a project that relies on them fails clearly instead
+    /// of silently getting nothing to compile.
+    pub(crate) fn fn_mkenums(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let tool_target = self.tool("glib-mkenums")?;
+
+        let id = self.one_string(args.at(0).ok_or_eyre("gnome.mkenums() needs a name")?)?;
+
+        let mut sources = Variational::empty();
+        for arg in args.rest() {
+            sources.extend(self.sources(arg)?);
+        }
+        if let Some(v) = args.get("sources") {
+            sources.extend(self.sources(v)?);
+        }
+
+        let dir = self.cur_dir().to_path_buf();
+        let mut outputs = Vec::new();
+        for (key, ext) in [("c_template", "c"), ("h_template", "h")] {
+            let Some(template_arg) = args.get(key) else {
+                continue;
+            };
+            let templates = self.sources(template_arg)?;
+            let Some(first) = templates.variants().first() else {
+                continue;
+            };
+            let Source::File(template_path) = &first.value else {
+                bail!("gnome.mkenums('{id}')'s `{key}:` must be a real file");
+            };
+
+            let cmd = [
+                CmdArg::Literal("--template".to_owned()),
+                CmdArg::File(template_path.clone()),
+                CmdArg::Inputs,
+                CmdArg::Literal(">".to_owned()),
+                CmdArg::Outputs,
+            ];
+            let target_id = self.custom_run(&format!("{id}.{ext}"), &dir, tool_target, &sources, &cmd);
+            outputs.push(Variant::new(self.pc, Value::Obj(Obj::Target(target_id))));
+        }
+
+        Ok(self.pure(Value::list(outputs)))
+    }
+
+    /// `gnome.mkenums_simple()`: `mkenums()` with meson's own bundled
+    /// templates, reproduced here faithfully rather than approximated —
+    /// this is boilerplate glib itself expects, not something this project
+    /// gets to phrase differently.
+    pub(crate) fn fn_mkenums_simple(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let tool_target = self.tool("glib-mkenums")?;
+        let id = self.one_string(args.at(0).ok_or_eyre("gnome.mkenums_simple() needs a name")?)?;
+
+        let mut sources = Variational::empty();
+        if let Some(v) = args.get("sources") {
+            sources.extend(self.sources(v)?);
+        }
+
+        let opt = |this: &mut Self, name| -> eyre::Result<String> {
+            Ok(this.opt_string(args, name)?.map(|s| s.to_string()).unwrap_or_default())
+        };
+        let identifier_prefix = opt(self, "identifier_prefix")?;
+        let symbol_prefix = opt(self, "symbol_prefix")?;
+        let header_prefix = opt(self, "header_prefix")?;
+        let function_prefix = opt(self, "function_prefix")?;
+        let body_prefix = opt(self, "body_prefix")?;
+        let decorator = opt(self, "decorator")?;
+
+        let dir = self.cur_dir().to_path_buf();
+
+        let mut common = Vec::new();
+        if !identifier_prefix.is_empty() {
+            common.push(CmdArg::Literal("--identifier-prefix".to_owned()));
+            common.push(CmdArg::Literal(identifier_prefix));
+        }
+        if !symbol_prefix.is_empty() {
+            common.push(CmdArg::Literal("--symbol-prefix".to_owned()));
+            common.push(CmdArg::Literal(symbol_prefix));
+        }
+
+        // The headers' own `#include`s, relative to this directory, the way
+        // meson's `os.path.relpath(hdr, subdir)` computes them.
+        let mut includes = String::new();
+        for variant in sources.variants() {
+            if let Source::File(path) = &variant.value {
+                let rel = path.strip_prefix(&dir).unwrap_or(path);
+                includes.push_str(&format!("#include \"{}\"\n", rel.display()));
+            }
+        }
+
+        let mut fhead = String::new();
+        if !body_prefix.is_empty() {
+            fhead.push_str(&body_prefix);
+            fhead.push('\n');
+        }
+        fhead.push_str(&format!("#include \"{id}.h\"\n"));
+        fhead.push_str(&includes);
+        fhead.push_str("\n#define C_ENUM(v) ((gint) v)\n#define C_FLAGS(v) ((guint) v)\n");
+
+        let mut c_cmd = common.clone();
+        c_cmd.push(CmdArg::Literal("--fhead".to_owned()));
+        c_cmd.push(CmdArg::Literal(fhead));
+        c_cmd.push(CmdArg::Literal("--fprod".to_owned()));
+        c_cmd.push(CmdArg::Literal("\n/* enumerations from \"@basename@\" */\n".to_owned()));
+        c_cmd.push(CmdArg::Literal("--vhead".to_owned()));
+        c_cmd.push(CmdArg::Literal(format!(
+            "\nGType\n{function_prefix}@enum_name@_get_type (void)\n{{\n    static gsize gtype_id = 0;\n    \
+             static const G@Type@Value values[] = {{"
+        )));
+        c_cmd.push(CmdArg::Literal("--vprod".to_owned()));
+        c_cmd.push(CmdArg::Literal(
+            "        { C_@TYPE@ (@VALUENAME@), \"@VALUENAME@\", \"@valuenick@\" },".to_owned(),
+        ));
+        c_cmd.push(CmdArg::Literal("--vtail".to_owned()));
+        c_cmd.push(CmdArg::Literal(
+            "    { 0, NULL, NULL }\n    };\n    if (g_once_init_enter (&gtype_id)) {\n        \
+             GType new_type = g_@type@_register_static (g_intern_static_string (\"@EnumName@\"), values);\n        \
+             g_once_init_leave (&gtype_id, new_type);\n    }\n    return (GType) gtype_id;\n}"
+                .to_owned(),
+        ));
+        c_cmd.push(CmdArg::Inputs);
+        c_cmd.push(CmdArg::Literal(">".to_owned()));
+        c_cmd.push(CmdArg::Outputs);
+        let c_id = self.custom_run(&format!("{id}.c"), &dir, tool_target, &sources, &c_cmd);
+
+        let mut header_prefix_line = header_prefix;
+        if !header_prefix_line.is_empty() && !header_prefix_line.ends_with('\n') {
+            header_prefix_line.push('\n');
+        }
+        let extra_newline = if decorator.is_empty() { "" } else { "\n" };
+
+        let mut h_cmd = common;
+        h_cmd.push(CmdArg::Literal("--fhead".to_owned()));
+        h_cmd.push(CmdArg::Literal(format!(
+            "#pragma once\n\n#include <glib-object.h>\n{header_prefix_line}\nG_BEGIN_DECLS\n"
+        )));
+        h_cmd.push(CmdArg::Literal("--fprod".to_owned()));
+        h_cmd.push(CmdArg::Literal("\n/* enumerations from \"@basename@\" */\n".to_owned()));
+        h_cmd.push(CmdArg::Literal("--vhead".to_owned()));
+        h_cmd.push(CmdArg::Literal(format!(
+            "{extra_newline}{decorator}\nGType {function_prefix}@enum_name@_get_type (void);\n\
+             #define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({function_prefix}@enum_name@_get_type())"
+        )));
+        h_cmd.push(CmdArg::Literal("--ftail".to_owned()));
+        h_cmd.push(CmdArg::Literal("\nG_END_DECLS".to_owned()));
+        h_cmd.push(CmdArg::Inputs);
+        h_cmd.push(CmdArg::Literal(">".to_owned()));
+        h_cmd.push(CmdArg::Outputs);
+        let h_id = self.custom_run(&format!("{id}.h"), &dir, tool_target, &sources, &h_cmd);
+
+        Ok(self.pure(Value::list(vec![
+            Variant::new(self.pc, Value::Obj(Obj::Target(c_id))),
+            Variant::new(self.pc, Value::Obj(Obj::Target(h_id))),
+        ])))
+    }
+
+    /// `gnome.genmarshal()`: a `glib-genmarshal` header and body, one call
+    /// each, both against the same `sources:` (a `.list` file naming the
+    /// marshaller signatures — meson does not read it either; the tool
+    /// does, at build time). Assumes a glib new enough for `--output` and
+    /// `--include-header` (meson itself falls back to older flags below
+    /// glib 2.51/2.53.4; this does not, since anything built against this
+    /// importer is not going to be older than that).
+    ///
+    /// Returned as `[body, header]`, matching meson's own order.
+    pub(crate) fn fn_genmarshal(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let tool_target = self.tool("glib-genmarshal")?;
+        let id = self.one_string(args.at(0).ok_or_eyre("gnome.genmarshal() needs a name")?)?;
+
+        let mut sources = Variational::empty();
+        if let Some(v) = args.get("sources") {
+            sources.extend(self.sources(v)?);
+        }
+        for arg in args.rest() {
+            sources.extend(self.sources(arg)?);
+        }
+
+        let dir = self.cur_dir().to_path_buf();
+
+        let mut common = vec![CmdArg::Literal("--quiet".to_owned())];
+        if let Some(prefix) = self.opt_string(args, "prefix")? {
+            common.push(CmdArg::Literal("--prefix".to_owned()));
+            common.push(CmdArg::Literal(prefix.to_string()));
+        }
+        if let Some(v) = args.get("extra_args") {
+            for s in self.strings(v)?.into_variants() {
+                common.push(CmdArg::Literal(s.value.to_string()));
+            }
+        }
+        for flag in ["internal", "nostdinc", "skip_source", "stdinc", "valist_marshallers"] {
+            if self.flag(args, flag, Pc::FALSE)?.is_true() {
+                common.push(CmdArg::Literal(format!("--{}", flag.replace('_', "-"))));
+            }
+        }
+        common.push(CmdArg::Literal("--output".to_owned()));
+        common.push(CmdArg::Outputs);
+
+        let header_file = format!("{id}.h");
+        let mut h_cmd = common.clone();
+        h_cmd.push(CmdArg::Literal("--header".to_owned()));
+        h_cmd.push(CmdArg::Inputs);
+        h_cmd.push(CmdArg::Literal("--pragma-once".to_owned()));
+        let h_id = self.custom_run(&header_file, &dir, tool_target, &sources, &h_cmd);
+
+        let mut c_cmd = common;
+        c_cmd.push(CmdArg::Literal("--body".to_owned()));
+        c_cmd.push(CmdArg::Inputs);
+        c_cmd.push(CmdArg::Literal("--include-header".to_owned()));
+        c_cmd.push(CmdArg::Literal(header_file));
+        let c_id = self.custom_run(&format!("{id}.c"), &dir, tool_target, &sources, &c_cmd);
+
+        Ok(self.pure(Value::list(vec![
+            Variant::new(self.pc, Value::Obj(Obj::Target(c_id))),
+            Variant::new(self.pc, Value::Obj(Obj::Target(h_id))),
+        ])))
+    }
+
+    /// One generator-tool invocation: `tool`, then `extra` verbatim (already
+    /// in the exact argument order the caller wants, including however it
+    /// names its own output — `--output @OUTPUT@`, or a trailing
+    /// `> $OUT` for a tool that writes to stdout instead), against every
+    /// source.
+    fn custom_run(
+        &mut self,
+        output: &str,
+        dir: &Path,
+        tool: TargetId,
+        sources: &Variational<Source>,
+        extra: &[CmdArg],
+    ) -> TargetId {
+        let target_id = self.graph.add(output, dir, self.pc, Kind::Custom);
+
+        let mut cmd = Variational::empty();
+        cmd.push(Variant::new(self.pc, CmdArg::Target(tool)));
+        for arg in extra {
+            cmd.push(Variant::new(self.pc, arg.clone()));
+        }
+
+        let target = self.graph.target_mut(target_id);
+        target.attrs.srcs = sources.clone();
+        target.attrs.outs = vec![output.to_owned()];
+        target.attrs.cmd = cmd;
+
+        target_id
+    }
+
+    /// `import('pkgconfig').generate()`: record what the project makes
+    /// available under the resulting `.pc` file's name, the same way
+    /// `dependency()` would find it in another project.
+    ///
+    /// Meson also auto-fills `prefix`/`libdir`/`includedir`; only the
+    /// `variables:` a project states explicitly are captured here, since
+    /// those are what a project actually means to publish.
+    pub(crate) fn fn_pkgconfig_generate(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let library = args.get("libraries").or_else(|| args.at(0));
+        let library_target = match library {
+            Some(v) => self
+                .flat(v)
+                .into_iter()
+                .find_map(|v| match v.value {
+                    Value::Obj(Obj::Target(id)) => Some(id),
+                    _ => None,
+                }),
+            None => None,
+        };
+
+        let name = match self.opt_string(args, "filebase")? {
+            Some(n) => n.to_string(),
+            None => match self.opt_string(args, "name")? {
+                Some(n) => n.to_string(),
+                None => match library_target {
+                    Some(id) => self.graph.target(id).label.clone(),
+                    None => bail!("pkgconfig.generate() needs a `filebase:`, `name:`, or a library"),
+                },
+            },
+        };
+
+        let variables = match args.get("variables") {
+            Some(v) => single_valued_pairs(&self.pairs(v)?),
+            None => Vec::new(),
+        };
+
+        self.graph.provides.push(Package {
+            name,
+            target: library_target,
+            variables,
+        });
+
+        Ok(self.pure(Value::Unset))
     }
 
     /// Read a `configuration_data()` object into header entries.
@@ -559,6 +1087,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         if let Some(v) = args.get("sources") {
             headers.extend(self.sources(v)?);
         }
+        self.list_headers(&include_dirs, &mut headers);
 
         let mut variables = Variational::empty();
         if let Some(v) = args.get("variables") {
@@ -587,7 +1116,7 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     /// A `variables:` argument, which meson accepts as either a dict or a list
     /// of `key=value` strings.
-    fn pairs(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<(String, String)>> {
+    pub(crate) fn pairs(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<(String, String)>> {
         let mut out = Variational::empty();
         for variant in v.variants() {
             if let Value::Dict(entries) = &variant.value {
@@ -648,6 +1177,7 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         let target = self.external(&key, &name, kind);
         let found = self.dependency_found(&key, &name, required);
+        let variables = self.oracle.dependency_variables(&name);
 
         let value = self.dep_obj(Dep {
             name: name.to_string(),
@@ -655,7 +1185,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             target,
             type_name,
             version: None,
-            variables: Vec::new(),
+            variables,
         });
         Ok(self.pure(value))
     }
@@ -666,6 +1196,9 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// configure at all — so rather than tracking a "found" flag that can never
     /// be false there, the configuration space is narrowed to say so.
     pub(crate) fn dependency_found(&mut self, key: &str, name: &str, required: Pc) -> Pc {
+        if let Some(pinned) = self.oracle.dependency_found(name) {
+            return Pc::from_bool(pinned);
+        }
         let found = self.probe(key, format!("`{name}` is available"));
         if !required.is_false() {
             let must = self.logic.implies(required, found);
@@ -888,6 +1421,42 @@ impl<'a, S: Solver> Interp<'a, S> {
     ///
     /// Meson accepts headers in `sources:` and works out which is which; the
     /// distinction matters downstream, so it is made once, here.
+    /// The positional string(s) — one call may pass either `'a', 'b'` or
+    /// `['a', 'b']` — of an `add_*_arguments()` call.
+    fn flag_args(&mut self, args: &CallArgs) -> eyre::Result<Variational<String>> {
+        let mut out = Variational::empty();
+        for arg in &args.pos {
+            out.extend(self.strings(arg)?.map(|s| s.to_string()));
+        }
+        Ok(out)
+    }
+
+    /// Add every header sitting in `include_dirs` that is not already
+    /// explicitly listed in `headers`.
+    ///
+    /// Meson gives a compiled file free quote-include access to anything
+    /// under one of its `include_directories()`, because `-I` is real
+    /// filesystem access; buck2's sandbox is not, so a header sitting there
+    /// has to actually be listed for a compile to find it, the same way an
+    /// explicit one already is.
+    fn list_headers(&mut self, include_dirs: &Variational<PathBuf>, headers: &mut Variational<Source>) {
+        for variant in include_dirs.variants().to_vec() {
+            for rel in self.sources.list_dir(&self.root.join(&variant.value)) {
+                if !is_header_file(&rel) {
+                    continue;
+                }
+                let path = variant.value.join(&rel);
+                let already_listed = headers
+                    .variants()
+                    .iter()
+                    .any(|h| matches!(&h.value, Source::File(p) if *p == path));
+                if !already_listed {
+                    headers.push(Variant::new(variant.cond, Source::File(path)));
+                }
+            }
+        }
+    }
+
     fn split_headers(
         &self,
         srcs: Variational<Source>,
@@ -902,11 +1471,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                     PathBuf::from(target.attrs.outs.first().cloned().unwrap_or_default())
                 }
             };
-            let is_header = matches!(
-                name.extension().and_then(|e| e.to_str()),
-                Some("h" | "hh" | "hpp" | "hxx" | "inc" | "def")
-            );
-            if is_header {
+            if is_header_file(&name) {
                 headers.push(variant);
             } else {
                 compiled.push(variant);
@@ -928,6 +1493,91 @@ impl<'a, S: Solver> Interp<'a, S> {
         let t = self.truth(v)?;
         Ok(self.logic.and(self.pc, t))
     }
+}
+
+/// Every `#define` whose value does not depend on the configuration, as the
+/// plain text it would substitute into a `.in` template — the same rule
+/// `decay_buck2` renders a template substitution with, so resolving one here
+/// at import time agrees with what the generated build would produce.
+///
+/// A name with more than one variant genuinely depends on a configuration
+/// choice still open at import time, so there is no one answer to give; it is
+/// left out rather than guessed at.
+fn single_valued(defines: &Variational<decay_build_ir::Define>) -> Vec<(String, String)> {
+    use {decay_build_ir::DefineValue, std::collections::HashMap};
+
+    let mut counts: HashMap<&str, u32> = HashMap::new();
+    for variant in defines.variants() {
+        *counts.entry(variant.value.name.as_str()).or_default() += 1;
+    }
+
+    defines
+        .variants()
+        .iter()
+        .filter(|v| counts[v.value.name.as_str()] == 1)
+        .map(|v| {
+            let text = match &v.value.value {
+                DefineValue::Quoted(s) | DefineValue::Raw(s) => s.clone(),
+                DefineValue::Number(n) => n.to_string(),
+                DefineValue::Flag => "1".to_owned(),
+                DefineValue::Undef => String::new(),
+            };
+            (v.value.name.clone(), text)
+        })
+        .collect()
+}
+
+/// Keep only the `variables:` entries whose value does not depend on the
+/// configuration, for the same reason [`single_valued`] does: a name with
+/// more than one variant has no one answer to give yet.
+fn single_valued_pairs(pairs: &Variational<(String, String)>) -> Vec<(String, String)> {
+    use std::collections::HashMap;
+
+    let mut counts: HashMap<&str, u32> = HashMap::new();
+    for variant in pairs.variants() {
+        *counts.entry(variant.value.0.as_str()).or_default() += 1;
+    }
+
+    pairs
+        .variants()
+        .iter()
+        .filter(|v| counts[v.value.0.as_str()] == 1)
+        .map(|v| v.value.clone())
+        .collect()
+}
+
+/// The `name=value` variable lines of a `pkg-config` file, e.g. `prefix=/usr`
+/// ahead of the `Name:`/`Version:`/... fields. A line belongs to whichever
+/// syntax its first `=` or `:` matches, the same way pkg-config itself reads
+/// one.
+fn parse_pc_variables(text: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let eq = line.find('=');
+        let colon = line.find(':');
+        let is_variable = match (eq, colon) {
+            (Some(e), Some(c)) => e < c,
+            (Some(_), None) => true,
+            _ => false,
+        };
+        if let (true, Some((k, v))) = (is_variable, line.split_once('=')) {
+            out.push((k.trim().to_owned(), v.trim().to_owned()));
+        }
+    }
+    out
+}
+
+/// Whether a source-tree path is a header rather than something compiled on
+/// its own.
+fn is_header_file(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|e| e.to_str()),
+        Some("h" | "hh" | "hpp" | "hxx" | "inc" | "def")
+    )
 }
 
 fn pinned_value(pinned: &Pinned) -> Value {

@@ -6,6 +6,7 @@ use {
         },
         git_cache::GitCache,
         oracle::ConfigOracle,
+        packages::Packages,
         sources::DiskSources, //
     },
     clap::{
@@ -43,6 +44,7 @@ use {
 mod config;
 mod git_cache;
 mod oracle;
+mod packages;
 mod sources;
 
 #[derive(Parser)]
@@ -82,20 +84,37 @@ fn buckify() -> eyre::Result<()> {
     }
     let git_cache = GitCache::new(&cache_dir);
 
+    // Every project is executed before anything is written: the constraints
+    // that come from meson rather than from a project are declared once, and
+    // that set is only known once every project has been looked at. Projects
+    // execute in the order `decay.toml` lists them, so what one of them
+    // provides is known in time for a later one's `dependency()` to resolve
+    // against it.
+    let mut packages = Packages::default();
+    let mut imported = Vec::new();
+    for project in &config.projects {
+        let done = execute(&git_cache, &config, project, &packages)?;
+        packages.register(&done.package, &done.graph);
+        imported.push(done);
+    }
+
     let labels = decay_buck2::Labels {
         systems: config.systems.clone(),
         compilers: config.compilers.clone(),
-        dependencies: config.dependencies.clone(),
+        // What a sibling project provides answers a `dependency()` lookup the
+        // same way an explicit entry would; an explicit one still overrides
+        // it, for the rare case where it has to.
+        dependencies: packages
+            .targets()
+            .chain(
+                config
+                    .dependencies
+                    .iter()
+                    .filter_map(|(name, dep)| Some((name.clone(), dep.target()?.to_owned()))),
+            )
+            .collect(),
         programs: config.programs.clone(),
     };
-
-    // Every project is executed before anything is written: the constraints
-    // that come from meson rather than from a project are declared once, and
-    // that set is only known once every project has been looked at.
-    let mut imported = Vec::new();
-    for project in &config.projects {
-        imported.push(execute(&git_cache, &config, project)?);
-    }
 
     let shared_dir = config.third_party_dir.join(SHARED_CONSTRAINTS);
     let shared = decay_buck2::Shared::collect(
@@ -139,7 +158,12 @@ struct Imported {
     logic: Logic<Z3Solver>,
 }
 
-fn execute(git_cache: &GitCache, config: &Config, project: &Project) -> eyre::Result<Imported> {
+fn execute(
+    git_cache: &GitCache,
+    config: &Config,
+    project: &Project,
+    packages: &Packages,
+) -> eyre::Result<Imported> {
     let name = project.repo.short_name();
 
     if !project.is_full_sha() {
@@ -152,7 +176,7 @@ fn execute(git_cache: &GitCache, config: &Config, project: &Project) -> eyre::Re
 
     let dir = git_cache.checkout(project)?;
 
-    let oracle = ConfigOracle::new(config, project);
+    let oracle = ConfigOracle::new(config, project, packages);
     let (mut graph, logic) = decay_meson_eval::eval(&oracle, &DiskSources, &dir)
         .wrap_err_with(|| format!("Failed to execute `{name}`"))?;
 

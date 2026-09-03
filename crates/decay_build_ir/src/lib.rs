@@ -229,6 +229,25 @@ pub struct Install {
     pub cond: Pc,
 }
 
+/// A `pkg-config` module this project makes available to whatever else
+/// imports it, from `import('pkgconfig').generate()` or a `configure_file()`
+/// that produces a `.pc` file directly.
+///
+/// Recording this is what lets one imported project's `dependency('name')`
+/// resolve against another imported project instead of needing a hand-written
+/// answer in `decay.toml` for something the importer already knows in full.
+#[derive(Debug, Clone)]
+pub struct Package {
+    /// The name `dependency()` looks up, i.e. the `.pc` file's base name.
+    pub name: String,
+    /// The target carrying its usage requirements, when it is a linkable
+    /// library and not just data.
+    pub target: Option<TargetId>,
+    /// `pkg-config` variables resolved to their actual value, wherever the
+    /// value does not itself depend on the configuration.
+    pub variables: Vec<(String, String)>,
+}
+
 /// A configuration variable the executor had to leave open, mirrored out of the
 /// logic arena so backends need not depend on it.
 pub type Option_ = Var;

@@ -8,6 +8,7 @@ use {
     crate::select::Selects,
     decay_build_ir::{
         CmdArg,
+        Define,
         DefineValue,
         External,
         Graph,
@@ -286,13 +287,20 @@ fn render_constraint(var: &Var, name: &str) -> String {
         .join(", ");
 
     let mut out = String::new();
-    let _ = write!(out, "\n# {}\n", describe(var));
+    let _ = write!(out, "\n{}\n", comment(&describe(var)));
     let _ = write!(
         out,
         "constraint(\n    name = {name:?},\n    values = [{values}],\n    \
          default = {default:?},\n    visibility = [\"PUBLIC\"],\n)\n"
     );
     out
+}
+
+/// A block of text as a Starlark comment: every line gets its own `#`, since
+/// a description can span several (a compiler probe's source snippet, say),
+/// and only the first line of an unprefixed one is actually a comment.
+fn comment(text: &str) -> String {
+    text.lines().map(|line| format!("# {line}")).collect::<Vec<_>>().join("\n")
 }
 
 fn describe(var: &Var) -> String {
@@ -521,7 +529,7 @@ fn render_target<S: Solver>(
             // checked in, so there is no directory in this package to point at.
             // The header maps below carry the same information, keyed by the
             // path an `#include` actually uses.
-            let roots = include_roots(&a.include_dirs);
+            let roots = include_roots(&a.include_dirs, &target.package);
 
             // A generated configuration header has no file in the source
             // tree, so every compiled target has to be told where it lands.
@@ -877,12 +885,20 @@ fn describe_external(external: &External) -> String {
 }
 
 /// The directories an `#include` is resolved against.
-fn include_roots(dirs: &Variational<PathBuf>) -> Vec<PathBuf> {
+///
+/// `own_dir` is where the compiled target itself was declared: meson always
+/// puts a target's own directory (and its build-mirror) on the quote-include
+/// path, with no `include_directories()` needed, so a generated header
+/// sitting right beside the sources that use it is still found.
+fn include_roots(dirs: &Variational<PathBuf>, own_dir: &Path) -> Vec<PathBuf> {
     let mut out: Vec<PathBuf> = Vec::new();
     for entry in dirs {
         if !out.contains(&entry.value) {
             out.push(entry.value.clone());
         }
+    }
+    if !out.iter().any(|p| p == own_dir) {
+        out.push(own_dir.to_path_buf());
     }
     // Longest first, so the most specific root wins.
     out.sort_by_key(|p| std::cmp::Reverse(p.as_os_str().len()));
@@ -978,6 +994,12 @@ fn command<S: Solver>(
 
     let words = selects.render_words(logic, &target.attrs.cmd, target.cond, 1, " ", |arg| {
         match arg {
+            // `substitute` quotes the literal parts itself, so a fragment
+            // spanning several words — or several lines, the way a
+            // generated enum's boilerplate does — reaches the command as
+            // one argument, not word-split by the shell, while any
+            // `@OUTPUT@`-style marker embedded in it (`--outputdir=@OUTDIR@`,
+            // say) still expands.
             CmdArg::Literal(text) => substitute(text, &inputs),
             CmdArg::Target(id) => {
                 let dep = graph.target(*id);
@@ -1022,15 +1044,77 @@ fn join(parts: &[String]) -> String {
     parts.join(" + ")
 }
 
+/// A `CmdArg::Literal`'s text, safe to hand a shell as one argument.
+///
+/// The plain text is quoted, same as any other literal; a substitution
+/// marker is not, since what it expands to — `$OUT`, a buck2 `$(location
+/// ...)`, a whole list of them for `@INPUT@` — has to stay live for the
+/// shell to act on, not become the literal characters quoting it would
+/// leave behind. The two are stitched back together the way a shell allows
+/// adjacent quoted and unquoted text to run together as one word.
 fn substitute(text: &str, inputs: &str) -> String {
-    text.replace("@INPUT@", inputs)
-        .replace("@OUTPUT@", "$OUT")
-        .replace("@OUTDIR@", OUT_DIR)
-        .replace("@BASENAME@", "${OUT##*/}")
+    let markers: [(&str, &str); 4] = [
+        ("@INPUT@", inputs),
+        ("@OUTPUT@", "$OUT"),
+        ("@OUTDIR@", OUT_DIR),
+        ("@BASENAME@", "${OUT##*/}"),
+    ];
+
+    let mut out = String::new();
+    let mut rest = text;
+    loop {
+        let next = markers
+            .iter()
+            .filter_map(|(marker, replacement)| Some((rest.find(marker)?, marker, replacement)))
+            .min_by_key(|(at, ..)| *at);
+        let Some((at, marker, replacement)) = next else {
+            break;
+        };
+        if at > 0 {
+            out.push_str(&shell_quote(&rest[..at]));
+        }
+        out.push_str(replacement);
+        rest = &rest[at + marker.len()..];
+    }
+    if !rest.is_empty() || out.is_empty() {
+        out.push_str(&shell_quote(rest));
+    }
+    out
 }
 
 /// The directory holding a genrule's single output.
 const OUT_DIR: &str = "${OUT%/*}";
+
+/// `defines`, plus an explicit [`DefineValue::Undef`] for whatever
+/// configuration under `cond` names no value for a name that some other
+/// configuration does.
+///
+/// A `#mesondefine` line has to become something in every configuration, and
+/// meson's own rule for a name nobody set is `/* #undef NAME */` — the same
+/// as this closes an open define set with, so a project that only ever
+/// `.set()`s a name inside an `if` still gets a valid header outside it.
+fn complete_defines<S: Solver>(logic: &mut Logic<S>, defines: &Variational<Define>, cond: Pc) -> Variational<Define> {
+    let mut covered: BTreeMap<String, Pc> = BTreeMap::new();
+    for variant in defines.variants() {
+        let entry = covered.entry(variant.value.name.clone()).or_insert(Pc::FALSE);
+        *entry = logic.or(*entry, variant.cond);
+    }
+
+    let mut out = defines.clone();
+    for (name, cov) in covered {
+        let not_covered = logic.not(cov);
+        let gap = logic.and(cond, not_covered);
+        if gap.is_false() || !logic.is_sat(gap) {
+            continue;
+        }
+        out.push(Variant::new(gap, Define {
+            name,
+            value: DefineValue::Undef,
+        }));
+    }
+    out.normalize(logic);
+    out
+}
 
 /// A generated configuration file.
 ///
@@ -1044,7 +1128,15 @@ fn config_header_cmd<S: Solver>(
     target: &Target,
 ) -> String {
     if let Some(template) = &target.attrs.template {
-        let edits = selects.render_words(logic, &target.attrs.defines, target.cond, 1, " ", |define| {
+        // A template substitutes a define in whichever of meson's two
+        // template syntaxes it actually uses: `@NAME@`, left untouched where
+        // a name goes unmentioned, or a whole `#mesondefine NAME` line,
+        // which meson rewrites to `#define`/`#undef` even where a name goes
+        // unmentioned — an unset name is an unset `#define`. A template only
+        // ever uses one of these for a given name, so this just tries both;
+        // the one that names nothing in the template matches nothing and
+        // does not change it.
+        let mut edits = selects.render_words(logic, &target.attrs.defines, target.cond, 1, " ", |define| {
             let value = match &define.value {
                 DefineValue::Quoted(v) | DefineValue::Raw(v) => v.clone(),
                 DefineValue::Number(v) => v.to_string(),
@@ -1057,12 +1149,33 @@ fn config_header_cmd<S: Solver>(
             shell_quote(&format!("-es|@{}@|{value}|g", define.name))
         });
 
+        let complete = complete_defines(logic, &target.attrs.defines, target.cond);
+        edits.extend(selects.render_words(logic, &complete, target.cond, 1, " ", |define| {
+            let line = match &define.value {
+                DefineValue::Quoted(v) => format!("#define {} \"{v}\"", define.name),
+                DefineValue::Raw(v) => format!("#define {} {v}", define.name),
+                DefineValue::Number(v) => format!("#define {} {v}", define.name),
+                DefineValue::Flag => format!("#define {}", define.name),
+                DefineValue::Undef => format!("/* #undef {} */", define.name),
+            }
+            .replace('|', "\\|");
+            shell_quote(&format!(
+                "-es|^#mesondefine[[:space:]]\\+{}\\>.*|{line}|",
+                define.name
+            ))
+        }));
+
         let input = match template {
             Source::File(path) => file_arg(graph, path),
             Source::Generated(id) => format!("$(location :{})", graph.target(*id).name),
         };
 
-        let mut parts = vec!["\"sed\"".to_owned()];
+        // An empty, always-present `-e` comes first so the command stays
+        // valid `sed` even where a configuration substitutes nothing: with no
+        // `-e` at all, sed reads its first non-option argument as the script
+        // instead of an input file, and the template just becomes a syntax
+        // error.
+        let mut parts = vec!["\"sed\"".to_owned(), "\" -e ''\"".to_owned()];
         parts.extend(edits);
         parts.push(format!("{:?}", format!(" {input} > $OUT")));
         return join(&parts);

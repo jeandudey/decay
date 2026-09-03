@@ -1,10 +1,13 @@
 use {
-    crate::config::{
-        Config,
-        Machine,
-        OptionValue,
-        ProbeValue,
-        Project, //
+    crate::{
+        config::{
+            Config,
+            Machine,
+            OptionValue,
+            ProbeValue,
+            Project, //
+        },
+        packages::Packages,
     },
     decay_meson_eval::{
         obj,
@@ -17,18 +20,20 @@ use {
     std::rc::Rc,
 };
 
-/// Answers from the importer's own configuration.
+/// Answers from the importer's own configuration, and from whatever earlier
+/// projects have already determined about themselves.
 ///
 /// Everything it declines to answer is left open, which is the default: a
 /// project's options should stay options in the generated build.
 pub struct ConfigOracle<'a> {
     project: &'a Project,
     config: &'a Config,
+    packages: &'a Packages,
 }
 
 impl<'a> ConfigOracle<'a> {
-    pub fn new(config: &'a Config, project: &'a Project) -> Self {
-        Self { project, config }
+    pub fn new(config: &'a Config, project: &'a Project, packages: &'a Packages) -> Self {
+        Self { project, config, packages }
     }
 
     fn machine_config(&self, machine: obj::Machine) -> &'a Machine {
@@ -40,22 +45,13 @@ impl<'a> ConfigOracle<'a> {
             obj::Machine::Host | obj::Machine::Target => &self.project.host_machine,
         }
     }
-}
 
-impl Oracle for ConfigOracle<'_> {
-    fn option(&self, name: &str) -> Option<Pinned> {
-        Some(match self.project.options.get(name)? {
-            OptionValue::Bool(v) => Pinned::Bool(*v),
-            OptionValue::Int(v) => Pinned::Int(*v),
-            OptionValue::String(v) => Pinned::Str(Rc::from(v.as_str())),
-            OptionValue::List(v) => {
-                Pinned::List(v.iter().map(|s| Rc::from(s.as_str())).collect())
-            }
-        })
-    }
-
-    fn probe(&self, name: &str, what: &str) -> Option<Probe> {
-        let answer = self.config.probes.get(&format!("{name}:{what}"))?;
+    /// The `[probes]` entry at `key`, turned into an [`Probe`] — shared by
+    /// [`Oracle::probe`] (keyed `check:argument`) and
+    /// [`Oracle::dependency_variable`] (keyed `dependency:name:variable`):
+    /// both are "answer this from a constraint instead of leaving it open."
+    fn probe_answer(&self, key: &str) -> Option<Probe> {
+        let answer = self.config.probes.get(key)?;
         if let ProbeValue::Fixed(settled) = answer {
             return Some(Probe::Fixed(*settled));
         }
@@ -82,9 +78,54 @@ impl Oracle for ConfigOracle<'_> {
             values: values.iter().map(|value| value.value.clone()).collect(),
         })
     }
+}
+
+impl Oracle for ConfigOracle<'_> {
+    fn option(&self, name: &str) -> Option<Pinned> {
+        Some(match self.project.options.get(name)? {
+            OptionValue::Bool(v) => Pinned::Bool(*v),
+            OptionValue::Int(v) => Pinned::Int(*v),
+            OptionValue::String(v) => Pinned::Str(Rc::from(v.as_str())),
+            OptionValue::List(v) => {
+                Pinned::List(v.iter().map(|s| Rc::from(s.as_str())).collect())
+            }
+        })
+    }
+
+    fn probe(&self, name: &str, what: &str) -> Option<Probe> {
+        self.probe_answer(&format!("{name}:{what}"))
+    }
 
     fn has_program(&self, name: &str) -> bool {
         self.config.programs.contains_key(name)
+    }
+
+    fn dependency_variables(&self, name: &str) -> Vec<(String, String)> {
+        // An explicit answer in `decay.toml` overrides what importing a
+        // sibling project already determined; most dependencies need neither.
+        if let Some(dep) = self.config.dependencies.get(name) {
+            let manual: Vec<_> = dep
+                .variables()
+                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .collect();
+            if !manual.is_empty() {
+                return manual;
+            }
+        }
+        self.packages
+            .get(name)
+            .map(|pkg| pkg.variables.clone())
+            .unwrap_or_default()
+    }
+
+    fn dependency_found(&self, name: &str) -> Option<bool> {
+        // Not a probe about the environment: decay is building this either
+        // way, because it is another project it already imported.
+        self.packages.get(name).map(|_| true)
+    }
+
+    fn dependency_variable(&self, dep: &str, variable: &str) -> Option<Probe> {
+        self.probe_answer(&format!("dependency:{dep}:{variable}"))
     }
 
     fn machine(&self, machine: obj::Machine, property: &str) -> Option<String> {

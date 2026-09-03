@@ -26,3 +26,16 @@ platform(
     ],
     deps = ["prelude//platforms:default"],
 )
+
+# No project here pins `host_machine.system`, so this selects real,
+# generated Windows sources (WGL, not GLX/EGL) instead of just skipping a
+# hard-coded Linux build. It cannot finish compiling yet: this repo has no
+# actual Windows/MinGW `cxx_toolchain`, a separate piece of setup from
+# anything decay generates.
+platform(
+    name = "windows",
+    constraint_values = [
+        "prelude//os/constraints:os[windows]",
+    ],
+    deps = ["prelude//platforms:default"],
+)

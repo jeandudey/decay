@@ -1,6 +1,7 @@
 use {
     crate::{
         Interp,
+        obj::Obj,
         val::Value, //
     },
     decay_meson_ast::{
@@ -189,6 +190,12 @@ fn arith(kind: BinOpKind, a: &Value, b: &Value) -> eyre::Result<Value> {
         (Add, Value::Str(a), Value::Str(b)) => Value::str(format!("{a}{b}")),
         // Meson overloads `/` on strings as path joining.
         (Div, Value::Str(a), Value::Str(b)) => Value::str(join_paths([&**a, &**b])),
+        // Joining onto a source-tree path stays a reference to the tree,
+        // rather than decaying into a plain string that means nothing by the
+        // time a command runs.
+        (Div, Value::Obj(Obj::File(a)), Value::Str(b)) => {
+            Value::Obj(Obj::File(Rc::from(join_paths([&**a, &**b]).as_str())))
+        }
         (Lt, a, b) => Value::Bool(compare(a, b)? == std::cmp::Ordering::Less),
         (Le, a, b) => Value::Bool(compare(a, b)? != std::cmp::Ordering::Greater),
         (Gt, a, b) => Value::Bool(compare(a, b)? == std::cmp::Ordering::Greater),

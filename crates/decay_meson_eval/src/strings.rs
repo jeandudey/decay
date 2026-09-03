@@ -1,6 +1,7 @@
 use {
     crate::{
         Interp,
+        obj::Obj,
         val::Value, //
     },
     decay_meson_logic::{
@@ -104,6 +105,11 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Value::Str(s) => s.clone(),
                 Value::Int(i) => Rc::from(i.to_string().as_str()),
                 Value::Bool(b) => Rc::from(if *b { "true" } else { "false" }),
+                // A source-tree path interpolated into a plain string (a
+                // compiler flag, say) has no build-graph reference to become;
+                // this at least keeps the path meson would have produced,
+                // same as before it was tracked instead of being a string.
+                Value::Obj(Obj::File(p)) => p.clone(),
                 other => bail!("cannot interpolate a {}", other.type_name()),
             };
             out.push(Variant::new(variant.cond, text));

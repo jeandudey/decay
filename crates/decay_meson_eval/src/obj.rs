@@ -44,6 +44,13 @@ pub enum Obj {
     Env,
     /// A `feature` option: `enabled`, `disabled` or `auto`.
     Feature(Rc<str>),
+    /// `disabler()`: found nowhere, in place of whatever it stands in for.
+    ///
+    /// Real meson also has it disable any call it is passed to as an
+    /// argument, anywhere; nothing here does that yet; a project that relies
+    /// on it will have to say so with a clear error instead of silently
+    /// behaving as if it were found.
+    Disabler,
 }
 
 impl Obj {
@@ -62,6 +69,7 @@ impl Obj {
             Self::File(_) => "file",
             Self::Env => "env",
             Self::Feature(_) => "feature",
+            Self::Disabler => "disabler",
         }
     }
 }
@@ -72,6 +80,7 @@ impl PartialEq for Obj {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Meson, Self::Meson) | (Self::Env, Self::Env) => true,
+            (Self::Disabler, Self::Disabler) => true,
             (Self::Machine(a), Self::Machine(b)) => a == b,
             (Self::Compiler(a), Self::Compiler(b)) => a == b,
             (Self::Module(a), Self::Module(b)) => a == b,

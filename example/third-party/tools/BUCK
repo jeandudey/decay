@@ -1,0 +1,25 @@
+# Hand-written wrappers for build tools that come from the operating system,
+# the same idea as `//third-party/system` for libraries: `decay.toml` maps
+# `find_program()` onto these, so the generated build calls a real target
+# instead of failing to configure at all.
+#
+# Each one just execs the system copy: there is no hermetic build of GLib's
+# own tools here, only a pointer at whatever this machine already has.
+
+sh_binary(
+    name = "glib-compile-resources",
+    main = "glib-compile-resources.sh",
+    visibility = ["PUBLIC"],
+)
+
+sh_binary(
+    name = "glib-mkenums",
+    main = "glib-mkenums.sh",
+    visibility = ["PUBLIC"],
+)
+
+sh_binary(
+    name = "glib-genmarshal",
+    main = "glib-genmarshal.sh",
+    visibility = ["PUBLIC"],
+)
