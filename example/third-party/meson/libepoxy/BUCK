@@ -48,6 +48,205 @@ git_fetch(
     visibility = ["PUBLIC"],
 )
 
+# Values shared by several of the rules below, named so that each rule
+# says what it is rather than how it was configured.
+_needs_x11_glx = [
+    "//third-party/meson/libepoxy/constraints:x11[true]",
+] + select({
+    "//third-party/meson/libepoxy/constraints:glx[auto]": [],
+    "//third-party/meson/libepoxy/constraints:glx[yes]": [],
+    "//third-party/meson/libepoxy/constraints:glx[no]": [
+        "//third-party/meson/constraints:unsatisfiable[yes]",
+    ],
+})
+_headers = {
+    "config.h": ":config.h",
+}
+_cflags_compiler = select({
+    "//third-party/meson/constraints:compiler[msvc]": [
+        "-we4002",
+        "-we4003",
+        "-w14010",
+        "-we4013",
+        "-w14016",
+        "-we4020",
+        "-we4021",
+        "-we4027",
+        "-we4029",
+        "-we4033",
+        "-we4035",
+        "-we4045",
+        "-we4047",
+        "-we4049",
+        "-we4053",
+        "-we4071",
+        "-we4819",
+        "/utf-8",
+    ],
+    "DEFAULT": [
+        "-Wpointer-arith",
+        "-Wmissing-declarations",
+        "-Wformat=2",
+        "-Wstrict-prototypes",
+        "-Wmissing-prototypes",
+        "-Wnested-externs",
+        "-Wbad-function-cast",
+        "-Wold-style-definition",
+        "-Wdeclaration-after-statement",
+        "-Wunused",
+        "-Wuninitialized",
+        "-Wshadow",
+        "-Wmissing-noreturn",
+        "-Wmissing-format-attribute",
+        "-Wredundant-decls",
+        "-Wlogical-op",
+        "-Werror=implicit",
+        "-Werror=nonnull",
+        "-Werror=init-self",
+        "-Werror=main",
+        "-Werror=missing-braces",
+        "-Werror=sequence-point",
+        "-Werror=return-type",
+        "-Werror=trigraphs",
+        "-Werror=array-bounds",
+        "-Werror=write-strings",
+        "-Werror=address",
+        "-Werror=int-to-pointer-cast",
+        "-Werror=pointer-to-int-cast",
+        "-fno-strict-aliasing",
+        "-Wno-int-conversion",
+    ],
+})
+_deps = [
+    ":libepoxy-dep",
+]
+_needs_tests = [
+    "//third-party/meson/libepoxy/constraints:tests[true]",
+]
+_needs_tests_x11_egl = [
+    "//third-party/meson/libepoxy/constraints:tests[true]",
+    "//third-party/meson/libepoxy/constraints:x11[true]",
+    "//third-party/meson/constraints:x11[true]",
+] + select({
+    "//third-party/meson/libepoxy/constraints:egl[auto]": [],
+    "//third-party/meson/libepoxy/constraints:egl[yes]": [],
+    "//third-party/meson/libepoxy/constraints:egl[no]": [
+        "//third-party/meson/constraints:unsatisfiable[yes]",
+    ],
+})
+_cflags_compiler_abi = select({
+    "//third-party/meson/constraints:compiler[msvc]": [
+        "-we4002",
+        "-we4003",
+        "-w14010",
+        "-we4013",
+        "-w14016",
+        "-we4020",
+        "-we4021",
+        "-we4027",
+        "-we4029",
+        "-we4033",
+        "-we4035",
+        "-we4045",
+        "-we4047",
+        "-we4049",
+        "-we4053",
+        "-we4071",
+        "-we4819",
+        "/utf-8",
+    ],
+    "DEFAULT": [
+        "-Wpointer-arith",
+        "-Wmissing-declarations",
+        "-Wformat=2",
+        "-Wstrict-prototypes",
+        "-Wmissing-prototypes",
+        "-Wnested-externs",
+        "-Wbad-function-cast",
+        "-Wold-style-definition",
+        "-Wdeclaration-after-statement",
+        "-Wunused",
+        "-Wuninitialized",
+        "-Wshadow",
+        "-Wmissing-noreturn",
+        "-Wmissing-format-attribute",
+        "-Wredundant-decls",
+        "-Wlogical-op",
+        "-Werror=implicit",
+        "-Werror=nonnull",
+        "-Werror=init-self",
+        "-Werror=main",
+        "-Werror=missing-braces",
+        "-Werror=sequence-point",
+        "-Werror=return-type",
+        "-Werror=trigraphs",
+        "-Werror=array-bounds",
+        "-Werror=write-strings",
+        "-Werror=address",
+        "-Werror=int-to-pointer-cast",
+        "-Werror=pointer-to-int-cast",
+        "-fno-strict-aliasing",
+        "-Wno-int-conversion",
+    ],
+}) + select({
+    "prelude//abi/constraints:abi[gnu]": [],
+    "DEFAULT": [
+        "-D_XOPEN_SOURCE",
+        "-D_POSIX_C_SOURCE=200809L",
+    ],
+})
+_ldflags = [
+    "-rdynamic",
+]
+_deps_egl_dl = [
+    ":egl_common",
+    ":libepoxy-dep",
+    ":x11",
+] + select({
+    "//third-party/meson/constraints:egl[true]": [
+        ":egl",
+    ],
+    "//third-party/meson/constraints:egl[false]": [],
+}) + select({
+    "//third-party/meson/constraints:dl[true]": [
+        ":dl",
+    ],
+    "//third-party/meson/constraints:dl[false]": [],
+})
+_needs_tests_x11_glx = [
+    "//third-party/meson/libepoxy/constraints:tests[true]",
+    "//third-party/meson/libepoxy/constraints:x11[true]",
+    "//third-party/meson/constraints:x11[true]",
+] + select({
+    "//third-party/meson/libepoxy/constraints:glx[auto]": [],
+    "//third-party/meson/libepoxy/constraints:glx[yes]": [],
+    "//third-party/meson/libepoxy/constraints:glx[no]": [
+        "//third-party/meson/constraints:unsatisfiable[yes]",
+    ],
+})
+_deps_dl = [
+    ":glx_common",
+    ":libepoxy-dep",
+    ":x11",
+] + select({
+    "//third-party/meson/constraints:dl[true]": [
+        ":dl",
+    ],
+    "//third-party/meson/constraints:dl[false]": [],
+})
+_needs_tests_x11_abi = [
+    "//third-party/meson/libepoxy/constraints:tests[true]",
+    "//third-party/meson/libepoxy/constraints:x11[true]",
+    "//third-party/meson/constraints:x11[true]",
+    "prelude//abi/constraints:abi[gnu]",
+] + select({
+    "//third-party/meson/libepoxy/constraints:glx[auto]": [],
+    "//third-party/meson/libepoxy/constraints:glx[yes]": [],
+    "//third-party/meson/libepoxy/constraints:glx[no]": [
+        "//third-party/meson/constraints:unsatisfiable[yes]",
+    ],
+})
+
 # meson: find_library("dl")
 cxx_library(
     name = "dl",
@@ -137,23 +336,7 @@ genrule(
     name = "glx_generated.h",
     out = "glx_generated.h",
     cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) --header --no-source --outputdir=${OUT%/*} $(location :libepoxy.git[registry/glx.xml])",
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:glx[auto]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": [],
-            "//third-party/meson/libepoxy/constraints:x11[false]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[yes]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": [],
-            "//third-party/meson/libepoxy/constraints:x11[false]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[no]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    target_compatible_with = _needs_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -162,40 +345,20 @@ genrule(
     out = "config.h",
     cmd = "printf '%s\\n'" + " '#define PACKAGE_NAME \"libepoxy\"' '#define PACKAGE_VERSION \"1.5.10\"' '#define PACKAGE_STRING \"libepoxy-1.5.10\"' '#define PACKAGE_DATADIR \"/usr/local/share\"' '#define PACKAGE_LIBDIR \"/usr/local/lib\"' '#define PACKAGE_LOCALEDIR \"/usr/local/share/locale\"' '#define PACKAGE_LIBEXECDIR \"/usr/local/libexec\"'" + select({
         "//third-party/meson/constraints:has_header_KHR_khrplatform_h[true]": " '#define HAVE_KHRPLATFORM_H'",
-        "//third-party/meson/constraints:has_header_KHR_khrplatform_h[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:has_header_KHR_khrplatform_h[true]": "",
         "//third-party/meson/constraints:has_header_KHR_khrplatform_h[false]": " '/* #undef HAVE_KHRPLATFORM_H */'",
     }) + select({
         "//third-party/meson/libepoxy/constraints:x11[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[auto]": "",
-            "//third-party/meson/libepoxy/constraints:glx[yes]": "",
+            "//third-party/meson/libepoxy/constraints:glx[auto]": " '#define ENABLE_GLX 1'",
+            "//third-party/meson/libepoxy/constraints:glx[yes]": " '#define ENABLE_GLX 1'",
             "//third-party/meson/libepoxy/constraints:glx[no]": " '#define ENABLE_GLX 0'",
         }),
         "//third-party/meson/libepoxy/constraints:x11[false]": " '#define ENABLE_GLX 0'",
     }) + select({
-        "//third-party/meson/libepoxy/constraints:glx[auto]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": " '#define ENABLE_GLX 1'",
-            "//third-party/meson/libepoxy/constraints:x11[false]": "",
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[yes]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": " '#define ENABLE_GLX 1'",
-            "//third-party/meson/libepoxy/constraints:x11[false]": "",
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[no]": "",
-    }) + select({
         "//third-party/meson/libepoxy/constraints:egl[auto]": " '#define ENABLE_EGL 1'",
         "//third-party/meson/libepoxy/constraints:egl[yes]": " '#define ENABLE_EGL 1'",
-        "//third-party/meson/libepoxy/constraints:egl[no]": "",
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:egl[auto]": "",
-        "//third-party/meson/libepoxy/constraints:egl[yes]": "",
         "//third-party/meson/libepoxy/constraints:egl[no]": " '#define ENABLE_EGL 0'",
     }) + select({
         "//third-party/meson/libepoxy/constraints:x11[true]": " '#define ENABLE_X11 1'",
-        "//third-party/meson/libepoxy/constraints:x11[false]": "",
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:x11[true]": "",
         "//third-party/meson/libepoxy/constraints:x11[false]": " '#define ENABLE_X11 0'",
     }) + select({
         "//third-party/meson/constraints:default_library[shared]": " '#define EPOXY_PUBLIC __attribute__((visibility(\"default\"))) extern'",
@@ -230,23 +393,7 @@ genrule(
     name = "glx_generated_dispatch.c",
     out = "glx_generated_dispatch.c",
     cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) --source --no-header --outputdir=${OUT%/*} $(location :libepoxy.git[registry/glx.xml])",
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:glx[auto]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": [],
-            "//third-party/meson/libepoxy/constraints:x11[false]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[yes]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": [],
-            "//third-party/meson/libepoxy/constraints:x11[false]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[no]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    target_compatible_with = _needs_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -256,31 +403,20 @@ cxx_library(
         ":libepoxy.git[src/dispatch_common.c]",
         ":gl_generated_dispatch.c",
     ] + select({
-        "//third-party/meson/libepoxy/constraints:egl[auto]": [
-            ":libepoxy.git[src/dispatch_egl.c]",
-            ":egl_generated_dispatch.c",
-        ],
-        "//third-party/meson/libepoxy/constraints:egl[yes]": [
-            ":libepoxy.git[src/dispatch_egl.c]",
-            ":egl_generated_dispatch.c",
-        ],
         "//third-party/meson/libepoxy/constraints:egl[no]": [],
+        "DEFAULT": [
+            ":libepoxy.git[src/dispatch_egl.c]",
+            ":egl_generated_dispatch.c",
+        ],
     }) + select({
-        "//third-party/meson/libepoxy/constraints:glx[auto]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": [
-                ":libepoxy.git[src/dispatch_glx.c]",
-                ":glx_generated_dispatch.c",
-            ],
-            "//third-party/meson/libepoxy/constraints:x11[false]": [],
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[yes]": select({
-            "//third-party/meson/libepoxy/constraints:x11[true]": [
-                ":libepoxy.git[src/dispatch_glx.c]",
-                ":glx_generated_dispatch.c",
-            ],
-            "//third-party/meson/libepoxy/constraints:x11[false]": [],
-        }),
         "//third-party/meson/libepoxy/constraints:glx[no]": [],
+        "DEFAULT": select({
+            "//third-party/meson/libepoxy/constraints:x11[true]": [
+                ":libepoxy.git[src/dispatch_glx.c]",
+                ":glx_generated_dispatch.c",
+            ],
+            "//third-party/meson/libepoxy/constraints:x11[false]": [],
+        }),
     }),
     exported_headers = select({
         "//third-party/meson/libepoxy/constraints:egl[no]": select({
@@ -338,12 +474,29 @@ cxx_library(
             }),
         }),
     }),
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [
+            "-we4002",
+            "-we4003",
+            "-w14010",
+            "-we4013",
+            "-w14016",
+            "-we4020",
+            "-we4021",
+            "-we4027",
+            "-we4029",
+            "-we4033",
+            "-we4035",
+            "-we4045",
+            "-we4047",
+            "-we4049",
+            "-we4053",
+            "-we4071",
+            "-we4819",
+            "/utf-8",
+        ],
         "DEFAULT": [
             "-Wpointer-arith",
             "-Wmissing-declarations",
@@ -378,29 +531,6 @@ cxx_library(
             "-Wno-int-conversion",
         ],
     }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": [
-            "-we4002",
-            "-we4003",
-            "-w14010",
-            "-we4013",
-            "-w14016",
-            "-we4020",
-            "-we4021",
-            "-we4027",
-            "-we4029",
-            "-we4033",
-            "-we4035",
-            "-we4045",
-            "-we4047",
-            "-we4049",
-            "-we4053",
-            "-we4071",
-            "-we4819",
-            "/utf-8",
-        ],
-    }) + select({
         "//third-party/meson/constraints:default_library[shared]": [
             "-fvisibility=hidden",
         ],
@@ -429,19 +559,13 @@ cxx_library(
         }),
         "//third-party/meson/libepoxy/constraints:x11[false]": [],
     }) + select({
-        "//third-party/meson/libepoxy/constraints:egl[auto]": select({
-            "//third-party/meson/constraints:egl[true]": [
-                ":egl",
-            ],
-            "//third-party/meson/constraints:egl[false]": [],
-        }),
-        "//third-party/meson/libepoxy/constraints:egl[yes]": select({
-            "//third-party/meson/constraints:egl[true]": [
-                ":egl",
-            ],
-            "//third-party/meson/constraints:egl[false]": [],
-        }),
         "//third-party/meson/libepoxy/constraints:egl[no]": [],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:egl[true]": [
+                ":egl",
+            ],
+            "//third-party/meson/constraints:egl[false]": [],
+        }),
     }),
     preferred_linkage = select({
         "//third-party/meson/constraints:default_library[shared]": "shared",
@@ -503,9 +627,7 @@ cxx_library(
             }),
         }),
     }),
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
     exported_deps = [
         ":epoxy",
@@ -523,19 +645,13 @@ cxx_library(
         }),
         "//third-party/meson/libepoxy/constraints:x11[false]": [],
     }) + select({
-        "//third-party/meson/libepoxy/constraints:egl[auto]": select({
-            "//third-party/meson/constraints:egl[true]": [
-                ":egl",
-            ],
-            "//third-party/meson/constraints:egl[false]": [],
-        }),
-        "//third-party/meson/libepoxy/constraints:egl[yes]": select({
-            "//third-party/meson/constraints:egl[true]": [
-                ":egl",
-            ],
-            "//third-party/meson/constraints:egl[false]": [],
-        }),
         "//third-party/meson/libepoxy/constraints:egl[no]": [],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:egl[true]": [
+                ":egl",
+            ],
+            "//third-party/meson/constraints:egl[false]": [],
+        }),
     }),
     visibility = ["PUBLIC"],
 )
@@ -546,84 +662,11 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/headerguards.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-Wpointer-arith",
-                "-Wmissing-declarations",
-                "-Wformat=2",
-                "-Wstrict-prototypes",
-                "-Wmissing-prototypes",
-                "-Wnested-externs",
-                "-Wbad-function-cast",
-                "-Wold-style-definition",
-                "-Wdeclaration-after-statement",
-                "-Wunused",
-                "-Wuninitialized",
-                "-Wshadow",
-                "-Wmissing-noreturn",
-                "-Wmissing-format-attribute",
-                "-Wredundant-decls",
-                "-Wlogical-op",
-                "-Werror=implicit",
-                "-Werror=nonnull",
-                "-Werror=init-self",
-                "-Werror=main",
-                "-Werror=missing-braces",
-                "-Werror=sequence-point",
-                "-Werror=return-type",
-                "-Werror=trigraphs",
-                "-Werror=array-bounds",
-                "-Werror=write-strings",
-                "-Werror=address",
-                "-Werror=int-to-pointer-cast",
-                "-Werror=pointer-to-int-cast",
-                "-fno-strict-aliasing",
-                "-Wno-int-conversion",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-we4002",
-                "-we4003",
-                "-w14010",
-                "-we4013",
-                "-w14016",
-                "-we4020",
-                "-we4021",
-                "-we4027",
-                "-we4029",
-                "-we4033",
-                "-we4035",
-                "-we4045",
-                "-we4047",
-                "-we4049",
-                "-we4053",
-                "-we4071",
-                "-we4819",
-                "/utf-8",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }),
-    deps = [
-        ":libepoxy-dep",
-    ],
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": [],
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler,
+    deps = _deps,
+    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -633,84 +676,11 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/miscdefines.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-Wpointer-arith",
-                "-Wmissing-declarations",
-                "-Wformat=2",
-                "-Wstrict-prototypes",
-                "-Wmissing-prototypes",
-                "-Wnested-externs",
-                "-Wbad-function-cast",
-                "-Wold-style-definition",
-                "-Wdeclaration-after-statement",
-                "-Wunused",
-                "-Wuninitialized",
-                "-Wshadow",
-                "-Wmissing-noreturn",
-                "-Wmissing-format-attribute",
-                "-Wredundant-decls",
-                "-Wlogical-op",
-                "-Werror=implicit",
-                "-Werror=nonnull",
-                "-Werror=init-self",
-                "-Werror=main",
-                "-Werror=missing-braces",
-                "-Werror=sequence-point",
-                "-Werror=return-type",
-                "-Werror=trigraphs",
-                "-Werror=array-bounds",
-                "-Werror=write-strings",
-                "-Werror=address",
-                "-Werror=int-to-pointer-cast",
-                "-Werror=pointer-to-int-cast",
-                "-fno-strict-aliasing",
-                "-Wno-int-conversion",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-we4002",
-                "-we4003",
-                "-w14010",
-                "-we4013",
-                "-w14016",
-                "-we4020",
-                "-we4021",
-                "-we4027",
-                "-we4029",
-                "-we4033",
-                "-we4035",
-                "-we4045",
-                "-we4047",
-                "-we4049",
-                "-we4053",
-                "-we4071",
-                "-we4819",
-                "/utf-8",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }),
-    deps = [
-        ":libepoxy-dep",
-    ],
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": [],
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler,
+    deps = _deps,
+    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -726,80 +696,9 @@ cxx_binary(
         "test/khronos_typedefs.h": ":libepoxy.git[test/khronos_typedefs.h]",
     },
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-Wpointer-arith",
-                "-Wmissing-declarations",
-                "-Wformat=2",
-                "-Wstrict-prototypes",
-                "-Wmissing-prototypes",
-                "-Wnested-externs",
-                "-Wbad-function-cast",
-                "-Wold-style-definition",
-                "-Wdeclaration-after-statement",
-                "-Wunused",
-                "-Wuninitialized",
-                "-Wshadow",
-                "-Wmissing-noreturn",
-                "-Wmissing-format-attribute",
-                "-Wredundant-decls",
-                "-Wlogical-op",
-                "-Werror=implicit",
-                "-Werror=nonnull",
-                "-Werror=init-self",
-                "-Werror=main",
-                "-Werror=missing-braces",
-                "-Werror=sequence-point",
-                "-Werror=return-type",
-                "-Werror=trigraphs",
-                "-Werror=array-bounds",
-                "-Werror=write-strings",
-                "-Werror=address",
-                "-Werror=int-to-pointer-cast",
-                "-Werror=pointer-to-int-cast",
-                "-fno-strict-aliasing",
-                "-Wno-int-conversion",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-we4002",
-                "-we4003",
-                "-w14010",
-                "-we4013",
-                "-w14016",
-                "-we4020",
-                "-we4021",
-                "-we4027",
-                "-we4029",
-                "-we4033",
-                "-we4035",
-                "-we4045",
-                "-we4047",
-                "-we4049",
-                "-we4053",
-                "-we4071",
-                "-we4819",
-                "/utf-8",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }),
-    deps = [
-        ":libepoxy-dep",
-    ],
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": [],
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler,
+    deps = _deps,
+    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -808,84 +707,11 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/gl_version.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-Wpointer-arith",
-                "-Wmissing-declarations",
-                "-Wformat=2",
-                "-Wstrict-prototypes",
-                "-Wmissing-prototypes",
-                "-Wnested-externs",
-                "-Wbad-function-cast",
-                "-Wold-style-definition",
-                "-Wdeclaration-after-statement",
-                "-Wunused",
-                "-Wuninitialized",
-                "-Wshadow",
-                "-Wmissing-noreturn",
-                "-Wmissing-format-attribute",
-                "-Wredundant-decls",
-                "-Wlogical-op",
-                "-Werror=implicit",
-                "-Werror=nonnull",
-                "-Werror=init-self",
-                "-Werror=main",
-                "-Werror=missing-braces",
-                "-Werror=sequence-point",
-                "-Werror=return-type",
-                "-Werror=trigraphs",
-                "-Werror=array-bounds",
-                "-Werror=write-strings",
-                "-Werror=address",
-                "-Werror=int-to-pointer-cast",
-                "-Werror=pointer-to-int-cast",
-                "-fno-strict-aliasing",
-                "-Wno-int-conversion",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": [
-                "-we4002",
-                "-we4003",
-                "-w14010",
-                "-we4013",
-                "-w14016",
-                "-we4020",
-                "-we4021",
-                "-we4027",
-                "-we4029",
-                "-we4033",
-                "-we4035",
-                "-we4045",
-                "-we4047",
-                "-we4049",
-                "-we4053",
-                "-we4071",
-                "-we4819",
-                "/utf-8",
-            ],
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }),
-    deps = [
-        ":libepoxy-dep",
-    ],
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": [],
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler,
+    deps = _deps,
+    target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
 
@@ -897,118 +723,12 @@ cxx_library(
     exported_headers = {
         "test/egl_common.h": ":libepoxy.git[test/egl_common.h]",
     },
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }),
-    deps = [
-        ":libepoxy-dep",
-    ],
+    compiler_flags = _cflags_compiler,
+    deps = _deps,
     preferred_linkage = "static",
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    target_compatible_with = _needs_tests_x11_egl,
     visibility = ["PUBLIC"],
 )
 
@@ -1017,174 +737,12 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/egl_has_extension_nocontext.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[msvc]": [],
-                        "DEFAULT": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[gcc]": [],
-                        "//third-party/meson/constraints:compiler[clang]": [],
-                        "//third-party/meson/constraints:compiler[msvc]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    linker_flags = [
-        "-rdynamic",
-    ],
-    deps = [
-        ":egl_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:egl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":egl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:egl[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler_abi,
+    linker_flags = _ldflags,
+    deps = _deps_egl_dl,
+    target_compatible_with = _needs_tests_x11_egl,
     visibility = ["PUBLIC"],
 )
 
@@ -1193,174 +751,12 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/egl_epoxy_api.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[msvc]": [],
-                        "DEFAULT": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[gcc]": [],
-                        "//third-party/meson/constraints:compiler[clang]": [],
-                        "//third-party/meson/constraints:compiler[msvc]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    linker_flags = [
-        "-rdynamic",
-    ],
-    deps = [
-        ":egl_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:egl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":egl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:egl[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler_abi,
+    linker_flags = _ldflags,
+    deps = _deps_egl_dl,
+    target_compatible_with = _needs_tests_x11_egl,
     visibility = ["PUBLIC"],
 )
 
@@ -1369,281 +765,90 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/egl_without_glx.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv1_cm[true]": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv1_cm[false]": select({
-                            "//third-party/meson/constraints:libGLESv1_CM[true]": select({
-                                "//third-party/meson/constraints:compiler[msvc]": [],
-                                "DEFAULT": [
-                                    "-Wpointer-arith",
-                                    "-Wmissing-declarations",
-                                    "-Wformat=2",
-                                    "-Wstrict-prototypes",
-                                    "-Wmissing-prototypes",
-                                    "-Wnested-externs",
-                                    "-Wbad-function-cast",
-                                    "-Wold-style-definition",
-                                    "-Wdeclaration-after-statement",
-                                    "-Wunused",
-                                    "-Wuninitialized",
-                                    "-Wshadow",
-                                    "-Wmissing-noreturn",
-                                    "-Wmissing-format-attribute",
-                                    "-Wredundant-decls",
-                                    "-Wlogical-op",
-                                    "-Werror=implicit",
-                                    "-Werror=nonnull",
-                                    "-Werror=init-self",
-                                    "-Werror=main",
-                                    "-Werror=missing-braces",
-                                    "-Werror=sequence-point",
-                                    "-Werror=return-type",
-                                    "-Werror=trigraphs",
-                                    "-Werror=array-bounds",
-                                    "-Werror=write-strings",
-                                    "-Werror=address",
-                                    "-Werror=int-to-pointer-cast",
-                                    "-Werror=pointer-to-int-cast",
-                                    "-fno-strict-aliasing",
-                                    "-Wno-int-conversion",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv1_CM[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [
+            "-we4002",
+            "-we4003",
+            "-w14010",
+            "-we4013",
+            "-w14016",
+            "-we4020",
+            "-we4021",
+            "-we4027",
+            "-we4029",
+            "-we4033",
+            "-we4035",
+            "-we4045",
+            "-we4047",
+            "-we4049",
+            "-we4053",
+            "-we4071",
+            "-we4819",
+            "/utf-8",
+        ],
+        "DEFAULT": [
+            "-Wpointer-arith",
+            "-Wmissing-declarations",
+            "-Wformat=2",
+            "-Wstrict-prototypes",
+            "-Wmissing-prototypes",
+            "-Wnested-externs",
+            "-Wbad-function-cast",
+            "-Wold-style-definition",
+            "-Wdeclaration-after-statement",
+            "-Wunused",
+            "-Wuninitialized",
+            "-Wshadow",
+            "-Wmissing-noreturn",
+            "-Wmissing-format-attribute",
+            "-Wredundant-decls",
+            "-Wlogical-op",
+            "-Werror=implicit",
+            "-Werror=nonnull",
+            "-Werror=init-self",
+            "-Werror=main",
+            "-Werror=missing-braces",
+            "-Werror=sequence-point",
+            "-Werror=return-type",
+            "-Werror=trigraphs",
+            "-Werror=array-bounds",
+            "-Werror=write-strings",
+            "-Werror=address",
+            "-Werror=int-to-pointer-cast",
+            "-Werror=pointer-to-int-cast",
+            "-fno-strict-aliasing",
+            "-Wno-int-conversion",
+        ],
     }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv1_cm[true]": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv1_cm[false]": select({
-                            "//third-party/meson/constraints:libGLESv1_CM[true]": select({
-                                "//third-party/meson/constraints:compiler[gcc]": [],
-                                "//third-party/meson/constraints:compiler[clang]": [],
-                                "//third-party/meson/constraints:compiler[msvc]": [
-                                    "-we4002",
-                                    "-we4003",
-                                    "-w14010",
-                                    "-we4013",
-                                    "-w14016",
-                                    "-we4020",
-                                    "-we4021",
-                                    "-we4027",
-                                    "-we4029",
-                                    "-we4033",
-                                    "-we4035",
-                                    "-we4045",
-                                    "-we4047",
-                                    "-we4049",
-                                    "-we4053",
-                                    "-we4071",
-                                    "-we4819",
-                                    "/utf-8",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv1_CM[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv1_cm[true]": select({
-                            "prelude//abi/constraints:abi[gnu]": [],
-                            "DEFAULT": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv1_cm[false]": select({
-                            "//third-party/meson/constraints:libGLESv1_CM[true]": select({
-                                "prelude//abi/constraints:abi[gnu]": [],
-                                "DEFAULT": [
-                                    "-D_XOPEN_SOURCE",
-                                    "-D_POSIX_C_SOURCE=200809L",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv1_CM[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
+        "prelude//abi/constraints:abi[gnu]": [],
+        "DEFAULT": [
+            "-D_XOPEN_SOURCE",
+            "-D_POSIX_C_SOURCE=200809L",
+        ],
     }) + [
         "-DGLES_VERSION=1",
     ],
-    linker_flags = [
-        "-rdynamic",
-    ],
-    deps = [
-        ":egl_common",
-        ":libepoxy-dep",
-        ":x11",
+    linker_flags = _ldflags,
+    deps = _deps_egl_dl,
+    target_compatible_with = [
+        "//third-party/meson/libepoxy/constraints:tests[true]",
+        "//third-party/meson/libepoxy/constraints:x11[true]",
+        "//third-party/meson/constraints:x11[true]",
     ] + select({
-        "//third-party/meson/constraints:egl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/constraints:glesv1_cm[true]": [
-                                ":egl",
-                            ],
-                            "//third-party/meson/constraints:glesv1_cm[false]": select({
-                                "//third-party/meson/constraints:libGLESv1_CM[true]": [
-                                    ":egl",
-                                ],
-                                "//third-party/meson/constraints:libGLESv1_CM[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:egl[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/constraints:glesv1_cm[true]": [
-                                ":dl",
-                            ],
-                            "//third-party/meson/constraints:glesv1_cm[false]": select({
-                                "//third-party/meson/constraints:libGLESv1_CM[true]": [
-                                    ":dl",
-                                ],
-                                "//third-party/meson/constraints:libGLESv1_CM[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv1_cm[true]": [],
-                        "//third-party/meson/constraints:glesv1_cm[false]": select({
-                            "//third-party/meson/constraints:libGLESv1_CM[true]": [],
-                            "//third-party/meson/constraints:libGLESv1_CM[false]": [
-                                "//third-party/meson/constraints:unsatisfiable[yes]",
-                            ],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
+        "//third-party/meson/libepoxy/constraints:egl[no]": [
+            "//third-party/meson/constraints:unsatisfiable[yes]",
+        ],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:glesv1_cm[true]": [],
+            "//third-party/meson/constraints:glesv1_cm[false]": select({
+                "//third-party/meson/constraints:libGLESv1_CM[true]": [],
+                "//third-party/meson/constraints:libGLESv1_CM[false]": [
                     "//third-party/meson/constraints:unsatisfiable[yes]",
                 ],
             }),
         }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
     }),
     visibility = ["PUBLIC"],
 )
@@ -1653,281 +858,90 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/egl_without_glx.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv2[true]": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv2[false]": select({
-                            "//third-party/meson/constraints:libGLESv2[true]": select({
-                                "//third-party/meson/constraints:compiler[msvc]": [],
-                                "DEFAULT": [
-                                    "-Wpointer-arith",
-                                    "-Wmissing-declarations",
-                                    "-Wformat=2",
-                                    "-Wstrict-prototypes",
-                                    "-Wmissing-prototypes",
-                                    "-Wnested-externs",
-                                    "-Wbad-function-cast",
-                                    "-Wold-style-definition",
-                                    "-Wdeclaration-after-statement",
-                                    "-Wunused",
-                                    "-Wuninitialized",
-                                    "-Wshadow",
-                                    "-Wmissing-noreturn",
-                                    "-Wmissing-format-attribute",
-                                    "-Wredundant-decls",
-                                    "-Wlogical-op",
-                                    "-Werror=implicit",
-                                    "-Werror=nonnull",
-                                    "-Werror=init-self",
-                                    "-Werror=main",
-                                    "-Werror=missing-braces",
-                                    "-Werror=sequence-point",
-                                    "-Werror=return-type",
-                                    "-Werror=trigraphs",
-                                    "-Werror=array-bounds",
-                                    "-Werror=write-strings",
-                                    "-Werror=address",
-                                    "-Werror=int-to-pointer-cast",
-                                    "-Werror=pointer-to-int-cast",
-                                    "-fno-strict-aliasing",
-                                    "-Wno-int-conversion",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [
+            "-we4002",
+            "-we4003",
+            "-w14010",
+            "-we4013",
+            "-w14016",
+            "-we4020",
+            "-we4021",
+            "-we4027",
+            "-we4029",
+            "-we4033",
+            "-we4035",
+            "-we4045",
+            "-we4047",
+            "-we4049",
+            "-we4053",
+            "-we4071",
+            "-we4819",
+            "/utf-8",
+        ],
+        "DEFAULT": [
+            "-Wpointer-arith",
+            "-Wmissing-declarations",
+            "-Wformat=2",
+            "-Wstrict-prototypes",
+            "-Wmissing-prototypes",
+            "-Wnested-externs",
+            "-Wbad-function-cast",
+            "-Wold-style-definition",
+            "-Wdeclaration-after-statement",
+            "-Wunused",
+            "-Wuninitialized",
+            "-Wshadow",
+            "-Wmissing-noreturn",
+            "-Wmissing-format-attribute",
+            "-Wredundant-decls",
+            "-Wlogical-op",
+            "-Werror=implicit",
+            "-Werror=nonnull",
+            "-Werror=init-self",
+            "-Werror=main",
+            "-Werror=missing-braces",
+            "-Werror=sequence-point",
+            "-Werror=return-type",
+            "-Werror=trigraphs",
+            "-Werror=array-bounds",
+            "-Werror=write-strings",
+            "-Werror=address",
+            "-Werror=int-to-pointer-cast",
+            "-Werror=pointer-to-int-cast",
+            "-fno-strict-aliasing",
+            "-Wno-int-conversion",
+        ],
     }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv2[true]": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv2[false]": select({
-                            "//third-party/meson/constraints:libGLESv2[true]": select({
-                                "//third-party/meson/constraints:compiler[gcc]": [],
-                                "//third-party/meson/constraints:compiler[clang]": [],
-                                "//third-party/meson/constraints:compiler[msvc]": [
-                                    "-we4002",
-                                    "-we4003",
-                                    "-w14010",
-                                    "-we4013",
-                                    "-w14016",
-                                    "-we4020",
-                                    "-we4021",
-                                    "-we4027",
-                                    "-we4029",
-                                    "-we4033",
-                                    "-we4035",
-                                    "-we4045",
-                                    "-we4047",
-                                    "-we4049",
-                                    "-we4053",
-                                    "-we4071",
-                                    "-we4819",
-                                    "/utf-8",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv2[true]": select({
-                            "prelude//abi/constraints:abi[gnu]": [],
-                            "DEFAULT": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:glesv2[false]": select({
-                            "//third-party/meson/constraints:libGLESv2[true]": select({
-                                "prelude//abi/constraints:abi[gnu]": [],
-                                "DEFAULT": [
-                                    "-D_XOPEN_SOURCE",
-                                    "-D_POSIX_C_SOURCE=200809L",
-                                ],
-                            }),
-                            "//third-party/meson/constraints:libGLESv2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
+        "prelude//abi/constraints:abi[gnu]": [],
+        "DEFAULT": [
+            "-D_XOPEN_SOURCE",
+            "-D_POSIX_C_SOURCE=200809L",
+        ],
     }) + [
         "-DGLES_VERSION=2",
     ],
-    linker_flags = [
-        "-rdynamic",
-    ],
-    deps = [
-        ":egl_common",
-        ":libepoxy-dep",
-        ":x11",
+    linker_flags = _ldflags,
+    deps = _deps_egl_dl,
+    target_compatible_with = [
+        "//third-party/meson/libepoxy/constraints:tests[true]",
+        "//third-party/meson/libepoxy/constraints:x11[true]",
+        "//third-party/meson/constraints:x11[true]",
     ] + select({
-        "//third-party/meson/constraints:egl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/constraints:glesv2[true]": [
-                                ":egl",
-                            ],
-                            "//third-party/meson/constraints:glesv2[false]": select({
-                                "//third-party/meson/constraints:libGLESv2[true]": [
-                                    ":egl",
-                                ],
-                                "//third-party/meson/constraints:libGLESv2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:egl[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/constraints:glesv2[true]": [
-                                ":dl",
-                            ],
-                            "//third-party/meson/constraints:glesv2[false]": select({
-                                "//third-party/meson/constraints:libGLESv2[true]": [
-                                    ":dl",
-                                ],
-                                "//third-party/meson/constraints:libGLESv2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:glesv2[true]": [],
-                        "//third-party/meson/constraints:glesv2[false]": select({
-                            "//third-party/meson/constraints:libGLESv2[true]": [],
-                            "//third-party/meson/constraints:libGLESv2[false]": [
-                                "//third-party/meson/constraints:unsatisfiable[yes]",
-                            ],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
+        "//third-party/meson/libepoxy/constraints:egl[no]": [
+            "//third-party/meson/constraints:unsatisfiable[yes]",
+        ],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:glesv2[true]": [],
+            "//third-party/meson/constraints:glesv2[false]": select({
+                "//third-party/meson/constraints:libGLESv2[true]": [],
+                "//third-party/meson/constraints:libGLESv2[false]": [
                     "//third-party/meson/constraints:unsatisfiable[yes]",
                 ],
             }),
         }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
     }),
     visibility = ["PUBLIC"],
 )
@@ -1937,207 +951,26 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/egl_gl.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/libepoxy/constraints:glx[auto]": select({
-                            "prelude//abi/constraints:abi[gnu]": [],
-                            "DEFAULT": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/libepoxy/constraints:glx[yes]": select({
-                            "prelude//abi/constraints:abi[gnu]": [],
-                            "DEFAULT": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    linker_flags = [
-        "-rdynamic",
-    ],
-    deps = [
-        ":egl_common",
-        ":libepoxy-dep",
-        ":x11",
+    compiler_flags = _cflags_compiler_abi,
+    linker_flags = _ldflags,
+    deps = _deps_egl_dl,
+    target_compatible_with = [
+        "//third-party/meson/libepoxy/constraints:tests[true]",
+        "//third-party/meson/libepoxy/constraints:x11[true]",
+        "//third-party/meson/constraints:x11[true]",
     ] + select({
-        "//third-party/meson/constraints:egl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/libepoxy/constraints:glx[auto]": [
-                                ":egl",
-                            ],
-                            "//third-party/meson/libepoxy/constraints:glx[yes]": [
-                                ":egl",
-                            ],
-                            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:egl[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:egl[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/libepoxy/constraints:glx[auto]": [
-                                ":dl",
-                            ],
-                            "//third-party/meson/libepoxy/constraints:glx[yes]": [
-                                ":dl",
-                            ],
-                            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:egl[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/libepoxy/constraints:glx[auto]": [],
-                        "//third-party/meson/libepoxy/constraints:glx[yes]": [],
-                        "//third-party/meson/libepoxy/constraints:glx[no]": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
+        "//third-party/meson/libepoxy/constraints:egl[no]": [
             "//third-party/meson/constraints:unsatisfiable[yes]",
         ],
+        "DEFAULT": select({
+            "//third-party/meson/libepoxy/constraints:glx[auto]": [],
+            "//third-party/meson/libepoxy/constraints:glx[yes]": [],
+            "//third-party/meson/libepoxy/constraints:glx[no]": [
+                "//third-party/meson/constraints:unsatisfiable[yes]",
+            ],
+        }),
     }),
     visibility = ["PUBLIC"],
 )
@@ -2150,118 +983,12 @@ cxx_library(
     exported_headers = {
         "test/glx_common.h": ":libepoxy.git[test/glx_common.h]",
     },
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }),
-    deps = [
-        ":libepoxy-dep",
-    ],
+    compiler_flags = _cflags_compiler,
+    deps = _deps,
     preferred_linkage = "static",
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    target_compatible_with = _needs_tests_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -2270,171 +997,25 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/glx_beginend.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "prelude//abi/constraints:abi[gnu]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
+    compiler_flags = _cflags_compiler_abi,
     deps = [
         ":glx_common",
         ":libepoxy-dep",
         ":x11",
     ] + select({
-        "//third-party/meson/constraints:gl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":gl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
+        "//third-party/meson/constraints:gl[true]": [
+            ":gl",
+        ],
         "//third-party/meson/constraints:gl[false]": [],
     }) + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
+        "//third-party/meson/constraints:dl[true]": [
+            ":dl",
+        ],
         "//third-party/meson/constraints:dl[false]": [],
     }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    target_compatible_with = _needs_tests_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -2443,154 +1024,11 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/glx_public_api.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[msvc]": [],
-                        "DEFAULT": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[gcc]": [],
-                        "//third-party/meson/constraints:compiler[clang]": [],
-                        "//third-party/meson/constraints:compiler[msvc]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler_abi,
+    deps = _deps_dl,
+    target_compatible_with = _needs_tests_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -2599,154 +1037,11 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/glx_public_api_core.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[msvc]": [],
-                        "DEFAULT": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[gcc]": [],
-                        "//third-party/meson/constraints:compiler[clang]": [],
-                        "//third-party/meson/constraints:compiler[msvc]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler_abi,
+    deps = _deps_dl,
+    target_compatible_with = _needs_tests_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -2755,154 +1050,11 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/glx_glxgetprocaddress_nocontext.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[msvc]": [],
-                        "DEFAULT": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[gcc]": [],
-                        "//third-party/meson/constraints:compiler[clang]": [],
-                        "//third-party/meson/constraints:compiler[msvc]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler_abi,
+    deps = _deps_dl,
+    target_compatible_with = _needs_tests_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -2911,154 +1063,11 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/glx_has_extension_nocontext.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[msvc]": [],
-                        "DEFAULT": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[gcc]": [],
-                        "//third-party/meson/constraints:compiler[clang]": [],
-                        "//third-party/meson/constraints:compiler[msvc]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler_abi,
+    deps = _deps_dl,
+    target_compatible_with = _needs_tests_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -3067,180 +1076,84 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/glx_static.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:default_library[shared]": [],
-                        "//third-party/meson/constraints:default_library[static]": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:default_library[both]": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [
+            "-we4002",
+            "-we4003",
+            "-w14010",
+            "-we4013",
+            "-w14016",
+            "-we4020",
+            "-we4021",
+            "-we4027",
+            "-we4029",
+            "-we4033",
+            "-we4035",
+            "-we4045",
+            "-we4047",
+            "-we4049",
+            "-we4053",
+            "-we4071",
+            "-we4819",
+            "/utf-8",
+        ],
+        "DEFAULT": [
+            "-Wpointer-arith",
+            "-Wmissing-declarations",
+            "-Wformat=2",
+            "-Wstrict-prototypes",
+            "-Wmissing-prototypes",
+            "-Wnested-externs",
+            "-Wbad-function-cast",
+            "-Wold-style-definition",
+            "-Wdeclaration-after-statement",
+            "-Wunused",
+            "-Wuninitialized",
+            "-Wshadow",
+            "-Wmissing-noreturn",
+            "-Wmissing-format-attribute",
+            "-Wredundant-decls",
+            "-Wlogical-op",
+            "-Werror=implicit",
+            "-Werror=nonnull",
+            "-Werror=init-self",
+            "-Werror=main",
+            "-Werror=missing-braces",
+            "-Werror=sequence-point",
+            "-Werror=return-type",
+            "-Werror=trigraphs",
+            "-Werror=array-bounds",
+            "-Werror=write-strings",
+            "-Werror=address",
+            "-Werror=int-to-pointer-cast",
+            "-Werror=pointer-to-int-cast",
+            "-fno-strict-aliasing",
+            "-Wno-int-conversion",
+        ],
     }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:default_library[shared]": [],
-                        "//third-party/meson/constraints:default_library[static]": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:default_library[both]": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:default_library[shared]": [],
-                        "//third-party/meson/constraints:default_library[static]": select({
-                            "prelude//abi/constraints:abi[gnu]": [],
-                            "DEFAULT": [
-                                "-D_XOPEN_SOURCE",
-                                "-D_POSIX_C_SOURCE=200809L",
-                            ],
-                        }),
-                        "//third-party/meson/constraints:default_library[both]": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
+        "prelude//abi/constraints:abi[gnu]": [],
+        "DEFAULT": [
+            "-D_XOPEN_SOURCE",
+            "-D_POSIX_C_SOURCE=200809L",
+        ],
     }) + [
         "-DNEEDS_TO_BE_STATIC",
     ],
     linker_flags = [
         "-static",
     ],
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
+    deps = _deps_dl,
+    target_compatible_with = [
+        "//third-party/meson/libepoxy/constraints:tests[true]",
+        "//third-party/meson/libepoxy/constraints:x11[true]",
+        "//third-party/meson/constraints:x11[true]",
+        "//third-party/meson/constraints:default_library[static]",
     ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "//third-party/meson/constraints:default_library[shared]": [],
-                            "//third-party/meson/constraints:default_library[static]": [
-                                ":dl",
-                            ],
-                            "//third-party/meson/constraints:default_library[both]": [],
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:default_library[shared]": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                        "//third-party/meson/constraints:default_library[static]": [],
-                        "//third-party/meson/constraints:default_library[both]": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
+        "//third-party/meson/libepoxy/constraints:glx[auto]": [],
+        "//third-party/meson/libepoxy/constraints:glx[yes]": [],
+        "//third-party/meson/libepoxy/constraints:glx[no]": [
             "//third-party/meson/constraints:unsatisfiable[yes]",
         ],
     }),
@@ -3252,157 +1165,14 @@ cxx_binary(
     srcs = [
         ":libepoxy.git[test/glx_static.c]",
     ],
-    headers = {
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[msvc]": [],
-                        "DEFAULT": [
-                            "-Wpointer-arith",
-                            "-Wmissing-declarations",
-                            "-Wformat=2",
-                            "-Wstrict-prototypes",
-                            "-Wmissing-prototypes",
-                            "-Wnested-externs",
-                            "-Wbad-function-cast",
-                            "-Wold-style-definition",
-                            "-Wdeclaration-after-statement",
-                            "-Wunused",
-                            "-Wuninitialized",
-                            "-Wshadow",
-                            "-Wmissing-noreturn",
-                            "-Wmissing-format-attribute",
-                            "-Wredundant-decls",
-                            "-Wlogical-op",
-                            "-Werror=implicit",
-                            "-Werror=nonnull",
-                            "-Werror=init-self",
-                            "-Werror=main",
-                            "-Werror=missing-braces",
-                            "-Werror=sequence-point",
-                            "-Werror=return-type",
-                            "-Werror=trigraphs",
-                            "-Werror=array-bounds",
-                            "-Werror=write-strings",
-                            "-Werror=address",
-                            "-Werror=int-to-pointer-cast",
-                            "-Werror=pointer-to-int-cast",
-                            "-fno-strict-aliasing",
-                            "-Wno-int-conversion",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:compiler[gcc]": [],
-                        "//third-party/meson/constraints:compiler[clang]": [],
-                        "//third-party/meson/constraints:compiler[msvc]": [
-                            "-we4002",
-                            "-we4003",
-                            "-w14010",
-                            "-we4013",
-                            "-w14016",
-                            "-we4020",
-                            "-we4021",
-                            "-we4027",
-                            "-we4029",
-                            "-we4033",
-                            "-we4035",
-                            "-we4045",
-                            "-we4047",
-                            "-we4049",
-                            "-we4053",
-                            "-we4071",
-                            "-we4819",
-                            "/utf-8",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "-D_XOPEN_SOURCE",
-                            "-D_POSIX_C_SOURCE=200809L",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
+    compiler_flags = _cflags_compiler_abi,
     linker_flags = [
         "-Wl,-z,now",
     ],
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": [
-                            ":dl",
-                        ],
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": [],
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    deps = _deps_dl,
+    target_compatible_with = _needs_tests_x11_glx,
     visibility = ["PUBLIC"],
 )
 
@@ -3417,149 +1187,10 @@ cxx_binary(
         "test/dlwrap.h": ":libepoxy.git[test/dlwrap.h]",
     },
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                        "DEFAULT": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                        "DEFAULT": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    linker_flags = [
-        "-rdynamic",
-    ],
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "prelude//abi/constraints:abi[gnu]": [
-                                ":dl",
-                            ],
-                            "DEFAULT": [],
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler,
+    linker_flags = _ldflags,
+    deps = _deps_dl,
+    target_compatible_with = _needs_tests_x11_abi,
     visibility = ["PUBLIC"],
 )
 
@@ -3574,149 +1205,10 @@ cxx_binary(
         "test/dlwrap.h": ":libepoxy.git[test/dlwrap.h]",
     },
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": select({
-                            "//third-party/meson/constraints:compiler[msvc]": [],
-                            "DEFAULT": [
-                                "-Wpointer-arith",
-                                "-Wmissing-declarations",
-                                "-Wformat=2",
-                                "-Wstrict-prototypes",
-                                "-Wmissing-prototypes",
-                                "-Wnested-externs",
-                                "-Wbad-function-cast",
-                                "-Wold-style-definition",
-                                "-Wdeclaration-after-statement",
-                                "-Wunused",
-                                "-Wuninitialized",
-                                "-Wshadow",
-                                "-Wmissing-noreturn",
-                                "-Wmissing-format-attribute",
-                                "-Wredundant-decls",
-                                "-Wlogical-op",
-                                "-Werror=implicit",
-                                "-Werror=nonnull",
-                                "-Werror=init-self",
-                                "-Werror=main",
-                                "-Werror=missing-braces",
-                                "-Werror=sequence-point",
-                                "-Werror=return-type",
-                                "-Werror=trigraphs",
-                                "-Werror=array-bounds",
-                                "-Werror=write-strings",
-                                "-Werror=address",
-                                "-Werror=int-to-pointer-cast",
-                                "-Werror=pointer-to-int-cast",
-                                "-fno-strict-aliasing",
-                                "-Wno-int-conversion",
-                            ],
-                        }),
-                        "DEFAULT": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }) + select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": select({
-                            "//third-party/meson/constraints:compiler[gcc]": [],
-                            "//third-party/meson/constraints:compiler[clang]": [],
-                            "//third-party/meson/constraints:compiler[msvc]": [
-                                "-we4002",
-                                "-we4003",
-                                "-w14010",
-                                "-we4013",
-                                "-w14016",
-                                "-we4020",
-                                "-we4021",
-                                "-we4027",
-                                "-we4029",
-                                "-we4033",
-                                "-we4035",
-                                "-we4045",
-                                "-we4047",
-                                "-we4049",
-                                "-we4053",
-                                "-we4071",
-                                "-we4819",
-                                "/utf-8",
-                            ],
-                        }),
-                        "DEFAULT": [],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [],
-    }),
-    linker_flags = [
-        "-rdynamic",
-    ],
-    deps = [
-        ":glx_common",
-        ":libepoxy-dep",
-        ":x11",
-    ] + select({
-        "//third-party/meson/constraints:dl[true]": select({
-            "//third-party/meson/libepoxy/constraints:tests[true]": select({
-                "//third-party/meson/libepoxy/constraints:glx[no]": [],
-                "DEFAULT": select({
-                    "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                        "//third-party/meson/constraints:x11[true]": select({
-                            "prelude//abi/constraints:abi[gnu]": [
-                                ":dl",
-                            ],
-                            "DEFAULT": [],
-                        }),
-                        "//third-party/meson/constraints:x11[false]": [],
-                    }),
-                    "//third-party/meson/libepoxy/constraints:x11[false]": [],
-                }),
-            }),
-            "//third-party/meson/libepoxy/constraints:tests[false]": [],
-        }),
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
-    target_compatible_with = select({
-        "//third-party/meson/libepoxy/constraints:tests[true]": select({
-            "//third-party/meson/libepoxy/constraints:glx[no]": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-            "DEFAULT": select({
-                "//third-party/meson/libepoxy/constraints:x11[true]": select({
-                    "//third-party/meson/constraints:x11[true]": select({
-                        "prelude//abi/constraints:abi[gnu]": [],
-                        "DEFAULT": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                    }),
-                    "//third-party/meson/constraints:x11[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
-                }),
-                "//third-party/meson/libepoxy/constraints:x11[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-            }),
-        }),
-        "//third-party/meson/libepoxy/constraints:tests[false]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
+    compiler_flags = _cflags_compiler,
+    linker_flags = _ldflags,
+    deps = _deps_dl,
+    target_compatible_with = _needs_tests_x11_abi,
     visibility = ["PUBLIC"],
 )
 

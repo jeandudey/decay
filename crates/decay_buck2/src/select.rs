@@ -75,20 +75,37 @@ impl Selects {
     ///
     /// A constraint supplied from outside may have values nobody told us about,
     /// and only the `DEFAULT` form is sound for those.
+    ///
+    /// `render` returns `None` for a value the surrounding condition already
+    /// rules out. Those values are not what the reader is choosing between, so
+    /// if the rest agree there is nothing to select on at all.
     fn select_on<S: Solver>(
         &self,
         logic: &mut Logic<S>,
         var: VarId,
         depth: Depth,
-        mut render: impl FnMut(&mut Logic<S>, u32) -> String,
+        mut render: impl FnMut(&mut Logic<S>, u32) -> Option<String>,
     ) -> Option<String> {
         let choices = logic.var(var).choices.len() as u32;
         let default = logic.var(var).default as u32;
 
-        let rendered: Vec<String> = (0..choices).map(|c| render(logic, c)).collect();
-        if rendered.iter().all(|arm| arm == &rendered[0]) {
+        let rendered: Vec<Option<String>> = (0..choices).map(|c| render(logic, c)).collect();
+
+        let mut reachable = rendered.iter().flatten();
+        let first = reachable.next()?.clone();
+        if reachable.all(|arm| *arm == first) {
             return None;
         }
+
+        // An unreachable value still needs something written for it, since the
+        // keys have to cover the constraint. Giving it the fallback's text is
+        // what makes it disappear into `DEFAULT` rather than reading as a case
+        // anyone has to consider.
+        let filler = rendered[default as usize].clone().unwrap_or(first);
+        let rendered: Vec<String> = rendered
+            .into_iter()
+            .map(|arm| arm.unwrap_or_else(|| filler.clone()))
+            .collect();
 
         let collapsed = self.collapsed(var, default, &rendered, depth);
         let Some(listed) = self.listed(var, &rendered, depth) else {
@@ -98,7 +115,12 @@ impl Selects {
             return Some(listed);
         };
 
-        if lines(&listed) > lines(&collapsed) + WORTH_COLLAPSING {
+        // Naming a value is worth a line or two, but not worth writing the same
+        // block out twice: where several values share an arm of any size, the
+        // reader is better served by one `DEFAULT` than by hunting for the
+        // difference between two copies.
+        let repeats = |arm: &String| lines(arm) > 1 && rendered.iter().filter(|a| *a == arm).count() > 1;
+        if rendered.iter().any(repeats) || lines(&listed) > lines(&collapsed) + WORTH_COLLAPSING {
             return Some(collapsed);
         }
         Some(listed)
@@ -165,15 +187,23 @@ impl Selects {
         out
     }
 
-    /// Render `yes` where `cond` holds and `no` where it does not.
+    /// Render `yes` where `cond` holds and `no` where it does not, for a reader
+    /// who already knows `context` holds.
+    ///
+    /// The context is what keeps the output flat. A target that only exists
+    /// when three things are true does not need each of its attributes to ask
+    /// about those three things again: within the target they are settled, and
+    /// only what is still open gets a `select()`.
     pub fn render<S: Solver>(
         &self,
         logic: &mut Logic<S>,
         cond: Pc,
+        context: Pc,
         yes: &Render<'_>,
         no: &Render<'_>,
         depth: Depth,
     ) -> String {
+        let cond = simplify(logic, cond, context);
         if cond.is_true() {
             return yes(depth);
         }
@@ -187,15 +217,37 @@ impl Selects {
         };
 
         let rendered = self.select_on(logic, var, depth, |logic, choice| {
+            let known = logic.restrict(context, var, choice);
+            if known.is_false() {
+                return None;
+            }
             let rest = logic.restrict(cond, var, choice);
-            self.render(logic, rest, yes, no, depth + 1)
+            Some(self.render(logic, rest, known, yes, no, depth + 1))
         });
 
         // The variable turned out not to distinguish anything here.
         rendered.unwrap_or_else(|| {
-            let rest = logic.restrict(cond, var, logic.var(var).default as u32);
-            self.render(logic, rest, yes, no, depth)
+            let choice = self.settled(logic, var, context);
+            let known = logic.restrict(context, var, choice);
+            let rest = logic.restrict(cond, var, choice);
+            self.render(logic, rest, known, yes, no, depth)
         })
+    }
+
+    /// A value of `var` the context allows, preferring the one a build gets by
+    /// default.
+    ///
+    /// Used to carry on down a variable that turned out not to matter: any
+    /// value it can still take answers for all of them.
+    fn settled<S: Solver>(&self, logic: &mut Logic<S>, var: VarId, context: Pc) -> u32 {
+        let default = logic.var(var).default as u32;
+        if !logic.restrict(context, var, default).is_false() {
+            return default;
+        }
+        let choices = logic.var(var).choices.len() as u32;
+        (0..choices)
+            .find(|&choice| !logic.restrict(context, var, choice).is_false())
+            .unwrap_or(default)
     }
 
     /// Render a list attribute whose entries may each be conditional.
@@ -227,12 +279,24 @@ impl Selects {
         }
 
         let mut parts: Vec<String> = Vec::new();
-        for (cond, values) in &groups {
+        let mut group = groups.iter().peekable();
+        while let Some((cond, values)) = group.next() {
             let yes = |depth: Depth| list(values, depth);
             if cond.is_true() {
                 parts.push(yes(depth));
-            } else {
-                parts.push(self.render(logic, *cond, &yes, &|_| "[]".to_owned(), depth));
+                continue;
+            }
+            // A group and the one that answers the opposite question are one
+            // choice, not two, and reading them side by side is what shows
+            // that between them they cover every configuration.
+            match group.next_if(|(next, _)| opposite(logic, *cond, *next, context)) {
+                Some((_, otherwise)) => {
+                    let no = |depth: Depth| list(otherwise, depth);
+                    parts.push(self.render(logic, *cond, context, &yes, &no, depth));
+                }
+                None => {
+                    parts.push(self.render(logic, *cond, context, &yes, &|_| "[]".to_owned(), depth))
+                }
             }
         }
 
@@ -272,15 +336,23 @@ impl Selects {
             }
             entries.push((cond, key, value));
         }
-        self.dict_at(logic, &entries, depth)
+        self.dict_at(logic, &entries, context, depth)
     }
 
     fn dict_at<S: Solver>(
         &self,
         logic: &mut Logic<S>,
         entries: &[(Pc, String, String)],
+        context: Pc,
         depth: Depth,
     ) -> String {
+        let mut entries: Vec<(Pc, String, String)> = entries
+            .iter()
+            .map(|(cond, key, value)| (simplify(logic, *cond, context), key.clone(), value.clone()))
+            .filter(|(cond, _, _)| !cond.is_false())
+            .collect();
+        let entries = &mut entries;
+
         let open = entries.iter().find_map(|(cond, _, _)| {
             (!cond.is_true())
                 .then(|| logic.support(*cond).first().copied())
@@ -311,13 +383,19 @@ impl Selects {
         };
 
         let rendered = self.select_on(logic, var, depth, |logic, choice| {
+            let known = logic.restrict(context, var, choice);
+            if known.is_false() {
+                return None;
+            }
             let rest = narrow(logic, choice);
-            self.dict_at(logic, &rest, depth + 1)
+            Some(self.dict_at(logic, &rest, known, depth + 1))
         });
 
         rendered.unwrap_or_else(|| {
-            let rest = narrow(logic, logic.var(var).default as u32);
-            self.dict_at(logic, &rest, depth)
+            let choice = self.settled(logic, var, context);
+            let known = logic.restrict(context, var, choice);
+            let rest = narrow(logic, choice);
+            self.dict_at(logic, &rest, known, depth)
         })
     }
 
@@ -351,18 +429,41 @@ impl Selects {
             }
         }
 
-        let mut parts = Vec::new();
-        for (cond, values) in &groups {
+        let joined = |values: &Vec<String>| {
             let mut text = String::new();
             for value in values {
                 text.push_str(separator);
                 text.push_str(value);
             }
+            text
+        };
+
+        let mut parts = Vec::new();
+        let mut group = groups.iter().peekable();
+        while let Some((cond, values)) = group.next() {
+            let text = joined(values);
             let yes = |_: Depth| format!("{text:?}");
             if cond.is_true() {
                 parts.push(yes(depth));
-            } else {
-                parts.push(self.render(logic, *cond, &yes, &|_| "\"\"".to_owned(), depth));
+                continue;
+            }
+            // The two answers to one question belong in one `select()`. Only
+            // neighbours are paired up, so nothing changes place: the order
+            // these are written in is the order they reach the command line.
+            match group.next_if(|(next, _)| opposite(logic, *cond, *next, context)) {
+                Some((_, otherwise)) => {
+                    let otherwise = joined(otherwise);
+                    let no = |_: Depth| format!("{otherwise:?}");
+                    parts.push(self.render(logic, *cond, context, &yes, &no, depth));
+                }
+                None => parts.push(self.render(
+                    logic,
+                    *cond,
+                    context,
+                    &yes,
+                    &|_| "\"\"".to_owned(),
+                    depth,
+                )),
             }
         }
         parts
@@ -391,7 +492,7 @@ impl Selects {
             }
             arms.push((cond, render(value)));
         }
-        self.choose(logic, &arms, fallback, depth)
+        self.choose(logic, &arms, context, fallback, depth)
     }
 
     /// Split `arms` on one variable at a time until each is unconditional.
@@ -399,9 +500,17 @@ impl Selects {
         &self,
         logic: &mut Logic<S>,
         arms: &[(Pc, String)],
+        context: Pc,
         fallback: &str,
         depth: Depth,
     ) -> String {
+        let arms: Vec<(Pc, String)> = arms
+            .iter()
+            .map(|(cond, value)| (simplify(logic, *cond, context), value.clone()))
+            .filter(|(cond, _)| !cond.is_false())
+            .collect();
+        let arms = &arms;
+
         if let Some((_, value)) = arms.iter().find(|(cond, _)| cond.is_true()) {
             return value.clone();
         }
@@ -420,14 +529,82 @@ impl Selects {
         };
 
         let rendered = self.select_on(logic, var, depth, |logic, choice| {
+            let known = logic.restrict(context, var, choice);
+            if known.is_false() {
+                return None;
+            }
             let rest = narrow(logic, choice);
-            self.choose(logic, &rest, fallback, depth + 1)
+            Some(self.choose(logic, &rest, known, fallback, depth + 1))
         });
 
         rendered.unwrap_or_else(|| {
-            let rest = narrow(logic, logic.var(var).default as u32);
-            self.choose(logic, &rest, fallback, depth)
+            let choice = self.settled(logic, var, context);
+            let known = logic.restrict(context, var, choice);
+            let rest = narrow(logic, choice);
+            self.choose(logic, &rest, known, fallback, depth)
         })
+    }
+
+    /// The `target_compatible_with` of a target that only exists in some
+    /// configurations.
+    ///
+    /// That attribute is itself a conjunction — every value listed has to hold
+    /// — so whatever the condition demands outright is written as a plain list.
+    /// Only what is left, a value ruled out or a choice between alternatives,
+    /// needs a `select()`, and it is usually one level deep instead of four.
+    pub fn render_compat<S: Solver>(
+        &self,
+        logic: &mut Logic<S>,
+        cond: Pc,
+        depth: Depth,
+    ) -> String {
+        let mut required = Vec::new();
+        let mut rest = cond;
+        while let Some((label, var, choice)) = self.forced(logic, rest) {
+            required.push(label);
+            rest = logic.restrict(rest, var, choice);
+        }
+
+        let mut parts = Vec::new();
+        if !required.is_empty() {
+            parts.push(list(&required, depth));
+        }
+        if !rest.is_true() {
+            let impossible = format!("{:?}", self.impossible);
+            parts.push(self.render(
+                logic,
+                rest,
+                Pc::TRUE,
+                &|_| "[]".to_owned(),
+                &|depth| list(&[impossible.clone()], depth),
+                depth,
+            ));
+        }
+
+        match parts.len() {
+            0 => "[]".to_owned(),
+            1 => parts.pop().expect("just checked"),
+            _ => parts.join(" + "),
+        }
+    }
+
+    /// One constraint value `cond` cannot hold without, if there is one.
+    fn forced<S: Solver>(&self, logic: &mut Logic<S>, cond: Pc) -> Option<(String, VarId, u32)> {
+        for var in logic.support(cond) {
+            let choices = logic.var(var).choices.len() as u32;
+            for choice in 0..choices {
+                // A value with no label cannot be asked for, only fallen back
+                // to, so it is not something to require.
+                let Some(label) = self.label(var, choice) else {
+                    continue;
+                };
+                let lit = logic.lit(var, choice);
+                if logic.entails(cond, lit) {
+                    return Some((format!("{label:?}"), var, choice));
+                }
+            }
+        }
+        None
     }
 
     fn label(&self, var: VarId, choice: u32) -> Option<String> {
@@ -451,6 +628,23 @@ pub fn list(values: &[String], depth: Depth) -> String {
     }
     out.push_str(&format!("{}]", indent(depth)));
     out
+}
+
+/// Whether two conditions are each other's answer: never both, never neither.
+///
+/// `#define X 1` and `#define X 0` are one question written twice, and the
+/// reader can only see that they cover everything if they sit together.
+fn opposite<S: Solver>(logic: &mut Logic<S>, a: Pc, b: Pc, context: Pc) -> bool {
+    let both = logic.and(a, b);
+    let both = logic.and(context, both);
+    if logic.is_sat(both) {
+        return false;
+    }
+    let na = logic.not(a);
+    let nb = logic.not(b);
+    let neither = logic.and(na, nb);
+    let neither = logic.and(context, neither);
+    !logic.is_sat(neither)
 }
 
 /// Drop from `cond` whatever `context` already guarantees.

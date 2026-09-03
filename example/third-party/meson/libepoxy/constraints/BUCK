@@ -35,11 +35,3 @@ constraint(
     default = "true",
     visibility = ["PUBLIC"],
 )
-
-# build option `option:docs`: Enable generating the Epoxy API reference (depends on Doxygen)
-constraint(
-    name = "docs",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)

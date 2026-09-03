@@ -102,11 +102,12 @@ fn buckify() -> eyre::Result<()> {
         package_path(&shared_dir)?,
         imported.iter().map(|p| &p.graph),
     );
-    shared.write(&labels, &shared_dir)?;
-    info!(dir = %shared_dir.display(), "wrote shared constraints");
 
+    // The projects are written first: a constraint nothing selects on is not
+    // declared, and what selects on what is only known once they are generated.
+    let mut generated = Vec::new();
     for project in &mut imported {
-        decay_buck2::emit(
+        let build = decay_buck2::emit(
             &project.graph,
             &mut project.logic,
             &labels,
@@ -115,8 +116,12 @@ fn buckify() -> eyre::Result<()> {
             &project.package,
         )
         .wrap_err_with(|| format!("Failed to generate build files for `{}`", project.name))?;
+        generated.push(build);
         info!(dir = %project.out.display(), "wrote build files");
     }
+
+    shared.write(&labels, &decay_buck2::Used::everywhere(generated), &shared_dir)?;
+    info!(dir = %shared_dir.display(), "wrote shared constraints");
 
     Ok(())
 }
