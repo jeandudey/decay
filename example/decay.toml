@@ -13,3 +13,8 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
 rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973"
+host_machine.system = "linux"
+options.prefix = "/usr/local"
+options.libdir = "lib"
+options.datadir = "share"
+options.includedir = "include"

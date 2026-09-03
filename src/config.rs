@@ -9,7 +9,7 @@ use {
         Sha256, //
     },
     std::{
-        collections::HashMap,
+        collections::{BTreeMap, HashMap},
         fs,
         path::{
             Path,
@@ -38,6 +38,10 @@ impl Config {
 pub struct Project {
     pub repo: Repo,
     pub rev: String,
+    #[serde(default)]
+    pub options: BTreeMap<String, OptionValue>,
+    #[serde(default)]
+    pub host_machine: Machine,
 }
 
 impl Project {
@@ -61,4 +65,18 @@ impl Repo {
         let hash = Sha256::digest(self.0.to_string());
         Ok(format!("{name}-{}", hex::encode(&hash[..8])))
     }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum OptionValue {
+    Bool(bool),
+    Int(i64),
+    String(String),
+    List(Vec<String>),
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct Machine {
+    pub system: Option<String>,
 }

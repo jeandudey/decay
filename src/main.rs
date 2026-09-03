@@ -1,19 +1,12 @@
 #![allow(dead_code, unused_variables)]
 
-mod ast;
-mod config;
-mod git_cache;
-
 use {
-    crate::{
-        ast::eval,
-        config::Config,
-        git_cache::GitCache, //
-    },
+    crate::{config::Config, git_cache::GitCache, oracle::Concrete},
     clap::{
         Parser,
         Subcommand, //
     },
+    decay_meson_eval::eval,
     eyre::{
         Context,
         ContextCompat, //
@@ -29,6 +22,10 @@ use {
         fmt::format::FmtSpan, //
     },
 };
+
+mod config;
+mod git_cache;
+mod oracle;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -65,14 +62,16 @@ fn main() -> eyre::Result<()> {
             for project in &config.projects {
                 let project_dir = git_cache.checkout(&project)?;
                 let ast = decay_meson_parse::parse_build(&project_dir.join("meson.build"))?;
-                let ir = decay_meson_ir::normalize(&ast);
-                info!(
-                    "{}",
-                    ir.iter()
-                        .map(|v| v.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                );
+                //let ir = decay_meson_ir::normalize(&ast);
+                //info!(
+                //    "{}",
+                //    ir.iter()
+                //        .map(|v| v.to_string())
+                //        .collect::<Vec<_>>()
+                //        .join("\n")
+                //);
+                let oracle = Concrete::new(&project.options, &project.host_machine);
+                eval(&oracle, &ast)?;
                 //eval(&project_dir, &config.systems)?;
             }
         }

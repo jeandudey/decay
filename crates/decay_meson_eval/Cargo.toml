@@ -1,0 +1,12 @@
+[package]
+name = "decay_meson_eval"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+decay_meson_ast.workspace = true
+#decay_meson_ir.workspace = true
+decay_meson_logic.workspace = true
+eyre.workspace = true
+smallvec.workspace = true
+tracing.workspace = true

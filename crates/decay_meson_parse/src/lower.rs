@@ -92,12 +92,12 @@ fn args(node: &Node) -> eyre::Result<Args> {
     let node = node.expect_argument()?;
 
     Ok(Args {
-        positional: node
+        pos: node
             .arguments
             .iter()
             .map(expr)
             .collect::<eyre::Result<_>>()?,
-        kwargs: node
+        kw: node
             .kwargs
             .iter()
             .map(|pair| Ok((pair.key.expect_id()?, expr(&pair.value)?)))
@@ -126,7 +126,7 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
             .iter()
             .map(expr)
             .collect::<eyre::Result<Vec<_>>>()
-            .map(Expr::Array),
+            .map(Expr::List),
         Node::Function { name, args } => lower_call(name, args).map(Expr::Call),
         Node::Method {
             source_object,

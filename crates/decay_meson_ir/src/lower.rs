@@ -104,7 +104,7 @@ impl Lower {
             ast::Expr::FormatString(v) => Atom::String(v.clone()),
             ast::Expr::Int(v) => Atom::Int(*v),
             ast::Expr::Bool(v) => Atom::Bool(*v),
-            ast::Expr::Array(v) => {
+            ast::Expr::List(v) => {
                 let items = v.iter().map(|v| self.atom(v)).collect();
                 let tmp = self.bind(RValue::Array(items));
                 Atom::Var(tmp)
@@ -156,12 +156,12 @@ impl Lower {
     }
 
     fn args(&mut self, args: &ast::Args) -> Args {
-        let pos = args.positional.iter().map(|v| self.atom(v)).collect();
+        let pos = args.pos.iter().map(|v| self.atom(v)).collect();
 
         let kw = args
             .order
             .iter()
-            .map(|k| (k.clone(), self.atom(args.kwargs.get(k).unwrap())))
+            .map(|k| (k.clone(), self.atom(args.kw.get(k).unwrap())))
             .collect();
 
         Args { pos, kw }

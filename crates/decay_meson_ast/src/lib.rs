@@ -22,7 +22,7 @@ pub enum Expr {
     Id(String),
     String(String),
     FormatString(String),
-    Array(Vec<Expr>),
+    List(Vec<Expr>),
     Dict(Dict),
     Int(i64),
     Bool(bool),
@@ -64,8 +64,8 @@ pub struct Method {
 
 #[derive(Debug)]
 pub struct Args {
-    pub positional: Vec<Expr>,
-    pub kwargs: HashMap<String, Expr>,
+    pub pos: Vec<Expr>,
+    pub kw: HashMap<String, Expr>,
     pub order: Vec<String>,
 }
 
