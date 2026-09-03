@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 smallvec.workspace = true
+tracing.workspace = true
 z3.workspace = true

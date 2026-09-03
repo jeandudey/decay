@@ -8,8 +8,12 @@ use {
             VarId, //
         },
         solver::Solver,
+        stats,
     },
-    std::collections::HashMap,
+    std::{
+        collections::HashMap,
+        time::Instant, //
+    },
 };
 
 /// The presence-condition algebra used by the executor: a hash-consed [`Arena`]
@@ -103,24 +107,32 @@ impl<S: Solver> Logic<S> {
     /// `error()` under a guard is the motivating case: meson refusing to
     /// configure means those option combinations simply do not exist.
     pub fn assume(&mut self, pc: Pc) {
-        let t = self.term(pc);
+        stats::bump(&stats::ASSUME_CALLS);
+        let t = self.term_timed(pc);
         self.solver.assume(&t);
+        stats::add(&stats::SAT_MEMO_DROPPED, self.sat.len() as u64);
         self.sat.clear();
     }
 
     pub fn is_sat(&mut self, pc: Pc) -> bool {
+        stats::bump(&stats::IS_SAT_CALLS);
         if pc.is_false() {
+            stats::bump(&stats::IS_SAT_CONST);
             return false;
         }
         if pc.is_true() {
+            stats::bump(&stats::IS_SAT_CONST);
             return true;
         }
         if let Some(&hit) = self.sat.get(&pc) {
+            stats::bump(&stats::IS_SAT_HIT);
             return hit;
         }
-        let t = self.term(pc);
+        stats::bump(&stats::IS_SAT_MISS);
+        let t = self.term_timed(pc);
         let r = self.solver.is_sat(&t);
         self.sat.insert(pc, r);
+        stats::maybe_report();
         r
     }
 
@@ -133,6 +145,19 @@ impl<S: Solver> Logic<S> {
 
     pub fn equivalent(&mut self, a: Pc, b: Pc) -> bool {
         a == b || (self.entails(a, b) && self.entails(b, a))
+    }
+
+    /// [`Self::term`] with the top-level call counted and timed (recursion
+    /// included). Only the entry points that precede a solver call use this.
+    fn term_timed(&mut self, pc: Pc) -> S::Term {
+        stats::bump(&stats::TERM_TOP_CALLS);
+        if self.terms.contains_key(&pc) {
+            stats::bump(&stats::TERM_TOP_HIT);
+        }
+        let start = Instant::now();
+        let t = self.term(pc);
+        stats::add(&stats::TERM_NANOS, start.elapsed().as_nanos() as u64);
+        t
     }
 
     fn term(&mut self, pc: Pc) -> S::Term {

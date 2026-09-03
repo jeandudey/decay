@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use {
+    crate::stats,
+    std::collections::HashMap, //
+};
 
 /// A presence condition: an index into an [`Arena`] of hash-consed boolean
 /// nodes.
@@ -183,6 +186,7 @@ impl Arena {
         let id = VarId(self.vars.len() as u32);
         self.by_key.insert(var.key.clone(), id);
         self.vars.push(var);
+        stats::max(&stats::ARENA_VARS, self.vars.len() as u64);
         id
     }
 
@@ -192,6 +196,7 @@ impl Arena {
     }
 
     pub fn not(&mut self, a: Pc) -> Pc {
+        stats::bump(&stats::ARENA_NOT_CALLS);
         // Negation is kept as a node rather than pushed down to the leaves.
         // Rewriting it away would lose the syntactic link between a formula and
         // its negation, and that link is what makes the two sides of an `if`
@@ -205,6 +210,7 @@ impl Arena {
     }
 
     pub fn and(&mut self, a: Pc, b: Pc) -> Pc {
+        stats::bump(&stats::ARENA_AND_CALLS);
         if a.is_false() || b.is_false() {
             return Pc::FALSE;
         }
@@ -225,6 +231,7 @@ impl Arena {
     }
 
     pub fn or(&mut self, a: Pc, b: Pc) -> Pc {
+        stats::bump(&stats::ARENA_OR_CALLS);
         if a.is_true() || b.is_true() {
             return Pc::TRUE;
         }
@@ -329,9 +336,11 @@ impl Arena {
         if let Some(&pc) = self.memo.get(&node) {
             return pc;
         }
+        stats::bump(&stats::ARENA_INTERNED);
         let id = Pc(self.nodes.len() as u32);
         self.nodes.push(node.clone());
         self.memo.insert(node, id);
+        stats::max(&stats::ARENA_NODES, self.nodes.len() as u64);
         id
     }
 }

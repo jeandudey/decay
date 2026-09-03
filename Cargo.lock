@@ -217,6 +217,7 @@ name = "decay_meson_logic"
 version = "0.1.0"
 dependencies = [
  "smallvec",
+ "tracing",
  "z3",
 ]
 

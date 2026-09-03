@@ -1,8 +1,10 @@
 use {
     crate::{
         arena::VarId,
-        solver::Solver, //
+        solver::Solver,
+        stats, //
     },
+    std::time::Instant,
     z3::{
         SatResult,
         ast::{
@@ -46,6 +48,7 @@ impl Solver for Z3Solver {
         if self.consts[var.index()].is_some() {
             return;
         }
+        stats::bump(&stats::Z3_DECLARE);
         let c = Int::new_const(format!("v{}", var.index()));
         self.solver.assert(c.ge(Int::from_i64(0)));
         self.solver.assert(c.lt(Int::from_i64(i64::from(n_choices))));
@@ -53,6 +56,7 @@ impl Solver for Z3Solver {
     }
 
     fn lit(&mut self, var: VarId, choice: u32) -> Self::Term {
+        stats::bump(&stats::Z3_LIT);
         let c = self.consts[var.index()]
             .as_ref()
             .expect("variable used before it was declared");
@@ -68,14 +72,17 @@ impl Solver for Z3Solver {
     }
 
     fn not(&mut self, t: &Self::Term) -> Self::Term {
+        stats::bump(&stats::Z3_NOT);
         !t
     }
 
     fn and(&mut self, a: &Self::Term, b: &Self::Term) -> Self::Term {
+        stats::bump(&stats::Z3_AND);
         Bool::and(&[a.clone(), b.clone()])
     }
 
     fn or(&mut self, a: &Self::Term, b: &Self::Term) -> Self::Term {
+        stats::bump(&stats::Z3_OR);
         Bool::or(&[a.clone(), b.clone()])
     }
 
@@ -84,9 +91,13 @@ impl Solver for Z3Solver {
     }
 
     fn is_sat(&mut self, t: &Self::Term) -> bool {
-        matches!(
+        stats::bump(&stats::Z3_CHECK_CALLS);
+        let start = Instant::now();
+        let sat = matches!(
             self.solver.check_assumptions(&[t.clone()]),
             SatResult::Sat //
-        )
+        );
+        stats::add(&stats::Z3_CHECK_NANOS, start.elapsed().as_nanos() as u64);
+        sat
     }
 }

@@ -1,6 +1,7 @@
 mod arena;
 mod logic;
 mod solver;
+pub mod stats;
 mod var;
 
 pub use {
