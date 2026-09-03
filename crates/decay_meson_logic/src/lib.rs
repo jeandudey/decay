@@ -16,6 +16,7 @@ pub use {
     },
     logic::Logic,
     solver::{
+        BddSolver,
         Solver,
         Z3Solver, //
     },

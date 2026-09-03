@@ -49,8 +49,7 @@ use {
         VarId,
         VarKind,
         Variant,
-        Variational,
-        Z3Solver, //
+        Variational, //
     },
     eyre::{
         Context,
@@ -124,13 +123,15 @@ pub trait Sources {
     fn list_dir(&self, dir: &Path) -> Vec<PathBuf>;
 }
 
-/// Execute the project rooted at `root` and return its build graph.
-pub fn eval(
+/// Execute the project rooted at `root` and return its build graph, paired with
+/// the presence-condition logic it was built against. The solver backend is the
+/// caller's: [`decay_meson_logic::BddSolver`] or [`decay_meson_logic::Z3Solver`].
+pub fn eval<S: Solver + Default>(
     oracle: &dyn Oracle,
     sources: &dyn Sources,
     root: &Path,
-) -> eyre::Result<(Graph, Logic<Z3Solver>)> {
-    let mut interp = Interp::new(Z3Solver::new(), oracle, sources, root);
+) -> eyre::Result<(Graph, Logic<S>)> {
+    let mut interp = Interp::new(S::default(), oracle, sources, root);
     interp.run()?;
     Ok(interp.finish())
 }

@@ -34,7 +34,7 @@ use {
     decay_build_ir::Graph,
     decay_meson_logic::{
         Logic,
-        Z3Solver, //
+        Solver, //
     },
     eyre::{
         Context,
@@ -67,10 +67,12 @@ struct Evaled {
 }
 
 /// The worker-local half of an evaluated project, kept until it is emitted.
-struct Pinned {
+/// Holds the presence-condition logic, which for the z3 backend must not leave
+/// its worker thread.
+struct Pinned<S: Solver> {
     out: PathBuf,
     package: String,
-    logic: Logic<Z3Solver>,
+    logic: Logic<S>,
 }
 
 enum Job {
@@ -104,7 +106,7 @@ enum Done {
 /// Import every project in `config`, following `schedule`'s waves, on up to
 /// `jobs` worker threads. Writes every project's build files and the shared
 /// constraints package as a side effect.
-pub(crate) fn import(
+pub(crate) fn import<S: Solver + Default>(
     config: &Config,
     git_cache: &GitCache,
     schedule: &Schedule,
@@ -127,7 +129,7 @@ pub(crate) fn import(
             let (job_tx, job_rx) = mpsc::channel::<Job>();
             inbox.push(job_tx);
             let done_tx = done_tx.clone();
-            scope.spawn(move || worker(git_cache, config, projects, job_rx, done_tx));
+            scope.spawn(move || worker::<S>(git_cache, config, projects, job_rx, done_tx));
         }
         drop(done_tx);
 
@@ -255,16 +257,16 @@ pub(crate) fn import(
     })
 }
 
-fn worker(
+fn worker<S: Solver + Default>(
     git_cache: &GitCache,
     config: &Config,
     projects: &[Project],
     jobs: mpsc::Receiver<Job>,
     done: mpsc::Sender<Done>,
 ) {
-    // This worker's evaluated-but-not-yet-emitted projects. Holds the `!Send`
-    // `Logic`, so it must never leave this thread.
-    let mut pinned: HashMap<usize, Pinned> = HashMap::new();
+    // This worker's evaluated-but-not-yet-emitted projects. Holds the `Logic`,
+    // which for the z3 backend must never leave this thread.
+    let mut pinned: HashMap<usize, Pinned<S>> = HashMap::new();
 
     while let Ok(job) = jobs.recv() {
         let msg = match job {
@@ -272,7 +274,7 @@ fn worker(
 
             Job::Eval { idx, packages } => {
                 let outcome = catch_unwind(AssertUnwindSafe(|| {
-                    execute(git_cache, config, &projects[idx], &packages)
+                    execute::<S>(git_cache, config, &projects[idx], &packages)
                 }));
                 match flatten(outcome) {
                     Ok(Imported {

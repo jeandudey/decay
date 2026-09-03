@@ -1,3 +1,4 @@
+mod bdd;
 mod z3;
 
 use {
@@ -5,7 +6,10 @@ use {
     std::fmt::Debug, //
 };
 
-pub use z3::Z3Solver;
+pub use {
+    bdd::BddSolver,
+    z3::Z3Solver, //
+};
 
 /// The satisfiability backend behind [`crate::Logic`].
 pub trait Solver {
