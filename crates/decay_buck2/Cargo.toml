@@ -1,12 +1,10 @@
 [package]
-name = "decay_meson_eval"
+name = "decay_buck2"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 decay_build_ir.workspace = true
-decay_meson_ast.workspace = true
 decay_meson_logic.workspace = true
 eyre.workspace = true
-smallvec.workspace = true
 tracing.workspace = true

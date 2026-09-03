@@ -1,0 +1,25 @@
+# A worked example of configuring imported meson projects.
+#
+# Constraints under `//third-party/meson/constraints` come from meson itself —
+# its own options, the toolchain, and what the build environment provides — and
+# answer for every imported project at once. Each project's own options live
+# beside its build file.
+platform(
+    name = "x11",
+    constraint_values = [
+        "//third-party/meson/constraints:x11[true]",
+        "//third-party/meson/constraints:egl[true]",
+        "//third-party/meson/constraints:gl[true]",
+        "//third-party/meson/constraints:dl[true]",
+        "//third-party/meson/libepoxy/constraints:egl[yes]",
+    ],
+    deps = ["prelude//platforms:default"],
+)
+
+platform(
+    name = "no-glx",
+    constraint_values = [
+        "//third-party/meson/libepoxy/constraints:glx[no]",
+    ],
+    deps = ["prelude//platforms:default"],
+)

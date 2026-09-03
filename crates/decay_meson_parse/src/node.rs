@@ -1,6 +1,12 @@
-use eyre::bail;
-use serde::Deserialize;
+use {
+    eyre::bail,
+    serde::Deserialize, //
+};
 
+/// The subset of `mesonbuild.mparser` nodes that carry meaning.
+///
+/// Purely syntactic nodes (symbols, whitespace) are dropped by the Python side
+/// before they reach here.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind")]
 pub(crate) enum Node {
@@ -15,6 +21,8 @@ pub(crate) enum Node {
     },
     #[serde(rename = "BooleanNode")]
     Boolean { value: bool },
+    #[serde(rename = "BreakNode")]
+    Break,
     #[serde(rename = "CodeBlockNode")]
     CodeBlock {
         #[serde(default)]
@@ -26,6 +34,8 @@ pub(crate) enum Node {
         left: Box<Node>,
         right: Box<Node>,
     },
+    #[serde(rename = "ContinueNode")]
+    Continue,
     #[serde(rename = "ElseNode")]
     Else { block: Box<Node> },
     #[serde(rename = "EmptyNode")]
@@ -35,6 +45,10 @@ pub(crate) enum Node {
         #[serde(rename = "func_name")]
         name: Box<Node>,
         args: Box<Node>,
+        #[serde(default)]
+        line: u32,
+        #[serde(default)]
+        col: u32,
     },
     #[serde(rename = "IdNode")]
     Id { value: String },
@@ -59,6 +73,10 @@ pub(crate) enum Node {
         args: Box<Node>,
         name: Box<Node>,
         source_object: Box<Node>,
+        #[serde(default)]
+        line: u32,
+        #[serde(default)]
+        col: u32,
     },
     #[serde(rename = "NotNode")]
     Not { value: Box<Node> },
@@ -66,13 +84,19 @@ pub(crate) enum Node {
     Number { value: i64 },
     #[serde(rename = "OrNode")]
     Or { left: Box<Node>, right: Box<Node> },
+    #[serde(rename = "ParenthesizedNode")]
+    Parenthesized { inner: Box<Node> },
     #[serde(rename = "PlusAssignmentNode")]
     PlusAssignment {
         value: Box<Node>,
         var_name: Box<Node>,
     },
     #[serde(rename = "StringNode")]
-    String { is_fstring: bool, value: String },
+    String {
+        #[serde(default)]
+        is_fstring: bool,
+        value: String,
+    },
     #[serde(rename = "ForeachClauseNode")]
     ForeachClause {
         varnames: Vec<Node>,
@@ -81,7 +105,7 @@ pub(crate) enum Node {
         body: Box<Node>,
     },
     #[serde(rename = "ArithmeticNode")]
-    ArithmeticNode {
+    Arithmetic {
         left: Box<Node>,
         right: Box<Node>,
         operation: String,
@@ -94,6 +118,8 @@ pub(crate) enum Node {
         trueblock: Box<Node>,
         falseblock: Box<Node>,
     },
+    #[serde(rename = "UMinusNode")]
+    UMinus { value: Box<Node> },
     #[serde(rename = "DictNode")]
     Dict { args: Box<Node> },
 }
@@ -102,21 +128,25 @@ impl Node {
     pub(crate) fn expect_id(&self) -> eyre::Result<String> {
         match self {
             Node::Id { value } => Ok(value.clone()),
-            _ => bail!("Expected an Id node"),
+            _ => bail!("Expected an Id node, found {self:?}"),
         }
     }
 
-    pub(crate) fn expect_string(&self) -> eyre::Result<String> {
+    /// Dict keys parse as strings, but meson also accepts an identifier-shaped
+    /// key in some positions, so accept both.
+    pub(crate) fn expect_key(&self) -> eyre::Result<String> {
         match self {
-            Node::String { value, .. } => Ok(value.clone()),
-            _ => bail!("Expected a String node"),
+            Node::String { value, .. } | Node::Id { value } => Ok(value.clone()),
+            _ => bail!("Expected a key node, found {self:?}"),
         }
     }
 
     pub(crate) fn expect_argument(&self) -> eyre::Result<&Argument> {
         match self {
             Node::Argument(v) => Ok(v),
-            _ => bail!("Expected an Argument node"),
+            // An empty argument list can arrive as an `EmptyNode`.
+            Node::Empty => Ok(Argument::EMPTY),
+            _ => bail!("Expected an Argument node, found {self:?}"),
         }
     }
 
@@ -140,4 +170,11 @@ pub(crate) struct Argument {
     pub arguments: Vec<Node>,
     #[serde(default)]
     pub kwargs: Vec<Pair>,
+}
+
+impl Argument {
+    const EMPTY: &'static Argument = &Argument {
+        arguments: Vec::new(),
+        kwargs: Vec::new(),
+    };
 }

@@ -157,9 +157,11 @@ name = "decay"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "decay_buck2",
+ "decay_build_ir",
  "decay_meson_ast",
  "decay_meson_eval",
- "decay_meson_ir",
+ "decay_meson_logic",
  "decay_meson_parse",
  "eyre",
  "hex",
@@ -175,6 +177,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "decay_buck2"
+version = "0.1.0"
+dependencies = [
+ "decay_build_ir",
+ "decay_meson_logic",
+ "eyre",
+ "tracing",
+]
+
+[[package]]
+name = "decay_build_ir"
+version = "0.1.0"
+dependencies = [
+ "decay_meson_logic",
+]
+
+[[package]]
 name = "decay_meson_ast"
 version = "0.1.0"
 dependencies = [
@@ -185,6 +204,7 @@ dependencies = [
 name = "decay_meson_eval"
 version = "0.1.0"
 dependencies = [
+ "decay_build_ir",
  "decay_meson_ast",
  "decay_meson_logic",
  "eyre",
@@ -193,17 +213,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "decay_meson_ir"
-version = "0.1.0"
-dependencies = [
- "decay_meson_ast",
- "tracing",
-]
-
-[[package]]
 name = "decay_meson_logic"
 version = "0.1.0"
 dependencies = [
+ "smallvec",
  "z3",
 ]
 

@@ -9,7 +9,7 @@ use {
         Sha256, //
     },
     std::{
-        collections::{BTreeMap, HashMap},
+        collections::BTreeMap,
         fs,
         path::{
             Path,
@@ -21,8 +21,22 @@ use {
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    /// Where generated build files are written, relative to the repository
+    /// root.
     pub third_party_dir: PathBuf,
-    pub systems: HashMap<String, String>,
+    /// The systems a build may target, mapped to the build-file label that
+    /// selects each one.
+    #[serde(default)]
+    pub systems: BTreeMap<String, String>,
+    /// The compilers a build may use, mapped the same way. Left empty, the
+    /// importer generates its own constraints.
+    #[serde(default)]
+    pub compilers: BTreeMap<String, String>,
+    /// Targets that already provide a dependency the meson build looks up
+    /// outside itself, keyed by the name meson uses (`dependency('x11')`,
+    /// `cc.find_library('dl')`).
+    #[serde(default)]
+    pub dependencies: BTreeMap<String, String>,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
 }
@@ -38,10 +52,16 @@ impl Config {
 pub struct Project {
     pub repo: Repo,
     pub rev: String,
+    /// Options pinned to a fixed value.
+    ///
+    /// Anything left out stays a build-time choice, which is the point: most
+    /// projects should pin nothing here.
     #[serde(default)]
     pub options: BTreeMap<String, OptionValue>,
     #[serde(default)]
     pub host_machine: Machine,
+    #[serde(default)]
+    pub build_machine: Machine,
 }
 
 impl Project {
@@ -60,10 +80,20 @@ impl Repo {
             .path_segments()
             .ok_or(eyre!("Repository URL doesn't contain segments, this probably shouldn't be an error if someone hosts a git repository at the URL root"))?;
         for segment in segments {
-            name.push_str(&segment);
+            name.push_str(segment);
         }
         let hash = Sha256::digest(self.0.to_string());
         Ok(format!("{name}-{}", hex::encode(&hash[..8])))
+    }
+
+    /// The last path segment, which is what the project is usually called.
+    pub fn short_name(&self) -> String {
+        self.0
+            .path_segments()
+            .and_then(|mut s| s.next_back())
+            .unwrap_or("project")
+            .trim_end_matches(".git")
+            .to_owned()
     }
 }
 
@@ -79,4 +109,19 @@ pub enum OptionValue {
 #[derive(Debug, Default, Deserialize)]
 pub struct Machine {
     pub system: Option<String>,
+    pub cpu_family: Option<String>,
+    pub cpu: Option<String>,
+    pub endian: Option<String>,
+}
+
+impl Machine {
+    pub fn property(&self, name: &str) -> Option<&str> {
+        match name {
+            "system" => self.system.as_deref(),
+            "cpu_family" => self.cpu_family.as_deref(),
+            "cpu" => self.cpu.as_deref(),
+            "endian" => self.endian.as_deref(),
+            _ => None,
+        }
+    }
 }

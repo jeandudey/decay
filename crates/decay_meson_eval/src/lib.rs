@@ -1,102 +1,264 @@
+//! A variational executor for the meson build definition language.
+//!
+//! Instead of running a `meson.build` once for one configuration, the executor
+//! runs it once for *all* configurations: values carry the set of
+//! configurations they hold in ([`Variational`]), and control flow narrows a
+//! path condition rather than picking a branch. Whatever the [`Oracle`] does
+//! not pin down stays open, so a project that lets you turn GLX on and off
+//! produces a build graph that still lets you turn GLX on and off.
+
 use {
     crate::{
+        args::CallArgs,
         obj::{
-            Lang,
+            ConfigData,
+            Dep,
             Machine,
-            Obj, //
+            Obj,
+            Program, //
         },
         oracle::Oracle,
-        project::Project,
-        val::{
-            Value,
-            Variant, //
-            Variational,
-        },
+        val::Value,
+    },
+    decay_build_ir::{
+        External,
+        Graph,
+        Kind,
+        Source,
+        TargetId, //
     },
     decay_meson_ast::{
-        Args,
+        AssignStmt,
         Block,
-        Call,
         Expr,
-        Index,
-        Method,
-        Stmt, //
+        ForeachStmt,
+        IfStmt,
+        Loc,
+        ProjectOption,
+        ProjectOptions,
+        Stmt,
+        Ternary,
+        UnOp,
+        UnOpKind, //
     },
     decay_meson_logic::{
         Logic,
         Pc,
         Solver,
+        Var,
+        VarId,
+        VarKind,
+        Variant,
+        Variational,
         Z3Solver, //
     },
     eyre::{
         Context,
-        Ok,
-        OptionExt,
         bail, //
     },
     std::{
-        collections::HashMap,
+        cell::RefCell,
+        collections::{
+            HashMap,
+            HashSet, //
+        },
         mem,
+        path::{
+            Path,
+            PathBuf, //
+        },
         rc::Rc,
-        str::FromStr, //
+    },
+    tracing::{
+        trace,
+        warn, //
     },
 };
+
+mod args;
+mod builtins;
+mod methods;
+mod ops;
+mod strings;
 
 pub mod obj;
 pub mod oracle;
 pub mod val;
 
-mod project;
+/// How the executor gets at the project's sources.
+///
+/// Parsing lives behind a trait so the executor itself stays free of the Python
+/// meson parser, and so tests can feed it sources directly.
+pub trait Sources {
+    /// Parse the `meson.build` at `path`.
+    fn build(&self, path: &Path) -> eyre::Result<Block>;
 
-//type Builtin<'a, S, O> = fn(&mut Interpreter<'a, S, O>, &ConcreteArgs) -> eyre::Result<VarVal>;
+    /// Parse the option declarations for the project rooted at `dir`, if it
+    /// declares any.
+    fn options(&self, dir: &Path) -> eyre::Result<Option<ProjectOptions>>;
 
-pub fn eval<O: Oracle>(oracle: &O, block: &Block) -> eyre::Result<()> {
-    let solver = Z3Solver {};
-    let mut interp = Interpreter::new(solver, oracle);
-    interp.block(block)?;
-    Ok(())
+    /// Whether a path exists in the source tree.
+    fn exists(&self, path: &Path) -> bool;
+
+    /// Expand a glob-free listing of a directory, used by `files()` sanity
+    /// checks. Returning `None` means "do not check".
+    fn is_file(&self, path: &Path) -> bool {
+        self.exists(path)
+    }
 }
 
-#[derive(Debug)]
-pub struct Interpreter<'a, S, O>
-where
-    S: Solver,
-    O: Oracle,
-{
-    /// The logic backend.
-    logic: Logic<S>,
-    /// Oracle providing choices of values or concrete answers.
-    oracle: &'a O,
-    /// The current presence condition.
-    pc: Pc,
-    builtin_objects: HashMap<&'static str, Obj>,
-    store: HashMap<String, Variational<Value>>,
-    project: Option<Project>,
+/// Execute the project rooted at `root` and return its build graph.
+pub fn eval(
+    oracle: &dyn Oracle,
+    sources: &dyn Sources,
+    root: &Path,
+) -> eyre::Result<(Graph, Logic<Z3Solver>)> {
+    let mut interp = Interp::new(Z3Solver::new(), oracle, sources, root);
+    interp.run()?;
+    Ok(interp.finish())
 }
 
-impl<'a, S, O> Interpreter<'a, S, O>
-where
-    S: Solver,
-    O: Oracle,
-{
-    pub fn new(solver: S, oracle: &'a O) -> Self {
-        let mut builtin_objects = HashMap::new();
-        builtin_objects.insert("meson", Obj::Meson);
-        builtin_objects.insert("host_machine", Obj::Machine(Machine::Host));
+/// Statement-level control flow.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Flow {
+    Normal,
+    Break,
+    Continue,
+    /// `error()` was reached: this path does not configure at all.
+    Abort,
+}
+
+pub struct Interp<'a, S: Solver> {
+    pub(crate) logic: Logic<S>,
+    pub(crate) oracle: &'a dyn Oracle,
+    pub(crate) sources: &'a dyn Sources,
+
+    /// The configurations the statement being executed applies to.
+    pub(crate) pc: Pc,
+    flow: Flow,
+    pub(crate) vars: HashMap<String, Variational<Value>>,
+
+    pub(crate) graph: Graph,
+
+    /// Option declarations from `meson.options` / `meson_options.txt`.
+    pub(crate) options: ProjectOptions,
+    /// `default_options:` from the `project()` call.
+    pub(crate) default_options: HashMap<String, Rc<str>>,
+    pub(crate) has_project: bool,
+
+    pub(crate) root: PathBuf,
+    /// Directory stack, relative to the project root.
+    dirs: Vec<PathBuf>,
+    visited: HashSet<PathBuf>,
+
+    /// Interned configuration variables, so a second `get_option('glx')` is the
+    /// same variable as the first.
+    option_vars: HashMap<String, VarId>,
+    probe_vars: HashMap<String, VarId>,
+    /// Interned external dependency targets, keyed the same way.
+    externals: HashMap<String, TargetId>,
+}
+
+impl<'a, S: Solver> Interp<'a, S> {
+    pub fn new(solver: S, oracle: &'a dyn Oracle, sources: &'a dyn Sources, root: &Path) -> Self {
+        let mut vars = HashMap::new();
+        for (name, obj) in [
+            ("meson", Obj::Meson),
+            ("host_machine", Obj::Machine(Machine::Host)),
+            ("build_machine", Obj::Machine(Machine::Build)),
+            ("target_machine", Obj::Machine(Machine::Target)),
+        ] {
+            vars.insert(name.to_owned(), Variational::pure(Value::Obj(obj)));
+        }
 
         Self {
             logic: Logic::new(solver),
             oracle,
+            sources,
             pc: Pc::TRUE,
-            builtin_objects,
-            store: HashMap::new(),
-            project: None,
+            flow: Flow::Normal,
+            vars,
+            graph: Graph::new(),
+            options: ProjectOptions::new(),
+            default_options: HashMap::new(),
+            has_project: false,
+            root: root.to_path_buf(),
+            dirs: Vec::new(),
+            visited: HashSet::new(),
+            option_vars: HashMap::new(),
+            probe_vars: HashMap::new(),
+            externals: HashMap::new(),
         }
     }
 
-    fn block(&mut self, block: &Block) -> eyre::Result<()> {
+    pub fn run(&mut self) -> eyre::Result<()> {
+        if let Some(options) = self.sources.options(&self.root)? {
+            self.options = options;
+        }
+        self.subdir(Path::new(""))
+    }
+
+    /// The finished graph, together with the logic it was built against.
+    ///
+    /// A backend needs the logic, not just the list of variables: rendering a
+    /// presence condition means taking it apart, and deciding whether one is
+    /// worth rendering at all means asking whether it can differ from its
+    /// context.
+    pub fn finish(self) -> (Graph, Logic<S>) {
+        let mut graph = self.graph;
+        graph.options = self.logic.vars().to_vec();
+        (graph, self.logic)
+    }
+
+    pub fn logic_mut(&mut self) -> &mut Logic<S> {
+        &mut self.logic
+    }
+
+    // -- source tree ------------------------------------------------------
+
+    /// The directory of the `meson.build` currently executing, relative to the
+    /// project root.
+    pub(crate) fn cur_dir(&self) -> &Path {
+        self.dirs.last().map(PathBuf::as_path).unwrap_or(Path::new(""))
+    }
+
+    /// Resolve a path written in the current `meson.build` against the project
+    /// root, which is how every path reaches the build graph.
+    pub(crate) fn resolve(&self, path: &str) -> String {
+        let joined = self.cur_dir().join(path);
+        normalize_path(&joined)
+    }
+
+    pub(crate) fn subdir(&mut self, dir: &Path) -> eyre::Result<()> {
+        let abs = self.root.join(dir).join("meson.build");
+        if !self.sources.exists(&abs) {
+            bail!("no meson.build in `{}`", dir.display());
+        }
+        if !self.visited.insert(dir.to_path_buf()) {
+            bail!("`{}` was entered twice", dir.display());
+        }
+
+        let block = self
+            .sources
+            .build(&abs)
+            .wrap_err_with(|| format!("in {}", abs.display()))?;
+
+        self.dirs.push(dir.to_path_buf());
+        let saved_flow = mem::replace(&mut self.flow, Flow::Normal);
+        let r = self.block(&block);
+        self.flow = saved_flow;
+        self.dirs.pop();
+        r.wrap_err_with(|| format!("in {}/meson.build", dir.display()))
+    }
+
+    // -- statements -------------------------------------------------------
+
+    pub fn block(&mut self, block: &Block) -> eyre::Result<()> {
         for stmt in &block.0 {
             self.stmt(stmt)?;
+            if self.flow != Flow::Normal {
+                break;
+            }
         }
         Ok(())
     }
@@ -106,370 +268,745 @@ where
             Stmt::Expr(v) => {
                 self.expr(v)?;
             }
-            _ => bail!("unimplmented {stmt:?}"),
-            //Stmt::Bind(BindStmt { name, rvalue }) => {
-            //    let val = self.rvalue(rvalue)?;
-            //    bail!("assign");
-            //    //self.env.insert(name.clone(), val);
-            //}
-            //Stmt::If(v) => bail!("unimplemented {v:?}"),
+            Stmt::Assign(AssignStmt { name, val, is_plus }) => {
+                let val = self.expr(val)?;
+                if *is_plus {
+                    self.plus_assign(name, &val)?;
+                } else {
+                    self.assign(name, val);
+                }
+            }
+            Stmt::If(v) => self.exec_if(v)?,
+            Stmt::Foreach(v) => self.exec_foreach(v)?,
+            Stmt::Break => self.flow = Flow::Break,
+            Stmt::Continue => self.flow = Flow::Continue,
         }
         Ok(())
     }
 
-    fn expr(&mut self, expr: &Expr) -> eyre::Result<Variational<Value>> {
-        Ok(match expr {
-            Expr::List(v) => {
-                let mut elements = Vec::with_capacity(v.len());
-                for element in v {
-                    let mut v = self.expr(element)?;
-                    v.normalize(&mut self.logic);
-                    elements.extend(v.into_variants());
-                }
-                Variant::new(self.pc, Value::List(Rc::new(elements))).into()
+    /// Run each arm under the configurations that reach it.
+    ///
+    /// There is no merge step: an assignment already writes itself as "under
+    /// this condition the new value, otherwise the old one", so the branches
+    /// converge on their own.
+    fn exec_if(&mut self, stmt: &IfStmt) -> eyre::Result<()> {
+        let entry = self.pc;
+        // Configurations that have fallen through every arm so far.
+        let mut open = entry;
+
+        for (cond, block) in &stmt.arms {
+            if open.is_false() {
+                break;
             }
-            Expr::Call(Call { name, args }) => {
-                let args = self.args(args)?;
-                let mut out: Variational<Value> = Variational::empty();
-                for (pc, args) in &args {
-                    let v = self.with_pc(*pc, |this| this.call(name, args))?;
-                    out.extend(v.into_variants());
-                }
-                out
+            let value = self.with_pc(open, |this| this.expr(cond))?;
+            let taken = self.truth(&value)?;
+            let taken = self.logic.and(open, taken);
+            let not_taken = self.logic.not(taken);
+            open = self.logic.and(open, not_taken);
+
+            if taken.is_false() || !self.logic.is_sat(taken) {
+                continue;
             }
-            Expr::FormatString(v) | Expr::String(v) => Variant::new(self.pc, v.into()).into(),
-            _ => bail!("unimplemented {expr:?}"),
-        })
-    }
-
-    fn call(&mut self, name: &str, args: &ArgSet) -> eyre::Result<Variational<Value>> {
-        Ok(match name {
-            "project" => self.call_project(&args)?,
-            _ => bail!("unimplemented {name:?} {args:?}"),
-        })
-    }
-
-    fn args(&mut self, args: &Args) -> eyre::Result<Vec<(Pc, ArgSet)>> {
-        let pos = args
-            .pos
-            .iter()
-            .map(|expr| self.expr(expr))
-            .collect::<eyre::Result<Vec<_>>>()?;
-        let kw: Vec<(Rc<str>, Variational<Value>)> = args
-            .order
-            .iter()
-            .map(|name| {
-                let expr = args.kw.get(name).unwrap();
-                Ok((Rc::from(name.as_str()), self.expr(expr)?))
-            })
-            .collect::<eyre::Result<Vec<_>>>()?;
-
-        let mut out = vec![(
-            self.pc,
-            ArgSet {
-                pos: Vec::new(),
-                kw: Vec::new(),
-            },
-        )];
-
-        for g in &pos {
-            let mut next = Vec::new();
-            for (apc, set) in &out {
-                for var in g.variants() {
-                    let p = self.logic.and(*apc, var.cond);
-                    if p.is_false() {
-                        continue;
-                    }
-                    let mut s = set.clone();
-                    s.pos.push(var.value.clone());
-                    next.push((p, s));
-                }
+            self.run_branch(taken, block)?;
+            if self.flow != Flow::Normal {
+                self.pc = entry;
+                return Ok(());
             }
-            out = next;
         }
 
-        for (name, g) in &kw {
-            let mut next = Vec::new();
-            for (apc, set) in &out {
-                for var in g.variants() {
-                    let p = self.logic.and(*apc, var.cond);
-                    if p.is_false() {
-                        continue;
+        if !open.is_false() && self.logic.is_sat(open) {
+            if let Some(block) = &stmt.elseblock {
+                self.run_branch(open, block)?;
+            }
+        }
+
+        self.pc = entry;
+        Ok(())
+    }
+
+    /// Execute a block under `pc`, absorbing an `error()` that only fires on
+    /// some configurations.
+    fn run_branch(&mut self, pc: Pc, block: &Block) -> eyre::Result<()> {
+        let saved = mem::replace(&mut self.pc, pc);
+        let r = self.block(block);
+        self.pc = saved;
+        r?;
+        if self.flow == Flow::Abort {
+            // The configurations that reached `error()` no longer exist; the
+            // ones that did not carry on normally.
+            self.flow = Flow::Normal;
+        }
+        Ok(())
+    }
+
+    fn exec_foreach(&mut self, stmt: &ForeachStmt) -> eyre::Result<()> {
+        let iter = self.expr(&stmt.iter)?;
+        let entry = self.pc;
+
+        // Each variant of the iterable is a different sequence; run the loop
+        // once per variant, under that variant's configurations.
+        for variant in iter.variants().to_vec() {
+            let base = self.logic.and(entry, variant.cond);
+            if base.is_false() || !self.logic.is_sat(base) {
+                continue;
+            }
+            let entries = self.loop_entries(&variant.value, &stmt.names, base)?;
+            let last = entries.len().saturating_sub(1);
+
+            for (i, (cond, bindings)) in entries.into_iter().enumerate() {
+                let g = self.logic.and(base, cond);
+                if g.is_false() || !self.logic.is_sat(g) {
+                    continue;
+                }
+                self.with_pc(g, |this| {
+                    for (name, value) in bindings {
+                        this.assign(&name, Variational::from(Variant::new(g, value)));
                     }
-                    let mut s = set.clone();
-                    s.kw.push((name.clone(), var.value.clone()));
-                    next.push((p, s));
+                });
+
+                let saved = mem::replace(&mut self.pc, g);
+                let r = self.block(&stmt.body);
+                self.pc = saved;
+                r?;
+
+                match self.flow {
+                    Flow::Abort => {
+                        self.flow = Flow::Normal;
+                    }
+                    Flow::Break => {
+                        self.flow = Flow::Normal;
+                        if cond.is_true() {
+                            break;
+                        }
+                        // A `break` that only happens in some configurations
+                        // would make every later iteration conditional on it,
+                        // which no static build description can express.
+                        bail!(
+                            "`break` inside a loop over a configuration-dependent element \
+                             has no static translation"
+                        );
+                    }
+                    Flow::Continue => {
+                        self.flow = Flow::Normal;
+                        if !cond.is_true() && i != last {
+                            bail!(
+                                "`continue` inside a loop over a configuration-dependent \
+                                 element has no static translation"
+                            );
+                        }
+                    }
+                    Flow::Normal => {}
                 }
             }
-            out = next;
+        }
+
+        self.pc = entry;
+        Ok(())
+    }
+
+    /// The bindings each iteration makes, with the condition that iteration
+    /// happens at all.
+    fn loop_entries(
+        &mut self,
+        iterable: &Value,
+        names: &[String],
+        base: Pc,
+    ) -> eyre::Result<Vec<(Pc, Vec<(String, Value)>)>> {
+        match iterable {
+            Value::List(items) => {
+                if names.len() != 1 {
+                    bail!("iterating a list takes exactly one loop variable");
+                }
+                Ok(items
+                    .iter()
+                    .map(|item| {
+                        (item.cond, vec![(names[0].clone(), item.value.clone())])
+                    })
+                    .collect())
+            }
+            Value::Dict(items) => {
+                if names.len() != 2 {
+                    bail!("iterating a dict takes two loop variables");
+                }
+                Ok(items
+                    .iter()
+                    .map(|item| {
+                        (item.cond, vec![
+                            (names[0].clone(), Value::Str(item.value.0.clone())),
+                            (names[1].clone(), item.value.1.clone()),
+                        ])
+                    })
+                    .collect())
+            }
+            other => {
+                let _ = base;
+                bail!("cannot iterate over a {}", other.type_name())
+            }
+        }
+    }
+
+    // -- the store --------------------------------------------------------
+
+    /// Write `value` under the current path condition, keeping whatever the
+    /// variable held elsewhere.
+    pub(crate) fn assign(&mut self, name: &str, value: Variational<Value>) {
+        let pc = self.pc;
+        let mut out = value.restrict(&mut self.logic, pc);
+
+        if let Some(old) = self.vars.get(name).cloned() {
+            let elsewhere = self.logic.not(pc);
+            out.extend(old.restrict(&mut self.logic, elsewhere));
+        }
+
+        out.normalize(&mut self.logic);
+        trace!(name, variants = out.len(), "assign");
+        self.vars.insert(name.to_owned(), out);
+    }
+
+    /// `name += value`.
+    ///
+    /// A list grows in place rather than being rewritten: the appended elements
+    /// carry the condition they were appended under, so the configurations that
+    /// skipped the append still read the list they had. Rewriting the variable
+    /// instead would fork it once per append, and a handful of independent
+    /// `if`s appending to one list would multiply out into a variant per
+    /// combination.
+    pub(crate) fn plus_assign(
+        &mut self,
+        name: &str,
+        rhs: &Variational<Value>,
+    ) -> eyre::Result<()> {
+        let old = self
+            .vars
+            .get(name)
+            .cloned()
+            .ok_or_else(|| eyre::eyre!("`+=` on undefined variable `{name}`"))?;
+
+        if !old.is_empty() && old.variants().iter().all(|v| v.value.is_list()) {
+            let pc = self.pc;
+            let mut out = Variational::empty();
+            for variant in old.variants() {
+                let Value::List(items) = &variant.value else {
+                    unreachable!("every variant was checked to be a list")
+                };
+                let base = self.logic.and(variant.cond, pc);
+                let mut items = items.to_vec();
+                if !base.is_false() {
+                    items.extend(self.elements_under(rhs, base));
+                }
+                out.push(Variant::new(variant.cond, Value::list(items)));
+            }
+            self.vars.insert(name.to_owned(), out);
+            return Ok(());
+        }
+
+        let old = old.restrict(&mut self.logic, self.pc);
+        let sum = self.add(&old, rhs)?;
+        self.assign(name, sum);
+        Ok(())
+    }
+
+    /// The value of `name` in the configurations currently being executed.
+    pub(crate) fn lookup(&mut self, name: &str) -> eyre::Result<Option<Variational<Value>>> {
+        let Some(v) = self.vars.get(name).cloned() else {
+            return Ok(None);
+        };
+        let pc = self.pc;
+        let mut v = v.restrict(&mut self.logic, pc);
+        // A variable written in both arms of an `if` keeps a variant per arm;
+        // narrowing to the current path leaves contradictory ones behind, and
+        // only the solver can tell that they are contradictory.
+        v.normalize(&mut self.logic);
+        if v.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(v))
+    }
+
+    pub(crate) fn with_pc<R>(&mut self, pc: Pc, f: impl FnOnce(&mut Self) -> R) -> R {
+        let saved = mem::replace(&mut self.pc, pc);
+        let r = f(self);
+        self.pc = saved;
+        r
+    }
+
+    // -- expressions ------------------------------------------------------
+
+    pub(crate) fn expr(&mut self, expr: &Expr) -> eyre::Result<Variational<Value>> {
+        match expr {
+            Expr::Id(name) => self
+                .lookup(name)?
+                .ok_or_else(|| eyre::eyre!("undefined variable `{name}`")),
+            Expr::String(v) => Ok(self.pure(Value::str(v))),
+            Expr::FormatString(v) => self.format_string(v),
+            Expr::Int(v) => Ok(self.pure(Value::Int(*v))),
+            Expr::Bool(v) => Ok(self.pure(Value::Bool(*v))),
+            Expr::List(items) => {
+                let mut out = Vec::new();
+                for item in items {
+                    let v = self.expr(item)?;
+                    out.extend(v.into_variants());
+                }
+                Ok(self.pure(Value::list(out)))
+            }
+            Expr::Dict(dict) => {
+                let mut out = Vec::new();
+                for key in &dict.order {
+                    let value = dict.args.get(key).expect("dict order names its own keys");
+                    let value = self.expr(value)?;
+                    let key: Rc<str> = Rc::from(key.as_str());
+                    for v in value.into_variants() {
+                        out.push(Variant::new(v.cond, (key.clone(), v.value)));
+                    }
+                }
+                Ok(self.pure(Value::dict(out)))
+            }
+            Expr::Call(call) => {
+                let args = self.eval_args(&call.args)?;
+                self.call(&call.name, &args, call.loc)
+                    .wrap_err_with(|| format!("in `{}()` at {}", call.name, self.here(call.loc)))
+            }
+            Expr::Method(method) => {
+                let obj = self.expr(&method.obj)?;
+                let args = self.eval_args(&method.args)?;
+                self.method(&obj, &method.name, &args, method.loc)
+                    .wrap_err_with(|| {
+                        format!("in `.{}()` at {}", method.name, self.here(method.loc))
+                    })
+            }
+            Expr::Index(index) => {
+                let obj = self.expr(&index.obj)?;
+                let idx = self.expr(&index.index)?;
+                self.index(&obj, &idx)
+            }
+            Expr::UnOp(UnOp { kind, val }) => {
+                let v = self.expr(val)?;
+                match kind {
+                    UnOpKind::Not => {
+                        let t = self.truth(&v)?;
+                        let n = self.logic.not(t);
+                        Ok(self.bool_value(n))
+                    }
+                    UnOpKind::Neg => self.map1(&v, |v| match v {
+                        Value::Int(i) => Ok(Value::Int(-i)),
+                        other => bail!("cannot negate a {}", other.type_name()),
+                    }),
+                }
+            }
+            Expr::BinOp(op) => self.binop(op),
+            Expr::Ternary(Ternary {
+                condition,
+                trueblock,
+                falseblock,
+            }) => {
+                let c = self.expr(condition)?;
+                let c = self.truth(&c)?;
+                let nc = self.logic.not(c);
+                let then_pc = self.logic.and(self.pc, c);
+                let else_pc = self.logic.and(self.pc, nc);
+
+                let mut out = Variational::empty();
+                if !then_pc.is_false() {
+                    let v = self.with_pc(then_pc, |this| this.expr(trueblock))?;
+                    out.extend(v.restrict(&mut self.logic, then_pc));
+                }
+                if !else_pc.is_false() {
+                    let v = self.with_pc(else_pc, |this| this.expr(falseblock))?;
+                    out.extend(v.restrict(&mut self.logic, else_pc));
+                }
+                out.normalize(&mut self.logic);
+                Ok(out)
+            }
+        }
+    }
+
+    /// A value that holds everywhere the current path does.
+    pub(crate) fn pure(&self, value: Value) -> Variational<Value> {
+        Variant::new(self.pc, value).into()
+    }
+
+    /// Turn a condition into a boolean value.
+    pub(crate) fn bool_value(&mut self, cond: Pc) -> Variational<Value> {
+        let pc = self.pc;
+        let yes = self.logic.and(pc, cond);
+        let no = {
+            let n = self.logic.not(cond);
+            self.logic.and(pc, n)
+        };
+        let mut out = Variational::empty();
+        out.push(Variant::new(yes, Value::Bool(true)));
+        out.push(Variant::new(no, Value::Bool(false)));
+        out
+    }
+
+    /// The configurations in which a value is true.
+    pub(crate) fn truth(&mut self, value: &Variational<Value>) -> eyre::Result<Pc> {
+        let mut out = Pc::FALSE;
+        for variant in value.variants() {
+            match &variant.value {
+                Value::Bool(true) => out = self.logic.or(out, variant.cond),
+                Value::Bool(false) => {}
+                Value::Unset => bail!("a condition read a value that was never set"),
+                other => bail!("expected a bool in a condition, found a {}", other.type_name()),
+            }
         }
         Ok(out)
     }
 
-    fn with_pc<R>(&mut self, pc: Pc, f: impl FnOnce(&mut Self) -> R) -> R {
-        let saved_pc = mem::replace(&mut self.pc, pc);
-        let r = f(self);
-        self.pc = saved_pc;
-        r
+    /// Apply a total function to every variant.
+    pub(crate) fn map1(
+        &mut self,
+        v: &Variational<Value>,
+        mut f: impl FnMut(&Value) -> eyre::Result<Value>,
+    ) -> eyre::Result<Variational<Value>> {
+        let mut out = Variational::empty();
+        for variant in v.variants() {
+            out.push(Variant::new(variant.cond, f(&variant.value)?));
+        }
+        out.normalize(&mut self.logic);
+        Ok(out)
     }
 
-    fn call_project(&mut self, args: &ArgSet) -> eyre::Result<Variational<Value>> {
-        if self.project.is_some() {
-            bail!("project() called twice");
-        }
+    fn here(&self, loc: Loc) -> String {
+        format!("{}/meson.build:{loc}", self.cur_dir().display())
+    }
 
-        if args.pos.is_empty() {
-            bail!("project() requires a name");
-        }
+    // -- configuration variables -----------------------------------------
 
-        let Some(name) = self.as_str(&args.pos[0]) else {
-            bail!("expected name");
+    /// The variable standing for a build option, creating it on first use.
+    ///
+    /// Returns `None` when the option has no finite domain (a free-form string,
+    /// say) and so cannot be branched over.
+    pub(crate) fn option_var(&mut self, name: &str) -> eyre::Result<Option<VarId>> {
+        if let Some(id) = self.option_vars.get(name) {
+            return Ok(Some(*id));
+        }
+        let Some(decl) = self.option_decl(name) else {
+            return Ok(None);
+        };
+        let Some((choices, default)) = decl.kind.domain() else {
+            return Ok(None);
+        };
+        // `project(default_options: ...)` moves the default, which matters
+        // because the backend reports it as the out-of-the-box configuration.
+        let default = self
+            .default_options
+            .get(name)
+            .and_then(|v| choices.iter().position(|c| &**c == &**v))
+            .unwrap_or(default);
+
+        // An option the project declares is its own; anything else came from
+        // meson, and means the same thing in every project.
+        let kind = if self.options.contains_key(name) {
+            VarKind::Option
+        } else {
+            VarKind::BuiltinOption
         };
 
-        let mut langs = Vec::new();
-        for v in &args.pos[1..] {
-            self.collect_strs(self.pc, v, &mut langs);
-        }
-
-        bail!("unimplemented project {name} {langs:?} {args:?}")
+        let id = self.logic.declare(Var {
+            key: format!("option:{name}"),
+            description: decl.description.clone(),
+            kind,
+            choices,
+            default,
+        });
+        self.option_vars.insert(name.to_owned(), id);
+        Ok(Some(id))
     }
 
-    fn as_str(&mut self, v: &Value) -> Option<Rc<str>> {
-        match v {
-            Value::Str(s) => Some(s.clone()),
-            _ => None,
+    /// The declaration of `name`, whether it came from the project's option
+    /// file or is one of meson's own.
+    pub(crate) fn option_decl(&self, name: &str) -> Option<ProjectOption> {
+        if let Some(decl) = self.options.get(name) {
+            return Some(decl.clone());
+        }
+        builtins::builtin_option(name)
+    }
+
+    /// A yes/no variable for something the importer cannot answer: whether a
+    /// header exists, whether a library is installed, and so on.
+    pub(crate) fn probe_var(&mut self, key: &str, description: String) -> VarId {
+        if let Some(id) = self.probe_vars.get(key) {
+            return *id;
+        }
+
+        let external = ["dep:", "lib:", "prog:"]
+            .iter()
+            .any(|prefix| key.starts_with(prefix));
+
+        // Something the build has to find outside itself defaults to absent:
+        // there is no configure step to look for it, and a generated build that
+        // links a library nobody supplied fails outright, while one that leaves
+        // it out usually still works.
+        //
+        // A compiler capability, by contrast, defaults to present, because that
+        // is what a working toolchain normally reports.
+        let (kind, default) = if external {
+            (VarKind::Dependency, 1)
+        } else {
+            (VarKind::Probe, 0)
+        };
+
+        let id = self.logic.declare(Var {
+            key: key.to_owned(),
+            description: Some(description),
+            kind,
+            choices: vec!["true".to_owned(), "false".to_owned()],
+            default,
+        });
+        self.probe_vars.insert(key.to_owned(), id);
+        id
+    }
+
+    /// The condition for a probe having succeeded.
+    pub(crate) fn probe(&mut self, key: &str, description: String) -> Pc {
+        let id = self.probe_var(key, description);
+        self.logic.lit(id, 0)
+    }
+
+    // -- graph construction ----------------------------------------------
+
+    /// The target standing for something the build does not produce itself.
+    pub(crate) fn external(&mut self, key: &str, label: &str, kind: External) -> TargetId {
+        if let Some(id) = self.externals.get(key) {
+            return *id;
+        }
+        let dir = self.cur_dir().to_path_buf();
+        let id = self
+            .graph
+            .add(label, &dir, Pc::TRUE, Kind::External(kind));
+        self.externals.insert(key.to_owned(), id);
+        id
+    }
+
+    pub(crate) fn dep_obj(&mut self, dep: Dep) -> Value {
+        Value::Obj(Obj::Dep(Rc::new(dep)))
+    }
+
+    pub(crate) fn program_obj(&mut self, program: Program) -> Value {
+        Value::Obj(Obj::Program(Rc::new(program)))
+    }
+
+    pub(crate) fn config_data(&mut self) -> Value {
+        Value::Obj(Obj::ConfigData(Rc::new(RefCell::new(ConfigData::default()))))
+    }
+
+    // -- coercions --------------------------------------------------------
+
+    /// Flatten nested lists into conditional elements, the way meson flattens
+    /// list arguments.
+    pub(crate) fn flatten(&mut self, v: &Variational<Value>, pc: Pc, out: &mut Vec<Variant<Value>>) {
+        for variant in v.variants() {
+            let cond = self.logic.and(pc, variant.cond);
+            if cond.is_false() {
+                continue;
+            }
+            match &variant.value {
+                Value::List(items) => {
+                    let inner: Variational<Value> = items.iter().cloned().collect();
+                    self.flatten(&inner, cond, out);
+                }
+                Value::Unset => {}
+                other => out.push(Variant::new(cond, other.clone())),
+            }
         }
     }
 
-    fn collect_strs(&mut self, pc: Pc, v: &Value, out: &mut Vec<Variant<Rc<str>>>) {
-        match v {
-            Value::Str(s) => out.push(Variant::new(pc, s.clone())),
-            Value::List(items) => {
-                for it in items.iter() {
-                    let p = self.logic.and(pc, it.cond);
-                    if p.is_false() {
-                        continue;
+    /// Expand only the outermost list layer.
+    ///
+    /// This is what `+` does: meson concatenates lists without flattening
+    /// them, so a list of lists stays a list of lists. Only *arguments* get
+    /// flattened all the way down, which is what [`Self::flat`] is for.
+    pub(crate) fn elements(&mut self, v: &Variational<Value>) -> Vec<Variant<Value>> {
+        let pc = self.pc;
+        self.elements_under(v, pc)
+    }
+
+    /// [`Self::elements`], but under an explicit condition.
+    pub(crate) fn elements_under(
+        &mut self,
+        v: &Variational<Value>,
+        pc: Pc,
+    ) -> Vec<Variant<Value>> {
+        let mut out = Vec::new();
+        for variant in v.variants() {
+            let cond = self.logic.and(pc, variant.cond);
+            if cond.is_false() {
+                continue;
+            }
+            match &variant.value {
+                Value::List(items) => {
+                    for item in items.iter() {
+                        let c = self.logic.and(cond, item.cond);
+                        if c.is_false() {
+                            continue;
+                        }
+                        out.push(Variant::new(c, item.value.clone()));
                     }
-                    self.collect_strs(p, &it.value, out);
                 }
+                Value::Unset => {}
+                other => out.push(Variant::new(cond, other.clone())),
             }
-            _ => todo!(),
         }
+        out
     }
 
-    /*
-    fn atom(&self, atom: &Atom) -> eyre::Result<Val> {
-        Ok(match atom {
-            //Atom::Var(v) => {
-            //    if let Some(v) = self.env.get(v.as_str()) {
-            //        return Ok(v.clone());
-            //    }
-
-            //    if let Some(obj) = self.builtin_objects.get(v.as_str()) {
-            //        return Ok(Val::Pure(Const::Obj(obj.clone())));
-            //    }
-
-            //    bail!("unknown variable {v}")
-            //}
-            Atom::String(v) => Val::from_string(self.pc, v.clone()),
-            //Atom::Int(v) => Val::Pure(Const::Int(*v)),
-            //Atom::Bool(v) => Val::Pure(Const::Bool(*v)),
-            _ => bail!("unimplemented {atom:?}"),
-        })
+    pub(crate) fn flat(&mut self, v: &Variational<Value>) -> Vec<Variant<Value>> {
+        let pc = self.pc;
+        let mut out = Vec::new();
+        self.flatten(v, pc, &mut out);
+        out
     }
 
-    fn rvalue(&mut self, rvalue: &RValue) -> eyre::Result<Val> {
-        Ok(match rvalue {
-            //RValue::Pure(v) => self.atom(v)?,
-            RValue::Array(v) => {
-                bail!("unimplemented {v:?}")
-                //let elements = v
-                //    .iter()
-                //    .map(|v| self.atom(v))
-                //    .collect::<eyre::Result<_>>()?;
-                //array_lit(self.guard_ctx, self.pc, elements)
-            }
-            //RValue::Call(Call { name, args }) => {
-            //    let (pos, kw) = self.args(args)?;
-            //    self.call(name, pos, kw)?
-            //}
-            //RValue::Method(Method { obj, name, args }) => {
-            //    let obj = self.atom(&obj)?;
-            //    let (pos, kw) = self.args(args)?;
-            //    self.method(obj, name, pos, kw)?
-            //}
-            //RValue::Index(Index { obj, index }) => {
-            //    let obj = self.atom(&obj)?;
-            //    let index = self.atom(&index)?;
-            //    index_const(
-            //        obj.expect_pure().wrap_err("add support for symbolic obj")?,
-            //        index
-            //            .expect_pure()
-            //            .wrap_err("add support for symbolic index")?,
-            //    )
-            //    .map(Val::Pure)?
-            //}
-            /*
-            RValue::Index(v) => Const::Unset,
-            RValue::BinOp(v) => Const::Unset,
-            */
-            _ => bail!("unimplemented {rvalue:?}"),
-        })
-    }
-    */
-
-    /*
-
-
-    fn call(
-        &mut self,
-        name: &str,
-        pos: Vec<Val<G::Id>>,
-        kw: Vec<(String, Val<G::Id>)>,
-    ) -> eyre::Result<Val<G::Id>> {
-        match name {
-            "project" => {
-                let name = pos
-                    .get(0)
-                    .ok_or_eyre("expected project name")?
-                    .expect_pure()?
-                    .expect_string()?;
-                let version = kw
-                    .iter()
-                    .find(|(k, _)| k == "version")
-                    .map(|(_, v)| v.expect_pure()?.expect_string())
-                    .transpose()?;
-                self.call_project(name, version)
-            }
-            "get_option" => {
-                let name = pos
-                    .first()
-                    .ok_or_eyre("expected dependency name")?
-                    .expect_pure()?
-                    .expect_string()?;
-
-                let v = self.oracle.get_option(&name);
-                if matches!(v, Const::Unset) {
-                    bail!("option {name} returned unset");
-                }
-
-                Ok(Val::Pure(v))
-            }
-            "join_paths" => {
-                let segments = pos
-                    .iter()
-                    .map(|v| v.expect_pure()?.expect_string())
-                    .collect::<eyre::Result<Vec<_>>>()?;
-                Ok(Val::Pure(Const::String(segments.join("/"))))
-            }
-            "configuration_data" => Ok(Val::Pure(Const::Unset)),
-            _ => bail!("unimplemented call {name} {pos:?} {kw:?}"),
-        }
-    }
-
-    fn method(
-        &mut self,
-        obj: Val<G::Id>,
-        name: &str,
-        pos: Vec<Val<G::Id>>,
-        kw: Vec<(String, Val<G::Id>)>,
-    ) -> eyre::Result<Val<G::Id>> {
-        let obj = obj
-            .expect_pure()
-            .wrap_err("if you get this error probably revisit this code as it might be wrong")?;
-
-        match (obj, name) {
-            (Const::Obj(Obj::Meson), "project_name") => {
-                let project = self
-                    .project
-                    .as_ref()
-                    .ok_or_eyre("project() has not been called")?;
-                Ok(Val::Pure(Const::String(project.name.clone())))
-            }
-            (Const::Obj(Obj::Meson), "project_version") => {
-                let project = self
-                    .project
-                    .as_ref()
-                    .ok_or_eyre("project() has not been called")?;
-                let version = project
-                    .version
-                    .as_ref()
-                    .ok_or_eyre("version not specified in project() call")?;
-                Ok(Val::Pure(Const::String(version.clone())))
-            }
-            (Const::Obj(Obj::Meson), "get_compiler") => {
-                let compiler = pos
-                    .first()
-                    .ok_or_eyre("expected compiler")?
-                    .expect_pure()?
-                    .expect_string()?;
-
-                let lang = Lang::from_str(&compiler)?;
-                Ok(Val::Pure(Const::Obj(Obj::Compiler(lang))))
-            }
-            (Const::Obj(Obj::Machine(machine)), "system") => {
-                Ok(Val::Pure(self.oracle.machine_system(*machine)))
-            }
-            (Const::String(v), "split") => {
-                let pat = pos
-                    .first()
-                    .ok_or_eyre("expected pattern")?
-                    .expect_pure()?
-                    .expect_string()?;
-                Ok(array_lit(
-                    self.guard_ctx,
-                    self.pc,
-                    v.split(pat.as_str())
-                        .map(|v| Const::String(v.into()))
-                        .map(Val::Pure)
-                        .collect(),
-                ))
-            }
-            (Const::String(v), "to_int") => Ok(Val::Pure(Const::Int(i64::from_str_radix(v, 10)?))),
-            (obj, name) => bail!("unimplemented method {obj:?}.{name:?} {pos:?} {kw:?}"),
-        }
-    }
-
-    fn args(&mut self, args: &Args) -> eyre::Result<(Vec<Val<G::Id>>, Vec<(String, Val<G::Id>)>)> {
-        let pos = args
-            .pos
-            .iter()
-            .map(|v| self.atom(v))
-            .collect::<eyre::Result<_>>()?;
-
-        let kw = args
-            .kw
-            .iter()
-            .map(|(k, v)| Ok((k.clone(), self.atom(v)?)))
-            .collect::<eyre::Result<_>>()?;
-
-        Ok((pos, kw))
-    }
-
-    fn call_project(&mut self, name: String, version: Option<String>) -> eyre::Result<Val<G::Id>> {
-        self.project = Some(Project { name, version });
-        Ok(Val::Pure(Const::Unset))
-    }
-    */
-}
-
-/*
-fn index_const(base: &Const, index: &Const) -> eyre::Result<Const> {
-    match (base, index) {
-        (Const::Array(v), Const::Int(i)) => {
-            let n = v.len() as i64;
-            let j = if *i < 0 { n + *i } else { *i };
-            v.get(j as usize)
+    /// A list argument read as strings.
+    pub(crate) fn strings(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<Rc<str>>> {
+        let mut out = Variational::empty();
+        for variant in self.flat(v) {
+            let s = variant
+                .value
+                .as_str()
                 .cloned()
-                .ok_or_eyre("index {i} out of range (len {n})")
+                .ok_or_else(|| eyre::eyre!("expected a string, found a {}", variant.value.type_name()))?;
+            out.push(Variant::new(variant.cond, s));
         }
-        (base, index) => bail!("unimplemented index on {base:?} {index:?}"),
+        Ok(out)
+    }
+
+    /// An argument that must not vary and must be a single string, e.g. a
+    /// target's name.
+    pub(crate) fn one_string(&mut self, v: &Variational<Value>) -> eyre::Result<Rc<str>> {
+        let flat = self.flat(v);
+        match flat.as_slice() {
+            [only] => only
+                .value
+                .as_str()
+                .cloned()
+                .ok_or_else(|| eyre::eyre!("expected a string, found a {}", only.value.type_name())),
+            [] => bail!("expected a string, found nothing"),
+            _ => bail!(
+                "expected a single string, but the value differs between configurations \
+                 ({} variants)",
+                flat.len()
+            ),
+        }
+    }
+
+    /// An argument that must be a single integer.
+    pub(crate) fn one_int(&mut self, v: &Variational<Value>) -> eyre::Result<i64> {
+        let flat = self.flat(v);
+        match flat.as_slice() {
+            [only] => only
+                .value
+                .as_int()
+                .ok_or_else(|| eyre::eyre!("expected an integer, found a {}", only.value.type_name())),
+            [] => bail!("expected an integer, found nothing"),
+            _ => bail!("expected a single integer, but the value differs between configurations"),
+        }
+    }
+
+    pub(crate) fn opt_string(
+        &mut self,
+        args: &CallArgs,
+        name: &str,
+    ) -> eyre::Result<Option<Rc<str>>> {
+        match args.get(name) {
+            Some(v) => self.one_string(v).map(Some),
+            None => Ok(None),
+        }
+    }
+
+    /// Read a list argument as build inputs.
+    pub(crate) fn sources(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<Source>> {
+        let mut out = Variational::empty();
+        for variant in self.flat(v) {
+            let src = match &variant.value {
+                // A bare string in a source list is relative to the directory
+                // that mentioned it.
+                Value::Str(s) => Source::File(PathBuf::from(self.resolve(s))),
+                Value::Obj(Obj::File(path)) => Source::File(PathBuf::from(&**path)),
+                Value::Obj(Obj::Target(id)) | Value::Obj(Obj::Output(id, _)) => {
+                    Source::Generated(*id)
+                }
+                other => bail!("cannot use a {} as a source", other.type_name()),
+            };
+            out.push(Variant::new(variant.cond, src));
+        }
+        Ok(out)
+    }
+
+    /// Read a `dependencies:`-style argument as graph edges.
+    pub(crate) fn deps(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<TargetId>> {
+        let mut out = Variational::empty();
+        for variant in self.flat(v) {
+            match &variant.value {
+                Value::Obj(Obj::Dep(dep)) => {
+                    // A dependency that was not found contributes nothing, so
+                    // fold its `found` condition into the edge.
+                    let cond = self.logic.and(variant.cond, dep.found);
+                    out.push(Variant::new(cond, dep.target));
+                }
+                Value::Obj(Obj::Target(id)) => out.push(Variant::new(variant.cond, *id)),
+                Value::Obj(Obj::Program(p)) => {
+                    let cond = self.logic.and(variant.cond, p.found);
+                    out.push(Variant::new(cond, p.target));
+                }
+                Value::Unset => {}
+                other => bail!("cannot use a {} as a dependency", other.type_name()),
+            }
+        }
+        Ok(out)
+    }
+
+    /// Read an `include_directories:` argument.
+    pub(crate) fn include_dirs(
+        &mut self,
+        v: &Variational<Value>,
+    ) -> eyre::Result<Variational<PathBuf>> {
+        let mut out = Variational::empty();
+        for variant in self.flat(v) {
+            match &variant.value {
+                Value::Obj(Obj::IncludeDirs(dirs)) => {
+                    for dir in dirs.iter() {
+                        out.push(Variant::new(variant.cond, PathBuf::from(dir)));
+                    }
+                }
+                Value::Str(s) => {
+                    out.push(Variant::new(variant.cond, PathBuf::from(self.resolve(s))))
+                }
+                other => bail!("cannot use a {} as an include directory", other.type_name()),
+            }
+        }
+        Ok(out)
+    }
+
+    /// Give up on the configurations currently being executed: they hit an
+    /// `error()` and do not configure.
+    pub(crate) fn abort(&mut self) {
+        self.flow = Flow::Abort;
+    }
+
+    pub(crate) fn warn_unsupported(&self, what: &str, loc: Loc) {
+        warn!(at = %self.here(loc), "{what} is not modelled; ignoring");
     }
 }
-*/
 
-#[derive(Debug, Clone)]
-struct ArgSet {
-    pub pos: Vec<Value>,
-    pub kw: Vec<(Rc<str>, Value)>,
+/// Collapse `.`/`..` without touching the filesystem: the paths are project
+/// relative and may not exist on this machine.
+pub(crate) fn normalize_path(path: &Path) -> String {
+    let mut out: Vec<&std::ffi::OsStr> = Vec::new();
+    for comp in path.components() {
+        use std::path::Component::*;
+        match comp {
+            CurDir => {}
+            ParentDir => {
+                out.pop();
+            }
+            Normal(c) => out.push(c),
+            RootDir | Prefix(_) => {}
+        }
+    }
+    out.iter()
+        .map(|c| c.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
 }

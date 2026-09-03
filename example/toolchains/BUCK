@@ -1,5 +1,16 @@
-load("@prelude//toolchains:demo.bzl", "system_demo_toolchains")
+load("@prelude//toolchains:cxx.bzl", "system_cxx_toolchain")
+load("@prelude//toolchains:genrule.bzl", "system_genrule_toolchain")
+load("@prelude//toolchains:python.bzl", "system_python_bootstrap_toolchain")
 
-# All the default toolchains, suitable for a quick demo or early prototyping.
-# Most real projects should copy/paste the implementation to configure them.
-system_demo_toolchains()
+# gcc rather than the prelude's default clang, which is not installed here.
+system_cxx_toolchain(
+    name = "cxx",
+    compiler = "gcc",
+    compiler_type = "gcc",
+    cxx_compiler = "g++",
+    linker = "g++",
+    visibility = ["PUBLIC"],
+)
+
+system_genrule_toolchain(name = "genrule", visibility = ["PUBLIC"])
+system_python_bootstrap_toolchain(name = "python_bootstrap", visibility = ["PUBLIC"])

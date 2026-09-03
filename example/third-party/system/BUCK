@@ -1,0 +1,22 @@
+# Hand-written targets for libraries that come from the operating system.
+#
+# `decay.toml` maps meson's `dependency('x11')` and friends onto these, so the
+# generated build files reference a real target instead of an empty stub.
+
+cxx_library(
+    name = "X11",
+    exported_linker_flags = ["-lX11"],
+    visibility = ["PUBLIC"],
+)
+
+cxx_library(
+    name = "GL",
+    exported_linker_flags = ["-lGL"],
+    visibility = ["PUBLIC"],
+)
+
+cxx_library(
+    name = "EGL",
+    exported_linker_flags = ["-lEGL"],
+    visibility = ["PUBLIC"],
+)

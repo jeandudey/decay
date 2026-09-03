@@ -1,0 +1,902 @@
+use {
+    crate::{
+        Interp,
+        args::CallArgs,
+        obj::{
+            Dep,
+            Entry,
+            Lang,
+            Machine,
+            Module,
+            Obj, //
+        },
+        val::Value,
+    },
+    decay_build_ir::External,
+    decay_meson_ast::Loc,
+    decay_meson_logic::{
+        Pc,
+        Solver,
+        Var,
+        VarKind,
+        Variant,
+        Variational, //
+    },
+    eyre::{
+        OptionExt,
+        bail, //
+    },
+    std::{
+        rc::Rc,
+        str::FromStr, //
+    },
+    tracing::debug,
+};
+
+impl<'a, S: Solver> Interp<'a, S> {
+    pub(crate) fn method(
+        &mut self,
+        obj: &Variational<Value>,
+        name: &str,
+        args: &CallArgs,
+        loc: Loc,
+    ) -> eyre::Result<Variational<Value>> {
+        // The receiver may itself differ between configurations, so dispatch
+        // happens per variant and the results are unioned back together.
+        let mut out = Variational::empty();
+        for variant in obj.variants().to_vec() {
+            let cond = self.logic.and(self.pc, variant.cond);
+            if cond.is_false() {
+                continue;
+            }
+            let result = self.with_pc(cond, |this| this.method1(&variant.value, name, args, loc))?;
+            out.extend(result.restrict(&mut self.logic, cond));
+        }
+        out.normalize(&mut self.logic);
+        Ok(out)
+    }
+
+    fn method1(
+        &mut self,
+        obj: &Value,
+        name: &str,
+        args: &CallArgs,
+        loc: Loc,
+    ) -> eyre::Result<Variational<Value>> {
+        match obj {
+            Value::Obj(o) => self.obj_method(o, name, args, loc),
+            Value::Str(s) => self.str_method(s, name, args),
+            Value::Int(i) => self.int_method(*i, name, args),
+            Value::Bool(b) => self.bool_method(*b, name, args),
+            Value::List(_) => self.list_method(obj, name, args),
+            Value::Dict(_) => self.dict_method(obj, name, args),
+            other => bail!("a {} has no method `{name}`", other.type_name()),
+        }
+    }
+
+    // -- objects ----------------------------------------------------------
+
+    fn obj_method(
+        &mut self,
+        obj: &Obj,
+        name: &str,
+        args: &CallArgs,
+        loc: Loc,
+    ) -> eyre::Result<Variational<Value>> {
+        match (obj, name) {
+            // -- meson --
+            (Obj::Meson, "project_name") => {
+                let v = self.graph.project.name.clone();
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Meson, "project_version") => {
+                let v = self
+                    .graph
+                    .project
+                    .version
+                    .clone()
+                    .ok_or_eyre("project() declared no version")?;
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Meson, "project_license") => {
+                let pc = self.pc;
+                let items = self
+                    .graph
+                    .project
+                    .license
+                    .clone()
+                    .into_iter()
+                    .map(|l| Variant::new(pc, Value::from(l)))
+                    .collect();
+                Ok(self.pure(Value::list(items)))
+            }
+            (Obj::Meson, "version") => Ok(self.pure(Value::str("1.10.0"))),
+            (Obj::Meson, "backend") => Ok(self.pure(Value::str("ninja"))),
+            (Obj::Meson, "is_subproject") => Ok(self.bool_value(Pc::FALSE)),
+            (Obj::Meson, "is_cross_build") => Ok(self.bool_value(Pc::FALSE)),
+            (Obj::Meson, "can_run_host_binaries") => Ok(self.bool_value(self.pc)),
+            (Obj::Meson, "get_compiler") => {
+                let lang = self.one_string(args.at(0).ok_or_eyre("expected a language")?)?;
+                let lang = Lang::from_str(&lang)?;
+                Ok(self.pure(Value::Obj(Obj::Compiler(lang))))
+            }
+            // Source and build roots have no meaning outside a configured
+            // build tree; the placeholders keep string building working.
+            (
+                Obj::Meson,
+                "source_root" | "project_source_root" | "global_source_root" | "current_source_dir",
+            ) => {
+                let dir = self.cur_dir().display().to_string();
+                let v = if name == "current_source_dir" && !dir.is_empty() {
+                    dir
+                } else {
+                    ".".to_owned()
+                };
+                Ok(self.pure(Value::from(v)))
+            }
+            (
+                Obj::Meson,
+                "build_root" | "project_build_root" | "global_build_root" | "current_build_dir",
+            ) => Ok(self.pure(Value::str("."))),
+            (
+                Obj::Meson,
+                "add_install_script"
+                | "add_dist_script"
+                | "add_postconf_script"
+                | "install_dependency_manifest"
+                | "override_find_program"
+                | "override_dependency",
+            ) => {
+                self.warn_unsupported(&format!("`meson.{name}()`"), loc);
+                Ok(self.pure(Value::Unset))
+            }
+
+            // -- machines --
+            (Obj::Machine(machine), _) => self.machine_property(*machine, name),
+
+            // -- compilers --
+            (Obj::Compiler(lang), _) => self.compiler_method(*lang, name, args),
+
+            // -- configuration data --
+            (Obj::ConfigData(data), _) => {
+                let data = data.clone();
+                self.config_method(&data, name, args)
+            }
+
+            // -- dependencies --
+            (Obj::Dep(dep), "found") => Ok(self.bool_value(dep.found)),
+            (Obj::Dep(dep), "type_name") => Ok(self.pure(Value::str(dep.type_name))),
+            (Obj::Dep(dep), "name") => {
+                let v = dep.name.clone();
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Dep(dep), "version") => {
+                let v = dep.version.clone().unwrap_or_else(|| "unknown".to_owned());
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Dep(dep), "partial_dependency" | "as_system" | "as_link_whole") => {
+                // A partial dependency drops some usage requirements. Nothing
+                // downstream reads them separately yet, so the whole dependency
+                // is handed back rather than silently losing the edge.
+                Ok(self.pure(Value::Obj(Obj::Dep(dep.clone()))))
+            }
+            (Obj::Dep(dep), "get_variable" | "get_pkgconfig_variable") => {
+                let key = self.opt_string(args, "pkgconfig")?;
+                let key = match key {
+                    Some(k) => Some(k),
+                    None => match args.at(0) {
+                        Some(v) => Some(self.one_string(v)?),
+                        None => None,
+                    },
+                };
+                let found = key
+                    .and_then(|k| {
+                        dep.variables
+                            .iter()
+                            .find(|(name, _)| name.as_str() == &*k)
+                            .map(|(_, v)| v.clone())
+                    })
+                    .or_else(|| self.default_string(args));
+                match found {
+                    Some(v) => Ok(self.pure(Value::from(v))),
+                    None => bail!("`{}` has no such variable", dep.name),
+                }
+            }
+
+            // -- programs --
+            (Obj::Program(program), "found") => Ok(self.bool_value(program.found)),
+            (Obj::Program(program), "path" | "full_path") => {
+                let v = program
+                    .path
+                    .clone()
+                    .unwrap_or_else(|| program.name.clone());
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Program(program), "version") => {
+                let _ = program;
+                Ok(self.pure(Value::str("unknown")))
+            }
+
+            // -- build targets --
+            (Obj::Target(id), "full_path" | "path") => {
+                let v = self.graph.target(*id).name.clone();
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Target(id), "name") => {
+                let v = self.graph.target(*id).label.clone();
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Target(id), "extract_all_objects" | "extract_objects") => {
+                Ok(self.pure(Value::Obj(Obj::Target(*id))))
+            }
+            (Obj::Target(_), "private_dir_include") => {
+                Ok(self.pure(Value::Obj(Obj::IncludeDirs(Rc::new(Vec::new())))))
+            }
+
+            // -- modules --
+            (Obj::Module(Module::PkgConfig), "generate") => {
+                // A `.pc` file describes an installed library to other build
+                // systems; it has no counterpart in the generated graph.
+                debug!("pkgconfig.generate() has no build-graph equivalent; skipping");
+                Ok(self.pure(Value::Unset))
+            }
+            (Obj::Module(Module::Fs), "exists" | "is_file" | "is_dir") => {
+                let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
+                let resolved = self.resolve(&path);
+                let exists = self.sources.exists(&self.root.join(&resolved));
+                Ok(self.bool_value(if exists { self.pc } else { Pc::FALSE }))
+            }
+            (Obj::Module(m), _) => bail!("module `{m:?}` has no method `{name}`"),
+
+            // -- features --
+            (Obj::Feature(f), "enabled") => {
+                Ok(self.bool_value(if &**f == "enabled" { self.pc } else { Pc::FALSE }))
+            }
+            (Obj::Feature(f), "disabled") => {
+                Ok(self.bool_value(if &**f == "disabled" { self.pc } else { Pc::FALSE }))
+            }
+            (Obj::Feature(f), "auto") => {
+                Ok(self.bool_value(if &**f == "auto" { self.pc } else { Pc::FALSE }))
+            }
+            (Obj::Feature(f), "allowed") => {
+                Ok(self.bool_value(if &**f == "disabled" { Pc::FALSE } else { self.pc }))
+            }
+            (Obj::Feature(f), "require" | "disable_auto_if" | "enable_auto_if") => {
+                Ok(self.pure(Value::Obj(Obj::Feature(f.clone()))))
+            }
+
+            (Obj::File(path), "full_path") => {
+                let v = path.to_string();
+                Ok(self.pure(Value::from(v)))
+            }
+
+            (obj, name) => bail!("a {} has no method `{name}`", obj.type_name()),
+        }
+    }
+
+    fn default_string(&mut self, args: &CallArgs) -> Option<String> {
+        args.get("default_value")
+            .and_then(|v| self.one_string(v).ok())
+            .map(|v| v.to_string())
+    }
+
+    // -- machine properties -----------------------------------------------
+
+    fn machine_property(
+        &mut self,
+        machine: Machine,
+        property: &str,
+    ) -> eyre::Result<Variational<Value>> {
+        if let Some(pinned) = self.oracle.machine(machine, property) {
+            return Ok(self.pure(Value::from(pinned)));
+        }
+
+        let choices = match property {
+            "system" => self.oracle.systems(),
+            "endian" => ["little", "big"].map(str::to_owned).to_vec(),
+            "cpu_family" => [
+                "x86", "x86_64", "arm", "aarch64", "riscv32", "riscv64", "ppc64", "s390x",
+                "mips64", "loongarch64", "wasm32",
+            ]
+            .map(str::to_owned)
+            .to_vec(),
+            "cpu" => bail!(
+                "`{}_machine.cpu()` names an exact CPU, which cannot be left open; \
+                 pin it in the importer configuration",
+                machine.as_str()
+            ),
+            other => bail!("unknown machine property `{other}()`"),
+        };
+
+        if choices.is_empty() {
+            bail!(
+                "`{}_machine.{property}()` was left open but no candidates were configured",
+                machine.as_str()
+            );
+        }
+        if choices.len() == 1 {
+            return Ok(self.pure(Value::from(choices[0].clone())));
+        }
+
+        let id = self.logic.declare(Var {
+            key: format!("machine:{}:{property}", machine.as_str()),
+            description: Some(format!("{} machine {property}", machine.as_str())),
+            kind: VarKind::Machine,
+            choices: choices.clone(),
+            default: 0,
+        });
+
+        let mut out = Variational::empty();
+        for (i, choice) in choices.iter().enumerate() {
+            let lit = self.logic.lit(id, i as u32);
+            let cond = self.logic.and(self.pc, lit);
+            if cond.is_false() {
+                continue;
+            }
+            out.push(Variant::new(cond, Value::from(choice.clone())));
+        }
+        out.normalize(&mut self.logic);
+        Ok(out)
+    }
+
+    // -- compilers --------------------------------------------------------
+
+    fn compiler_method(
+        &mut self,
+        lang: Lang,
+        name: &str,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        match name {
+            "get_id" | "get_linker_id" => self.compiler_id(lang),
+            "get_argument_syntax" => self.compiler_id(lang),
+            "version" => Ok(self.pure(Value::str("0"))),
+            "cmd_array" => {
+                let pc = self.pc;
+                Ok(self.pure(Value::list(vec![Variant::new(
+                    pc,
+                    Value::str(lang.as_str()),
+                )])))
+            }
+
+            // Probes: the importer cannot compile anything, so each answer
+            // becomes a configuration knob the build can be told about.
+            "has_header" | "check_header" | "has_function" | "has_type" | "has_member"
+            | "has_header_symbol" | "compiles" | "links" | "run" | "symbols_have_underscore_prefix" => {
+                let what = match args.at(0) {
+                    Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
+                    None => Rc::from("expr"),
+                };
+                let key = format!("probe:{}:{name}:{what}", lang.as_str());
+                let cond = self.probe(&key, format!("`{what}` is available to the {} compiler", lang.as_str()));
+                Ok(self.bool_value(cond))
+            }
+            "sizeof" | "alignment" => bail!(
+                "`{name}()` yields a number that depends on the target, which cannot be \
+                 left open; pin it in the importer configuration"
+            ),
+            "get_define" => Ok(self.pure(Value::str(""))),
+
+            "find_library" => {
+                let libname = self.one_string(args.at(0).ok_or_eyre("expected a library name")?)?;
+                let required = self.flag(args, "required", self.pc)?;
+                let key = format!("lib:{libname}");
+                let target = self.external(&key, &libname, External::SystemLibrary {
+                    name: libname.to_string(),
+                });
+                let found = self.dependency_found(&key, &libname, required);
+                let value = self.dep_obj(Dep {
+                    name: libname.to_string(),
+                    found,
+                    target,
+                    type_name: "library",
+                    version: None,
+                    variables: Vec::new(),
+                });
+                Ok(self.pure(value))
+            }
+
+            // Whether a warning flag is accepted is a toolchain detail the
+            // generated build's own toolchain already decides, so the flags are
+            // passed through rather than turned into dozens of knobs.
+            "get_supported_arguments" | "get_supported_link_arguments" => {
+                let mut items = Vec::new();
+                for arg in &args.pos {
+                    for v in self.strings(arg)?.into_variants() {
+                        items.push(Variant::new(v.cond, Value::Str(v.value)));
+                    }
+                }
+                Ok(self.pure(Value::list(items)))
+            }
+            "first_supported_argument" => {
+                let mut items = Vec::new();
+                for arg in &args.pos {
+                    for v in self.strings(arg)?.into_variants() {
+                        items.push(Variant::new(v.cond, Value::Str(v.value)));
+                        break;
+                    }
+                    break;
+                }
+                Ok(self.pure(Value::list(items)))
+            }
+            "has_argument" | "has_link_argument" | "has_multi_arguments"
+            | "has_multi_link_arguments" => Ok(self.bool_value(self.pc)),
+
+            other => bail!("a compiler has no method `{other}`"),
+        }
+    }
+
+    fn compiler_id(&mut self, lang: Lang) -> eyre::Result<Variational<Value>> {
+        let choices = self.oracle.compilers();
+        if choices.is_empty() {
+            bail!("no compilers were configured");
+        }
+        if choices.len() == 1 {
+            return Ok(self.pure(Value::from(choices[0].clone())));
+        }
+
+        let id = self.logic.declare(Var {
+            key: format!("compiler:{}", lang.as_str()),
+            description: Some(format!("the {} compiler in use", lang.as_str())),
+            kind: VarKind::Machine,
+            choices: choices.clone(),
+            default: 0,
+        });
+
+        let mut out = Variational::empty();
+        for (i, choice) in choices.iter().enumerate() {
+            let lit = self.logic.lit(id, i as u32);
+            let cond = self.logic.and(self.pc, lit);
+            if cond.is_false() {
+                continue;
+            }
+            out.push(Variant::new(cond, Value::from(choice.clone())));
+        }
+        out.normalize(&mut self.logic);
+        Ok(out)
+    }
+
+    // -- configuration data -----------------------------------------------
+
+    fn config_method(
+        &mut self,
+        data: &Rc<std::cell::RefCell<crate::obj::ConfigData>>,
+        name: &str,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        match name {
+            "set" | "set10" | "set_quoted" => {
+                let key = self.one_string(args.at(0).ok_or_eyre("expected an entry name")?)?;
+                let value = args.at(1).ok_or_eyre("expected a value")?.clone();
+
+                let mut entries = Variational::empty();
+                for variant in value.variants() {
+                    let cond = self.logic.and(self.pc, variant.cond);
+                    if cond.is_false() {
+                        continue;
+                    }
+                    let entry = match (name, &variant.value) {
+                        ("set_quoted", Value::Str(s)) => Entry::Quoted(s.clone()),
+                        ("set10", Value::Bool(b)) => Entry::Ten(*b),
+                        ("set10", Value::Int(i)) => Entry::Ten(*i != 0),
+                        (_, Value::Str(s)) => Entry::Raw(s.clone()),
+                        (_, Value::Int(i)) => Entry::Int(*i),
+                        (_, Value::Bool(b)) => Entry::Flag(*b),
+                        (_, other) => {
+                            bail!("cannot put a {} in a configuration", other.type_name())
+                        }
+                    };
+                    entries.push(Variant::new(cond, entry));
+                }
+
+                // The entry keeps whatever it held in the configurations this
+                // call does not cover, exactly like a variable assignment.
+                let pc = self.pc;
+                let elsewhere = self.logic.not(pc);
+                let previous = data.borrow().get(&key).cloned().unwrap_or_default();
+                entries.extend(previous.restrict(&mut self.logic, elsewhere));
+                entries.normalize(&mut self.logic);
+
+                let key: Rc<str> = key.clone();
+                *data.borrow_mut().slot(&key) = entries;
+                Ok(self.pure(Value::Unset))
+            }
+            "has" => {
+                let key = self.one_string(args.at(0).ok_or_eyre("expected an entry name")?)?;
+                let present = data.borrow().get(&key).cloned();
+                let cond = match present {
+                    Some(v) => v.domain(&mut self.logic),
+                    None => Pc::FALSE,
+                };
+                Ok(self.bool_value(cond))
+            }
+            "get" | "get_unquoted" => {
+                let key = self.one_string(args.at(0).ok_or_eyre("expected an entry name")?)?;
+                let entries = data.borrow().get(&key).cloned();
+                let Some(entries) = entries else {
+                    return args
+                        .at(1)
+                        .cloned()
+                        .ok_or_else(|| eyre::eyre!("no configuration entry `{key}`"));
+                };
+                let mut out = Variational::empty();
+                for entry in entries.variants() {
+                    let value = match &entry.value {
+                        Entry::Quoted(s) | Entry::Raw(s) => Value::Str(s.clone()),
+                        Entry::Int(i) => Value::Int(*i),
+                        Entry::Flag(b) => Value::Bool(*b),
+                        Entry::Ten(b) => Value::Int(i64::from(*b)),
+                    };
+                    out.push(Variant::new(entry.cond, value));
+                }
+                out.normalize(&mut self.logic);
+                Ok(out)
+            }
+            "keys" => {
+                let pc = self.pc;
+                let keys = data
+                    .borrow()
+                    .entries
+                    .iter()
+                    .map(|(k, _)| Variant::new(pc, Value::Str(k.clone())))
+                    .collect();
+                Ok(self.pure(Value::list(keys)))
+            }
+            "merge_from" => {
+                let other = args.at(0).ok_or_eyre("expected configuration data")?.clone();
+                for variant in other.variants() {
+                    let Value::Obj(Obj::ConfigData(src)) = &variant.value else {
+                        bail!("merge_from() expects configuration_data()");
+                    };
+                    let cond = self.logic.and(self.pc, variant.cond);
+                    let src = src.borrow().clone();
+                    for (key, entries) in &src.entries {
+                        let restricted = entries.restrict(&mut self.logic, cond);
+                        let slot = &mut *data.borrow_mut();
+                        slot.slot(key).extend(restricted);
+                    }
+                }
+                Ok(self.pure(Value::Unset))
+            }
+            other => bail!("configuration data has no method `{other}`"),
+        }
+    }
+
+    // -- primitives -------------------------------------------------------
+
+    fn str_method(
+        &mut self,
+        s: &Rc<str>,
+        name: &str,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        match name {
+            "format" => self.format_positional(s, &args.pos),
+            "split" => {
+                let pat = match args.at(0) {
+                    Some(v) => self.one_string(v)?.to_string(),
+                    None => " ".to_owned(),
+                };
+                let pc = self.pc;
+                let items = s
+                    .split(pat.as_str())
+                    .map(|part| Variant::new(pc, Value::str(part)))
+                    .collect();
+                Ok(self.pure(Value::list(items)))
+            }
+            "splitlines" => {
+                let pc = self.pc;
+                let items = s
+                    .lines()
+                    .map(|part| Variant::new(pc, Value::str(part)))
+                    .collect();
+                Ok(self.pure(Value::list(items)))
+            }
+            "join" => {
+                let mut parts = Vec::new();
+                for arg in &args.pos {
+                    for v in self.strings(arg)?.into_variants() {
+                        parts.push(v.value.to_string());
+                    }
+                }
+                Ok(self.pure(Value::from(parts.join(s))))
+            }
+            "strip" => Ok(self.pure(Value::str(s.trim()))),
+            "to_upper" => Ok(self.pure(Value::from(s.to_uppercase()))),
+            "to_lower" => Ok(self.pure(Value::from(s.to_lowercase()))),
+            "to_int" => Ok(self.pure(Value::Int(s.trim().parse()?))),
+            "to_string" => Ok(self.pure(Value::Str(s.clone()))),
+            "underscorify" => Ok(self.pure(Value::from(
+                s.chars()
+                    .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+                    .collect::<String>(),
+            ))),
+            "startswith" | "endswith" | "contains" => {
+                let pat = self.one_string(args.at(0).ok_or_eyre("expected a string")?)?;
+                let holds = match name {
+                    "startswith" => s.starts_with(&*pat),
+                    "endswith" => s.ends_with(&*pat),
+                    _ => s.contains(&*pat),
+                };
+                Ok(self.bool_value(if holds { self.pc } else { Pc::FALSE }))
+            }
+            "replace" => {
+                let from = self.one_string(args.at(0).ok_or_eyre("expected a string")?)?;
+                let to = self.one_string(args.at(1).ok_or_eyre("expected a string")?)?;
+                Ok(self.pure(Value::from(s.replace(&*from, &to))))
+            }
+            "substring" => {
+                let start = match args.at(0) {
+                    Some(v) => self.one_int(v)?,
+                    None => 0,
+                };
+                let end = match args.at(1) {
+                    Some(v) => self.one_int(v)?,
+                    None => s.len() as i64,
+                };
+                let clamp = |i: i64| -> usize {
+                    let n = s.len() as i64;
+                    (if i < 0 { n + i } else { i }).clamp(0, n) as usize
+                };
+                let (a, b) = (clamp(start), clamp(end));
+                Ok(self.pure(Value::str(&s[a.min(b)..b.max(a)])))
+            }
+            "version_compare" => {
+                let spec = self.one_string(args.at(0).ok_or_eyre("expected a version")?)?;
+                let holds = version_compare(s, &spec)?;
+                Ok(self.bool_value(if holds { self.pc } else { Pc::FALSE }))
+            }
+            other => bail!("a string has no method `{other}`"),
+        }
+    }
+
+    fn int_method(
+        &mut self,
+        i: i64,
+        name: &str,
+        _args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        match name {
+            "to_string" => Ok(self.pure(Value::from(i.to_string()))),
+            "is_even" => Ok(self.bool_value(if i % 2 == 0 { self.pc } else { Pc::FALSE })),
+            "is_odd" => Ok(self.bool_value(if i % 2 != 0 { self.pc } else { Pc::FALSE })),
+            other => bail!("an int has no method `{other}`"),
+        }
+    }
+
+    fn bool_method(
+        &mut self,
+        b: bool,
+        name: &str,
+        _args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        match name {
+            "to_string" => Ok(self.pure(Value::str(if b { "true" } else { "false" }))),
+            "to_int" => Ok(self.pure(Value::Int(i64::from(b)))),
+            other => bail!("a bool has no method `{other}`"),
+        }
+    }
+
+    fn list_method(
+        &mut self,
+        list: &Value,
+        name: &str,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        let items = list.as_list().expect("checked by the caller").to_vec();
+        match name {
+            "length" => {
+                // A list whose elements are conditional has no single length,
+                // so it is only answerable when every element is unconditional.
+                let mut n = 0;
+                for item in &items {
+                    let unconditional = self.logic.entails(self.pc, item.cond);
+                    if !unconditional {
+                        bail!(
+                            "`.length()` on a list whose contents depend on the configuration \
+                             has no single answer"
+                        );
+                    }
+                    n += 1;
+                }
+                Ok(self.pure(Value::Int(n)))
+            }
+            "contains" => {
+                let needle = args.at(0).ok_or_eyre("expected a value")?.clone();
+                let mut cond = Pc::FALSE;
+                for item in &items {
+                    for want in needle.variants() {
+                        if item.value != want.value {
+                            continue;
+                        }
+                        let both = self.logic.and(item.cond, want.cond);
+                        cond = self.logic.or(cond, both);
+                    }
+                }
+                Ok(self.bool_value(cond))
+            }
+            "get" => {
+                let index = args.at(0).ok_or_eyre("expected an index")?.clone();
+                let fallback = args.at(1).cloned();
+                self.index_list(&items, &index, fallback)
+            }
+            other => bail!("a list has no method `{other}`"),
+        }
+    }
+
+    fn dict_method(
+        &mut self,
+        dict: &Value,
+        name: &str,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        let Value::Dict(entries) = dict else {
+            unreachable!("checked by the caller")
+        };
+        let entries = entries.to_vec();
+        match name {
+            "keys" => {
+                let items = entries
+                    .iter()
+                    .map(|e| Variant::new(e.cond, Value::Str(e.value.0.clone())))
+                    .collect();
+                Ok(self.pure(Value::list(items)))
+            }
+            "has_key" => {
+                let key = self.one_string(args.at(0).ok_or_eyre("expected a key")?)?;
+                let mut cond = Pc::FALSE;
+                for entry in &entries {
+                    if entry.value.0 == key {
+                        cond = self.logic.or(cond, entry.cond);
+                    }
+                }
+                Ok(self.bool_value(cond))
+            }
+            "get" => {
+                let key = self.one_string(args.at(0).ok_or_eyre("expected a key")?)?;
+                let mut out = Variational::empty();
+                for entry in &entries {
+                    if entry.value.0 == key {
+                        out.push(Variant::new(entry.cond, entry.value.1.clone()));
+                    }
+                }
+                if out.is_empty() {
+                    return args
+                        .at(1)
+                        .cloned()
+                        .ok_or_else(|| eyre::eyre!("no dict entry `{key}`"));
+                }
+                out.normalize(&mut self.logic);
+                Ok(out)
+            }
+            other => bail!("a dict has no method `{other}`"),
+        }
+    }
+
+    // -- indexing ---------------------------------------------------------
+
+    pub(crate) fn index(
+        &mut self,
+        obj: &Variational<Value>,
+        index: &Variational<Value>,
+    ) -> eyre::Result<Variational<Value>> {
+        let mut out = Variational::empty();
+        for variant in obj.variants().to_vec() {
+            let cond = self.logic.and(self.pc, variant.cond);
+            if cond.is_false() {
+                continue;
+            }
+            let result = match &variant.value {
+                Value::List(items) => {
+                    let items = items.to_vec();
+                    self.with_pc(cond, |this| this.index_list(&items, index, None))?
+                }
+                Value::Dict(entries) => {
+                    let entries = entries.to_vec();
+                    let key = self.one_string(index)?;
+                    let mut found = Variational::empty();
+                    for entry in &entries {
+                        if entry.value.0 == key {
+                            found.push(Variant::new(entry.cond, entry.value.1.clone()));
+                        }
+                    }
+                    if found.is_empty() {
+                        bail!("no dict entry `{key}`");
+                    }
+                    found
+                }
+                Value::Str(s) => {
+                    let i = self.one_int(index)?;
+                    let ch = s
+                        .chars()
+                        .nth(usize::try_from(i)?)
+                        .ok_or_eyre("string index out of range")?;
+                    self.pure(Value::from(ch.to_string()))
+                }
+                // A multi-output custom target indexes to one of its outputs.
+                Value::Obj(Obj::Target(id)) => {
+                    let i = self.one_int(index)?;
+                    self.pure(Value::Obj(Obj::Output(*id, usize::try_from(i)?)))
+                }
+                other => bail!("cannot index a {}", other.type_name()),
+            };
+            out.extend(result.restrict(&mut self.logic, cond));
+        }
+        out.normalize(&mut self.logic);
+        Ok(out)
+    }
+
+    /// Index a list whose elements may each be conditional.
+    ///
+    /// Positions only line up when the elements before the one being asked for
+    /// are unconditional; otherwise the index means different things in
+    /// different configurations and the sources have to be restructured.
+    fn index_list(
+        &mut self,
+        items: &[Variant<Value>],
+        index: &Variational<Value>,
+        fallback: Option<Variational<Value>>,
+    ) -> eyre::Result<Variational<Value>> {
+        let mut out = Variational::empty();
+        for want in index.variants() {
+            let i = want
+                .value
+                .as_int()
+                .ok_or_eyre("expected an integer index")?;
+            let n = items.len() as i64;
+            let i = if i < 0 { n + i } else { i };
+
+            let Some(item) = usize::try_from(i).ok().and_then(|i| items.get(i)) else {
+                match &fallback {
+                    Some(v) => {
+                        out.extend(v.clone().into_variants());
+                        continue;
+                    }
+                    None => bail!("index {i} is out of range for a list of {n}"),
+                }
+            };
+
+            for earlier in &items[..usize::try_from(i)?] {
+                if !self.logic.entails(self.pc, earlier.cond) {
+                    bail!(
+                        "indexing past an element that only exists in some configurations \
+                         would select different values in different builds"
+                    );
+                }
+            }
+
+            let cond = self.logic.and(want.cond, item.cond);
+            out.push(Variant::new(cond, item.value.clone()));
+        }
+        out.normalize(&mut self.logic);
+        Ok(out)
+    }
+}
+
+/// Meson's `version_compare`: an operator followed by a dotted version.
+fn version_compare(have: &str, spec: &str) -> eyre::Result<bool> {
+    let (op, want) = spec
+        .find(|c: char| c.is_ascii_digit())
+        .map(|i| spec.split_at(i))
+        .ok_or_eyre("a version constraint needs a version")?;
+
+    let parse = |v: &str| -> Vec<u64> {
+        v.split('.')
+            .map(|p| p.trim_matches(|c: char| !c.is_ascii_digit()))
+            .map(|p| p.parse().unwrap_or(0))
+            .collect()
+    };
+    let (a, b) = (parse(have), parse(want.trim()));
+    let ord = a.cmp(&b);
+
+    use std::cmp::Ordering::*;
+    Ok(match op.trim() {
+        ">=" | "" => ord != Less,
+        ">" => ord == Greater,
+        "<=" => ord != Greater,
+        "<" => ord == Less,
+        "==" | "=" => ord == Equal,
+        "!=" => ord != Equal,
+        other => bail!("unknown version operator `{other}`"),
+    })
+}

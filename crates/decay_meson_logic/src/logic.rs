@@ -1,13 +1,26 @@
-use std::collections::HashMap;
+use {
+    crate::{
+        arena::{
+            Arena,
+            Node,
+            Pc,
+            Var,
+            VarId, //
+        },
+        solver::Solver,
+    },
+    std::collections::HashMap,
+};
 
-use crate::{Arena, Pc, Solver};
-
+/// The presence-condition algebra used by the executor: a hash-consed [`Arena`]
+/// for cheap structural work, backed by a [`Solver`] for the questions that
+/// need real reasoning (is this path reachable at all?).
 #[derive(Debug)]
 pub struct Logic<S: Solver> {
     solver: S,
     arena: Arena,
     terms: HashMap<Pc, S::Term>,
-    cache: HashMap<Pc, bool>,
+    sat: HashMap<Pc, bool>,
 }
 
 impl<S: Solver> Logic<S> {
@@ -16,8 +29,49 @@ impl<S: Solver> Logic<S> {
             solver,
             arena: Arena::new(),
             terms: HashMap::new(),
-            cache: HashMap::new(),
+            sat: HashMap::new(),
         }
+    }
+
+    pub fn arena(&self) -> &Arena {
+        &self.arena
+    }
+
+    pub fn arena_mut(&mut self) -> &mut Arena {
+        &mut self.arena
+    }
+
+    pub fn into_arena(self) -> Arena {
+        self.arena
+    }
+
+    pub fn vars(&self) -> &[Var] {
+        self.arena.vars()
+    }
+
+    pub fn var(&self, id: VarId) -> &Var {
+        self.arena.var(id)
+    }
+
+    pub fn declare(&mut self, var: Var) -> VarId {
+        let n = var.choices.len() as u32;
+        let id = self.arena.declare(var);
+        self.solver.declare(id, n);
+        id
+    }
+
+    pub fn lit(&mut self, var: VarId, choice: u32) -> Pc {
+        self.arena.lit(var, choice)
+    }
+
+    /// The condition for `var` holding one of `choices`.
+    pub fn any_of(&mut self, var: VarId, choices: impl IntoIterator<Item = u32>) -> Pc {
+        let mut out = Pc::FALSE;
+        for c in choices {
+            let l = self.arena.lit(var, c);
+            out = self.arena.or(out, l);
+        }
+        out
     }
 
     pub fn and(&mut self, a: Pc, b: Pc) -> Pc {
@@ -28,7 +82,81 @@ impl<S: Solver> Logic<S> {
         self.arena.or(a, b)
     }
 
-    pub fn is_sat(&mut self, v: Pc) -> bool {
-        todo!()
+    pub fn not(&mut self, a: Pc) -> Pc {
+        self.arena.not(a)
+    }
+
+    pub fn implies(&mut self, a: Pc, b: Pc) -> Pc {
+        self.arena.implies(a, b)
+    }
+
+    pub fn restrict(&mut self, pc: Pc, var: VarId, choice: u32) -> Pc {
+        self.arena.restrict(pc, var, choice)
+    }
+
+    pub fn support(&mut self, pc: Pc) -> Vec<VarId> {
+        self.arena.support(pc)
+    }
+
+    /// Rule out every configuration in which `pc` fails to hold.
+    ///
+    /// `error()` under a guard is the motivating case: meson refusing to
+    /// configure means those option combinations simply do not exist.
+    pub fn assume(&mut self, pc: Pc) {
+        let t = self.term(pc);
+        self.solver.assume(&t);
+        self.sat.clear();
+    }
+
+    pub fn is_sat(&mut self, pc: Pc) -> bool {
+        if pc.is_false() {
+            return false;
+        }
+        if pc.is_true() {
+            return true;
+        }
+        if let Some(&hit) = self.sat.get(&pc) {
+            return hit;
+        }
+        let t = self.term(pc);
+        let r = self.solver.is_sat(&t);
+        self.sat.insert(pc, r);
+        r
+    }
+
+    /// Whether `a` holds in every configuration in which `b` does.
+    pub fn entails(&mut self, b: Pc, a: Pc) -> bool {
+        let na = self.not(a);
+        let counter = self.and(b, na);
+        !self.is_sat(counter)
+    }
+
+    pub fn equivalent(&mut self, a: Pc, b: Pc) -> bool {
+        a == b || (self.entails(a, b) && self.entails(b, a))
+    }
+
+    fn term(&mut self, pc: Pc) -> S::Term {
+        if let Some(t) = self.terms.get(&pc) {
+            return t.clone();
+        }
+        let t = match self.arena.node(pc).clone() {
+            Node::True => self.solver.top(),
+            Node::False => self.solver.bottom(),
+            Node::Lit(v, c) => self.solver.lit(v, c),
+            Node::Not(inner) => {
+                let inner = self.term(inner);
+                self.solver.not(&inner)
+            }
+            Node::And(x, y) => {
+                let (x, y) = (self.term(x), self.term(y));
+                self.solver.and(&x, &y)
+            }
+            Node::Or(x, y) => {
+                let (x, y) = (self.term(x), self.term(y));
+                self.solver.or(&x, &y)
+            }
+        };
+        self.terms.insert(pc, t.clone());
+        t
     }
 }
