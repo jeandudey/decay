@@ -7,7 +7,10 @@ use {
         git_cache::GitCache,
         oracle::ConfigOracle,
         packages::Packages,
-        sources::DiskSources, //
+        sources::{
+            CountingSources,
+            DiskSources, //
+        },
     },
     clap::{
         Parser,
@@ -33,6 +36,8 @@ use {
             Path,
             PathBuf, //
         },
+        thread,
+        time::Instant, //
     },
     tracing::info,
     tracing_subscriber::{
@@ -52,6 +57,12 @@ mod sources;
 struct Cli {
     #[command(subcommand)]
     command: Command,
+
+    /// How many projects to evaluate at once. Independent projects (those whose
+    /// `depends` are all already imported) run in parallel up to this many
+    /// workers. Defaults to the number of CPUs, or `DECAY_JOBS` if set.
+    #[arg(short = 'j', long, global = true)]
+    jobs: Option<usize>,
 }
 
 #[derive(Subcommand)]
@@ -70,12 +81,24 @@ fn main() -> eyre::Result<()> {
         .with_span_events(FmtSpan::CLOSE)
         .init();
 
+    let jobs = resolve_jobs(cli.jobs);
+
     match cli.command {
-        Command::Buckify => buckify(),
+        Command::Buckify => buckify(jobs),
     }
 }
 
-fn buckify() -> eyre::Result<()> {
+/// Worker count: `--jobs`, else `DECAY_JOBS`, else the CPU count, else 1. Always
+/// at least 1.
+fn resolve_jobs(flag: Option<usize>) -> usize {
+    flag.or_else(|| env::var("DECAY_JOBS").ok().and_then(|v| v.parse().ok()))
+        .or_else(|| thread::available_parallelism().ok().map(|n| n.get()))
+        .unwrap_or(1)
+        .max(1)
+}
+
+fn buckify(jobs: usize) -> eyre::Result<()> {
+    let _ = jobs;
     let config = Config::from_file("decay.toml")?;
 
     let cache_dir = cache_dir()?;
@@ -126,6 +149,7 @@ fn buckify() -> eyre::Result<()> {
     // declared, and what selects on what is only known once they are generated.
     let mut generated = Vec::new();
     for project in &mut imported {
+        let start = Instant::now();
         let build = decay_buck2::emit(
             &project.graph,
             &mut project.logic,
@@ -136,7 +160,11 @@ fn buckify() -> eyre::Result<()> {
         )
         .wrap_err_with(|| format!("Failed to generate build files for `{}`", project.name))?;
         generated.push(build);
-        info!(dir = %project.out.display(), "wrote build files");
+        info!(
+            dir = %project.out.display(),
+            emit_ms = start.elapsed().as_millis(),
+            "wrote build files",
+        );
     }
 
     shared.write(&labels, &decay_buck2::Used::everywhere(generated), &shared_dir)?;
@@ -174,11 +202,17 @@ fn execute(
         );
     }
 
+    let checkout_start = Instant::now();
     let dir = git_cache.checkout(project)?;
+    let checkout_ms = checkout_start.elapsed().as_millis();
 
     let oracle = ConfigOracle::new(config, project, packages);
-    let (mut graph, logic) = decay_meson_eval::eval(&oracle, &DiskSources, &dir)
+    let sources = CountingSources::new(&DiskSources);
+    let eval_start = Instant::now();
+    let (mut graph, logic) = decay_meson_eval::eval(&oracle, &sources, &dir)
         .wrap_err_with(|| format!("Failed to execute `{name}`"))?;
+    let eval_ms = eval_start.elapsed().as_millis();
+    let parse_ms = sources.parse_time().as_millis();
 
     // The build files fetch the sources themselves rather than referring to a
     // copy of them checked into this repository.
@@ -192,6 +226,11 @@ fn execute(
         targets = graph.targets.len(),
         tests = graph.tests.len(),
         open_options = graph.options.len(),
+        checkout_ms,
+        parse_ms,
+        parse_calls = sources.parse_calls(),
+        interp_ms = eval_ms.saturating_sub(parse_ms),
+        eval_ms,
         "executed",
     );
 
