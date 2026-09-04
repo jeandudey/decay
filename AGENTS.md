@@ -142,3 +142,19 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   looked-up name equals the project's `short_name`. A wrap whose
   `[provide] dependency_names` differs from the directory name, or a project
   with several root `declare_dependency()` calls, would not resolve.
+
+- **`cargo clippy --workspace` fails.** `first_supported_argument` in
+  `decay_meson_eval/src/methods.rs` loops over `args.pos` and over
+  `self.strings(arg)?.into_variants()` only to `break` unconditionally out of
+  both, which trips `clippy::never_loop` (deny-by-default). `cargo build`
+  is unaffected, but it means the method only ever looks at the first
+  variant of `args.pos[0]` and ignores the rest of the call's arguments —
+  worth fixing as a `.next()` rather than just silencing the lint. Beyond
+  this, `cargo clippy` also has a handful of lint-only warnings (collapsible
+  `if`s, `type_complexity`, `cloned_ref_to_slice_refs`, `manual_contains`,
+  `op_ref`, `manual_is_multiple_of`) with no behavioral effect.
+
+- **`cache_dir()` reads the wrong XDG variable.** `src/main.rs`'s
+  `cache_dir()` checks `XDG_CACHE_DIR`; the XDG Base Directory spec's
+  variable is `XDG_CACHE_HOME`. Setting the real one currently has no
+  effect and it silently falls back to `~/.cache`.
