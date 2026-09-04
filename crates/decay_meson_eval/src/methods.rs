@@ -168,6 +168,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 "add_install_script"
                 | "add_dist_script"
                 | "add_postconf_script"
+                | "add_devenv"
                 | "install_dependency_manifest"
                 | "override_find_program"
                 | "override_dependency",
@@ -283,6 +284,9 @@ impl<'a, S: Solver> Interp<'a, S> {
 
             // -- modules --
             (Obj::Module(Module::Python), "find_installation") => self.fn_find_installation(args),
+            (Obj::Module(Module::Windows), "compile_resources") => {
+                self.fn_windows_compile_resources(args)
+            }
             (Obj::Module(Module::PkgConfig), "generate") => self.fn_pkgconfig_generate(args),
             (Obj::Module(Module::GNOME), "compile_resources") => self.fn_compile_resources(args),
             (Obj::Module(Module::GNOME), "mkenums") => self.fn_mkenums(args),
@@ -299,6 +303,28 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let resolved = self.resolve(&path);
                 let content = self.sources.read(&self.root.join(&resolved))?;
                 Ok(self.pure(Value::from(content)))
+            }
+            // Pure path arithmetic — no filesystem access, matching meson.
+            (Obj::Module(Module::Fs), "name" | "stem" | "parent") => {
+                let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
+                let p = std::path::Path::new(&*path);
+                let out = match name {
+                    "name" => p
+                        .file_name()
+                        .map(|s| s.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                    "stem" => p
+                        .file_stem()
+                        .map(|s| s.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                    _ => match p.parent() {
+                        Some(parent) if !parent.as_os_str().is_empty() => {
+                            parent.to_string_lossy().into_owned()
+                        }
+                        _ => ".".to_owned(),
+                    },
+                };
+                Ok(self.pure(Value::from(out)))
             }
             (Obj::Module(Module::I18n), "gettext") => {
                 // A ninja build compiles `.mo` files only at `meson install`
@@ -322,13 +348,49 @@ impl<'a, S: Solver> Interp<'a, S> {
             (Obj::Feature(f), "allowed") => {
                 Ok(self.bool_value(if &**f == "disabled" { Pc::FALSE } else { self.pc }))
             }
+            // `require(cond)` turns the feature off where `cond` does not hold;
+            // `disable_auto_if` / `enable_auto_if` only move an `auto` feature.
+            // The condition can itself be configuration-dependent, so the
+            // result is a feature that varies: disabled under one condition,
+            // the original under its negation.
             (Obj::Feature(f), "require" | "disable_auto_if" | "enable_auto_if") => {
-                Ok(self.pure(Value::Obj(Obj::Feature(f.clone()))))
+                let cond = match args.at(0) {
+                    Some(v) => self.truth(v)?,
+                    None => self.pc,
+                };
+                let (kept, flipped): (Pc, Rc<str>) = match name {
+                    "require" => (cond, Rc::from("disabled")),
+                    "disable_auto_if" if &**f == "auto" => (self.logic.not(cond), Rc::from("disabled")),
+                    "enable_auto_if" if &**f == "auto" => (self.logic.not(cond), Rc::from("enabled")),
+                    // Nothing to move on a feature that is already enabled or
+                    // disabled.
+                    _ => return Ok(self.pure(Value::Obj(Obj::Feature(f.clone())))),
+                };
+                let kept = self.logic.and(self.pc, kept);
+                let other = {
+                    let n = self.logic.not(kept);
+                    self.logic.and(self.pc, n)
+                };
+                let mut out = Variational::empty();
+                if !kept.is_false() {
+                    out.push(Variant::new(kept, Value::Obj(Obj::Feature(f.clone()))));
+                }
+                if !other.is_false() {
+                    out.push(Variant::new(other, Value::Obj(Obj::Feature(flipped))));
+                }
+                out.normalize(&mut self.logic);
+                Ok(out)
             }
 
             (Obj::File(path), "full_path") => {
                 let v = path.to_string();
                 Ok(self.pure(Value::from(v)))
+            }
+
+            // `environment()` shapes how tests and dev tooling run, not what
+            // the build produces; there is nothing in the graph for it.
+            (Obj::Env, "set" | "append" | "prepend" | "unset") => {
+                Ok(self.pure(Value::Unset))
             }
 
             (obj, name) => bail!("a {} has no method `{name}`", obj.type_name()),

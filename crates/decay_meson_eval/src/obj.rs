@@ -192,6 +192,7 @@ pub enum Module {
     GNOME,
     I18n,
     Fs,
+    Windows,
     Other,
 }
 
@@ -205,6 +206,7 @@ impl FromStr for Module {
             "gnome" => Self::GNOME,
             "i18n" => Self::I18n,
             "fs" => Self::Fs,
+            "windows" => Self::Windows,
             _ => Self::Other,
         })
     }

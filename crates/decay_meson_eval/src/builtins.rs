@@ -1339,6 +1339,44 @@ impl<'a, S: Solver> Interp<'a, S> {
         Ok(self.pure(Value::list(items)))
     }
 
+    /// `windows.compile_resources('foo.rc', ...)` — compile a Windows
+    /// resource script. buck2's C++ rules compile a `.rc` in `srcs` with the
+    /// platform resource compiler, so each script is handed back as a source
+    /// file and flows wherever the result is used. The `depend_files:` a
+    /// script `#include`s ride along as sources too, so they are fetched.
+    /// `args:` / `include_directories:` (resource-compiler flags and search
+    /// paths) are not carried yet.
+    pub(crate) fn fn_windows_compile_resources(
+        &mut self,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        let mut items = Vec::new();
+        for arg in args.pos.iter().chain(args.get("depend_files")) {
+            for variant in self.flat(arg) {
+                let value = match &variant.value {
+                    Value::Str(s) => {
+                        let path = self.resolve(s);
+                        if !self.sources.exists(&self.root.join(&path)) {
+                            warn!(%path, "windows.compile_resources() names a path that is not in the source tree");
+                        }
+                        Value::Obj(Obj::File(Rc::from(path.as_str())))
+                    }
+                    // A `.rc` produced by `configure_file()` or another target
+                    // rides through as that target's output.
+                    Value::Obj(Obj::File(_) | Obj::Target(_) | Obj::Output(..)) => {
+                        variant.value.clone()
+                    }
+                    other => bail!(
+                        "windows.compile_resources() cannot take a {}",
+                        other.type_name()
+                    ),
+                };
+                items.push(Variant::new(variant.cond, value));
+            }
+        }
+        Ok(self.pure(Value::list(items)))
+    }
+
     fn fn_include_directories(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
         let mut dirs = Vec::new();
         for arg in &args.pos {

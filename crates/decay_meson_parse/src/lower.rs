@@ -209,6 +209,12 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
                     .collect::<eyre::Result<_>>()?,
             }))
         }
+        // Meson emits an `EmptyNode` where an expression was expected but the
+        // source trailed off — an operator at the end of a logical line
+        // outside brackets, say (glib's gnulib probes have one). Meson treats
+        // it as falsy; matching that keeps decay's reading of the file the
+        // same as meson's own.
+        Node::Empty => Ok(Expr::Bool(false)),
         _ => bail!("Unexpected expression node {node:?}"),
     }
 }
