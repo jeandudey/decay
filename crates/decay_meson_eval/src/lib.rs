@@ -1069,6 +1069,34 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
     }
 
+    /// An argument that must be a single bool, not configuration-dependent —
+    /// unlike a `[systems]`/`[probes]`-backed flag, a kwarg like
+    /// `custom_target(capture:)` is meson syntax for a plain literal, not
+    /// something a project ever spells conditionally.
+    pub(crate) fn one_bool(&mut self, v: &Variational<Value>) -> eyre::Result<bool> {
+        let flat = self.flat(v);
+        match flat.as_slice() {
+            [only] => only
+                .value
+                .as_bool()
+                .ok_or_else(|| eyre::eyre!("expected a bool, found a {}", only.value.type_name())),
+            [] => bail!("expected a bool, found nothing"),
+            _ => bail!("expected a single bool, but the value differs between configurations"),
+        }
+    }
+
+    pub(crate) fn opt_bool(
+        &mut self,
+        args: &CallArgs,
+        name: &str,
+        default: bool,
+    ) -> eyre::Result<bool> {
+        match args.get(name) {
+            Some(v) => self.one_bool(v),
+            None => Ok(default),
+        }
+    }
+
     /// Read a list argument as build inputs.
     pub(crate) fn sources(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<Source>> {
         let mut out = Variational::empty();

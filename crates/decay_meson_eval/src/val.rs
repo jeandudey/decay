@@ -80,6 +80,13 @@ impl Value {
         }
     }
 
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Self::Bool(v) => Some(*v),
+            _ => None,
+        }
+    }
+
     pub fn as_list(&self) -> Option<&[Variant<Value>]> {
         match self {
             Self::List(v) => Some(v),

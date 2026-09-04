@@ -215,17 +215,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   fixing/tying it. Until then, building a project with such a probe needs an
   explicit `-c` override for the affected constraint.
 
-- **`custom_target(capture: true)` is silently ignored.** Meson redirects
-  the command's stdout into the declared `output:` when `capture: true` is
-  set (glib's `glib_enumtypes_c`/`glib_enumtypes_h`, built by piping
-  `glib-mkenums` through it). Nothing in `decay_meson_eval` reads `capture:`
-  at all, and `decay_buck2`'s `cmd` for a `Kind::Custom` target never
-  appends `> $OUT`, so the generated `genrule` runs the tool and then fails
-  with "the path `<output>` does not exist in the artifact." Needs a
-  `capture: bool` on the custom-target `Attrs`, set where `custom_target()`
-  is parsed, and `> $OUT` appended in `decay_buck2`'s command-rendering when
-  it is set.
-
 - **A `#mesondefine NAME` whose name is never `.set()` in any reachable
   configuration passes through a template untouched.** `config_header_cmd`'s
   `complete_defines` (`decay_buck2/src/lib.rs`) only emits an
