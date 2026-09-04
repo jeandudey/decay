@@ -142,14 +142,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:crt_externs.h`: `crt_externs.h` is available to the c compiler
-constraint(
-    name = "has_header_crt_externs_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header:dirent.h`: `dirent.h` is available to the c compiler
 constraint(
     name = "has_header_dirent_h",
