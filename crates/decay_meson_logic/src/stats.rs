@@ -29,6 +29,8 @@ counters!(
     IS_SAT_CONST,  // answered by pc.is_true()/is_false()
     IS_SAT_HIT,    // answered from the `sat` memo
     IS_SAT_MISS,   // went to the solver
+    IS_SAT_OPAQUE, // ...had an Or, so no literal-set key
+    IS_SAT_CONJ_MISS, // ...had a key but the literal-set memo missed
     // the actual z3 check_assumptions
     Z3_CHECK_CALLS,
     Z3_CHECK_NANOS,
@@ -96,6 +98,8 @@ pub fn report() {
         is_sat_const = get(&IS_SAT_CONST),
         is_sat_memo_hit = get(&IS_SAT_HIT),
         is_sat_solver = get(&IS_SAT_MISS),
+        sat_opaque = get(&IS_SAT_OPAQUE),
+        sat_conj_miss = get(&IS_SAT_CONJ_MISS),
         memo_hit_pct = 100 * get(&IS_SAT_HIT) / is_sat,
         z3_checks = get(&Z3_CHECK_CALLS),
         z3_ms = Duration::from_nanos(get(&Z3_CHECK_NANOS)).as_millis(),

@@ -149,17 +149,21 @@ impl<S: Solver> Logic<S> {
         // outright; otherwise its answer is shared by every `Pc` with the same
         // literal set, whichever way it was built.
         let conj = self.arena.conj_lits(pc);
-        if let Some(lits) = &conj {
-            if self.arena.conj_is_unsat(lits) {
-                stats::bump(&stats::IS_SAT_HIT);
-                self.sat.insert(pc, false);
-                return false;
+        match &conj {
+            Some(lits) => {
+                if self.arena.conj_is_unsat(lits) {
+                    stats::bump(&stats::IS_SAT_HIT);
+                    self.sat.insert(pc, false);
+                    return false;
+                }
+                if let Some(&hit) = self.conj_sat.get(lits) {
+                    stats::bump(&stats::IS_SAT_HIT);
+                    self.sat.insert(pc, hit);
+                    return hit;
+                }
+                stats::bump(&stats::IS_SAT_CONJ_MISS);
             }
-            if let Some(&hit) = self.conj_sat.get(lits) {
-                stats::bump(&stats::IS_SAT_HIT);
-                self.sat.insert(pc, hit);
-                return hit;
-            }
+            None => stats::bump(&stats::IS_SAT_OPAQUE),
         }
 
         stats::bump(&stats::IS_SAT_MISS);
