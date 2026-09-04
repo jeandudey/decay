@@ -10,7 +10,11 @@ use {
             Module,
             Obj, //
         },
-        oracle::Probe,
+        oracle::{
+            Probe,
+            SizeAnswer,
+            SizeQuery, //
+        },
         val::Value,
     },
     decay_build_ir::External,
@@ -439,6 +443,22 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// it has, so the values the configuration named become choices and
     /// everything else is one more.
     fn constraint_is(&mut self, setting: &str, domain: Vec<String>, values: &[String]) -> Pc {
+        let (id, choices) = self.constraint_var(setting, domain);
+        let holds = choices
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| values.iter().any(|v| v == *c))
+            .map(|(i, _)| i as u32);
+        self.logic.any_of(id, holds)
+    }
+
+    /// The variable standing for a constraint the importer did not declare,
+    /// with `ANY_OTHER` appended for the values it cannot name. Declaring is
+    /// keyed by `setting`, so every caller — `[probes]`, `[sizeof]`,
+    /// `[alignment]` — shares one variable per constraint and its `select()`s
+    /// all key on the same thing. Returns the choice list too, so a caller can
+    /// map a value back to its index.
+    fn constraint_var(&mut self, setting: &str, domain: Vec<String>) -> (VarId, Vec<String>) {
         let mut choices = domain;
         choices.push(ANY_OTHER.to_owned());
         let id = self.logic.declare(Var {
@@ -450,13 +470,55 @@ impl<'a, S: Solver> Interp<'a, S> {
             default: choices.len() - 1,
             choices: choices.clone(),
         });
+        (id, choices)
+    }
 
-        let holds = choices
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| values.iter().any(|v| v == *c))
-            .map(|(i, _)| i as u32);
-        self.logic.any_of(id, holds)
+    /// `cc.sizeof()` / `cc.alignment()`: a target-dependent integer the
+    /// configuration has to pin, since the importer cannot run the compiler
+    /// and the number is baked into a generated header.
+    fn type_size(&mut self, query: SizeQuery, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let ty = self.one_string(
+            args.at(0)
+                .ok_or_eyre("`sizeof()` / `alignment()` needs a type name")?,
+        )?;
+        match self.oracle.type_size(query, &ty) {
+            Some(SizeAnswer::Fixed(n)) => Ok(self.pure(Value::Int(n))),
+            Some(SizeAnswer::Constraint {
+                setting,
+                domain,
+                cases,
+            }) => {
+                let (id, choices) = self.constraint_var(&setting, domain);
+                let mut out = Variational::empty();
+                for (value, size) in cases {
+                    let Some(choice) = choices.iter().position(|c| *c == value) else {
+                        continue;
+                    };
+                    let lit = self.logic.lit(id, choice as u32);
+                    let cond = self.logic.and(self.pc, lit);
+                    if cond.is_false() {
+                        continue;
+                    }
+                    out.push(Variant::new(cond, Value::Int(size)));
+                }
+                out.normalize(&mut self.logic);
+                if out.is_empty() {
+                    bail!(
+                        "`{}('{ty}')` is configured, but none of its constraint values \
+                         apply where it is used here",
+                        query.as_str()
+                    );
+                }
+                Ok(out)
+            }
+            None => bail!(
+                "`{}('{ty}')` yields a target-dependent number that cannot be left open; \
+                 add `{}.\"{ty}\"` to decay.toml (a single integer, or a table of \
+                 constraint value to integer)",
+                query.as_str(),
+                query.as_str(),
+            ),
+        }
     }
 
     /// The condition for a compiler probe having succeeded.
@@ -536,10 +598,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let cond = self.probe_cond(lang, name, &what)?;
                 Ok(self.bool_value(cond))
             }
-            "sizeof" | "alignment" => bail!(
-                "`{name}()` yields a number that depends on the target, which cannot be \
-                 left open; pin it in the importer configuration"
-            ),
+            "sizeof" => self.type_size(SizeQuery::Sizeof, args),
+            "alignment" => self.type_size(SizeQuery::Alignment, args),
             "get_define" => Ok(self.pure(Value::str(""))),
 
             "find_library" => {

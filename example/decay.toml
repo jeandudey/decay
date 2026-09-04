@@ -86,6 +86,36 @@ libffi = "//third-party/system:FFI"
 zlib = "//third-party/system:Z"
 "libpcre2-8" = "//third-party/system:PCRE2"
 
+# `cc.sizeof()` / `cc.alignment()` yield a concrete integer a generated
+# config header bakes in, so — unlike a probe — there is no knob to leave
+# open. Each type a project asks about is answered here: a single integer
+# when it is the same everywhere, or a CPU map when it follows from the
+# target. A map keys on the same `cpu` constraint the `[probes]` fast-path
+# answers select on, so `sizeof('void*') == 8` and a CPU probe never
+# disagree. An arch a project builds for that is not listed makes the
+# generated `select()` have no entry for it — add the arch rather than let
+# decay guess.
+[sizeof]
+"char" = 1
+"short" = 2
+"int" = 4
+"long long" = 8
+"long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"ssize_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"SSIZE_T" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"wchar_t" = 4
+
+[alignment]
+"char" = 1
+"short" = 2
+"int" = 4
+"long long" = 8
+"long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/glib.git"
 # Pinned to tag 2.88.3.

@@ -56,6 +56,18 @@ pub struct Config {
     /// always have to be set to agree with it.
     #[serde(default)]
     pub probes: BTreeMap<String, ProbeValue>,
+    /// Answers to `cc.sizeof()`, keyed by the type name it is passed
+    /// (`sizeof."void*"`). The value is either a single integer, when the
+    /// size is the same everywhere, or a table of constraint value to
+    /// integer, when it follows from the target — a CPU whose pointer width
+    /// differs, typically. A build graph cannot run the compiler, and the
+    /// size is a concrete number a generated header bakes in, so a type a
+    /// project asks about must be answered here.
+    #[serde(default)]
+    pub sizeof: BTreeMap<String, SizeValue>,
+    /// Answers to `cc.alignment()`, in the same shape as [`Self::sizeof`].
+    #[serde(default)]
+    pub alignment: BTreeMap<String, SizeValue>,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
 }
@@ -93,6 +105,26 @@ impl Config {
             };
             check().wrap_err_with(|| format!("Probe `{probe}` cannot be answered"))?;
         }
+
+        for (section, table) in [("sizeof", &self.sizeof), ("alignment", &self.alignment)] {
+            for (type_name, answer) in table {
+                let check = || -> eyre::Result<()> {
+                    let Some(setting) = answer.setting()? else {
+                        return Ok(());
+                    };
+                    if self.is_system_setting(setting) {
+                        return Err(eyre!(
+                            "`{setting}` is the constraint `[systems]` already selects on; \
+                             a size follows from the CPU or ABI, not the operating system"
+                        ));
+                    }
+                    Ok(())
+                };
+                check().wrap_err_with(|| {
+                    format!("`[{section}]` entry `{type_name}` cannot be answered")
+                })?;
+            }
+        }
         Ok(())
     }
 
@@ -116,10 +148,18 @@ impl Config {
     /// Every value of `setting` the configuration mentions.
     ///
     /// A constraint declared elsewhere has values the importer never sees, so
-    /// what it can tell apart is exactly what it was told about.
+    /// what it can tell apart is exactly what it was told about. `[probes]`,
+    /// `[sizeof]` and `[alignment]` all feed one shared constraint variable
+    /// per setting, so its domain is the union of what they each name.
     pub fn constraint_domain(&self, setting: &str) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
-        for value in self.probes.values().flat_map(ProbeValue::values) {
+        let probe_values = self.probes.values().flat_map(ProbeValue::values);
+        let size_values = self
+            .sizeof
+            .values()
+            .chain(self.alignment.values())
+            .flat_map(SizeValue::constraint_values);
+        for value in probe_values.chain(size_values) {
             if value.setting == setting && !out.contains(&value.value) {
                 out.push(value.value.clone());
             }
@@ -235,6 +275,70 @@ impl<'de> Deserialize<'de> for ProbeValue {
                     .map(|text| parse(text))
                     .collect::<Result<_, _>>()?,
             ),
+        })
+    }
+}
+
+/// What `cc.sizeof()` or `cc.alignment()` answers for one type, as the
+/// configuration states it.
+#[derive(Debug)]
+pub enum SizeValue {
+    /// The same number of bytes in every configuration.
+    Fixed(i64),
+    /// One number per constraint value — a CPU map, typically, for a type
+    /// whose width follows from the target. Every key is a value of the same
+    /// constraint setting.
+    ByConstraint(Vec<(ConstraintValue, i64)>),
+}
+
+impl SizeValue {
+    /// The constraint values this answer branches on, none when it is fixed.
+    pub fn constraint_values(&self) -> impl Iterator<Item = &ConstraintValue> {
+        let cases: &[(ConstraintValue, i64)] = match self {
+            SizeValue::Fixed(_) => &[],
+            SizeValue::ByConstraint(cases) => cases,
+        };
+        cases.iter().map(|(value, _)| value)
+    }
+
+    /// The setting every key belongs to, which they all must share: the
+    /// executor turns the answer into a choice of one constraint.
+    pub fn setting(&self) -> eyre::Result<Option<&str>> {
+        let mut values = self.constraint_values();
+        let Some(first) = values.next() else {
+            return Ok(None);
+        };
+        for other in values {
+            if other.setting != first.setting {
+                return Err(eyre!(
+                    "`{first}` and `{other}` are values of different constraints, which \
+                     cannot both answer one size"
+                ));
+            }
+        }
+        Ok(Some(&first.setting))
+    }
+}
+
+impl<'de> Deserialize<'de> for SizeValue {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Fixed(i64),
+            ByConstraint(BTreeMap<String, i64>),
+        }
+
+        Ok(match Raw::deserialize(de)? {
+            Raw::Fixed(n) => SizeValue::Fixed(n),
+            Raw::ByConstraint(cases) => {
+                let mut out = Vec::with_capacity(cases.len());
+                for (key, size) in cases {
+                    let value = key.parse().map_err(serde::de::Error::custom)?;
+                    out.push((value, size));
+                }
+                SizeValue::ByConstraint(out)
+            }
         })
     }
 }
@@ -356,5 +460,73 @@ impl Machine {
             "endian" => self.endian.as_deref(),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config(body: &str) -> eyre::Result<Config> {
+        let toml = format!(
+            "third_party_dir = \"tp\"\n\
+             [systems]\n\
+             linux = \"prelude//os/constraints:os[linux]\"\n\
+             {body}\n\
+             [[project]]\n\
+             repo = \"https://example.com/x/glib.git\"\n\
+             rev = \"0000000000000000000000000000000000000000\"\n"
+        );
+        let cfg: Config = toml::from_str(&toml)?;
+        cfg.check()?;
+        Ok(cfg)
+    }
+
+    #[test]
+    fn sizeof_parses_fixed_and_by_constraint() {
+        let cfg = config(
+            "[sizeof]\n\
+             \"int\" = 4\n\
+             \"void*\" = { \"prelude//cpu/constraints:cpu[x86_64]\" = 8, \"prelude//cpu/constraints:cpu[x86]\" = 4 }\n",
+        )
+        .unwrap();
+
+        assert!(matches!(cfg.sizeof["int"], SizeValue::Fixed(4)));
+        let SizeValue::ByConstraint(cases) = &cfg.sizeof["void*"] else {
+            panic!("expected a constraint map");
+        };
+        assert_eq!(cases.len(), 2);
+        assert_eq!(
+            cfg.sizeof["void*"].setting().unwrap(),
+            Some("prelude//cpu/constraints:cpu")
+        );
+    }
+
+    #[test]
+    fn constraint_domain_unions_probes_and_sizes() {
+        let cfg = config(
+            "[probes]\n\
+             \"compiles:NEON\" = \"prelude//cpu/constraints:cpu[arm64]\"\n\
+             [sizeof]\n\
+             \"void*\" = { \"prelude//cpu/constraints:cpu[x86_64]\" = 8 }\n\
+             [alignment]\n\
+             \"long\" = { \"prelude//cpu/constraints:cpu[x86]\" = 4 }\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            cfg.constraint_domain("prelude//cpu/constraints:cpu"),
+            ["arm64", "x86", "x86_64"]
+        );
+    }
+
+    #[test]
+    fn sizeof_on_the_system_constraint_is_rejected() {
+        let err = config(
+            "[sizeof]\n\
+             \"void*\" = { \"prelude//os/constraints:os[linux]\" = 8 }\n",
+        )
+        .unwrap_err();
+        assert!(format!("{err:#}").contains("already selects on"));
     }
 }

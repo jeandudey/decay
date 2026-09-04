@@ -5,7 +5,8 @@ use {
             Machine,
             OptionValue,
             ProbeValue,
-            Project, //
+            Project,
+            SizeValue, //
         },
         packages::Packages,
     },
@@ -14,7 +15,9 @@ use {
         oracle::{
             Oracle,
             Pinned,
-            Probe, //
+            Probe,
+            SizeAnswer,
+            SizeQuery, //
         },
     },
     std::rc::Rc,
@@ -78,6 +81,31 @@ impl<'a> ConfigOracle<'a> {
             values: values.iter().map(|value| value.value.clone()).collect(),
         })
     }
+
+    /// The `[sizeof]` / `[alignment]` entry for `type_name`, turned into a
+    /// [`SizeAnswer`].
+    fn size_answer(&self, query: SizeQuery, type_name: &str) -> Option<SizeAnswer> {
+        let table = match query {
+            SizeQuery::Sizeof => &self.config.sizeof,
+            SizeQuery::Alignment => &self.config.alignment,
+        };
+        let answer = table.get(type_name)?;
+        let cases = match answer {
+            SizeValue::Fixed(n) => return Some(SizeAnswer::Fixed(*n)),
+            SizeValue::ByConstraint(cases) => cases,
+        };
+
+        // Checked when the configuration was loaded.
+        let setting = answer.setting().ok().flatten()?;
+        Some(SizeAnswer::Constraint {
+            setting: setting.to_owned(),
+            domain: self.config.constraint_domain(setting),
+            cases: cases
+                .iter()
+                .map(|(value, size)| (value.value.clone(), *size))
+                .collect(),
+        })
+    }
 }
 
 impl Oracle for ConfigOracle<'_> {
@@ -126,6 +154,10 @@ impl Oracle for ConfigOracle<'_> {
 
     fn dependency_variable(&self, dep: &str, variable: &str) -> Option<Probe> {
         self.probe_answer(&format!("dependency:{dep}:{variable}"))
+    }
+
+    fn type_size(&self, query: SizeQuery, type_name: &str) -> Option<SizeAnswer> {
+        self.size_answer(query, type_name)
     }
 
     fn machine(&self, machine: obj::Machine, property: &str) -> Option<String> {

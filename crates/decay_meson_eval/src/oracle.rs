@@ -96,6 +96,17 @@ pub trait Oracle {
         let _ = (dep, variable);
         None
     }
+
+    /// The size or alignment of a C type, when the configuration pins it.
+    ///
+    /// `cc.sizeof()` and `cc.alignment()` yield a concrete integer that a
+    /// generated header bakes in; there is no knob to leave open. Left
+    /// unanswered, the executor refuses the call and asks for a `[sizeof]` /
+    /// `[alignment]` entry rather than guessing.
+    fn type_size(&self, query: SizeQuery, type_name: &str) -> Option<SizeAnswer> {
+        let _ = (query, type_name);
+        None
+    }
 }
 
 /// What a toolchain probe answers, when the configuration knows.
@@ -129,4 +140,40 @@ pub enum Pinned {
     Int(i64),
     Str(Rc<str>),
     List(Vec<Rc<str>>),
+}
+
+/// Which of `cc.sizeof()` / `cc.alignment()` is being asked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SizeQuery {
+    Sizeof,
+    Alignment,
+}
+
+impl SizeQuery {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SizeQuery::Sizeof => "sizeof",
+            SizeQuery::Alignment => "alignment",
+        }
+    }
+}
+
+/// What the configuration answers for `cc.sizeof()` / `cc.alignment()` on
+/// one type. The value is a concrete integer a generated header bakes in, so
+/// it cannot be left open — unanswered, the executor refuses the call.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SizeAnswer {
+    /// The same number in every configuration.
+    Fixed(i64),
+    /// One number per value of a constraint the build already selects on —
+    /// keyed the same way as [`Probe::Constraint`], so a `[sizeof]` answer
+    /// and a `[probes]` answer on one setting share a single constraint.
+    Constraint {
+        /// Label of the constraint setting, e.g. `prelude//cpu/constraints:cpu`.
+        setting: String,
+        /// Every value of the setting the configuration mentions.
+        domain: Vec<String>,
+        /// The size for each value the answer names, a subset of `domain`.
+        cases: Vec<(String, i64)>,
+    },
 }
