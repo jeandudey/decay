@@ -73,13 +73,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `example/decay.toml` pins `options.tests = false` for glib to avoid it
   for now.
 
-- **Empty per-project constraint files.** A project that leaves no option
-  open (gvdb) still gets a `<project>/constraints/BUCK` with nothing in it
-  but the header comment, and its `BUCK` header still points at it
-  ("Configuration lives in ..."). Per the "nothing unused" goal, `decay_
-  buck2` should skip writing the constraints file when the project declares
-  no constraints, and drop the pointer line from the project `BUCK`.
-
 - **`declare_dependency(sources: [...])` with compilable sources.** decay
   routes every `sources:` entry into the interface target's `headers`
   (`fn_declare_dependency` in `decay_meson_eval/src/builtins.rs`), and
