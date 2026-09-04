@@ -101,11 +101,11 @@ zlib = "//third-party/system:Z"
 "short" = 2
 "int" = 4
 "long long" = 8
-"long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
-"void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
-"size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
-"ssize_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
-"SSIZE_T" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"ssize_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"SSIZE_T" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "wchar_t" = 4
 
 [alignment]
@@ -113,9 +113,9 @@ zlib = "//third-party/system:Z"
 "short" = 2
 "int" = 4
 "long long" = 8
-"long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
-"void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
-"size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
+"long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/gvdb.git"
