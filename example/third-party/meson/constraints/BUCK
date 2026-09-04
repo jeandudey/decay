@@ -134,14 +134,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# meson build option `option:buildtype`
-constraint(
-    name = "buildtype",
-    values = ["plain", "debug", "debugoptimized", "release", "minsize", "custom"],
-    default = "debugoptimized",
-    visibility = ["PUBLIC"],
-)
-
 # meson build option `option:debug`
 constraint(
     name = "debug",
