@@ -491,6 +491,7 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         let install = self.flag(args, "install", Pc::FALSE)?;
         let install_dir = self.opt_string(args, "install_dir")?.map(|v| v.to_string());
+        let capture = self.opt_bool(args, "capture", false)?;
 
         let target = self.graph.target_mut(id);
         target.attrs.srcs = srcs;
@@ -499,6 +500,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.deps = deps;
         target.attrs.install = install;
         target.attrs.install_dir = install_dir;
+        target.attrs.capture = capture;
 
         Ok(self.pure(Value::Obj(Obj::Target(id))))
     }

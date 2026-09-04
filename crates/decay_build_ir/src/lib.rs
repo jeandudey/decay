@@ -151,6 +151,9 @@ pub struct Attrs {
     pub cmd: Variational<CmdArg>,
     /// Files a [`Kind::Custom`] or [`Kind::ConfigHeader`] target produces.
     pub outs: Vec<String>,
+    /// `custom_target(capture: true)`: the command's stdout is the output,
+    /// rather than the command writing it itself.
+    pub capture: bool,
     /// `#define`s for a [`Kind::ConfigHeader`].
     pub defines: Variational<Define>,
     /// The `.in` file a [`Kind::ConfigHeader`] substitutes into, when it has

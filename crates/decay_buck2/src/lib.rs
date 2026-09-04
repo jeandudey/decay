@@ -1056,7 +1056,7 @@ fn command<S: Solver>(
         .collect();
     let inputs = inputs.join(" ");
 
-    let words = selects.render_words(logic, &target.attrs.cmd, target.cond, 1, " ", |arg| {
+    let mut words = selects.render_words(logic, &target.attrs.cmd, target.cond, 1, " ", |arg| {
         match arg {
             // `substitute` quotes the literal parts itself, so a fragment
             // spanning several words — or several lines, the way a
@@ -1096,6 +1096,12 @@ fn command<S: Solver>(
             CmdArg::OutDir => OUT_DIR.to_owned(),
         }
     });
+
+    // `capture: true` redirects the command's stdout into the declared
+    // output, the way meson itself runs it.
+    if target.attrs.capture {
+        words.push("\" > $OUT\"".to_owned());
+    }
 
     join(&words)
 }
