@@ -91,3 +91,54 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   sources and emit the latter as `srcs` on a compiled library (or fold
   them into each consumer). Visible today in
   `example/third-party/meson/gvdb/BUCK`.
+
+- **Configuration-dependent install paths and `.pc` variables.**
+  `Attrs.install_dir` is `Option<String>` and `src/packages.rs`'s `Package.
+  variables` is a flat `Vec`. So a `configure_file()` whose `output:` or
+  `install_dir:` varies by configuration (glib's systemtap `.stp`, keyed on
+  `cpu_family`) aborts with "expected a single string … N variants", and
+  `single_valued_pairs` silently drops any `pkg.generate()` /
+  `declare_dependency()` variable that came out configuration-dependent
+  (glib's `multiarch`-keyed `giomoduledir`) rather than emitting a
+  `select()`. Both want the value carried variationally through to emit.
+
+- **Conditional `continue` in a `foreach` over a static list.** `break` now
+  splits the remaining iterations under its negation (`Flow::Break(Pc)` in
+  `decay_meson_eval/src/lib.rs`); `continue` still bails ("has no static
+  translation") when it is partial. It needs the same treatment — the
+  statements after a `continue` should run under the complement of the
+  condition it fired under.
+
+- **`windows.compile_resources` / `fs.copyfile` are minimal.**
+  `compile_resources` drops `args:` (resource-compiler flags) and
+  `include_directories:` (RC search paths); `fs.copyfile` emits a `cp`
+  command, which a Windows genrule does not have. Both matter for the
+  Windows target that is a priority.
+
+- **The `python` module is a stub.** Only `import('python').
+  find_installation()` (resolved like any `[programs]` entry) and
+  `.language_version()` (fabricated `"3.12"`, the way `cc.version()` is).
+  A project that builds Python extension modules needs `.extension_module()`,
+  `.dependency()`, `.install_sources()`, `.get_install_dir()`,
+  `.get_variable()`, none of which exist.
+
+- **`cc.compute_int()` has no configured answer.** It falls back to the
+  call's `guess:` and errors without one. Like `[sizeof]` / `[alignment]`,
+  the no-guess case should be answerable from `decay.toml`.
+
+- **`run_command()` is refused outright.** Some projects call it for
+  harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`
+  answer, would unblock them without baking in a machine-specific result.
+
+- **No end-to-end import test.** The only tests are the `schedule` and
+  `config` unit tests. An evaluator regression that breaks the `example/`
+  import (glib, libepoxy, …) would not be caught. Add a test that runs
+  `decay buckify` on `example/` and diffs the generated tree against a
+  committed golden copy — this also pins `-j1` == `-jN`.
+
+- **`declare_dependency()` provide heuristic is narrow.** A sibling
+  `dependency('x')` resolves only against a `declare_dependency()` in
+  project `x`'s *root* `meson.build`, last-call-wins, and only when the
+  looked-up name equals the project's `short_name`. A wrap whose
+  `[provide] dependency_names` differs from the directory name, or a project
+  with several root `declare_dependency()` calls, would not resolve.
