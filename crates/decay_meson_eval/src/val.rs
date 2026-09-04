@@ -10,6 +10,9 @@ use {
     },
 };
 
+/// A dict entry: key and value, conditional together via [`Variant`].
+pub(crate) type DictEntry = (Rc<str>, Value);
+
 /// A meson value at one point in the configuration space.
 ///
 /// Lists and dicts hold *conditional* entries rather than being split into one
@@ -32,7 +35,7 @@ pub enum Value {
     /// ever conditional: an unconditional concatenation is a plain [`Self::Str`].
     StrCat(Rc<[Variant<Rc<str>>]>),
     List(Rc<Vec<Variant<Value>>>),
-    Dict(Rc<Vec<Variant<(Rc<str>, Value)>>>),
+    Dict(Rc<Vec<Variant<DictEntry>>>),
     Obj(Obj),
 }
 
@@ -41,7 +44,7 @@ impl Value {
         Self::List(Rc::new(items))
     }
 
-    pub fn dict(items: Vec<Variant<(Rc<str>, Value)>>) -> Self {
+    pub fn dict(items: Vec<Variant<DictEntry>>) -> Self {
         Self::Dict(Rc::new(items))
     }
 

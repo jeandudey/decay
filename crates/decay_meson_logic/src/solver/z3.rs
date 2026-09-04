@@ -94,7 +94,7 @@ impl Solver for Z3Solver {
         stats::bump(&stats::Z3_CHECK_CALLS);
         let start = Instant::now();
         let sat = matches!(
-            self.solver.check_assumptions(&[t.clone()]),
+            self.solver.check_assumptions(std::slice::from_ref(t)),
             SatResult::Sat //
         );
         stats::add(&stats::Z3_CHECK_NANOS, start.elapsed().as_nanos() as u64);

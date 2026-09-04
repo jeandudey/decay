@@ -2,7 +2,10 @@ use {
     crate::{
         Interp,
         obj::Obj,
-        val::Value, //
+        val::{
+            DictEntry,
+            Value, //
+        }, //
     },
     decay_meson_ast::{
         BinOp,
@@ -129,7 +132,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             .iter()
             .any(|v| matches!(v.value, Value::Dict(_)))
         {
-            let mut items: Vec<Variant<(Rc<str>, Value)>> = Vec::new();
+            let mut items: Vec<Variant<DictEntry>> = Vec::new();
             for side in [lhs, rhs] {
                 for variant in side.variants() {
                     let cond = self.logic.and(self.pc, variant.cond);

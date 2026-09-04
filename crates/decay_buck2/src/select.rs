@@ -576,7 +576,7 @@ impl Selects {
                 rest,
                 Pc::TRUE,
                 &|_| "[]".to_owned(),
-                &|depth| list(&[impossible.clone()], depth),
+                &|depth| list(std::slice::from_ref(&impossible), depth),
                 depth,
             ));
         }

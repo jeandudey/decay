@@ -81,7 +81,7 @@ fn get(c: &AtomicU64) -> u64 {
 /// Report once every `REPORT_EVERY` solver checks. Call right after a check.
 pub fn maybe_report() {
     let n = get(&Z3_CHECK_CALLS);
-    if n != 0 && n % REPORT_EVERY == 0 {
+    if n != 0 && n.is_multiple_of(REPORT_EVERY) {
         report();
     }
 }

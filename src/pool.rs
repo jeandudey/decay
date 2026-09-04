@@ -80,7 +80,10 @@ enum Job {
     },
     Emit {
         idx: usize,
-        graph: Graph,
+        // Boxed: `Job` travels down an mpsc channel one message at a time, and
+        // a bare `Graph` would otherwise make every `Job` (including the tiny
+        // `Eval`/`Stop` ones) as large as the biggest project's graph.
+        graph: Box<Graph>,
         labels: Arc<Labels>,
         shared: Arc<Shared>,
     },
@@ -90,7 +93,9 @@ enum Job {
 enum Done {
     Evaled {
         idx: usize,
-        result: eyre::Result<Evaled>,
+        // Boxed for the same reason as `Job::Emit`'s `graph`: keeps the common,
+        // small `Done` variants from paying for the rare large one.
+        result: Box<eyre::Result<Evaled>>,
     },
     Emitted {
         idx: usize,
@@ -157,7 +162,7 @@ pub(crate) fn import(
             let mut failed: Vec<(usize, eyre::Report)> = Vec::new();
             for _ in 0..wave.len() {
                 match done_rx.recv() {
-                    Ok(Done::Evaled { idx, result }) => match result {
+                    Ok(Done::Evaled { idx, result }) => match *result {
                         Ok(e) => evaled.push(e),
                         Err(err) => failed.push((idx, err)),
                     },
@@ -201,7 +206,7 @@ pub(crate) fn import(
             let graph = graphs[idx].take().expect("every project evaluated");
             let _ = inbox[owner(idx)].send(Job::Emit {
                 idx,
-                graph,
+                graph: Box::new(graph),
                 labels: labels.clone(),
                 shared: shared.clone(),
             });
@@ -288,16 +293,16 @@ fn worker(
                         });
                         Done::Evaled {
                             idx,
-                            result: Ok(Evaled {
+                            result: Box::new(Ok(Evaled {
                                 idx,
                                 package,
                                 graph,
-                            }),
+                            })),
                         }
                     }
                     Err(err) => Done::Evaled {
                         idx,
-                        result: Err(err),
+                        result: Box::new(Err(err)),
                     },
                 }
             }

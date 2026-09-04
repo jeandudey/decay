@@ -59,7 +59,7 @@ impl GitCache {
     fn ensure_db(&self, db: &Path, project: &Project) -> eyre::Result<()> {
         if !db.join("HEAD").is_file() {
             fs::create_dir_all(db).wrap_err("Failed to create database directory")?;
-            run_git(git().args(&["init", "--quiet", "--bare"]).arg(db))
+            run_git(git().args(["init", "--quiet", "--bare"]).arg(db))
                 .wrap_err("Failed to initialize git repository")?;
         } else if has_commit(db, &project.rev) {
             return Ok(());
@@ -75,7 +75,7 @@ impl GitCache {
             let shallow = git()
                 .arg("--git-dir")
                 .arg(db)
-                .args(&["fetch", "--depth", "1", "--quiet"])
+                .args(["fetch", "--depth", "1", "--quiet"])
                 .arg(project.repo.0.to_string())
                 .arg(format!("{}:{ref_name}", project.rev))
                 .output();
@@ -88,7 +88,7 @@ impl GitCache {
             git()
                 .arg("--git-dir")
                 .arg(db)
-                .args(&["fetch", "--force", "--tags", "--quiet"])
+                .args(["fetch", "--force", "--tags", "--quiet"])
                 .arg(project.repo.0.to_string())
                 .arg("+refs/heads/*:refs/remotes/origin/*"),
         )
@@ -113,18 +113,18 @@ impl GitCache {
         let _ = git()
             .arg("--git-dir")
             .arg(db)
-            .args(&["worktree", "prune", "--quiet"])
+            .args(["worktree", "prune", "--quiet"])
             .output();
         run_git(
             git()
                 .arg("--git-dir")
                 .arg(db)
-                .args(&["worktree", "add", "--quiet", "--detach"])
+                .args(["worktree", "add", "--quiet", "--detach"])
                 .arg(&tmp)
                 .arg(oid),
         )?;
 
-        fs::write(tmp.join(".ok"), &[])?;
+        fs::write(tmp.join(".ok"), [])?;
 
         if dest.exists() {
             fs::remove_dir_all(dest)?;
@@ -152,7 +152,7 @@ fn has_commit(db: &Path, rev: &str) -> bool {
         git()
             .arg("--git-dir")
             .arg(db)
-            .args(&["cat-file", "-e"])
+            .args(["cat-file", "-e"])
             .arg(format!("{rev}^{{commit}}")),
     )
     .is_ok()

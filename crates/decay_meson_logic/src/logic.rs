@@ -16,6 +16,9 @@ use {
     },
 };
 
+/// A conjunction's literals — `(variable, choice, is-negated)` — as a memo key.
+type ConjLits = Box<[(VarId, u32, bool)]>;
+
 /// The presence-condition algebra used by the executor: a hash-consed [`Arena`]
 /// for cheap structural work, backed by a [`Solver`] for the questions that
 /// need real reasoning (is this path reachable at all?).
@@ -30,7 +33,7 @@ pub struct Logic<S: Solver> {
     /// condition is a plain conjunction. Structurally distinct `Pc`s that mean
     /// the same conjunction share an entry, so a guard checked from many
     /// statements costs one solver call.
-    conj_sat: HashMap<Box<[(VarId, u32, bool)]>, bool>,
+    conj_sat: HashMap<ConjLits, bool>,
 }
 
 impl<S: Solver> Logic<S> {

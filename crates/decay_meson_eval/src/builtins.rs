@@ -136,11 +136,11 @@ impl<'a, S: Solver> Interp<'a, S> {
             "error" => self.fn_error(args),
             "assert" => self.fn_assert(args),
             "warning" | "message" | "debug" | "summary" => {
-                if let Some(first) = args.at(0) {
-                    if let Ok(text) = self.stringify(first) {
-                        for v in text.variants() {
-                            debug!(target: "meson", "{}: {}", name, v.value);
-                        }
+                if let Some(first) = args.at(0)
+                    && let Ok(text) = self.stringify(first)
+                {
+                    for v in text.variants() {
+                        debug!(target: "meson", "{}: {}", name, v.value);
                     }
                 }
                 Ok(self.pure(Value::Unset))
@@ -482,10 +482,10 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         let mut deps = Variational::empty();
         for key in ["depends", "depend_files"] {
-            if let Some(v) = args.get(key) {
-                if let Ok(d) = self.deps(v) {
-                    deps.extend(d);
-                }
+            if let Some(v) = args.get(key)
+                && let Ok(d) = self.deps(v)
+            {
+                deps.extend(d);
             }
         }
 

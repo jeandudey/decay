@@ -147,6 +147,10 @@ enum Flow {
     Abort,
 }
 
+/// What [`Interp::loop_entries`] hands back: one entry per taken iteration,
+/// each the condition it runs under paired with the loop variables it binds.
+type LoopEntries = Vec<(Pc, Vec<(String, Value)>)>;
+
 pub struct Interp<'a, S: Solver> {
     pub(crate) logic: Logic<S>,
     pub(crate) oracle: &'a dyn Oracle,
@@ -337,14 +341,13 @@ impl<'a, S: Solver> Interp<'a, S> {
                 // `x` into a variant per combination. Without this, glib's
                 // `glib_conf_prefix = glib_conf_prefix + …` in a `foreach` over
                 // header checks blows up.
-                if let (false, Expr::BinOp(op)) = (*is_plus, val) {
-                    if op.kind == BinOpKind::Add
-                        && matches!(op.lhs.as_ref(), Expr::Id(n) if n == name)
-                    {
-                        let rhs = self.expr(&op.rhs)?;
-                        self.plus_assign(name, &rhs)?;
-                        return Ok(());
-                    }
+                if let (false, Expr::BinOp(op)) = (*is_plus, val)
+                    && op.kind == BinOpKind::Add
+                    && matches!(op.lhs.as_ref(), Expr::Id(n) if n == name)
+                {
+                    let rhs = self.expr(&op.rhs)?;
+                    self.plus_assign(name, &rhs)?;
+                    return Ok(());
                 }
                 let val = self.expr(val)?;
                 if *is_plus {
@@ -401,10 +404,11 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
         }
 
-        if !open.is_false() && self.logic.is_sat(open) {
-            if let Some(block) = &stmt.elseblock {
-                self.run_branch(open, block)?;
-            }
+        if !open.is_false()
+            && self.logic.is_sat(open)
+            && let Some(block) = &stmt.elseblock
+        {
+            self.run_branch(open, block)?;
         }
 
         self.pc = entry;
@@ -505,7 +509,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         iterable: &Value,
         names: &[String],
         base: Pc,
-    ) -> eyre::Result<Vec<(Pc, Vec<(String, Value)>)>> {
+    ) -> eyre::Result<LoopEntries> {
         match iterable {
             Value::List(items) => {
                 if names.len() != 1 {
@@ -839,7 +843,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         let default = self
             .default_options
             .get(name)
-            .and_then(|v| choices.iter().position(|c| &**c == &**v))
+            .and_then(|v| choices.iter().position(|c| **c == **v))
             .unwrap_or(default);
 
         // An option the project declares is its own; anything else came from

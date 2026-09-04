@@ -490,7 +490,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
 
         if let Some(pinned) = self.oracle.machine(Machine::Host, "system") {
-            return Ok(Pc::from_bool(systems.iter().any(|s| *s == pinned)));
+            return Ok(Pc::from_bool(systems.contains(&pinned)));
         }
         match known.len() {
             0 => bail!("`{probe}` answers by system but no systems were configured"),
@@ -725,15 +725,20 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
                 Ok(self.pure(Value::list(items)))
             }
+            // As with `get_supported_arguments` above, whether a flag is
+            // accepted is left to the generated build's own toolchain; the
+            // first argument is the one meson would try first, so it is the
+            // one taken here, in full — every variant it carries, not just
+            // the one under whichever configuration happened to run first.
             "first_supported_argument" => {
-                let mut items = Vec::new();
-                for arg in &args.pos {
-                    for v in self.strings(arg)?.into_variants() {
-                        items.push(Variant::new(v.cond, Value::Str(v.value)));
-                        break;
-                    }
-                    break;
-                }
+                let items = match args.pos.first() {
+                    Some(arg) => self
+                        .strings(arg)?
+                        .into_variants()
+                        .map(|v| Variant::new(v.cond, Value::Str(v.value)))
+                        .collect(),
+                    None => Vec::new(),
+                };
                 Ok(self.pure(Value::list(items)))
             }
             "has_argument" | "has_link_argument" | "has_multi_arguments"
