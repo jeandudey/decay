@@ -5,6 +5,7 @@ members = ["crates/*"]
 clap = { version = "4.6.6", features = ["derive"] }
 decay_buck2 = { path = "crates/decay_buck2" }
 decay_build_ir = { path = "crates/decay_build_ir" }
+decay_libc_db = { path = "crates/decay_libc_db" }
 decay_meson_ast = { path = "crates/decay_meson_ast" }
 decay_meson_eval = { path = "crates/decay_meson_eval" }
 decay_meson_logic = { path = "crates/decay_meson_logic" }
@@ -31,6 +32,7 @@ edition = "2024"
 clap.workspace = true
 decay_buck2.workspace = true
 decay_build_ir.workspace = true
+decay_libc_db.workspace = true
 decay_meson_ast.workspace = true
 decay_meson_eval.workspace = true
 decay_meson_logic.workspace = true

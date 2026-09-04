@@ -68,8 +68,20 @@ pub struct Config {
     /// Answers to `cc.alignment()`, in the same shape as [`Self::sizeof`].
     #[serde(default)]
     pub alignment: BTreeMap<String, SizeValue>,
+    /// Whether `has_function` falls back to decay's built-in glibc symbol
+    /// database (see `decay_libc_db`) when `[probes]` has no entry for it.
+    ///
+    /// An explicit `[probes]` entry for the same check always wins over the
+    /// built-in answer; this only turns the fallback off entirely, for a
+    /// project that wants every `has_function` left open regardless.
+    #[serde(default = "default_true")]
+    pub builtin_has_function: bool,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Config {

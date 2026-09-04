@@ -82,6 +82,35 @@ impl<'a> ConfigOracle<'a> {
         })
     }
 
+    /// Decay's built-in `has_function` fallback, consulted only once a
+    /// project's own `[probes]` entry misses.
+    ///
+    /// Answers only the symbols `decay_libc_db` (parsed from glibc's own
+    /// published ABI list, not hand-curated) knows are part of glibc, and
+    /// only when the project actually has a `linux` system to ask — a
+    /// project that never targets `linux` gets nothing here, same as if the
+    /// database did not exist, rather than an error about an unconfigured
+    /// system.
+    fn builtin_has_function(&self, what: &str) -> Option<Probe> {
+        if !self.config.builtin_has_function || !decay_libc_db::has_function(what) {
+            return None;
+        }
+        self.config.systems.contains_key("linux").then(|| {
+            const ABI_SETTING: &str = "prelude//abi/constraints:abi";
+            let mut domain = self.config.constraint_domain(ABI_SETTING);
+            if !domain.iter().any(|v| v == "gnu") {
+                domain.push("gnu".to_owned());
+                domain.sort();
+            }
+            Probe::SystemsAndConstraint {
+                systems: vec!["linux".to_owned()],
+                setting: ABI_SETTING.to_owned(),
+                domain,
+                values: vec!["gnu".to_owned()],
+            }
+        })
+    }
+
     /// The `[sizeof]` / `[alignment]` entry for `type_name`, turned into a
     /// [`SizeAnswer`].
     fn size_answer(&self, query: SizeQuery, type_name: &str) -> Option<SizeAnswer> {
@@ -121,7 +150,13 @@ impl Oracle for ConfigOracle<'_> {
     }
 
     fn probe(&self, name: &str, what: &str) -> Option<Probe> {
-        self.probe_answer(&format!("{name}:{what}"))
+        self.probe_answer(&format!("{name}:{what}")).or_else(|| {
+            if name == "has_function" {
+                self.builtin_has_function(what)
+            } else {
+                None
+            }
+        })
     }
 
     fn has_program(&self, name: &str) -> bool {

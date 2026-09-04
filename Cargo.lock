@@ -159,6 +159,7 @@ dependencies = [
  "clap",
  "decay_buck2",
  "decay_build_ir",
+ "decay_libc_db",
  "decay_meson_ast",
  "decay_meson_eval",
  "decay_meson_logic",
@@ -192,6 +193,10 @@ version = "0.1.0"
 dependencies = [
  "decay_meson_logic",
 ]
+
+[[package]]
+name = "decay_libc_db"
+version = "0.1.0"
 
 [[package]]
 name = "decay_meson_ast"

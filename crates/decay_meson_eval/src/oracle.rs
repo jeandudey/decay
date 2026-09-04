@@ -131,6 +131,25 @@ pub enum Probe {
         /// The values this probe holds for, a subset of `domain`.
         values: Vec<String>,
     },
+    /// True on these systems when the constraint `setting` also holds one of
+    /// `values` — and, everywhere else, left open, exactly as if the oracle
+    /// had answered nothing at all.
+    ///
+    /// For a fact a *partial* database knows (glibc's symbols, say) rather
+    /// than an oracle that truly knows the whole answer: [`Probe::Constraint`]
+    /// alone would overreach, since a constraint can be shared across
+    /// operating systems the way buck2's `abi` is (`abi[gnu]` also names
+    /// mingw on Windows, not just glibc on Linux) — asserting *false*
+    /// wherever the system/ABI pair does not match would claim a symbol
+    /// absent on a libc the database simply has no answer for. Only the
+    /// known region is settled; the rest stays exactly as configurable as an
+    /// unanswered probe.
+    SystemsAndConstraint {
+        systems: Vec<String>,
+        setting: String,
+        domain: Vec<String>,
+        values: Vec<String>,
+    },
 }
 
 /// A value pinned by the importer's configuration.
