@@ -31,7 +31,11 @@ impl<'a, S: Solver> Interp<'a, S> {
                 _ => self.logic.not(l),
             };
             let rhs_pc = self.logic.and(self.pc, guard);
-            let r = if rhs_pc.is_false() {
+            // `rhs_pc` can be unsatisfiable without being structurally `false`
+            // once an `error()` elsewhere has ruled configurations out.
+            // Evaluating the right-hand side under it would read a variable
+            // outside the domain it still has and wrongly call it undefined.
+            let r = if rhs_pc.is_false() || !self.logic.is_sat(rhs_pc) {
                 Pc::FALSE
             } else {
                 let rhs = self.with_pc(rhs_pc, |this| this.expr(&op.rhs))?;
@@ -252,6 +256,52 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
         }
         out
+    }
+
+    /// Every concrete string a deferred concatenation can be under `base`,
+    /// each paired with the condition (a refinement of `base`) it is that
+    /// string. A piece `base` already settles does not branch, so a value the
+    /// path pins down yields a single realisation; only genuinely open pieces
+    /// multiply, and a config value rarely has more than one.
+    pub(crate) fn str_cat_realizations(
+        &mut self,
+        pieces: &[Variant<Rc<str>>],
+        base: Pc,
+    ) -> Vec<(Pc, Rc<str>)> {
+        let mut states: Vec<(Pc, String)> = vec![(base, String::new())];
+        for p in pieces {
+            if p.cond.is_true() || self.logic.entails(base, p.cond) {
+                for (_, s) in &mut states {
+                    s.push_str(&p.value);
+                }
+                continue;
+            }
+            let present = self.logic.and(base, p.cond);
+            if present.is_false() || !self.logic.is_sat(present) {
+                continue;
+            }
+            let mut next = Vec::with_capacity(states.len() + 1);
+            for (cond, s) in states {
+                let yes = self.logic.and(cond, p.cond);
+                if !yes.is_false() && self.logic.is_sat(yes) {
+                    let mut with = s.clone();
+                    with.push_str(&p.value);
+                    next.push((yes, with));
+                }
+                let no = {
+                    let n = self.logic.not(p.cond);
+                    self.logic.and(cond, n)
+                };
+                if !no.is_false() && self.logic.is_sat(no) {
+                    next.push((no, s));
+                }
+            }
+            states = next;
+        }
+        states
+            .into_iter()
+            .map(|(c, s)| (c, Rc::from(s.as_str())))
+            .collect()
     }
 
     /// Apply a binary function across the product of both sides' variants.

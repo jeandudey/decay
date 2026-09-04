@@ -359,8 +359,18 @@ impl<'a, S: Solver> Interp<'a, S> {
         // Configurations that have fallen through every arm so far.
         let mut open = entry;
 
-        for (cond, block) in &stmt.arms {
+        for (i, (cond, block)) in stmt.arms.iter().enumerate() {
             if open.is_false() {
+                break;
+            }
+            // After the first arm, `open` has been narrowed by every earlier
+            // arm's negation and by any `error()` they ruled out globally; it
+            // can be unsatisfiable without being structurally `false`.
+            // Evaluating a further arm's condition under it would read a
+            // variable outside the domain it still has here and wrongly report
+            // it undefined, so stop — nothing past here is reachable.
+            if i > 0 && !self.logic.is_sat(open) {
+                open = Pc::FALSE;
                 break;
             }
             let value = self.with_pc(open, |this| this.expr(cond))?;
@@ -626,9 +636,18 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     pub(crate) fn expr(&mut self, expr: &Expr) -> eyre::Result<Variational<Value>> {
         match expr {
-            Expr::Id(name) => self
-                .lookup(name)?
-                .ok_or_else(|| eyre::eyre!("undefined variable `{name}`")),
+            Expr::Id(name) => match self.lookup(name)? {
+                Some(v) => Ok(v),
+                // A variable that is defined but has no value on the current
+                // path is only an error when the path is real. Once an
+                // `error()` elsewhere has emptied it, code that still runs
+                // under the now-impossible condition would read `undefined`
+                // for something the project did set.
+                None if self.vars.contains_key(name) && !self.logic.is_sat(self.pc) => {
+                    Ok(Variational::empty())
+                }
+                None => Err(eyre::eyre!("undefined variable `{name}`")),
+            },
             Expr::String(v) => Ok(self.pure(Value::str(v))),
             Expr::FormatString(v) => self.format_string(v),
             Expr::Int(v) => Ok(self.pure(Value::Int(*v))),

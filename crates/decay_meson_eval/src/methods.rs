@@ -600,6 +600,26 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
             "sizeof" => self.type_size(SizeQuery::Sizeof, args),
             "alignment" => self.type_size(SizeQuery::Alignment, args),
+            // `compute_int` evaluates a constant expression by compiling; the
+            // importer cannot. Meson itself falls back to `guess:` when it
+            // cannot run the result (a cross build), so do the same — a
+            // project that passes a guess has already said what to assume.
+            "compute_int" => {
+                let expr = self
+                    .one_string(args.at(0).ok_or_eyre("`compute_int()` needs an expression")?)
+                    .unwrap_or_else(|_| Rc::from("expr"));
+                match args.get("guess") {
+                    Some(g) => {
+                        let n = self.one_int(g)?;
+                        Ok(self.pure(Value::Int(n)))
+                    }
+                    None => bail!(
+                        "`compute_int('{expr}')` computes a target-dependent number the \
+                         importer cannot evaluate, and the project gave no `guess:` to \
+                         fall back on"
+                    ),
+                }
+            }
             "get_define" => Ok(self.pure(Value::str(""))),
 
             "find_library" => {
@@ -698,6 +718,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                 for variant in value.variants() {
                     let cond = self.logic.and(self.pc, variant.cond);
                     if cond.is_false() {
+                        continue;
+                    }
+                    // A value written into a config header has to be concrete,
+                    // so a deferred concatenation is realised here: one entry
+                    // per string it can be, each under the condition it is that
+                    // string.
+                    if let (Value::StrCat(pieces), "set" | "set_quoted") = (&variant.value, name) {
+                        let pieces = pieces.clone();
+                        for (sub, text) in self.str_cat_realizations(&pieces, cond) {
+                            let entry = if name == "set_quoted" {
+                                Entry::Quoted(text)
+                            } else {
+                                Entry::Raw(text)
+                            };
+                            entries.push(Variant::new(sub, entry));
+                        }
                         continue;
                     }
                     let entry = match (name, &variant.value) {
