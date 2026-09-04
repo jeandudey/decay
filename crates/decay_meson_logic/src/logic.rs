@@ -24,7 +24,13 @@ pub struct Logic<S: Solver> {
     solver: S,
     arena: Arena,
     terms: HashMap<Pc, S::Term>,
+    /// Satisfiability memo keyed by `Pc` identity.
     sat: HashMap<Pc, bool>,
+    /// Satisfiability memo keyed by literal set, for the common case where the
+    /// condition is a plain conjunction. Structurally distinct `Pc`s that mean
+    /// the same conjunction share an entry, so a guard checked from many
+    /// statements costs one solver call.
+    conj_sat: HashMap<Box<[(VarId, u32, bool)]>, bool>,
 }
 
 impl<S: Solver> Logic<S> {
@@ -34,6 +40,7 @@ impl<S: Solver> Logic<S> {
             arena: Arena::new(),
             terms: HashMap::new(),
             sat: HashMap::new(),
+            conj_sat: HashMap::new(),
         }
     }
 
@@ -110,8 +117,16 @@ impl<S: Solver> Logic<S> {
         stats::bump(&stats::ASSUME_CALLS);
         let t = self.term_timed(pc);
         self.solver.assume(&t);
-        stats::add(&stats::SAT_MEMO_DROPPED, self.sat.len() as u64);
-        self.sat.clear();
+        // Adding a constraint can only shrink the space: an unsatisfiable
+        // condition stays unsatisfiable, so keep the `false` entries and drop
+        // only the ones that might now be ruled out.
+        let before = self.sat.len() + self.conj_sat.len();
+        self.sat.retain(|_, &mut sat| !sat);
+        self.conj_sat.retain(|_, &mut sat| !sat);
+        stats::add(
+            &stats::SAT_MEMO_DROPPED,
+            (before - self.sat.len() - self.conj_sat.len()) as u64,
+        );
     }
 
     pub fn is_sat(&mut self, pc: Pc) -> bool {
@@ -128,10 +143,32 @@ impl<S: Solver> Logic<S> {
             stats::bump(&stats::IS_SAT_HIT);
             return hit;
         }
+
+        // Most `is_sat` calls are on a plain conjunction of literals. A
+        // conjunction that names one variable at two values is unsatisfiable
+        // outright; otherwise its answer is shared by every `Pc` with the same
+        // literal set, whichever way it was built.
+        let conj = self.arena.conj_lits(pc);
+        if let Some(lits) = &conj {
+            if self.arena.conj_is_unsat(lits) {
+                stats::bump(&stats::IS_SAT_HIT);
+                self.sat.insert(pc, false);
+                return false;
+            }
+            if let Some(&hit) = self.conj_sat.get(lits) {
+                stats::bump(&stats::IS_SAT_HIT);
+                self.sat.insert(pc, hit);
+                return hit;
+            }
+        }
+
         stats::bump(&stats::IS_SAT_MISS);
         let t = self.term_timed(pc);
         let r = self.solver.is_sat(&t);
         self.sat.insert(pc, r);
+        if let Some(lits) = conj {
+            self.conj_sat.insert(lits, r);
+        }
         stats::maybe_report();
         r
     }

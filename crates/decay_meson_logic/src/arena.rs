@@ -162,6 +162,64 @@ impl Arena {
         &self.nodes[pc.0 as usize]
     }
 
+    /// The literals of `pc` if it is a conjunction of them — `And` and `Lit`
+    /// nodes, plus `Not` directly wrapping a `Lit` — sorted and deduplicated;
+    /// `None` if it contains an `Or`, or a `Not` of anything but a bare `Lit`.
+    /// Each entry is `(var, choice, polarity)`: `true` for `var == choice`,
+    /// `false` for `var != choice`.
+    ///
+    /// Path conditions are almost always of this shape, and two structurally
+    /// different conjunctions with the same literal set are the same question —
+    /// this is the key the caller memoises satisfiability under.
+    pub fn conj_lits(&self, pc: Pc) -> Option<Box<[(VarId, u32, bool)]>> {
+        let mut lits: Vec<(VarId, u32, bool)> = Vec::new();
+        let mut stack = vec![(pc, true)];
+        while let Some((p, pol)) = stack.pop() {
+            match &self.nodes[p.0 as usize] {
+                Node::True if pol => {}
+                Node::False if !pol => {}
+                Node::Lit(v, c) => lits.push((*v, *c, pol)),
+                Node::And(a, b) if pol => {
+                    stack.push((*a, true));
+                    stack.push((*b, true));
+                }
+                Node::Not(inner) => stack.push((*inner, !pol)),
+                _ => return None,
+            }
+        }
+        lits.sort_unstable();
+        lits.dedup();
+        Some(lits.into_boxed_slice())
+    }
+
+    /// Whether a literal set from [`Self::conj_lits`] contradicts itself: a
+    /// variable pinned to two values, pinned to and away from the same value,
+    /// or ruled out of every value it has.
+    pub fn conj_is_unsat(&self, lits: &[(VarId, u32, bool)]) -> bool {
+        let mut i = 0;
+        while i < lits.len() {
+            let var = lits[i].0;
+            let end = lits[i..].iter().take_while(|l| l.0 == var).count() + i;
+            let group = &lits[i..end];
+            i = end;
+
+            let positives: Vec<u32> = group.iter().filter(|l| l.2).map(|l| l.1).collect();
+            let negatives: Vec<u32> = group.iter().filter(|l| !l.2).map(|l| l.1).collect();
+
+            if positives.len() > 1 {
+                return true; // two different required values
+            }
+            if let [only] = positives[..] {
+                if negatives.contains(&only) {
+                    return true; // required and forbidden
+                }
+            } else if negatives.len() >= self.vars[var.0 as usize].choices.len() {
+                return true; // every value forbidden
+            }
+        }
+        false
+    }
+
     pub fn vars(&self) -> &[Var] {
         &self.vars
     }
