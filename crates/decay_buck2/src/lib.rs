@@ -552,9 +552,13 @@ fn render_target<S: Solver>(
                 if !a.headers.is_empty() {
                     attrs.push((
                         "exported_headers",
-                        selects.render_dict(logic, &a.headers, cond, 1, |s| {
-                            (include_path(graph, s, &roots), source(graph, s))
-                        }),
+                        selects.render_dict(
+                            logic,
+                            &header_aliases(graph, &a.headers, &roots),
+                            cond,
+                            1,
+                            |(key, s)| (key.clone(), source(graph, s)),
+                        ),
                     ));
                 }
             } else {
@@ -564,9 +568,13 @@ fn render_target<S: Solver>(
             if !private.is_empty() {
                 attrs.push((
                     "headers",
-                    selects.render_dict(logic, &private, cond, 1, |s| {
-                        (include_path(graph, s, &roots), source(graph, s))
-                    }),
+                    selects.render_dict(
+                        logic,
+                        &header_aliases(graph, &private, &roots),
+                        cond,
+                        1,
+                        |(key, s)| (key.clone(), source(graph, s)),
+                    ),
                 ));
             }
 
@@ -928,15 +936,47 @@ fn logical_path(graph: &Graph, source: &Source) -> PathBuf {
     }
 }
 
-/// The path an `#include` would name this header by.
-fn include_path(graph: &Graph, source: &Source, roots: &[PathBuf]) -> String {
+/// Every path an `#include` could name this header by.
+///
+/// A header can land on more than one declared root at once, the same way
+/// meson adds every one of them as a `-I`, and different files in the same
+/// project spell the include differently: glib's own `glib/glib.h` is
+/// reached as `<glib.h>` from within `glib/` (root `glib`) and as
+/// `<glib/gversionmacros.h>` from `gobject/`, `gio/`, ... (root `""`) —
+/// true of a real, checked-in header exactly as much as a generated one. One
+/// canonical key would satisfy only one of those, so a header is registered
+/// under every spelling its target's roots produce.
+fn include_paths(graph: &Graph, source: &Source, roots: &[PathBuf]) -> Vec<String> {
     let path = logical_path(graph, source);
+    let mut out: Vec<String> = Vec::new();
     for root in roots {
         if let Ok(rest) = path.strip_prefix(root) {
-            return rest.display().to_string();
+            let key = rest.display().to_string();
+            if !out.contains(&key) {
+                out.push(key);
+            }
         }
     }
-    path.display().to_string()
+    if out.is_empty() {
+        out.push(path.display().to_string());
+    }
+    out
+}
+
+/// Expand each header into one dict entry per spelling [`include_paths`]
+/// finds for it, all pointing at the same underlying source.
+fn header_aliases(
+    graph: &Graph,
+    sources: &Variational<Source>,
+    roots: &[PathBuf],
+) -> Variational<(String, Source)> {
+    let mut out = Variational::empty();
+    for entry in sources {
+        for key in include_paths(graph, &entry.value, roots) {
+            out.push(Variant::new(entry.cond, (key, entry.value.clone())));
+        }
+    }
+    out
 }
 
 /// Whether a `configure_file()` produced something a compiler will include.
