@@ -146,3 +146,5 @@ options.includedir = "include"
 options.buildtype = "release"
 options.optimization = "3"
 options.default_library = "shared"
+# options.glib_debug = "disabled" # TODO: This does not work, it should.
+options.multiarch = false

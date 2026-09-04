@@ -4,14 +4,6 @@
 # chosen. Set them on a platform to configure this project. Options
 # meson provides to every project live alongside, one directory up.
 
-# build option `option:multiarch`: Install some helper executables in per-architecture locations
-constraint(
-    name = "multiarch",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # build option `option:glib_debug`: Enable GLib debug infrastructure (distros typically want this disabled in production; see docs/macros.md)
 constraint(
     name = "glib_debug",

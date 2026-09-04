@@ -3099,6 +3099,7 @@ _cflags_compiler_os_glib_debug2 = select({
     "-D_GNU_SOURCE",
     "-fno-strict-aliasing",
     "-DG_LOG_DOMAIN=\"GLib-GIO\"",
+    "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
     "-DGIO_MODULE_DIR=\"/usr/local/lib/gio/modules\"",
     "-DLOCALSTATEDIR=\"/usr/local/var\"",
 ] + select({
@@ -3190,13 +3191,6 @@ _cflags_compiler_os_glib_debug2 = select({
         "-Werror=missing-include-dirs",
         "-Werror=pointer-arith",
         "-Werror=unused-result",
-    ],
-}) + select({
-    "//third-party/meson/glib/constraints:multiarch[true]": [
-        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/lib/glib-2.0/gio-launch-desktop\"",
-    ],
-    "//third-party/meson/glib/constraints:multiarch[false]": [
-        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
     ],
 })
 _ldflags = select({
@@ -3936,6 +3930,7 @@ _cflags_compiler_os_glib_debug3 = select({
     "-D_GNU_SOURCE",
     "-fno-strict-aliasing",
     "-DG_LOG_DOMAIN=\"GLib-GIO\"",
+    "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
     "-DGIO_MODULE_DIR=\"/usr/local/lib/gio/modules\"",
     "-DLOCALSTATEDIR=\"/usr/local/var\"",
     "-DGIO_COMPILATION",
@@ -4043,13 +4038,6 @@ _cflags_compiler_os_glib_debug3 = select({
         ],
     }),
     "DEFAULT": [],
-}) + select({
-    "//third-party/meson/glib/constraints:multiarch[true]": [
-        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/lib/glib-2.0/gio-launch-desktop\"",
-    ],
-    "//third-party/meson/glib/constraints:multiarch[false]": [
-        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
-    ],
 })
 _cflags_compiler_os_glib_debug4 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
@@ -4062,6 +4050,7 @@ _cflags_compiler_os_glib_debug4 = select({
     "-D_GNU_SOURCE",
     "-fno-strict-aliasing",
     "-DG_LOG_DOMAIN=\"GLib-GIO\"",
+    "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
     "-DGIO_MODULE_DIR=\"/usr/local/lib/gio/modules\"",
     "-DLOCALSTATEDIR=\"/usr/local/var\"",
 ] + select({
@@ -4168,13 +4157,6 @@ _cflags_compiler_os_glib_debug4 = select({
         ],
     }),
     "DEFAULT": [],
-}) + select({
-    "//third-party/meson/glib/constraints:multiarch[true]": [
-        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/lib/glib-2.0/gio-launch-desktop\"",
-    ],
-    "//third-party/meson/glib/constraints:multiarch[false]": [
-        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
-    ],
 })
 _deps_os = [
     ":glib-dep-12",
@@ -16116,10 +16098,12 @@ cxx_library(
         "-D_GNU_SOURCE",
         "-fno-strict-aliasing",
         "-DG_LOG_DOMAIN=\"GLib-GIO\"",
+        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
         "-DGIO_MODULE_DIR=\"/usr/local/lib/gio/modules\"",
         "-DLOCALSTATEDIR=\"/usr/local/var\"",
         "-DGIO_COMPILATION",
         "-DG_LOG_DOMAIN=\"GLib-GIO\"",
+        "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
         "-DGIO_MODULE_DIR=\"/usr/local/lib/gio/modules\"",
         "-DLOCALSTATEDIR=\"/usr/local/var\"",
         "-DGIO_COMPILATION",
@@ -16227,15 +16211,6 @@ cxx_library(
             ],
         }),
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/glib/constraints:multiarch[true]": [
-            "-DGIO_LAUNCH_DESKTOP=\"/usr/local/lib/glib-2.0/gio-launch-desktop\"",
-            "-DGIO_LAUNCH_DESKTOP=\"/usr/local/lib/glib-2.0/gio-launch-desktop\"",
-        ],
-        "//third-party/meson/glib/constraints:multiarch[false]": [
-            "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
-            "-DGIO_LAUNCH_DESKTOP=\"/usr/local/libexec/gio-launch-desktop\"",
-        ],
     }),
     exported_linker_flags = select({
         "//third-party/meson/constraints:compiler[msvc]": [
