@@ -72,3 +72,15 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   for any project that builds dict keys with `.format()` / concatenation.
   `example/decay.toml` pins `options.tests = false` for glib to avoid it
   for now.
+
+- **`declare_dependency(sources: [...])` with compilable sources.** decay
+  routes every `sources:` entry into the interface target's `headers`
+  (`fn_declare_dependency` in `decay_meson_eval/src/builtins.rs`), and
+  `decay_buck2` emits a `Kind::Interface` target with no `srcs` — so a
+  "copylib" like gvdb (`declare_dependency(sources: ['gvdb-builder.c',
+  'gvdb-reader.c'], ...)`) comes out as an empty `cxx_library` with the
+  `.c` files listed under `exported_headers`, and a consumer never compiles
+  them. The fix is to split `sources:` into real headers vs. compiled
+  sources and emit the latter as `srcs` on a compiled library (or fold
+  them into each consumer). Visible today in
+  `example/third-party/meson/gvdb/BUCK`.
