@@ -168,3 +168,33 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   looked-up name equals the project's `short_name`. A wrap whose
   `[provide] dependency_names` differs from the directory name, or a project
   with several root `declare_dependency()` calls, would not resolve.
+
+- **An unanswered probe defaults to `true`.** `probe_var()`
+  (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
+  hardcoded `default = 0` ("true"), reasoning that "a compiler capability ...
+  is what a working toolchain normally reports." That is right for most
+  `cc.has_argument()`/`cc.compiles()` checks, but wrong for one that is
+  really a *kernel/libc vintage* question with no constraint decay tracks:
+  glib's `HAVE_FUTEX_TIME64` (`cc.compiles(..., name: 'futex_time64(2)
+  system call')`) defaults to present and fails to compile
+  (`gthreadprivate.h`'s `__NR_futex_time64` branch) on any host whose
+  `<sys/syscall.h>` predates it — this one can't be tied to `[systems]` or
+  any other existing constraint the way `has_header:crt_externs.h` (now
+  answered via the `darwin` system) can, because real Linux systems
+  genuinely disagree on it. Fixing it means either running the real
+  compiler against the probe at import time (a bigger change to the
+  "importer never shells out to `cc`" design) or letting `decay.toml`
+  override just the default half of a `[probes]` entry, independent of
+  fixing/tying it. Until then, building a project with such a probe needs an
+  explicit `-c` override for the affected constraint.
+
+- **`custom_target(capture: true)` is silently ignored.** Meson redirects
+  the command's stdout into the declared `output:` when `capture: true` is
+  set (glib's `glib_enumtypes_c`/`glib_enumtypes_h`, built by piping
+  `glib-mkenums` through it). Nothing in `decay_meson_eval` reads `capture:`
+  at all, and `decay_buck2`'s `cmd` for a `Kind::Custom` target never
+  appends `> $OUT`, so the generated `genrule` runs the tool and then fails
+  with "the path `<output>` does not exist in the artifact." Needs a
+  `capture: bool` on the custom-target `Attrs`, set where `custom_target()`
+  is parsed, and `> $OUT` appended in `decay_buck2`'s command-rendering when
+  it is set.
