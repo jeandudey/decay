@@ -121,6 +121,8 @@ zlib = "//third-party/system:Z"
 repo = "https://github.com/anholt/libepoxy"
 rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973" # 1.5.10
 options.buildtype = "release"
+options.optimization = "3"
+options.default_library = "shared"
 
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/gvdb.git"
@@ -128,6 +130,8 @@ rev = "2b42fc75f09dbe1cd1057580b5782b08f2dcb400"
 # dependency cycle with glib-2.0
 options.tests = false
 options.buildtype = "release"
+options.optimization = "3"
+options.default_library = "both"
 
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/glib.git"
@@ -140,3 +144,5 @@ options.libdir = "lib"
 options.datadir = "share"
 options.includedir = "include"
 options.buildtype = "release"
+options.optimization = "3"
+options.default_library = "shared"

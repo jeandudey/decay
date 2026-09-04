@@ -481,26 +481,8 @@ genrule(
         "//third-party/meson/libepoxy/constraints:x11[true]": " '#define ENABLE_X11 1'",
         "//third-party/meson/libepoxy/constraints:x11[false]": " '#define ENABLE_X11 0'",
     }) + select({
-        "//third-party/meson/constraints:default_library[shared]": select({
-            "prelude//os/constraints:os[windows]": " '#define DLL_EXPORT'",
-            "DEFAULT": "",
-        }),
-        "//third-party/meson/constraints:default_library[static]": "",
-        "//third-party/meson/constraints:default_library[both]": "",
-    }) + select({
-        "//third-party/meson/constraints:default_library[shared]": select({
-            "prelude//os/constraints:os[windows]": "",
-            "DEFAULT": " '#define EPOXY_PUBLIC __attribute__((visibility(\"default\"))) extern'",
-        }),
-        "//third-party/meson/constraints:default_library[static]": "",
-        "//third-party/meson/constraints:default_library[both]": "",
-    }) + select({
-        "//third-party/meson/constraints:default_library[shared]": select({
-            "prelude//os/constraints:os[windows]": " '#define EPOXY_PUBLIC __declspec(dllexport) extern'",
-            "DEFAULT": "",
-        }),
-        "//third-party/meson/constraints:default_library[static]": "",
-        "//third-party/meson/constraints:default_library[both]": "",
+        "prelude//os/constraints:os[windows]": " '#define DLL_EXPORT' '#define EPOXY_PUBLIC __declspec(dllexport) extern'",
+        "DEFAULT": " '#define EPOXY_PUBLIC __attribute__((visibility(\"default\"))) extern'",
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": "",
@@ -1191,26 +1173,18 @@ cxx_library(
             "-Wno-int-conversion",
         ],
     }) + select({
-        "//third-party/meson/constraints:default_library[shared]": select({
-            "prelude//os/constraints:os[windows]": select({
-                "//third-party/meson/constraints:compiler[msvc]": [],
-                "DEFAULT": [
-                    "-fvisibility=hidden",
-                ],
-            }),
-            "DEFAULT": [],
-        }),
-        "//third-party/meson/constraints:default_library[static]": [],
-        "//third-party/meson/constraints:default_library[both]": [],
-    }) + select({
-        "//third-party/meson/constraints:default_library[shared]": select({
-            "prelude//os/constraints:os[windows]": [],
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
             "DEFAULT": [
                 "-fvisibility=hidden",
             ],
         }),
-        "//third-party/meson/constraints:default_library[static]": [],
-        "//third-party/meson/constraints:default_library[both]": [],
+        "DEFAULT": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [
+            "-fvisibility=hidden",
+        ],
     }),
     exported_linker_flags = select({
         "prelude//os/constraints:os[linux]": select({
@@ -1271,11 +1245,7 @@ cxx_library(
         }),
         "//third-party/meson/libepoxy/constraints:egl[no]": [],
     }),
-    preferred_linkage = select({
-        "//third-party/meson/constraints:default_library[shared]": "shared",
-        "//third-party/meson/constraints:default_library[static]": "static",
-        "//third-party/meson/constraints:default_library[both]": "any",
-    }),
+    preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
@@ -2390,104 +2360,6 @@ cxx_binary(
 )
 
 cxx_binary(
-    name = "glx_static",
-    srcs = [
-        ":libepoxy.git[test/glx_static.c]",
-    ],
-    headers = _headers2,
-    header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [
-            "-we4002",
-            "-we4003",
-            "-w14010",
-            "-we4013",
-            "-w14016",
-            "-we4020",
-            "-we4021",
-            "-we4027",
-            "-we4029",
-            "-we4033",
-            "-we4035",
-            "-we4045",
-            "-we4047",
-            "-we4049",
-            "-we4053",
-            "-we4071",
-            "-we4819",
-            "/utf-8",
-        ],
-        "DEFAULT": [
-            "-Wpointer-arith",
-            "-Wmissing-declarations",
-            "-Wformat=2",
-            "-Wstrict-prototypes",
-            "-Wmissing-prototypes",
-            "-Wnested-externs",
-            "-Wbad-function-cast",
-            "-Wold-style-definition",
-            "-Wdeclaration-after-statement",
-            "-Wunused",
-            "-Wuninitialized",
-            "-Wshadow",
-            "-Wmissing-noreturn",
-            "-Wmissing-format-attribute",
-            "-Wredundant-decls",
-            "-Wlogical-op",
-            "-Werror=implicit",
-            "-Werror=nonnull",
-            "-Werror=init-self",
-            "-Werror=main",
-            "-Werror=missing-braces",
-            "-Werror=sequence-point",
-            "-Werror=return-type",
-            "-Werror=trigraphs",
-            "-Werror=array-bounds",
-            "-Werror=write-strings",
-            "-Werror=address",
-            "-Werror=int-to-pointer-cast",
-            "-Werror=pointer-to-int-cast",
-            "-fno-strict-aliasing",
-            "-Wno-int-conversion",
-        ],
-    }) + select({
-        "prelude//abi/constraints:abi[gnu]": [],
-        "DEFAULT": [
-            "-D_XOPEN_SOURCE",
-            "-D_POSIX_C_SOURCE=200809L",
-        ],
-    }) + [
-        "-DNEEDS_TO_BE_STATIC",
-    ],
-    linker_flags = [
-        "-static",
-    ],
-    deps = _deps_dl,
-    target_compatible_with = [
-        "//third-party/meson/libepoxy/constraints:tests[true]",
-        "//third-party/meson/libepoxy/constraints:x11[true]",
-        "//third-party/meson/constraints:x11[true]",
-        "//third-party/meson/constraints:default_library[static]",
-    ] + select({
-        "//third-party/meson/libepoxy/constraints:glx[auto]": select({
-            "prelude//os/constraints:os[freebsd]": [],
-            "prelude//os/constraints:os[fuchsia]": [],
-            "prelude//os/constraints:os[linux]": [],
-            "prelude//os/constraints:os[netbsd]": [],
-            "prelude//os/constraints:os[illumos]": [],
-            "DEFAULT": [
-                "//third-party/meson/constraints:unsatisfiable[yes]",
-            ],
-        }),
-        "//third-party/meson/libepoxy/constraints:glx[yes]": [],
-        "//third-party/meson/libepoxy/constraints:glx[no]": [
-            "//third-party/meson/constraints:unsatisfiable[yes]",
-        ],
-    }),
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
     name = "glx_shared_znow",
     srcs = [
         ":libepoxy.git[test/glx_static.c]",
@@ -2759,7 +2631,6 @@ cxx_binary(
 #   glx_public_api_core -> :glx_public_api_core
 #   glx_glxgetprocaddress_nocontext -> :glx_glxgetprocaddress_nocontext
 #   glx_has_extension_nocontext -> :glx_has_extension_nocontext
-#   glx_static -> :glx_static
 #   glx_shared_znow -> :glx_shared_znow
 #   glx_alias_prefer_same_name -> :glx_alias_prefer_same_name
 #   glx_gles2 -> :glx_gles2

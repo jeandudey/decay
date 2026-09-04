@@ -30,14 +30,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# meson build option `option:default_library`
-constraint(
-    name = "default_library",
-    values = ["shared", "static", "both"],
-    default = "shared",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `lib:dl`: `dl` is available
 constraint(
     name = "dl",
@@ -131,22 +123,6 @@ constraint(
     name = "b_vscrt",
     values = ["none", "md", "mdd", "mt", "mtd", "from_buildtype"],
     default = "from_buildtype",
-    visibility = ["PUBLIC"],
-)
-
-# meson build option `option:debug`
-constraint(
-    name = "debug",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# meson build option `option:optimization`
-constraint(
-    name = "optimization",
-    values = ["plain", "0", "g", "1", "2", "3", "s"],
-    default = "0",
     visibility = ["PUBLIC"],
 )
 

@@ -1126,7 +1126,7 @@ _headers = {
     "gio/gnetworking.h": ":gnetworking.h",
     "config.h": ":config.h",
 }
-_cflags_compiler_glib_debug_debug = select({
+_cflags_compiler_glib_debug_glib_assert = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -1139,37 +1139,15 @@ _cflags_compiler_glib_debug_debug = select({
     "-D_UNICODE",
     "-fno-strict-aliasing",
 ] + select({
-    "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-        "-DG_ENABLE_DEBUG",
-    ],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": [
         "-DG_DISABLE_CAST_CHECKS",
     ],
-    "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-        "//third-party/meson/constraints:debug[true]": select({
-            "//third-party/meson/constraints:optimization[plain]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[1]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[2]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[3]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[s]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "DEFAULT": [
-                "-DG_ENABLE_DEBUG",
-            ],
-        }),
-        "//third-party/meson/constraints:debug[false]": [
-            "-DG_DISABLE_CAST_CHECKS",
-        ],
-    }),
+    "//third-party/meson/glib/constraints:glib_debug[auto]": [
+        "-DG_DISABLE_CAST_CHECKS",
+    ],
+    "DEFAULT": [
+        "-DG_ENABLE_DEBUG",
+    ],
 }) + select({
     "//third-party/meson/glib/constraints:glib_assert[true]": [],
     "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -1251,7 +1229,10 @@ _cflags_compiler_glib_debug_debug = select({
         "-mms-bitfields",
     ],
 })
-_needs_os = select({
+_needs_os = [
+    "prelude//os/constraints:os[windows]",
+]
+_needs_os2 = select({
     "prelude//os/constraints:os[windows]": [
         "//third-party/meson/constraints:unsatisfiable[yes]",
     ],
@@ -1285,15 +1266,6 @@ _needs_os_compiler_run_C99_vsnprintf = select({
         }),
         "//third-party/meson/constraints:run_C99_vsnprintf[false]": [],
     }),
-})
-_needs_os_default_library = [
-    "prelude//os/constraints:os[windows]",
-] + select({
-    "//third-party/meson/constraints:default_library[shared]": [],
-    "//third-party/meson/constraints:default_library[static]": [
-        "//third-party/meson/constraints:unsatisfiable[yes]",
-    ],
-    "//third-party/meson/constraints:default_library[both]": [],
 })
 _headers2 = {
     "glib/glibconfig.h": ":glibconfig.h",
@@ -1451,11 +1423,6 @@ _deps_os_compiler_run_C99_vsnprintf = [
         ],
         "//third-party/meson/constraints:threads[false]": [],
     }),
-})
-_preferred_linkage = select({
-    "//third-party/meson/constraints:default_library[shared]": "shared",
-    "//third-party/meson/constraints:default_library[static]": "static",
-    "//third-party/meson/constraints:default_library[both]": "any",
 })
 _headers3 = {
     "glib/gversionmacros.h": ":custom_target",
@@ -2871,7 +2838,7 @@ _deps = [
     ":glib-dep-5",
     ":glib-dep",
 ]
-_cflags_compiler_glib_debug_debug2 = select({
+_cflags_compiler_glib_debug_glib_assert2 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -2885,37 +2852,15 @@ _cflags_compiler_glib_debug_debug2 = select({
     "-fno-strict-aliasing",
     "-DHELPER_CONSOLE",
 ] + select({
-    "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-        "-DG_ENABLE_DEBUG",
-    ],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": [
         "-DG_DISABLE_CAST_CHECKS",
     ],
-    "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-        "//third-party/meson/constraints:debug[true]": select({
-            "//third-party/meson/constraints:optimization[plain]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[1]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[2]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[3]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[s]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "DEFAULT": [
-                "-DG_ENABLE_DEBUG",
-            ],
-        }),
-        "//third-party/meson/constraints:debug[false]": [
-            "-DG_DISABLE_CAST_CHECKS",
-        ],
-    }),
+    "//third-party/meson/glib/constraints:glib_debug[auto]": [
+        "-DG_DISABLE_CAST_CHECKS",
+    ],
+    "DEFAULT": [
+        "-DG_ENABLE_DEBUG",
+    ],
 }) + select({
     "//third-party/meson/glib/constraints:glib_assert[true]": [],
     "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -3050,37 +2995,15 @@ _cflags_compiler_os_glib_debug = select({
     ],
     "DEFAULT": [],
 }) + select({
-    "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-        "-DG_ENABLE_DEBUG",
-    ],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": [
         "-DG_DISABLE_CAST_CHECKS",
     ],
-    "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-        "//third-party/meson/constraints:debug[true]": select({
-            "//third-party/meson/constraints:optimization[plain]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[1]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[2]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[3]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[s]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "DEFAULT": [
-                "-DG_ENABLE_DEBUG",
-            ],
-        }),
-        "//third-party/meson/constraints:debug[false]": [
-            "-DG_DISABLE_CAST_CHECKS",
-        ],
-    }),
+    "//third-party/meson/glib/constraints:glib_debug[auto]": [
+        "-DG_DISABLE_CAST_CHECKS",
+    ],
+    "DEFAULT": [
+        "-DG_ENABLE_DEBUG",
+    ],
 }) + select({
     "//third-party/meson/glib/constraints:glib_assert[true]": [],
     "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -3184,37 +3107,15 @@ _cflags_compiler_os_glib_debug2 = select({
     ],
     "DEFAULT": [],
 }) + select({
-    "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-        "-DG_ENABLE_DEBUG",
-    ],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": [
         "-DG_DISABLE_CAST_CHECKS",
     ],
-    "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-        "//third-party/meson/constraints:debug[true]": select({
-            "//third-party/meson/constraints:optimization[plain]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[1]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[2]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[3]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[s]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "DEFAULT": [
-                "-DG_ENABLE_DEBUG",
-            ],
-        }),
-        "//third-party/meson/constraints:debug[false]": [
-            "-DG_DISABLE_CAST_CHECKS",
-        ],
-    }),
+    "//third-party/meson/glib/constraints:glib_debug[auto]": [
+        "-DG_DISABLE_CAST_CHECKS",
+    ],
+    "DEFAULT": [
+        "-DG_ENABLE_DEBUG",
+    ],
 }) + select({
     "//third-party/meson/glib/constraints:glib_assert[true]": [],
     "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -4050,37 +3951,15 @@ _cflags_compiler_os_glib_debug3 = select({
     ],
     "DEFAULT": [],
 }) + select({
-    "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-        "-DG_ENABLE_DEBUG",
-    ],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": [
         "-DG_DISABLE_CAST_CHECKS",
     ],
-    "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-        "//third-party/meson/constraints:debug[true]": select({
-            "//third-party/meson/constraints:optimization[plain]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[1]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[2]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[3]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[s]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "DEFAULT": [
-                "-DG_ENABLE_DEBUG",
-            ],
-        }),
-        "//third-party/meson/constraints:debug[false]": [
-            "-DG_DISABLE_CAST_CHECKS",
-        ],
-    }),
+    "//third-party/meson/glib/constraints:glib_debug[auto]": [
+        "-DG_DISABLE_CAST_CHECKS",
+    ],
+    "DEFAULT": [
+        "-DG_ENABLE_DEBUG",
+    ],
 }) + select({
     "//third-party/meson/glib/constraints:glib_assert[true]": [],
     "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -4197,37 +4076,15 @@ _cflags_compiler_os_glib_debug4 = select({
     ],
     "DEFAULT": [],
 }) + select({
-    "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-        "-DG_ENABLE_DEBUG",
-    ],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": [
         "-DG_DISABLE_CAST_CHECKS",
     ],
-    "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-        "//third-party/meson/constraints:debug[true]": select({
-            "//third-party/meson/constraints:optimization[plain]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[1]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[2]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[3]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[s]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "DEFAULT": [
-                "-DG_ENABLE_DEBUG",
-            ],
-        }),
-        "//third-party/meson/constraints:debug[false]": [
-            "-DG_DISABLE_CAST_CHECKS",
-        ],
-    }),
+    "//third-party/meson/glib/constraints:glib_debug[auto]": [
+        "-DG_DISABLE_CAST_CHECKS",
+    ],
+    "DEFAULT": [
+        "-DG_ENABLE_DEBUG",
+    ],
 }) + select({
     "//third-party/meson/glib/constraints:glib_assert[true]": [],
     "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -5087,37 +4944,15 @@ _cflags_compiler_os_glib_debug5 = select({
     ],
     "DEFAULT": [],
 }) + select({
-    "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-        "-DG_ENABLE_DEBUG",
-    ],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": [
         "-DG_DISABLE_CAST_CHECKS",
     ],
-    "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-        "//third-party/meson/constraints:debug[true]": select({
-            "//third-party/meson/constraints:optimization[plain]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[1]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[2]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[3]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "//third-party/meson/constraints:optimization[s]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-            "DEFAULT": [
-                "-DG_ENABLE_DEBUG",
-            ],
-        }),
-        "//third-party/meson/constraints:debug[false]": [
-            "-DG_DISABLE_CAST_CHECKS",
-        ],
-    }),
+    "//third-party/meson/glib/constraints:glib_debug[auto]": [
+        "-DG_DISABLE_CAST_CHECKS",
+    ],
+    "DEFAULT": [
+        "-DG_ENABLE_DEBUG",
+    ],
 }) + select({
     "//third-party/meson/glib/constraints:glib_assert[true]": [],
     "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -5994,11 +5829,9 @@ cxx_library(
     },
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_debug,
+    compiler_flags = _cflags_compiler_glib_debug_glib_assert,
     preferred_linkage = "static",
-    target_compatible_with = [
-        "prelude//os/constraints:os[windows]",
-    ],
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -6013,9 +5846,7 @@ cxx_library(
     exported_deps = [
         ":os-profile-app-static-lib",
     ],
-    target_compatible_with = [
-        "prelude//os/constraints:os[windows]",
-    ],
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -6031,9 +5862,7 @@ cxx_library(
     exported_deps = [
         ":os-profile-app-static-lib",
     ],
-    target_compatible_with = [
-        "prelude//os/constraints:os[windows]",
-    ],
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -6042,7 +5871,7 @@ cxx_library(
     name = "glib-dep-3",
     headers = _headers,
     header_namespace = "",
-    target_compatible_with = _needs_os,
+    target_compatible_with = _needs_os2,
     visibility = ["PUBLIC"],
 )
 
@@ -6051,7 +5880,7 @@ cxx_library(
     name = "glib-dep-4",
     headers = _headers,
     header_namespace = "",
-    target_compatible_with = _needs_os,
+    target_compatible_with = _needs_os2,
     visibility = ["PUBLIC"],
 )
 
@@ -6059,10 +5888,6 @@ genrule(
     name = "glibconfig.h",
     out = "glibconfig.h",
     cmd = "sed" + " -e ''" + " '-es|@LT_CURRENT_MINUS_AGE@|0|g' '-es|@gint16@|short|g' '-es|@gint16_modifier@|h|g' '-es|@gint16_format@|hi|g' '-es|@guint16_format@|hu|g' '-es|@gint32@|int|g' '-es|@gint32_modifier@||g' '-es|@gint32_format@|i|g' '-es|@guint32_format@|u|g' '-es|@gintbits@|32|g' '-es|@GLIB_MAJOR_VERSION@|2|g' '-es|@GLIB_MINOR_VERSION@|88|g' '-es|@GLIB_MICRO_VERSION@|3|g' '-es|@GLIB_VERSION@|2.88.3|g' '-es|@g_pollin@|1|g' '-es|@g_pollout@|4|g' '-es|@g_pollpri@|2|g' '-es|@g_pollerr@|8|g' '-es|@g_pollhup@|16|g' '-es|@g_pollnval@|32|g' '-es|@g_af_unix@|1|g' '-es|@g_af_inet@|2|g' '-es|@g_af_inet6@|30|g' '-es|@g_msg_oob@|1|g' '-es|@g_msg_peek@|2|g' '-es|@g_msg_dontroute@|4|g'" + select({
-        "//third-party/meson/constraints:default_library[shared]": "",
-        "//third-party/meson/constraints:default_library[static]": " '-es|@GLIB_STATIC_COMPILATION@|1|g' '-es|@GOBJECT_STATIC_COMPILATION@|1|g' '-es|@GIO_STATIC_COMPILATION@|1|g' '-es|@GMODULE_STATIC_COMPILATION@|1|g' '-es|@GI_STATIC_COMPILATION@|1|g' '-es|@G_INTL_STATIC_COMPILATION@|1|g' '-es|@FFI_STATIC_BUILD@|1|g'",
-        "//third-party/meson/constraints:default_library[both]": "",
-    }) + select({
         "prelude//os/constraints:os[windows]": " '-es|@glib_os@|#define G_OS_WIN32\n#define G_PLATFORM_WIN32|g' '-es|@g_pid_type@|void*|g' '-es|@g_pid_format@|p|g' '-es|@g_dir_separator@|\\\\|g' '-es|@g_searchpath_separator@|;|g' '-es|@g_module_suffix@|dll|g'",
         "DEFAULT": " '-es|@glib_os@|#define G_OS_UNIX|g' '-es|@g_pid_type@|int|g' '-es|@g_pid_format@|i|g' '-es|@g_pollfd_format@|%d|g' '-es|@g_dir_separator@|/|g' '-es|@g_searchpath_separator@|:|g' '-es|@g_module_suffix@|so|g'",
     }) + select({
@@ -6191,10 +6016,6 @@ genrule(
         "//third-party/meson/constraints:run_stack_grows_check[true]": " '-es|@G_HAVE_GROWING_STACK@|1|g'",
         "//third-party/meson/constraints:run_stack_grows_check[false]": " '-es|@G_HAVE_GROWING_STACK@|0|g'",
     }) + " '-es|^#mesondefine[[:space:]]\\+LT_CURRENT_MINUS_AGE\\>.*|#define LT_CURRENT_MINUS_AGE 0|' '-es|^#mesondefine[[:space:]]\\+gint16\\>.*|#define gint16 short|' '-es|^#mesondefine[[:space:]]\\+gint16_modifier\\>.*|#define gint16_modifier \"h\"|' '-es|^#mesondefine[[:space:]]\\+gint16_format\\>.*|#define gint16_format \"hi\"|' '-es|^#mesondefine[[:space:]]\\+guint16_format\\>.*|#define guint16_format \"hu\"|' '-es|^#mesondefine[[:space:]]\\+gint32\\>.*|#define gint32 int|' '-es|^#mesondefine[[:space:]]\\+gint32_modifier\\>.*|#define gint32_modifier \"\"|' '-es|^#mesondefine[[:space:]]\\+gint32_format\\>.*|#define gint32_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+guint32_format\\>.*|#define guint32_format \"u\"|' '-es|^#mesondefine[[:space:]]\\+gintbits\\>.*|#define gintbits 32|' '-es|^#mesondefine[[:space:]]\\+GLIB_MAJOR_VERSION\\>.*|#define GLIB_MAJOR_VERSION 2|' '-es|^#mesondefine[[:space:]]\\+GLIB_MINOR_VERSION\\>.*|#define GLIB_MINOR_VERSION 88|' '-es|^#mesondefine[[:space:]]\\+GLIB_MICRO_VERSION\\>.*|#define GLIB_MICRO_VERSION 3|' '-es|^#mesondefine[[:space:]]\\+GLIB_VERSION\\>.*|#define GLIB_VERSION 2.88.3|' '-es|^#mesondefine[[:space:]]\\+g_pollin\\>.*|#define g_pollin 1|' '-es|^#mesondefine[[:space:]]\\+g_pollout\\>.*|#define g_pollout 4|' '-es|^#mesondefine[[:space:]]\\+g_pollpri\\>.*|#define g_pollpri 2|' '-es|^#mesondefine[[:space:]]\\+g_pollerr\\>.*|#define g_pollerr 8|' '-es|^#mesondefine[[:space:]]\\+g_pollhup\\>.*|#define g_pollhup 16|' '-es|^#mesondefine[[:space:]]\\+g_pollnval\\>.*|#define g_pollnval 32|' '-es|^#mesondefine[[:space:]]\\+g_af_unix\\>.*|#define g_af_unix 1|' '-es|^#mesondefine[[:space:]]\\+g_af_inet\\>.*|#define g_af_inet 2|' '-es|^#mesondefine[[:space:]]\\+g_af_inet6\\>.*|#define g_af_inet6 30|' '-es|^#mesondefine[[:space:]]\\+g_msg_oob\\>.*|#define g_msg_oob 1|' '-es|^#mesondefine[[:space:]]\\+g_msg_peek\\>.*|#define g_msg_peek 2|' '-es|^#mesondefine[[:space:]]\\+g_msg_dontroute\\>.*|#define g_msg_dontroute 4|'" + select({
-        "//third-party/meson/constraints:default_library[shared]": "",
-        "//third-party/meson/constraints:default_library[static]": " '-es|^#mesondefine[[:space:]]\\+GLIB_STATIC_COMPILATION\\>.*|#define GLIB_STATIC_COMPILATION 1|' '-es|^#mesondefine[[:space:]]\\+GOBJECT_STATIC_COMPILATION\\>.*|#define GOBJECT_STATIC_COMPILATION 1|' '-es|^#mesondefine[[:space:]]\\+GIO_STATIC_COMPILATION\\>.*|#define GIO_STATIC_COMPILATION 1|' '-es|^#mesondefine[[:space:]]\\+GMODULE_STATIC_COMPILATION\\>.*|#define GMODULE_STATIC_COMPILATION 1|' '-es|^#mesondefine[[:space:]]\\+GI_STATIC_COMPILATION\\>.*|#define GI_STATIC_COMPILATION 1|' '-es|^#mesondefine[[:space:]]\\+G_INTL_STATIC_COMPILATION\\>.*|#define G_INTL_STATIC_COMPILATION 1|' '-es|^#mesondefine[[:space:]]\\+FFI_STATIC_BUILD\\>.*|#define FFI_STATIC_BUILD 1|'",
-        "//third-party/meson/constraints:default_library[both]": "",
-    }) + select({
         "prelude//os/constraints:os[windows]": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_WIN32\n#define G_PLATFORM_WIN32|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type void*|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"p\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator \\\\|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator ;|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix dll|'",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_UNIX|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type int|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+g_pollfd_format\\>.*|#define g_pollfd_format \"%d\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator /|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator :|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix so|'",
     }) + select({
@@ -6322,10 +6143,6 @@ genrule(
     }) + select({
         "//third-party/meson/constraints:run_stack_grows_check[true]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_GROWING_STACK\\>.*|#define G_HAVE_GROWING_STACK 1|'",
         "//third-party/meson/constraints:run_stack_grows_check[false]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_GROWING_STACK\\>.*|#define G_HAVE_GROWING_STACK 0|'",
-    }) + select({
-        "//third-party/meson/constraints:default_library[shared]": " '-es|^#mesondefine[[:space:]]\\+FFI_STATIC_BUILD\\>.*|/* #undef FFI_STATIC_BUILD */|' '-es|^#mesondefine[[:space:]]\\+GIO_STATIC_COMPILATION\\>.*|/* #undef GIO_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GI_STATIC_COMPILATION\\>.*|/* #undef GI_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GLIB_STATIC_COMPILATION\\>.*|/* #undef GLIB_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GMODULE_STATIC_COMPILATION\\>.*|/* #undef GMODULE_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GOBJECT_STATIC_COMPILATION\\>.*|/* #undef GOBJECT_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+G_INTL_STATIC_COMPILATION\\>.*|/* #undef G_INTL_STATIC_COMPILATION */|'",
-        "//third-party/meson/constraints:default_library[static]": "",
-        "//third-party/meson/constraints:default_library[both]": " '-es|^#mesondefine[[:space:]]\\+FFI_STATIC_BUILD\\>.*|/* #undef FFI_STATIC_BUILD */|' '-es|^#mesondefine[[:space:]]\\+GIO_STATIC_COMPILATION\\>.*|/* #undef GIO_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GI_STATIC_COMPILATION\\>.*|/* #undef GI_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GLIB_STATIC_COMPILATION\\>.*|/* #undef GLIB_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GMODULE_STATIC_COMPILATION\\>.*|/* #undef GMODULE_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+GOBJECT_STATIC_COMPILATION\\>.*|/* #undef GOBJECT_STATIC_COMPILATION */|' '-es|^#mesondefine[[:space:]]\\+G_INTL_STATIC_COMPILATION\\>.*|/* #undef G_INTL_STATIC_COMPILATION */|'",
     }) + select({
         "//third-party/meson/constraints:has_header_alloca_h[true]": "",
         "//third-party/meson/constraints:has_header_alloca_h[false]": " '-es|^#mesondefine[[:space:]]\\+GLIB_HAVE_ALLOCA_H\\>.*|/* #undef GLIB_HAVE_ALLOCA_H */|'",
@@ -6932,37 +6749,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -7979,37 +7774,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -8135,7 +7908,7 @@ genrule(
     name = "glib.rc",
     out = "glib.rc",
     cmd = "sed" + " -e ''" + " $(location :glib.git[build-aux/win32/lib.rc.in]) > $OUT",
-    target_compatible_with = _needs_os_default_library,
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -8244,15 +8017,8 @@ cxx_library(
         ":glib.git[glib/gprint.c]",
         ":glib.git[glib/gprintf.c]",
     ] + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:default_library[static]": [],
-            "DEFAULT": [
-                ":glib.rc",
-            ],
-        }),
-        "DEFAULT": [],
-    }) + select({
         "prelude//os/constraints:os[windows]": [
+            ":glib.rc",
             ":glib.git[glib/gwin32.c]",
             ":glib.git[glib/gspawn-win32.c]",
             ":glib.git[glib/giowin32.c]",
@@ -9013,37 +8779,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -9213,7 +8957,7 @@ cxx_library(
         "DEFAULT": [],
     }),
     deps = _deps_os_compiler_run_C99_vsnprintf,
-    preferred_linkage = _preferred_linkage,
+    preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
@@ -9248,7 +8992,7 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_debug,
+    compiler_flags = _cflags_compiler_glib_debug_glib_assert,
     deps = _deps,
     target_compatible_with = [
         "prelude//os/constraints:os[windows]",
@@ -9262,7 +9006,7 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_debug2,
+    compiler_flags = _cflags_compiler_glib_debug_glib_assert2,
     deps = _deps,
     target_compatible_with = [
         "prelude//os/constraints:os[windows]",
@@ -9276,7 +9020,7 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_debug,
+    compiler_flags = _cflags_compiler_glib_debug_glib_assert,
     deps = _deps,
     target_compatible_with = _needs_os_cpu_family,
     visibility = ["PUBLIC"],
@@ -9287,7 +9031,7 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_debug2,
+    compiler_flags = _cflags_compiler_glib_debug_glib_assert2,
     deps = _deps,
     target_compatible_with = _needs_os_cpu_family,
     visibility = ["PUBLIC"],
@@ -9317,37 +9061,15 @@ cxx_binary(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -9428,7 +9150,7 @@ cxx_binary(
         ":glib-dep-5",
         ":glib-dep-3",
     ],
-    target_compatible_with = _needs_os,
+    target_compatible_with = _needs_os2,
     visibility = ["PUBLIC"],
 )
 
@@ -9458,7 +9180,7 @@ genrule(
     name = "gobject.rc",
     out = "gobject.rc",
     cmd = "sed" + " -e ''" + " $(location :glib.git[build-aux/win32/lib.rc.in]) > $OUT",
-    target_compatible_with = _needs_os_default_library,
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -9515,12 +9237,9 @@ cxx_library(
         ":glib.git[gobject/gvaluetransform.c]",
         ":glib.git[gobject/gvaluetypes.c]",
     ] + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:default_library[static]": [],
-            "DEFAULT": [
-                ":gobject.rc",
-            ],
-        }),
+        "prelude//os/constraints:os[windows]": [
+            ":gobject.rc",
+        ],
         "DEFAULT": [],
     }),
     exported_headers = {
@@ -10129,37 +9848,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -10249,7 +9946,7 @@ cxx_library(
         ":libffi",
         ":glib-dep-5",
     ],
-    preferred_linkage = _preferred_linkage,
+    preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
@@ -10328,7 +10025,7 @@ genrule(
     name = "gthread.rc",
     out = "gthread.rc",
     cmd = "sed" + " -e ''" + " $(location :glib.git[build-aux/win32/lib.rc.in]) > $OUT",
-    target_compatible_with = _needs_os_default_library,
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -10337,12 +10034,9 @@ cxx_library(
     srcs = [
         ":glib.git[gthread/gthread-impl.c]",
     ] + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:default_library[static]": [],
-            "DEFAULT": [
-                ":gthread.rc",
-            ],
-        }),
+        "prelude//os/constraints:os[windows]": [
+            ":gthread.rc",
+        ],
         "DEFAULT": [],
     }),
     headers = _headers,
@@ -10373,37 +10067,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -10492,7 +10164,7 @@ cxx_library(
     deps = [
         ":glib-dep-5",
     ],
-    preferred_linkage = _preferred_linkage,
+    preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
@@ -10658,7 +10330,7 @@ genrule(
     name = "gmodule.rc",
     out = "gmodule.rc",
     cmd = "sed" + " -e ''" + " $(location :glib.git[build-aux/win32/lib.rc.in]) > $OUT",
-    target_compatible_with = _needs_os_default_library,
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -10668,12 +10340,9 @@ cxx_library(
         ":glib.git[gmodule/gmodule.c]",
         ":glib.git[gmodule/gmodule-deprecated.c]",
     ] + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:default_library[static]": [],
-            "DEFAULT": [
-                ":gmodule.rc",
-            ],
-        }),
+        "prelude//os/constraints:os[windows]": [
+            ":gmodule.rc",
+        ],
         "DEFAULT": [],
     }),
     exported_headers = {
@@ -11260,37 +10929,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -11390,7 +11037,7 @@ cxx_library(
     }) + [
         ":glib-dep-5",
     ],
-    preferred_linkage = _preferred_linkage,
+    preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
@@ -11815,7 +11462,7 @@ cxx_binary(
     deps = [
         ":glib-dep-3",
     ],
-    target_compatible_with = _needs_os,
+    target_compatible_with = _needs_os2,
     visibility = ["PUBLIC"],
 )
 
@@ -12408,37 +12055,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -12516,7 +12141,7 @@ cxx_library(
         ],
     }),
     preferred_linkage = "static",
-    target_compatible_with = _needs_os,
+    target_compatible_with = _needs_os2,
     visibility = ["PUBLIC"],
 )
 
@@ -12542,7 +12167,7 @@ genrule(
     name = "gio.rc",
     out = "gio.rc",
     cmd = "sed" + " -e ''" + " $(location :glib.git[build-aux/win32/lib.rc.in]) > $OUT",
-    target_compatible_with = _needs_os_default_library,
+    target_compatible_with = _needs_os,
     visibility = ["PUBLIC"],
 )
 
@@ -14636,6 +14261,7 @@ cxx_library(
         ":glib.git[gio/gzlibdecompressor.c]",
         ":glib.git[gio/glistmodel.c]",
         ":glib.git[gio/gliststore.c]",
+        ":glib.git[glib/gtrace.c]",
         ":glib.git[gio/gdbusdaemon.c]",
         ":glib.git[gio/gapplication.c]",
         ":glib.git[gio/gapplicationcommandline.c]",
@@ -14704,11 +14330,6 @@ cxx_library(
         ":glib.git[gio/gsocks5proxy.c]",
         ":glib.git[gio/thumbnail-verify.c]",
     ] + select({
-        "//third-party/meson/constraints:default_library[static]": [],
-        "DEFAULT": [
-            ":glib.git[glib/gtrace.c]",
-        ],
-    }) + select({
         "prelude//os/constraints:os[windows]": [
             ":glib.git[gio/gcontenttype-win32.c]",
             ":glib.git[gio/gwin32appinfo.c]",
@@ -14724,6 +14345,7 @@ cxx_library(
             ":glib.git[gio/gwin32networkmonitor.c]",
             ":glib.git[gio/gwin32notificationbackend.c]",
             ":glib.git[gio/gwin32sid.c]",
+            ":gio.rc",
         ],
         "DEFAULT": [
             ":glib.git[gio/gcontenttype-fdo.c]",
@@ -14784,14 +14406,6 @@ cxx_library(
                 "//third-party/meson/constraints:has_header_netlink_netlink_h[false]": [],
             }),
         }),
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:default_library[static]": [],
-            "DEFAULT": [
-                ":gio.rc",
-            ],
-        }),
-        "DEFAULT": [],
     }),
     exported_headers = select({
         "prelude//os/constraints:os[windows]": {
@@ -16521,37 +16135,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -16963,7 +16555,7 @@ cxx_library(
         ],
         "//third-party/meson/constraints:sysprof_capture_4[false]": [],
     }),
-    preferred_linkage = _preferred_linkage,
+    preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
@@ -17497,7 +17089,7 @@ cxx_binary(
         ":glib-dep-5",
         ":glib-dep-3",
     ],
-    target_compatible_with = _needs_os,
+    target_compatible_with = _needs_os2,
     visibility = ["PUBLIC"],
 )
 
@@ -17552,37 +17144,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -17797,37 +17367,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -17985,37 +17533,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -18191,37 +17717,15 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -18314,7 +17818,7 @@ cxx_library(
         ":glib-dep-12",
         ":glib-dep-15",
     ],
-    preferred_linkage = _preferred_linkage,
+    preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
@@ -18471,37 +17975,15 @@ cxx_binary(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -18629,37 +18111,15 @@ cxx_binary(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
@@ -18787,37 +18247,15 @@ cxx_binary(
         ],
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_debug[enabled]": [
-            "-DG_ENABLE_DEBUG",
-        ],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": [
             "-DG_DISABLE_CAST_CHECKS",
         ],
-        "//third-party/meson/glib/constraints:glib_debug[auto]": select({
-            "//third-party/meson/constraints:debug[true]": select({
-                "//third-party/meson/constraints:optimization[plain]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[1]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[2]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[3]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "//third-party/meson/constraints:optimization[s]": [
-                    "-DG_DISABLE_CAST_CHECKS",
-                ],
-                "DEFAULT": [
-                    "-DG_ENABLE_DEBUG",
-                ],
-            }),
-            "//third-party/meson/constraints:debug[false]": [
-                "-DG_DISABLE_CAST_CHECKS",
-            ],
-        }),
+        "//third-party/meson/glib/constraints:glib_debug[auto]": [
+            "-DG_DISABLE_CAST_CHECKS",
+        ],
+        "DEFAULT": [
+            "-DG_ENABLE_DEBUG",
+        ],
     }) + select({
         "//third-party/meson/glib/constraints:glib_assert[true]": [],
         "//third-party/meson/glib/constraints:glib_assert[false]": [
