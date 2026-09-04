@@ -202,9 +202,28 @@ pub(crate) fn package_path(path: &Path) -> eyre::Result<String> {
 }
 
 fn cache_dir() -> eyre::Result<PathBuf> {
-    let cache = env::var_os("XDG_CACHE_DIR")
-        .map(PathBuf::from)
-        .or_else(|| env::home_dir().map(|v| v.join(".cache")))
-        .wrap_err("Failed to find cache directory")?;
+    let cache = platform_cache_dir().wrap_err("Failed to find cache directory")?;
     Ok(cache.join("decay"))
+}
+
+/// Where a platform keeps a user's cache: `%LOCALAPPDATA%` on Windows,
+/// `~/Library/Caches` on macOS, and `$XDG_CACHE_HOME` (falling back to
+/// `~/.cache`, per the XDG Base Directory spec) everywhere else.
+#[cfg(target_os = "windows")]
+fn platform_cache_dir() -> Option<PathBuf> {
+    env::var_os("LOCALAPPDATA").map(PathBuf::from).or_else(|| {
+        env::var_os("USERPROFILE").map(|home| PathBuf::from(home).join("AppData").join("Local"))
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn platform_cache_dir() -> Option<PathBuf> {
+    env::home_dir().map(|home| home.join("Library").join("Caches"))
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+fn platform_cache_dir() -> Option<PathBuf> {
+    env::var_os("XDG_CACHE_HOME")
+        .map(PathBuf::from)
+        .or_else(|| env::home_dir().map(|home| home.join(".cache")))
 }

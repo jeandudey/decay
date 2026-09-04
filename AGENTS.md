@@ -153,8 +153,3 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   this, `cargo clippy` also has a handful of lint-only warnings (collapsible
   `if`s, `type_complexity`, `cloned_ref_to_slice_refs`, `manual_contains`,
   `op_ref`, `manual_is_multiple_of`) with no behavioral effect.
-
-- **`cache_dir()` reads the wrong XDG variable.** `src/main.rs`'s
-  `cache_dir()` checks `XDG_CACHE_DIR`; the XDG Base Directory spec's
-  variable is `XDG_CACHE_HOME`. Setting the real one currently has no
-  effect and it silently falls back to `~/.cache`.
