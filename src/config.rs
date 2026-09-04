@@ -76,6 +76,9 @@ pub struct Config {
     /// project that wants every `has_function` left open regardless.
     #[serde(default = "default_true")]
     pub builtin_has_function: bool,
+    /// Global options applied to every project unless overridden by that project.
+    #[serde(default)]
+    pub options: BTreeMap<String, OptionValue>,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
 }
@@ -87,13 +90,22 @@ fn default_true() -> bool {
 impl Config {
     pub fn from_file(path: impl AsRef<Path>) -> eyre::Result<Self> {
         let file = fs::read_to_string(path).wrap_err("Failed to load configuration file")?;
-        let config: Self =
+        let mut config: Self =
             toml::from_str(&file).wrap_err("Failed to parse configuration file")?;
         config.check()?;
         Ok(config)
     }
 
-    fn check(&self) -> eyre::Result<()> {
+    fn check(&mut self) -> eyre::Result<()> {
+        for project in &mut self.projects {
+            for (key, val) in &self.options {
+                project
+                    .options
+                    .entry(key.clone())
+                    .or_insert_with(|| val.clone());
+            }
+        }
+
         for (probe, answer) in &self.probes {
             let check = || -> eyre::Result<()> {
                 let Some(setting) = answer.setting()? else {
@@ -446,7 +458,7 @@ impl Repo {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
 pub enum OptionValue {
     Bool(bool),
@@ -489,9 +501,46 @@ mod tests {
              repo = \"https://example.com/x/glib.git\"\n\
              rev = \"0000000000000000000000000000000000000000\"\n"
         );
-        let cfg: Config = toml::from_str(&toml)?;
+        let mut cfg: Config = toml::from_str(&toml)?;
         cfg.check()?;
         Ok(cfg)
+    }
+
+    #[test]
+    fn global_options_inherited_and_overridden() {
+        let toml = "third_party_dir = \"tp\"\n\
+             [options]\n\
+             buildtype = \"release\"\n\
+             optimization = \"3\"\n\
+             default_library = \"shared\"\n\
+             \n\
+             [[project]]\n\
+             repo = \"https://example.com/x/liba.git\"\n\
+             rev = \"0000000000000000000000000000000000000000\"\n\
+             \n\
+             [[project]]\n\
+             repo = \"https://example.com/x/libb.git\"\n\
+             rev = \"1111111111111111111111111111111111111111\"\n\
+             options.optimization = \"2\"\n\
+             options.tests = false\n";
+        let mut cfg: Config = toml::from_str(toml).unwrap();
+        cfg.check().unwrap();
+
+        assert_eq!(cfg.projects.len(), 2);
+
+        // Project A inherits all global options
+        let p_a = &cfg.projects[0];
+        assert_eq!(p_a.options.get("buildtype"), Some(&OptionValue::String("release".into())));
+        assert_eq!(p_a.options.get("optimization"), Some(&OptionValue::String("3".into())));
+        assert_eq!(p_a.options.get("default_library"), Some(&OptionValue::String("shared".into())));
+        assert_eq!(p_a.options.get("tests"), None);
+
+        // Project B inherits buildtype and default_library, overrides optimization, adds tests
+        let p_b = &cfg.projects[1];
+        assert_eq!(p_b.options.get("buildtype"), Some(&OptionValue::String("release".into())));
+        assert_eq!(p_b.options.get("optimization"), Some(&OptionValue::String("2".into())));
+        assert_eq!(p_b.options.get("default_library"), Some(&OptionValue::String("shared".into())));
+        assert_eq!(p_b.options.get("tests"), Some(&OptionValue::Bool(false)));
     }
 
     #[test]

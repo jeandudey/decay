@@ -61,9 +61,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 ## Known gaps
 
-- **Global options.** Options should be able to be defined globally in decay.toml,
-  then projects inherit those options and can be overriden if necessary.
-
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be
   unsatisfiable or a custom generated one if we have the data to back it up.

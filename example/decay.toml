@@ -121,20 +121,20 @@ zlib = "//third-party/system:Z"
 "void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 
+[options]
+buildtype = "release"
+optimization = "3"
+default_library = "shared"
+
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
 rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973" # 1.5.10
-options.buildtype = "release"
-options.optimization = "3"
-options.default_library = "shared"
 
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/gvdb.git"
 rev = "2b42fc75f09dbe1cd1057580b5782b08f2dcb400"
 # dependency cycle with glib-2.0
 options.tests = false
-options.buildtype = "release"
-options.optimization = "3"
 options.default_library = "both"
 
 [[project]]
@@ -147,8 +147,5 @@ options.prefix = "/usr/local"
 options.libdir = "lib"
 options.datadir = "share"
 options.includedir = "include"
-options.buildtype = "release"
-options.optimization = "3"
-options.default_library = "shared"
 # options.glib_debug = "disabled" # TODO: This does not work, it should.
 options.multiarch = false
