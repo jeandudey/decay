@@ -10,7 +10,6 @@ use {
     },
     decay_meson_logic::{
         Pc,
-        Solver,
         Variant,
         Variational, //
     },
@@ -18,7 +17,7 @@ use {
     std::rc::Rc,
 };
 
-impl<'a, S: Solver> Interp<'a, S> {
+impl<'a> Interp<'a> {
     pub(crate) fn binop(&mut self, op: &BinOp) -> eyre::Result<Variational<Value>> {
         // `and`/`or` short-circuit, and here that is not just an optimisation:
         // the right-hand side is often only well-defined when the left one

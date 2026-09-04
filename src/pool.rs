@@ -1,11 +1,12 @@
 //! Running the projects on a scoped pool, one thread per project for that
 //! project's whole life.
 //!
-//! `Logic<Z3Solver>` is not `Send` — z3 keeps its context in a thread-local —
-//! and the same `Logic` is built during evaluation and mutated again during
-//! emission. So a project is evaluated *and* emitted on the one worker that
+//! The same `Logic` is built during evaluation and mutated again during
+//! emission, so a project is evaluated *and* emitted on the one worker that
 //! owns it; only its `Graph` (plain data) and the emitted build file text ever
-//! move between threads.
+//! move between threads. (The BDD `Logic` is `Send`, so this is now a
+//! scheduling choice rather than a hard requirement, but it keeps the graph and
+//! its logic together with no hand-off.)
 //!
 //! The coordinator ([`import`]) hands work out wave by wave, folds each wave's
 //! results into [`Packages`] in project order, crosses the single barrier where
@@ -32,10 +33,7 @@ use {
         Used, //
     },
     decay_build_ir::Graph,
-    decay_meson_logic::{
-        Logic,
-        Solver, //
-    },
+    decay_meson_logic::Logic,
     eyre::{
         Context,
         eyre, //
@@ -58,8 +56,8 @@ use {
 };
 
 /// What a worker sends back once it has evaluated a project: the graph travels
-/// to the coordinator, everything else (the `!Send` logic included) stays on
-/// the worker as [`Pinned`].
+/// to the coordinator, the logic stays on the worker as [`Pinned`] so it and
+/// its graph are never separated.
 struct Evaled {
     idx: usize,
     package: String,
@@ -67,12 +65,12 @@ struct Evaled {
 }
 
 /// The worker-local half of an evaluated project, kept until it is emitted.
-/// Holds the presence-condition logic, which for the z3 backend must not leave
-/// its worker thread.
-struct Pinned<S: Solver> {
+/// Holds the presence-condition logic; kept with the graph rather than
+/// handed back and forth.
+struct Pinned {
     out: PathBuf,
     package: String,
-    logic: Logic<S>,
+    logic: Logic,
 }
 
 enum Job {
@@ -106,7 +104,7 @@ enum Done {
 /// Import every project in `config`, following `schedule`'s waves, on up to
 /// `jobs` worker threads. Writes every project's build files and the shared
 /// constraints package as a side effect.
-pub(crate) fn import<S: Solver + Default>(
+pub(crate) fn import(
     config: &Config,
     git_cache: &GitCache,
     schedule: &Schedule,
@@ -129,7 +127,7 @@ pub(crate) fn import<S: Solver + Default>(
             let (job_tx, job_rx) = mpsc::channel::<Job>();
             inbox.push(job_tx);
             let done_tx = done_tx.clone();
-            scope.spawn(move || worker::<S>(git_cache, config, projects, job_rx, done_tx));
+            scope.spawn(move || worker(git_cache, config, projects, job_rx, done_tx));
         }
         drop(done_tx);
 
@@ -257,7 +255,7 @@ pub(crate) fn import<S: Solver + Default>(
     })
 }
 
-fn worker<S: Solver + Default>(
+fn worker(
     git_cache: &GitCache,
     config: &Config,
     projects: &[Project],
@@ -265,8 +263,8 @@ fn worker<S: Solver + Default>(
     done: mpsc::Sender<Done>,
 ) {
     // This worker's evaluated-but-not-yet-emitted projects. Holds the `Logic`,
-    // which for the z3 backend must never leave this thread.
-    let mut pinned: HashMap<usize, Pinned<S>> = HashMap::new();
+    // kept beside its graph rather than shipped back for emission.
+    let mut pinned: HashMap<usize, Pinned> = HashMap::new();
 
     while let Ok(job) = jobs.recv() {
         let msg = match job {
@@ -274,7 +272,7 @@ fn worker<S: Solver + Default>(
 
             Job::Eval { idx, packages } => {
                 let outcome = catch_unwind(AssertUnwindSafe(|| {
-                    execute::<S>(git_cache, config, &projects[idx], &packages)
+                    execute(git_cache, config, &projects[idx], &packages)
                 }));
                 match flatten(outcome) {
                     Ok(Imported {

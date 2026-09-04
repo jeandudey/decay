@@ -44,7 +44,6 @@ use {
     decay_meson_logic::{
         Logic,
         Pc,
-        Solver,
         Var,
         VarId,
         VarKind,
@@ -124,14 +123,14 @@ pub trait Sources {
 }
 
 /// Execute the project rooted at `root` and return its build graph, paired with
-/// the presence-condition logic it was built against. The solver backend is the
-/// caller's: [`decay_meson_logic::BddSolver`] or [`decay_meson_logic::Z3Solver`].
-pub fn eval<S: Solver + Default>(
+/// the presence-condition [`Logic`] it was built against — a backend needs the
+/// conditions taken apart, not just the list of variables.
+pub fn eval(
     oracle: &dyn Oracle,
     sources: &dyn Sources,
     root: &Path,
-) -> eyre::Result<(Graph, Logic<S>)> {
-    let mut interp = Interp::new(S::default(), oracle, sources, root);
+) -> eyre::Result<(Graph, Logic)> {
+    let mut interp = Interp::new(oracle, sources, root);
     interp.run()?;
     Ok(interp.finish())
 }
@@ -146,8 +145,8 @@ enum Flow {
     Abort,
 }
 
-pub struct Interp<'a, S: Solver> {
-    pub(crate) logic: Logic<S>,
+pub struct Interp<'a> {
+    pub(crate) logic: Logic,
     pub(crate) oracle: &'a dyn Oracle,
     pub(crate) sources: &'a dyn Sources,
 
@@ -186,8 +185,8 @@ pub struct Interp<'a, S: Solver> {
     project_link_args: Variational<String>,
 }
 
-impl<'a, S: Solver> Interp<'a, S> {
-    pub fn new(solver: S, oracle: &'a dyn Oracle, sources: &'a dyn Sources, root: &Path) -> Self {
+impl<'a> Interp<'a> {
+    pub fn new(oracle: &'a dyn Oracle, sources: &'a dyn Sources, root: &Path) -> Self {
         let mut vars = HashMap::new();
         for (name, obj) in [
             ("meson", Obj::Meson),
@@ -199,7 +198,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
 
         Self {
-            logic: Logic::new(solver),
+            logic: Logic::new(),
             oracle,
             sources,
             pc: Pc::TRUE,
@@ -233,7 +232,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// presence condition means taking it apart, and deciding whether one is
     /// worth rendering at all means asking whether it can differ from its
     /// context.
-    pub fn finish(self) -> (Graph, Logic<S>) {
+    pub fn finish(self) -> (Graph, Logic) {
         let mut graph = self.graph;
         graph.options = self.logic.vars().to_vec();
 
@@ -261,7 +260,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         (graph, self.logic)
     }
 
-    pub fn logic_mut(&mut self) -> &mut Logic<S> {
+    pub fn logic_mut(&mut self) -> &mut Logic {
         &mut self.logic
     }
 

@@ -33,7 +33,6 @@ use {
     },
     decay_meson_logic::{
         Pc,
-        Solver,
         Variant,
         Variational, //
     },
@@ -55,7 +54,7 @@ use {
     },
 };
 
-impl<'a, S: Solver> Interp<'a, S> {
+impl<'a> Interp<'a> {
     pub(crate) fn call(
         &mut self,
         name: &str,

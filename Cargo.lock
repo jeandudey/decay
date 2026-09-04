@@ -192,7 +192,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "z3",
 ]
 
 [[package]]
@@ -238,7 +237,6 @@ dependencies = [
  "biodivine-lib-bdd",
  "smallvec",
  "tracing",
- "z3",
 ]
 
 [[package]]
@@ -591,12 +589,6 @@ name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
-
-[[package]]
-name = "pkg-config"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "portable-atomic"
@@ -1089,25 +1081,6 @@ dependencies = [
  "quote",
  "syn 2.0.119",
  "synstructure",
-]
-
-[[package]]
-name = "z3"
-version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08975512fd325de2a15eede8ed293b2189c745e0770886fae2b30ae229c5b886"
-dependencies = [
- "log",
- "z3-sys",
-]
-
-[[package]]
-name = "z3-sys"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96975839f50a909f6ec19671e5c06d7f0d6fc67287a120e1b010c5f8d91944d6"
-dependencies = [
- "pkg-config",
 ]
 
 [[package]]

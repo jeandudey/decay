@@ -2,12 +2,10 @@ use {
     crate::{
         arena::{
             Arena,
-            Node,
             Pc,
             Var,
             VarId, //
         },
-        solver::Solver,
         stats,
     },
     std::{
@@ -17,36 +15,22 @@ use {
 };
 
 /// The presence-condition algebra used by the executor: a hash-consed [`Arena`]
-/// for cheap structural work, backed by a [`Solver`] for the questions that
-/// need real reasoning (is this path reachable at all?).
-#[derive(Debug)]
-pub struct Logic<S: Solver> {
-    solver: S,
+/// of reduced ordered BDDs. Structural work and the "is this path reachable at
+/// all?" question are both answered by the diagrams directly — there is no
+/// separate solver.
+#[derive(Debug, Default)]
+pub struct Logic {
     arena: Arena,
-    terms: HashMap<Pc, S::Term>,
+    /// Memoised [`Self::is_sat`] answers. Cleared of its *satisfiable* entries
+    /// whenever [`Self::assume`] narrows the space — an unsatisfiable condition
+    /// stays unsatisfiable when a constraint is added, so those entries are
+    /// kept.
     sat: HashMap<Pc, bool>,
 }
 
-impl<S: Solver> Logic<S> {
-    pub fn new(solver: S) -> Self {
-        Self {
-            solver,
-            arena: Arena::new(),
-            terms: HashMap::new(),
-            sat: HashMap::new(),
-        }
-    }
-
-    pub fn arena(&self) -> &Arena {
-        &self.arena
-    }
-
-    pub fn arena_mut(&mut self) -> &mut Arena {
-        &mut self.arena
-    }
-
-    pub fn into_arena(self) -> Arena {
-        self.arena
+impl Logic {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn vars(&self) -> &[Var] {
@@ -57,11 +41,12 @@ impl<S: Solver> Logic<S> {
         self.arena.var(id)
     }
 
+    pub fn var_id(&self, key: &str) -> Option<VarId> {
+        self.arena.var_id(key)
+    }
+
     pub fn declare(&mut self, var: Var) -> VarId {
-        let n = var.choices.len() as u32;
-        let id = self.arena.declare(var);
-        self.solver.declare(id, n);
-        id
+        self.arena.declare(var)
     }
 
     pub fn lit(&mut self, var: VarId, choice: u32) -> Pc {
@@ -102,16 +87,21 @@ impl<S: Solver> Logic<S> {
         self.arena.support(pc)
     }
 
+    /// The BDD node count of `pc`.
+    pub fn size(&self, pc: Pc) -> usize {
+        self.arena.size(pc)
+    }
+
     /// Rule out every configuration in which `pc` fails to hold.
     ///
     /// `error()` under a guard is the motivating case: meson refusing to
     /// configure means those option combinations simply do not exist.
     pub fn assume(&mut self, pc: Pc) {
         stats::bump(&stats::ASSUME_CALLS);
-        let t = self.term_timed(pc);
-        self.solver.assume(&t);
-        stats::add(&stats::SAT_MEMO_DROPPED, self.sat.len() as u64);
-        self.sat.clear();
+        self.arena.assume(pc);
+        let before = self.sat.len();
+        self.sat.retain(|_, &mut sat| !sat);
+        stats::add(&stats::SAT_MEMO_DROPPED, (before - self.sat.len()) as u64);
     }
 
     pub fn is_sat(&mut self, pc: Pc) -> bool {
@@ -129,8 +119,10 @@ impl<S: Solver> Logic<S> {
             return hit;
         }
         stats::bump(&stats::IS_SAT_MISS);
-        let t = self.term_timed(pc);
-        let r = self.solver.is_sat(&t);
+        stats::bump(&stats::CHECK_CALLS);
+        let start = Instant::now();
+        let r = self.arena.is_sat(pc);
+        stats::add(&stats::CHECK_NANOS, start.elapsed().as_nanos() as u64);
         self.sat.insert(pc, r);
         stats::maybe_report();
         r
@@ -145,43 +137,5 @@ impl<S: Solver> Logic<S> {
 
     pub fn equivalent(&mut self, a: Pc, b: Pc) -> bool {
         a == b || (self.entails(a, b) && self.entails(b, a))
-    }
-
-    /// [`Self::term`] with the top-level call counted and timed (recursion
-    /// included). Only the entry points that precede a solver call use this.
-    fn term_timed(&mut self, pc: Pc) -> S::Term {
-        stats::bump(&stats::TERM_TOP_CALLS);
-        if self.terms.contains_key(&pc) {
-            stats::bump(&stats::TERM_TOP_HIT);
-        }
-        let start = Instant::now();
-        let t = self.term(pc);
-        stats::add(&stats::TERM_NANOS, start.elapsed().as_nanos() as u64);
-        t
-    }
-
-    fn term(&mut self, pc: Pc) -> S::Term {
-        if let Some(t) = self.terms.get(&pc) {
-            return t.clone();
-        }
-        let t = match self.arena.node(pc).clone() {
-            Node::True => self.solver.top(),
-            Node::False => self.solver.bottom(),
-            Node::Lit(v, c) => self.solver.lit(v, c),
-            Node::Not(inner) => {
-                let inner = self.term(inner);
-                self.solver.not(&inner)
-            }
-            Node::And(x, y) => {
-                let (x, y) = (self.term(x), self.term(y));
-                self.solver.and(&x, &y)
-            }
-            Node::Or(x, y) => {
-                let (x, y) = (self.term(x), self.term(y));
-                self.solver.or(&x, &y)
-            }
-        };
-        self.terms.insert(pc, t.clone());
-        t
     }
 }

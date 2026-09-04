@@ -1,8 +1,7 @@
 use {
     crate::{
         arena::Pc,
-        logic::Logic,
-        solver::Solver, //
+        logic::Logic, //
     },
     smallvec::{
         SmallVec,
@@ -101,7 +100,7 @@ impl<T> Variational<T> {
     }
 
     /// Narrow every variant to `pc`, dropping the ones that become impossible.
-    pub fn restrict<S: Solver>(&self, logic: &mut Logic<S>, pc: Pc) -> Self
+    pub fn restrict(&self, logic: &mut Logic, pc: Pc) -> Self
     where
         T: Clone,
     {
@@ -117,7 +116,7 @@ impl<T> Variational<T> {
     }
 
     /// The condition under which the value exists at all.
-    pub fn domain<S: Solver>(&self, logic: &mut Logic<S>) -> Pc {
+    pub fn domain(&self, logic: &mut Logic) -> Pc {
         let mut out = Pc::FALSE;
         for v in &self.0 {
             out = logic.or(out, v.cond);
@@ -130,7 +129,7 @@ impl<T> Variational<T> {
     /// Without this, a value that is written the same way on both sides of an
     /// `if` would keep two variants forever and the branch structure would leak
     /// into everything downstream.
-    pub fn normalize<S: Solver>(&mut self, logic: &mut Logic<S>)
+    pub fn normalize(&mut self, logic: &mut Logic)
     where
         T: Eq,
     {

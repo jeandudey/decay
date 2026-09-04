@@ -14,19 +14,13 @@ use {
     },
     clap::{
         Parser,
-        Subcommand,
-        ValueEnum, //
+        Subcommand, //
     },
     decay_build_ir::{
         Graph,
         Origin, //
     },
-    decay_meson_logic::{
-        BddSolver,
-        Logic,
-        Solver,
-        Z3Solver, //
-    },
+    decay_meson_logic::Logic,
     eyre::{
         Context,
         ContextCompat,
@@ -68,17 +62,6 @@ struct Cli {
     /// workers. Defaults to the number of CPUs, or `DECAY_JOBS` if set.
     #[arg(short = 'j', long, global = true)]
     jobs: Option<usize>,
-
-    /// Presence-condition backend. `bdd` decides reachability structurally;
-    /// `z3` runs a full SMT solve per check.
-    #[arg(long, value_enum, default_value_t = SolverKind::Bdd, global = true)]
-    solver: SolverKind,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, ValueEnum)]
-enum SolverKind {
-    Bdd,
-    Z3,
 }
 
 #[derive(Subcommand)]
@@ -100,7 +83,7 @@ fn main() -> eyre::Result<()> {
     let jobs = resolve_jobs(cli.jobs);
 
     match cli.command {
-        Command::Buckify => buckify(jobs, cli.solver),
+        Command::Buckify => buckify(jobs),
     }
 }
 
@@ -113,7 +96,7 @@ fn resolve_jobs(flag: Option<usize>) -> usize {
         .max(1)
 }
 
-fn buckify(jobs: usize, solver: SolverKind) -> eyre::Result<()> {
+fn buckify(jobs: usize) -> eyre::Result<()> {
     let config = Config::from_file("decay.toml")?;
 
     let cache_dir = cache_dir()?;
@@ -131,17 +114,10 @@ fn buckify(jobs: usize, solver: SolverKind) -> eyre::Result<()> {
         projects = config.projects.len(),
         waves = schedule.waves.len(),
         jobs,
-        solver = match solver {
-            SolverKind::Bdd => "bdd",
-            SolverKind::Z3 => "z3",
-        },
         "importing",
     );
 
-    match solver {
-        SolverKind::Bdd => pool::import::<BddSolver>(&config, &git_cache, &schedule, jobs),
-        SolverKind::Z3 => pool::import::<Z3Solver>(&config, &git_cache, &schedule, jobs),
-    }
+    pool::import(&config, &git_cache, &schedule, jobs)
 }
 
 /// Where the constraints shared by every imported project live, relative to the
@@ -149,19 +125,19 @@ fn buckify(jobs: usize, solver: SolverKind) -> eyre::Result<()> {
 pub(crate) const SHARED_CONSTRAINTS: &str = "constraints";
 
 /// A project that has been executed and is waiting to be written out.
-pub(crate) struct Imported<S: Solver> {
+pub(crate) struct Imported {
     out: PathBuf,
     package: String,
     graph: Graph,
-    logic: Logic<S>,
+    logic: Logic,
 }
 
-pub(crate) fn execute<S: Solver + Default>(
+pub(crate) fn execute(
     git_cache: &GitCache,
     config: &Config,
     project: &Project,
     packages: &Packages,
-) -> eyre::Result<Imported<S>> {
+) -> eyre::Result<Imported> {
     let name = project.repo.short_name();
 
     if !project.is_full_sha() {
@@ -179,7 +155,7 @@ pub(crate) fn execute<S: Solver + Default>(
     let oracle = ConfigOracle::new(config, project, packages);
     let sources = CountingSources::new(&DiskSources);
     let eval_start = Instant::now();
-    let (mut graph, logic) = decay_meson_eval::eval::<S>(&oracle, &sources, &dir)
+    let (mut graph, logic) = decay_meson_eval::eval(&oracle, &sources, &dir)
         .wrap_err_with(|| format!("Failed to execute `{name}`"))?;
     let eval_ms = eval_start.elapsed().as_millis();
     let parse_ms = sources.parse_time().as_millis();

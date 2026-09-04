@@ -7,4 +7,3 @@ edition = "2024"
 biodivine-lib-bdd = "0.6.3"
 smallvec.workspace = true
 tracing.workspace = true
-z3.workspace = true

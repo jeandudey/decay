@@ -5,7 +5,6 @@ use {
         val::Value, //
     },
     decay_meson_logic::{
-        Solver,
         Variant,
         Variational, //
     },
@@ -13,7 +12,7 @@ use {
     std::rc::Rc,
 };
 
-impl<'a, S: Solver> Interp<'a, S> {
+impl<'a> Interp<'a> {
     /// Expand an `f'...'` string, whose `@name@` holes read variables in scope.
     ///
     /// A hole filled by a value that differs between configurations makes the

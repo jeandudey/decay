@@ -2,7 +2,6 @@ use {
     decay_meson_logic::{
         Logic,
         Pc,
-        Solver,
         VarId,
         Variant,
         Variational, //
@@ -79,12 +78,12 @@ impl Selects {
     /// `render` returns `None` for a value the surrounding condition already
     /// rules out. Those values are not what the reader is choosing between, so
     /// if the rest agree there is nothing to select on at all.
-    fn select_on<S: Solver>(
+    fn select_on(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         var: VarId,
         depth: Depth,
-        mut render: impl FnMut(&mut Logic<S>, u32) -> Option<String>,
+        mut render: impl FnMut(&mut Logic, u32) -> Option<String>,
     ) -> Option<String> {
         let choices = logic.var(var).choices.len() as u32;
         let default = logic.var(var).default as u32;
@@ -194,9 +193,9 @@ impl Selects {
     /// when three things are true does not need each of its attributes to ask
     /// about those three things again: within the target they are settled, and
     /// only what is still open gets a `select()`.
-    pub fn render<S: Solver>(
+    pub fn render(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         cond: Pc,
         context: Pc,
         yes: &Render<'_>,
@@ -239,7 +238,7 @@ impl Selects {
     ///
     /// Used to carry on down a variable that turned out not to matter: any
     /// value it can still take answers for all of them.
-    fn settled<S: Solver>(&self, logic: &mut Logic<S>, var: VarId, context: Pc) -> u32 {
+    fn settled(&self, logic: &mut Logic, var: VarId, context: Pc) -> u32 {
         let default = logic.var(var).default as u32;
         if !logic.restrict(context, var, default).is_false() {
             return default;
@@ -255,9 +254,9 @@ impl Selects {
     /// Entries that always hold are emitted as a plain list; each distinct
     /// condition contributes one `select()` that is concatenated onto it, which
     /// keeps every `select()` independent and free of overlapping keys.
-    pub fn render_list<S: Solver, T>(
+    pub fn render_list<T>(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         items: &Variational<T>,
         context: Pc,
         depth: Depth,
@@ -314,9 +313,9 @@ impl Selects {
     /// is resolved per configuration: split on one variable at a time until
     /// every entry is either definitely in or definitely out, then write the
     /// dict that results.
-    pub fn render_dict<S: Solver, T>(
+    pub fn render_dict<T>(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         items: &Variational<T>,
         context: Pc,
         depth: Depth,
@@ -339,9 +338,9 @@ impl Selects {
         self.dict_at(logic, &entries, context, depth)
     }
 
-    fn dict_at<S: Solver>(
+    fn dict_at(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         entries: &[(Pc, String, String)],
         context: Pc,
         depth: Depth,
@@ -372,7 +371,7 @@ impl Selects {
             return out;
         };
 
-        let narrow = |logic: &mut Logic<S>, choice: u32| -> Vec<(Pc, String, String)> {
+        let narrow = |logic: &mut Logic, choice: u32| -> Vec<(Pc, String, String)> {
             entries
                 .iter()
                 .map(|(cond, key, value)| {
@@ -407,9 +406,9 @@ impl Selects {
     /// conditional groups become a `select()` that contributes either their
     /// words or nothing. Every part carries its own leading separator so the
     /// pieces compose in any order.
-    pub fn render_words<S: Solver, T>(
+    pub fn render_words<T>(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         items: &Variational<T>,
         context: Pc,
         depth: Depth,
@@ -475,9 +474,9 @@ impl Selects {
     /// Unlike a list, a scalar has exactly one answer per configuration, so the
     /// variants are resolved together into one decision diagram rather than
     /// being concatenated.
-    pub fn render_one<S: Solver, T>(
+    pub fn render_one<T>(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         values: &Variational<T>,
         context: Pc,
         fallback: &str,
@@ -496,9 +495,9 @@ impl Selects {
     }
 
     /// Split `arms` on one variable at a time until each is unconditional.
-    fn choose<S: Solver>(
+    fn choose(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         arms: &[(Pc, String)],
         context: Pc,
         fallback: &str,
@@ -521,7 +520,7 @@ impl Selects {
             return fallback.to_owned();
         };
 
-        let narrow = |logic: &mut Logic<S>, choice: u32| -> Vec<(Pc, String)> {
+        let narrow = |logic: &mut Logic, choice: u32| -> Vec<(Pc, String)> {
             arms.iter()
                 .map(|(cond, value)| (logic.restrict(*cond, var, choice), value.clone()))
                 .filter(|(cond, _)| !cond.is_false())
@@ -552,9 +551,9 @@ impl Selects {
     /// — so whatever the condition demands outright is written as a plain list.
     /// Only what is left, a value ruled out or a choice between alternatives,
     /// needs a `select()`, and it is usually one level deep instead of four.
-    pub fn render_compat<S: Solver>(
+    pub fn render_compat(
         &self,
-        logic: &mut Logic<S>,
+        logic: &mut Logic,
         cond: Pc,
         depth: Depth,
     ) -> String {
@@ -589,7 +588,7 @@ impl Selects {
     }
 
     /// One constraint value `cond` cannot hold without, if there is one.
-    fn forced<S: Solver>(&self, logic: &mut Logic<S>, cond: Pc) -> Option<(String, VarId, u32)> {
+    fn forced(&self, logic: &mut Logic, cond: Pc) -> Option<(String, VarId, u32)> {
         for var in logic.support(cond) {
             let choices = logic.var(var).choices.len() as u32;
             for choice in 0..choices {
@@ -634,7 +633,7 @@ pub fn list(values: &[String], depth: Depth) -> String {
 ///
 /// `#define X 1` and `#define X 0` are one question written twice, and the
 /// reader can only see that they cover everything if they sit together.
-fn opposite<S: Solver>(logic: &mut Logic<S>, a: Pc, b: Pc, context: Pc) -> bool {
+fn opposite(logic: &mut Logic, a: Pc, b: Pc, context: Pc) -> bool {
     let both = logic.and(a, b);
     let both = logic.and(context, both);
     if logic.is_sat(both) {
@@ -652,7 +651,7 @@ fn opposite<S: Solver>(logic: &mut Logic<S>, a: Pc, b: Pc, context: Pc) -> bool 
 /// A source file that is only present when GLX is enabled, inside a target that
 /// only exists when GLX is enabled, is just present — emitting the condition
 /// again would be noise the reader has to disprove.
-pub fn simplify<S: Solver>(logic: &mut Logic<S>, cond: Pc, context: Pc) -> Pc {
+pub fn simplify(logic: &mut Logic, cond: Pc, context: Pc) -> Pc {
     if logic.entails(context, cond) {
         return Pc::TRUE;
     }
