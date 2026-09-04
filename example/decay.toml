@@ -129,6 +129,9 @@ repo = "https://gitlab.gnome.org/GNOME/glib.git"
 # Pinned to tag 2.88.3.
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
 depends = ["gvdb"]
+# glib's test suite is not the reason to import it, and it reaches meson
+# corners the executor does not model yet (a dict with a computed key).
+options.tests = false
 options.prefix = "/usr/local"
 options.libdir = "lib"
 options.datadir = "share"

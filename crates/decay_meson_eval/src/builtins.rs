@@ -105,11 +105,11 @@ impl<'a, S: Solver> Interp<'a, S> {
                 self.warn_unsupported("install_subdir()", loc);
                 Ok(self.pure(Value::Unset))
             }
-            "install_symlink" => {
-                // A symlink to another install's output, not a file of its
-                // own; nothing installs anything yet, so there is no graph to
-                // add it to.
-                debug!("install_symlink() has no build-graph equivalent; skipping");
+            "install_symlink" | "install_emptydir" => {
+                // A symlink or a bare directory created at install time, not a
+                // file of its own; nothing installs anything yet, so there is
+                // no graph to add it to.
+                debug!("{name}() has no build-graph equivalent; skipping");
                 Ok(self.pure(Value::Unset))
             }
 
@@ -497,6 +497,49 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.outs = outs;
         target.attrs.cmd = cmd;
         target.attrs.deps = deps;
+        target.attrs.install = install;
+        target.attrs.install_dir = install_dir;
+
+        Ok(self.pure(Value::Obj(Obj::Target(id))))
+    }
+
+    /// `fs.copyfile(src, dst?)` — a custom target that copies one file into
+    /// the build directory (meson stages a tool's data files this way). The
+    /// destination name defaults to the source's basename.
+    pub(crate) fn fn_fs_copyfile(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let src = args.at(0).ok_or_eyre("fs.copyfile() needs a source")?;
+        let srcs = self.sources(src)?;
+
+        let dst = match args.at(1) {
+            Some(v) => self.one_string(v)?.to_string(),
+            None => {
+                let s = self.one_string(src)?;
+                std::path::Path::new(&*s)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| s.to_string())
+            }
+        };
+
+        let dir = self.cur_dir().to_path_buf();
+        let id = self.graph.add(&dst, &dir, self.pc, Kind::Custom);
+
+        let mut cmd = Variational::empty();
+        for arg in [
+            CmdArg::Literal("cp".to_owned()),
+            CmdArg::Inputs,
+            CmdArg::Outputs,
+        ] {
+            cmd.push(Variant::new(self.pc, arg));
+        }
+
+        let install = self.flag(args, "install", Pc::FALSE)?;
+        let install_dir = self.opt_string(args, "install_dir")?.map(|v| v.to_string());
+
+        let target = self.graph.target_mut(id);
+        target.attrs.srcs = srcs;
+        target.attrs.outs = vec![dst];
+        target.attrs.cmd = cmd;
         target.attrs.install = install;
         target.attrs.install_dir = install_dir;
 
@@ -1233,7 +1276,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     /// The `required:` argument as a condition.
-    fn required(&mut self, args: &CallArgs) -> eyre::Result<Pc> {
+    pub(crate) fn required(&mut self, args: &CallArgs) -> eyre::Result<Pc> {
         let Some(v) = args.get("required") else {
             return Ok(self.pc);
         };

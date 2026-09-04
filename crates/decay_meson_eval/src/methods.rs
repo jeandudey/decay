@@ -298,6 +298,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let exists = self.sources.exists(&self.root.join(&resolved));
                 Ok(self.bool_value(if exists { self.pc } else { Pc::FALSE }))
             }
+            (Obj::Module(Module::Fs), "copyfile") => self.fn_fs_copyfile(args),
             (Obj::Module(Module::Fs), "read") => {
                 let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
                 let resolved = self.resolve(&path);
@@ -693,7 +694,9 @@ impl<'a, S: Solver> Interp<'a, S> {
 
             "find_library" => {
                 let libname = self.one_string(args.at(0).ok_or_eyre("expected a library name")?)?;
-                let required = self.flag(args, "required", self.pc)?;
+                // `required:` accepts a bool or a feature option, same as
+                // `dependency()` / `find_program()`.
+                let required = self.required(args)?;
                 let key = format!("lib:{libname}");
                 let target = self.external(&key, &libname, External::SystemLibrary {
                     name: libname.to_string(),
@@ -934,7 +937,16 @@ impl<'a, S: Solver> Interp<'a, S> {
             "strip" => Ok(self.pure(Value::str(s.trim()))),
             "to_upper" => Ok(self.pure(Value::from(s.to_uppercase()))),
             "to_lower" => Ok(self.pure(Value::from(s.to_lowercase()))),
-            "to_int" => Ok(self.pure(Value::Int(s.trim().parse()?))),
+            "to_int" => {
+                // An empty string reaches here from a value the executor had
+                // to fabricate — `cc.run().stdout()`, say, which it cannot
+                // actually capture. Reading it as `0` keeps evaluation going;
+                // genuine non-numeric text is still an error, the way meson
+                // treats it.
+                let text = s.trim();
+                let n = if text.is_empty() { 0 } else { text.parse()? };
+                Ok(self.pure(Value::Int(n)))
+            }
             "to_string" => Ok(self.pure(Value::Str(s.clone()))),
             "underscorify" => Ok(self.pure(Value::from(
                 s.chars()

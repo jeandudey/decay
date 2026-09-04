@@ -58,3 +58,17 @@ The pipeline:
 See `example/` for a libepoxy import, and `example/decay.toml` for how a
 project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 `[dependencies]`) are meant to read.
+
+## Known gaps
+
+- **Computed dict keys.** Meson allows any expression as a dict key
+  (`{ 'cxx-@0@'.format(std): {...} }`, glib's test suite). `Expr::Dict`
+  currently holds `Vec<(String, Expr)>` with a parallel `order: Vec<String>`;
+  the parser's `expect_key()` (`decay_meson_parse/src/node.rs`) only accepts
+  a string- or id-shaped key and bails otherwise. The fix is to carry keys
+  as `Expr` (`Vec<(Expr, Expr)>`), thread that through `lower.rs`'s
+  `Node::Dict` arm and `Interp`'s `Expr::Dict` evaluation, and evaluate each
+  key like any other expression. Needed for glib with `tests` enabled and
+  for any project that builds dict keys with `.format()` / concatenation.
+  `example/decay.toml` pins `options.tests = false` for glib to avoid it
+  for now.

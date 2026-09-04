@@ -59,10 +59,7 @@ use {
     },
     std::{
         cell::RefCell,
-        collections::{
-            HashMap,
-            HashSet, //
-        },
+        collections::HashMap,
         mem,
         path::{
             Path,
@@ -171,7 +168,11 @@ pub struct Interp<'a, S: Solver> {
     pub(crate) root: PathBuf,
     /// Directory stack, relative to the project root.
     dirs: Vec<PathBuf>,
-    visited: HashSet<PathBuf>,
+    /// Directories `subdir()` has entered, and the condition each was entered
+    /// under. A directory reached again under a condition disjoint from the
+    /// first is fine — meson would only ever have entered one of them — but an
+    /// overlap means a genuine double `subdir()`.
+    visited: HashMap<PathBuf, Pc>,
 
     /// Interned configuration variables, so a second `get_option('glx')` is the
     /// same variable as the first.
@@ -215,7 +216,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             has_project: false,
             root: root.to_path_buf(),
             dirs: Vec::new(),
-            visited: HashSet::new(),
+            visited: HashMap::new(),
             option_vars: HashMap::new(),
             probe_vars: HashMap::new(),
             externals: HashMap::new(),
@@ -289,8 +290,15 @@ impl<'a, S: Solver> Interp<'a, S> {
         if !self.sources.exists(&abs) {
             bail!("no meson.build in `{}`", dir.display());
         }
-        if !self.visited.insert(dir.to_path_buf()) {
-            bail!("`{}` was entered twice", dir.display());
+        if let Some(&before) = self.visited.get(dir) {
+            let overlap = self.logic.and(before, self.pc);
+            if self.logic.is_sat(overlap) {
+                bail!("`{}` was entered twice", dir.display());
+            }
+            let seen = self.logic.or(before, self.pc);
+            self.visited.insert(dir.to_path_buf(), seen);
+        } else {
+            self.visited.insert(dir.to_path_buf(), self.pc);
         }
 
         let block = self
@@ -997,10 +1005,19 @@ impl<'a, S: Solver> Interp<'a, S> {
         out
     }
 
-    /// A list argument read as strings.
+    /// A list argument read as strings. A deferred concatenation is realised
+    /// here — one string per configuration it can be — since a string list is
+    /// a place a concrete value is finally needed.
     pub(crate) fn strings(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<Rc<str>>> {
         let mut out = Variational::empty();
         for variant in self.flat(v) {
+            if let Value::StrCat(pieces) = &variant.value {
+                let pieces = pieces.clone();
+                for (cond, s) in self.str_cat_realizations(&pieces, variant.cond) {
+                    out.push(Variant::new(cond, s));
+                }
+                continue;
+            }
             let s = string_arg(&variant.value)
                 .ok_or_else(|| eyre::eyre!("expected a string, found a {}", variant.value.type_name()))?;
             out.push(Variant::new(variant.cond, s));
