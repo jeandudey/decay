@@ -61,6 +61,12 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 ## Known gaps
 
+- **Add wrap support.** A `[wrap]` section in `decay.toml` should let a project
+  import a meson wrap, we need to download the wrapdb and cache it like we do
+  for projects. It might be a good idea to introduce a lock file for this,
+  which should be also used by projects so that we add support for branches
+  and tags in projects.
+
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be
   unsatisfiable or a custom generated one if we have the data to back it up.
