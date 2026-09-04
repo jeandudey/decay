@@ -23,6 +23,10 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # A GNU extension: which libc is in use decides it, not which kernel.
 "has_function:dlvsym" = "prelude//abi/constraints:abi[gnu]"
 
+# `crt_externs.h` (`_NSGetEnviron`) ships with Apple's libSystem; no other
+# platform has it, macOS or not.
+"has_header:crt_externs.h" = "prelude//os/constraints:os[macos]"
+
 # Whether graphene's fast paths compile follows from the CPU and the
 # compiler, not from a knob a generated build should carry of its own —
 # `name:` in `cc.compiles(..., name: '...')` is the key, since the snippet
