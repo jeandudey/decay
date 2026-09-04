@@ -14,6 +14,14 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
+# toolchain probe `probe:c:has_header:KHR/khrplatform.h`: `KHR/khrplatform.h` is available to the c compiler
+constraint(
+    name = "has_header_KHR_khrplatform_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
 # machine property `compiler:c`: the c compiler in use
 constraint(
     name = "compiler",
@@ -22,19 +30,99 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:`: `` is available
-constraint(
-    name = "unnamed",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # meson build option `option:default_library`
 constraint(
     name = "default_library",
     values = ["shared", "static", "both"],
     default = "shared",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:dl`: `dl` is available
+constraint(
+    name = "dl",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:gl`: `gl` is available
+constraint(
+    name = "gl",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:egl`: `egl` is available
+constraint(
+    name = "egl",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:x11`: `x11` is available
+constraint(
+    name = "x11",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:glesv2`: `glesv2` is available
+constraint(
+    name = "glesv2",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libGLESv2`: `libGLESv2` is available
+constraint(
+    name = "libGLESv2",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:glesv1_cm`: `glesv1_cm` is available
+constraint(
+    name = "glesv1_cm",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libGLESv1_CM`: `libGLESv1_CM` is available
+constraint(
+    name = "libGLESv1_CM",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:opengl32`: `opengl32` is available
+constraint(
+    name = "opengl32",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:gdi32`: `gdi32` is available
+constraint(
+    name = "gdi32",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:`: `` is available
+constraint(
+    name = "unnamed",
+    values = ["true", "false"],
+    default = "false",
     visibility = ["PUBLIC"],
 )
 
@@ -1643,14 +1731,6 @@ constraint(
     name = "links_dlopen_and_dlsym_in_libdl",
     values = ["true", "false"],
     default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:dl`: `dl` is available
-constraint(
-    name = "dl",
-    values = ["true", "false"],
-    default = "false",
     visibility = ["PUBLIC"],
 )
 
