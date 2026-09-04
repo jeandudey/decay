@@ -14,7 +14,7 @@ use {
         },
         time::Duration,
     },
-    tracing::info,
+    tracing::debug,
 };
 
 macro_rules! counters {
@@ -26,10 +26,10 @@ macro_rules! counters {
 counters!(
     // Logic::is_sat outcomes
     IS_SAT_CALLS,
-    IS_SAT_CONST,  // answered by pc.is_true()/is_false()
-    IS_SAT_HIT,    // answered from the `sat` memo
-    IS_SAT_MISS,   // went to the solver
-    IS_SAT_OPAQUE, // ...had an Or, so no literal-set key
+    IS_SAT_CONST,     // answered by pc.is_true()/is_false()
+    IS_SAT_HIT,       // answered from the `sat` memo
+    IS_SAT_MISS,      // went to the solver
+    IS_SAT_OPAQUE,    // ...had an Or, so no literal-set key
     IS_SAT_CONJ_MISS, // ...had a key but the literal-set memo missed
     // the actual z3 check_assumptions
     Z3_CHECK_CALLS,
@@ -92,7 +92,7 @@ pub fn report() {
     let is_sat = get(&IS_SAT_CALLS).max(1);
     let term_top = get(&TERM_TOP_CALLS).max(1);
 
-    info!(
+    debug!(
         target: "solver_stats",
         is_sat_calls = get(&IS_SAT_CALLS),
         is_sat_const = get(&IS_SAT_CONST),

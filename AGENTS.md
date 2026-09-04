@@ -68,6 +68,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   select_incompatible is a better option, the message could just be
   unsatisfiable or a custom generated one if we have the data to back it up.
 
+- **Fix glib_debug.** See the example/decay.toml file for context, it should work
+  to pin this option.
+
 - **has_function.** For common C standard library functions on most operating
   systems we could have this built-in in decay (altough with an option
   to disable it in decay.toml or allow overriding the results), e.g.
