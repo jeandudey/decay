@@ -7,6 +7,11 @@ use {
     eyre::bail,
     std::{
         cell::RefCell,
+        hash::{
+            Hash,
+            Hasher, //
+        },
+        mem,
         rc::Rc,
         str::FromStr, //
     },
@@ -98,6 +103,28 @@ impl PartialEq for Obj {
 }
 
 impl Eq for Obj {}
+
+/// Consistent with [`PartialEq`]: the identity-compared variants
+/// (`ConfigData`, `Dep`, `Program`) hash their `Rc` pointer, the rest hash
+/// their contents.
+impl Hash for Obj {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        mem::discriminant(self).hash(state);
+        match self {
+            Self::Meson | Self::Env | Self::Disabler => {}
+            Self::Machine(m) => m.hash(state),
+            Self::Compiler(l) => l.hash(state),
+            Self::Module(m) => m.hash(state),
+            Self::ConfigData(a) => Rc::as_ptr(a).hash(state),
+            Self::Dep(a) => Rc::as_ptr(a).hash(state),
+            Self::Program(a) => Rc::as_ptr(a).hash(state),
+            Self::Target(t) => t.hash(state),
+            Self::Output(t, i) => (t, i).hash(state),
+            Self::IncludeDirs(d) => d.hash(state),
+            Self::File(f) | Self::Feature(f) => f.hash(state),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Machine {

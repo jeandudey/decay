@@ -16,7 +16,7 @@ use {
 /// variant per shape. Keeping the condition on the element is what stops a
 /// dozen independent `if`s appending to the same list from turning into a
 /// thousand list variants.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Value {
     /// A variable that exists but holds nothing meaningful, e.g. the result of
     /// a call made only for its effect.

@@ -1,11 +1,22 @@
 use {
     crate::{
         arena::Pc,
-        logic::Logic, //
+        logic::Logic,
+        solver::Solver, //
     },
     smallvec::{
         SmallVec,
         smallvec, //
+    },
+    std::{
+        collections::{
+            HashMap,
+            hash_map::DefaultHasher, //
+        },
+        hash::{
+            Hash,
+            Hasher, //
+        },
     },
 };
 
@@ -44,6 +55,10 @@ impl<T> Variant<T> {
 /// a value that exists in no configuration at all.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Variational<T>(SmallVec<[Variant<T>; 1]>);
+
+/// Below this many variants, [`Variational::normalize`] uses a linear scan
+/// rather than building a hash index.
+const LINEAR_NORMALIZE: usize = 8;
 
 impl<T> Variational<T> {
     pub fn empty() -> Self {
@@ -100,7 +115,7 @@ impl<T> Variational<T> {
     }
 
     /// Narrow every variant to `pc`, dropping the ones that become impossible.
-    pub fn restrict(&self, logic: &mut Logic, pc: Pc) -> Self
+    pub fn restrict<S: Solver>(&self, logic: &mut Logic<S>, pc: Pc) -> Self
     where
         T: Clone,
     {
@@ -116,7 +131,7 @@ impl<T> Variational<T> {
     }
 
     /// The condition under which the value exists at all.
-    pub fn domain(&self, logic: &mut Logic) -> Pc {
+    pub fn domain<S: Solver>(&self, logic: &mut Logic<S>) -> Pc {
         let mut out = Pc::FALSE;
         for v in &self.0 {
             out = logic.or(out, v.cond);
@@ -129,20 +144,46 @@ impl<T> Variational<T> {
     /// Without this, a value that is written the same way on both sides of an
     /// `if` would keep two variants forever and the branch structure would leak
     /// into everything downstream.
-    pub fn normalize(&mut self, logic: &mut Logic)
+    pub fn normalize<S: Solver>(&mut self, logic: &mut Logic<S>)
     where
-        T: Eq,
+        T: Eq + Hash,
     {
         let mut out: SmallVec<[Variant<T>; 1]> = SmallVec::new();
-        for v in self.0.drain(..) {
-            if v.cond.is_false() {
-                continue;
+
+        if self.0.len() <= LINEAR_NORMALIZE {
+            // The common case: a handful of variants, not worth a hash map.
+            for v in self.0.drain(..) {
+                if v.cond.is_false() {
+                    continue;
+                }
+                match out.iter_mut().find(|o| o.value == v.value) {
+                    Some(o) => o.cond = logic.or(o.cond, v.cond),
+                    None => out.push(v),
+                }
             }
-            match out.iter_mut().find(|o| o.value == v.value) {
-                Some(o) => o.cond = logic.or(o.cond, v.cond),
-                None => out.push(v),
+        } else {
+            // A `foreach` that assigns a distinct value each round accumulates
+            // thousands of variants; a linear `find` with deep `T` equality
+            // then makes this cubic. Bucket by hash so distinct values never
+            // reach the deep comparison.
+            let mut index: HashMap<u64, SmallVec<[usize; 2]>> = HashMap::new();
+            for v in self.0.drain(..) {
+                if v.cond.is_false() {
+                    continue;
+                }
+                let mut h = DefaultHasher::new();
+                v.value.hash(&mut h);
+                let bucket = index.entry(h.finish()).or_default();
+                match bucket.iter().find(|&&i| out[i].value == v.value) {
+                    Some(&i) => out[i].cond = logic.or(out[i].cond, v.cond),
+                    None => {
+                        bucket.push(out.len());
+                        out.push(v);
+                    }
+                }
             }
         }
+
         out.retain(|v| logic.is_sat(v.cond));
         self.0 = out;
     }

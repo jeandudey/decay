@@ -1,46 +1,16 @@
 use {
     crate::stats,
-    biodivine_lib_bdd::{
-        Bdd,
-        BddVariable,
-        BddVariableSet, //
-    },
-    smallvec::SmallVec,
-    std::collections::HashMap,
+    std::collections::HashMap, //
 };
 
-/// BDD variables reserved per priority band (see [`band`]). Each configuration
-/// variable claims `ceil(log2(choices))` of its band's slots; a band that runs
-/// out trips the panic in [`Arena::declare`] — the signal to raise this (the
-/// hard ceiling is `4 * BAND <= u16::MAX - 1`).
-const BAND: u16 = 4096;
-
-/// Number of priority bands.
-const BANDS: usize = 4;
-
-/// Which band a variable's BDD bits go in. Lower band = closer to the root of
-/// every diagram, so `decay_buck2::select` branches on it first: a project's
-/// own options before probe results before the target machine before an
-/// externally-named constraint — the order a hand-written `select()` would
-/// nest.
-fn band(kind: VarKind) -> usize {
-    match kind {
-        VarKind::Option | VarKind::BuiltinOption => 0,
-        VarKind::Probe | VarKind::Dependency => 1,
-        VarKind::Machine => 2,
-        VarKind::Constraint => 3,
-    }
-}
-
-/// A presence condition: an index into an [`Arena`], which now stores each
-/// distinct condition as a reduced ordered BDD.
+/// A presence condition: an index into an [`Arena`] of hash-consed boolean
+/// nodes.
 ///
 /// Conditions are built over *multi-valued* variables (a meson `combo` option,
-/// the host system, ...). The atom `lit(v, i)` reads "variable `v` took its
-/// `i`th choice"; the BDD encodes each such variable's choice index in
-/// `ceil(log2(n))` boolean BDD variables. Keeping the choice structure is what
-/// lets the backend lower a condition to nested `select()`s whose keys are
-/// mutually exclusive by construction.
+/// the host system, ...) rather than plain booleans: the atom `Lit(v, i)` reads
+/// "variable `v` took its `i`th choice". Keeping the choice structure instead of
+/// one-hot booleans is what lets the backend lower a condition to nested
+/// `select()`s whose keys are mutually exclusive by construction.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Pc(u32);
 
@@ -85,6 +55,16 @@ impl VarId {
     pub fn from_index(index: usize) -> Self {
         Self(index as u32)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Node {
+    False,
+    True,
+    Lit(VarId, u32),
+    Not(Pc),
+    And(Pc, Pc),
+    Or(Pc, Pc),
 }
 
 /// What a configuration variable stands for.
@@ -140,36 +120,15 @@ impl Var {
     }
 }
 
-/// Bits needed to number `n` choices: `ceil(log2(n))`, at least 1.
-fn width(n: u32) -> u8 {
-    debug_assert!(n >= 2);
-    (32 - (n - 1).leading_zeros()).max(1) as u8
-}
-
-/// Store of presence conditions, each a canonical BDD. Equivalent conditions —
-/// however they were built — share one [`Pc`], so the volume of distinct
-/// entries tracks the real branching structure of a project, not how many
-/// questions were asked about it.
+/// Hash-consed store of presence conditions.
 #[derive(Debug)]
 pub struct Arena {
-    vs: BddVariableSet,
+    nodes: Vec<Node>,
+    memo: HashMap<Node, Pc>,
     vars: Vec<Var>,
     by_key: HashMap<String, VarId>,
-    /// `bits[v]` = (first BDD variable, count) encoding configuration variable
-    /// `v`. Dense, in `VarId` order.
-    bits: Vec<(u16, u8)>,
-    /// Next free BDD variable in each priority band.
-    next_bit: [u16; BANDS],
-    /// `Pc` -> its canonical BDD. Slots 0 and 1 are `FALSE` / `TRUE`.
-    bdds: Vec<Bdd>,
-    dedup: HashMap<Bdd, Pc>,
-    /// Cached [`Self::support`] results — a pure function of the BDD, so safe to
-    /// memoise per `Pc`.
-    support_memo: HashMap<Pc, Vec<VarId>>,
-    /// Domain constraints plus everything [`assume`](Self::assume)d: the
-    /// configurations that exist at all.
-    context: Bdd,
     restrict_memo: HashMap<(Pc, VarId, u32), Pc>,
+    support_memo: HashMap<Pc, Vec<VarId>>,
 }
 
 impl Default for Arena {
@@ -180,23 +139,27 @@ impl Default for Arena {
 
 impl Arena {
     pub fn new() -> Self {
-        let vs = BddVariableSet::new_anonymous(BAND * BANDS as u16);
-        let (f, t) = (vs.mk_false(), vs.mk_true());
-        let mut dedup = HashMap::new();
-        dedup.insert(f.clone(), Pc::FALSE);
-        dedup.insert(t.clone(), Pc::TRUE);
+        let nodes = vec![Node::False, Node::True];
+
+        debug_assert_eq!(nodes[Pc::FALSE.0 as usize], Node::False);
+        debug_assert_eq!(nodes[Pc::TRUE.0 as usize], Node::True);
+
+        let mut memo = HashMap::new();
+        memo.insert(Node::False, Pc::FALSE);
+        memo.insert(Node::True, Pc::TRUE);
+
         Self {
-            context: vs.mk_true(),
-            vs,
+            nodes,
+            memo,
             vars: Vec::new(),
             by_key: HashMap::new(),
-            bits: Vec::new(),
-            next_bit: std::array::from_fn(|b| b as u16 * BAND),
-            bdds: vec![f, t],
-            dedup,
-            support_memo: HashMap::new(),
             restrict_memo: HashMap::new(),
+            support_memo: HashMap::new(),
         }
+    }
+
+    pub fn node(&self, pc: Pc) -> &Node {
+        &self.nodes[pc.0 as usize]
     }
 
     pub fn vars(&self) -> &[Var] {
@@ -211,11 +174,6 @@ impl Arena {
         self.by_key.get(key).copied()
     }
 
-    /// The BDD node count of one condition — how big it actually got.
-    pub fn size(&self, pc: Pc) -> usize {
-        self.bdds[pc.0 as usize].size()
-    }
-
     /// Declare a variable, or return the existing one with the same key.
     ///
     /// Re-declaring with a different domain is a bug in the caller rather than
@@ -224,55 +182,31 @@ impl Arena {
         if let Some(id) = self.by_key.get(&var.key) {
             return *id;
         }
-        let n = var.choices.len() as u32;
-        debug_assert!(n >= 2, "`{}` has no real choice", var.key);
-
+        debug_assert!(var.choices.len() >= 2, "`{}` has no real choice", var.key);
         let id = VarId(self.vars.len() as u32);
-        let b = band(var.kind);
         self.by_key.insert(var.key.clone(), id);
         self.vars.push(var);
         stats::max(&stats::ARENA_VARS, self.vars.len() as u64);
-        stats::bump(&stats::VAR_DECLARE);
-
-        let count = width(n);
-        let start = self.next_bit[b];
-        let end = start + u16::from(count);
-        assert!(
-            end <= (b as u16 + 1) * BAND,
-            "BDD variable band {b} exhausted at {BAND}; raise `BAND` in arena.rs",
-        );
-        self.next_bit[b] = end;
-        self.bits.push((start, count));
-
-        // Rule out the bit patterns past `n` when it is not a power of two, so
-        // a variable can only ever hold a value it actually has.
-        if !n.is_power_of_two() {
-            let mut legal = self.vs.mk_false();
-            for value in 0..n {
-                legal = legal.or(&self.encode(start, count, value));
-            }
-            self.context = self.context.and(&legal);
-        }
         id
     }
 
     pub fn lit(&mut self, var: VarId, choice: u32) -> Pc {
-        let (start, count) = self.bits[var.index()];
-        debug_assert!(choice < (1u32 << count));
-        let bdd = self.encode(start, count, choice);
-        self.intern(bdd)
+        debug_assert!((choice as usize) < self.vars[var.0 as usize].choices.len());
+        self.intern(Node::Lit(var, choice))
     }
 
     pub fn not(&mut self, a: Pc) -> Pc {
         stats::bump(&stats::ARENA_NOT_CALLS);
-        if a.is_true() {
-            return Pc::FALSE;
+        // Negation is kept as a node rather than pushed down to the leaves.
+        // Rewriting it away would lose the syntactic link between a formula and
+        // its negation, and that link is what makes the two sides of an `if`
+        // cancel out without asking the solver.
+        match self.nodes[a.0 as usize] {
+            Node::True => Pc::FALSE,
+            Node::False => Pc::TRUE,
+            Node::Not(inner) => inner,
+            _ => self.intern(Node::Not(a)),
         }
-        if a.is_false() {
-            return Pc::TRUE;
-        }
-        let bdd = self.bdds[a.0 as usize].not();
-        self.intern(bdd)
     }
 
     pub fn and(&mut self, a: Pc, b: Pc) -> Pc {
@@ -283,11 +217,17 @@ impl Arena {
         if a.is_true() {
             return b;
         }
-        if b.is_true() || a == b {
+        if b.is_true() {
             return a;
         }
-        let bdd = self.bdds[a.0 as usize].and(&self.bdds[b.0 as usize]);
-        self.intern(bdd)
+        if a == b {
+            return a;
+        }
+        if self.is_negation(a, b) || self.conflicts(a, b) {
+            return Pc::FALSE;
+        }
+        let (a, b) = if a.0 <= b.0 { (a, b) } else { (b, a) };
+        self.intern(Node::And(a, b))
     }
 
     pub fn or(&mut self, a: Pc, b: Pc) -> Pc {
@@ -298,11 +238,17 @@ impl Arena {
         if a.is_false() {
             return b;
         }
-        if b.is_false() || a == b {
+        if b.is_false() {
             return a;
         }
-        let bdd = self.bdds[a.0 as usize].or(&self.bdds[b.0 as usize]);
-        self.intern(bdd)
+        if a == b {
+            return a;
+        }
+        if self.is_negation(a, b) {
+            return Pc::TRUE;
+        }
+        let (a, b) = if a.0 <= b.0 { (a, b) } else { (b, a) };
+        self.intern(Node::Or(a, b))
     }
 
     pub fn implies(&mut self, a: Pc, b: Pc) -> Pc {
@@ -318,203 +264,83 @@ impl Arena {
         if let Some(&hit) = self.restrict_memo.get(&(pc, var, choice)) {
             return hit;
         }
-        let (start, count) = self.bits[var.index()];
-        let assignment: SmallVec<[(BddVariable, bool); 6]> = (0..count)
-            .map(|i| {
-                (
-                    BddVariable::from_index((start + u16::from(i)) as usize),
-                    (choice >> i) & 1 == 1,
-                )
-            })
-            .collect();
-        let bdd = self.bdds[pc.0 as usize].restrict(&assignment);
-        let out = self.intern(bdd);
+        let out = match self.nodes[pc.0 as usize].clone() {
+            Node::True | Node::False => pc,
+            Node::Lit(v, c) if v == var => {
+                if c == choice {
+                    Pc::TRUE
+                } else {
+                    Pc::FALSE
+                }
+            }
+            Node::Lit(..) => pc,
+            Node::Not(inner) => {
+                let inner = self.restrict(inner, var, choice);
+                self.not(inner)
+            }
+            Node::And(x, y) => {
+                let x = self.restrict(x, var, choice);
+                let y = self.restrict(y, var, choice);
+                self.and(x, y)
+            }
+            Node::Or(x, y) => {
+                let x = self.restrict(x, var, choice);
+                let y = self.restrict(y, var, choice);
+                self.or(x, y)
+            }
+        };
         self.restrict_memo.insert((pc, var, choice), out);
         out
     }
 
-    /// The variables `pc` actually mentions, in declaration order.
-    ///
-    /// `decay_buck2::select` takes a branching variable off the front of this,
-    /// so it must be a stable function of the condition — reading it straight
-    /// off the (canonical) BDD's support is exactly that.
+    /// The variables `pc` actually mentions, in first-mention order.
     pub fn support(&mut self, pc: Pc) -> Vec<VarId> {
         if let Some(hit) = self.support_memo.get(&pc) {
             return hit.clone();
         }
-        // Order by first BDD bit, i.e. by priority band then declaration order
-        // within a band — the order the diagram itself branches, so it matches
-        // how a `select()` over these variables should nest.
-        let mut vars: Vec<VarId> = Vec::new();
-        for b in self.bdds[pc.0 as usize].support_set() {
-            let bit = b.to_index() as u16;
-            let v = self
-                .bits
-                .iter()
-                .position(|&(start, count)| start <= bit && bit < start + u16::from(count))
-                .map(VarId::from_index)
-                .expect("every BDD variable belongs to a configuration variable");
-            if !vars.contains(&v) {
-                vars.push(v);
+        let out = match self.nodes[pc.0 as usize].clone() {
+            Node::True | Node::False => Vec::new(),
+            Node::Lit(v, _) => vec![v],
+            Node::Not(inner) => self.support(inner),
+            Node::And(x, y) | Node::Or(x, y) => {
+                let mut out = self.support(x);
+                for v in self.support(y) {
+                    if !out.contains(&v) {
+                        out.push(v);
+                    }
+                }
+                out
             }
-        }
-        vars.sort_unstable_by_key(|v| self.bits[v.index()].0);
-        self.support_memo.insert(pc, vars.clone());
-        vars
+        };
+        self.support_memo.insert(pc, out.clone());
+        out
     }
 
-    /// Narrow the whole configuration space by `pc`: from now on every
-    /// assignment that falsifies it simply does not exist.
-    pub fn assume(&mut self, pc: Pc) {
-        self.context = self.context.and(&self.bdds[pc.0 as usize]);
+    /// Cheap syntactic check for `a` being the negation of `b`.
+    fn is_negation(&self, a: Pc, b: Pc) -> bool {
+        matches!(self.nodes[a.0 as usize], Node::Not(x) if x == b)
+            || matches!(self.nodes[b.0 as usize], Node::Not(x) if x == a)
     }
 
-    /// Whether `pc` holds in some configuration that exists.
-    pub fn is_sat(&self, pc: Pc) -> bool {
-        !self.bdds[pc.0 as usize].and(&self.context).is_false()
+    /// Two literals over the same variable but different choices can never hold
+    /// together. Catching this here keeps the common `x == 'a' and x == 'b'`
+    /// dead branch out of the solver.
+    fn conflicts(&self, a: Pc, b: Pc) -> bool {
+        matches!(
+            (&self.nodes[a.0 as usize], &self.nodes[b.0 as usize]),
+            (Node::Lit(v, i), Node::Lit(w, j)) if v == w && i != j
+        )
     }
 
-    /// The BDD for "the `count` bits from `start` spell `value`", LSB first.
-    fn encode(&self, start: u16, count: u8, value: u32) -> Bdd {
-        let mut b = self.vs.mk_true();
-        for i in 0..count {
-            let v = BddVariable::from_index((start + u16::from(i)) as usize);
-            b = b.and(&self.vs.mk_literal(v, (value >> i) & 1 == 1));
-        }
-        b
-    }
-
-    fn intern(&mut self, bdd: Bdd) -> Pc {
-        if bdd.is_false() {
-            return Pc::FALSE;
-        }
-        if bdd.is_true() {
-            return Pc::TRUE;
-        }
-        if let Some(&pc) = self.dedup.get(&bdd) {
+    fn intern(&mut self, node: Node) -> Pc {
+        if let Some(&pc) = self.memo.get(&node) {
             return pc;
         }
-        let pc = Pc(self.bdds.len() as u32);
-        let size = bdd.size() as u64;
         stats::bump(&stats::ARENA_INTERNED);
-        stats::add(&stats::BDD_NODES_TOTAL, size);
-        stats::max(&stats::BDD_MAX_SIZE, size);
-        stats::max(&stats::PC_COUNT, pc.0 as u64 + 1);
-        self.dedup.insert(bdd.clone(), pc);
-        self.bdds.push(bdd);
-        pc
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn var(key: &str, choices: usize) -> Var {
-        Var {
-            key: key.to_owned(),
-            description: None,
-            kind: VarKind::Option,
-            choices: (0..choices).map(|i| i.to_string()).collect(),
-            default: 0,
-        }
-    }
-
-    /// An arena with `n` variables of the given choice counts, `v0..`.
-    fn arena(choices: &[usize]) -> (Arena, Vec<VarId>) {
-        let mut a = Arena::new();
-        let ids = choices
-            .iter()
-            .enumerate()
-            .map(|(i, &n)| a.declare(var(&format!("v{i}"), n)))
-            .collect();
-        (a, ids)
-    }
-
-    #[test]
-    fn width_is_ceil_log2() {
-        assert_eq!(width(2), 1);
-        assert_eq!(width(3), 2);
-        assert_eq!(width(4), 2);
-        assert_eq!(width(5), 3);
-        assert_eq!(width(8), 3);
-        assert_eq!(width(9), 4);
-    }
-
-    #[test]
-    fn every_choice_of_a_variable_is_reachable() {
-        let (mut a, v) = arena(&[3]);
-        for choice in 0..3 {
-            let lit = a.lit(v[0], choice);
-            assert!(a.is_sat(lit), "choice {choice}");
-        }
-        let _ = &v;
-    }
-
-    #[test]
-    fn choices_are_mutually_exclusive_and_the_spare_pattern_is_dead() {
-        let (mut a, v) = arena(&[3]);
-        let c0 = a.lit(v[0], 0);
-        let c1 = a.lit(v[0], 1);
-        let both = a.and(c0, c1);
-        assert!(both.is_false(), "one variable, two values");
-        // 3 choices uses 2 bits; the 4th pattern must not exist.
-        let spare = a.lit(v[0], 3);
-        assert!(!a.is_sat(spare));
-    }
-
-    #[test]
-    fn equivalent_conditions_share_one_pc() {
-        let (mut a, v) = arena(&[2, 2, 2]);
-        let (x, y, z) = (a.lit(v[0], 1), a.lit(v[1], 1), a.lit(v[2], 1));
-        let left = {
-            let xy = a.and(x, y);
-            a.and(xy, z)
-        };
-        let right = {
-            let yz = a.and(y, z);
-            a.and(x, yz)
-        };
-        assert_eq!(left, right, "(x&y)&z and x&(y&z) are one condition");
-    }
-
-    #[test]
-    fn support_is_declaration_order_regardless_of_assembly() {
-        let (mut a, v) = arena(&[2, 2, 2]);
-        let (x, y, z) = (a.lit(v[0], 1), a.lit(v[1], 1), a.lit(v[2], 1));
-        // "z & x & y" assembled two ways gives one condition and one support.
-        let one = {
-            let zx = a.and(z, x);
-            a.and(zx, y)
-        };
-        let two = {
-            let xy = a.and(x, y);
-            a.and(xy, z)
-        };
-        assert_eq!(one, two);
-        assert_eq!(a.support(one), vec![v[0], v[1], v[2]]);
-    }
-
-    #[test]
-    fn assume_removes_configurations() {
-        let (mut a, v) = arena(&[2, 2]);
-        let x0 = a.lit(v[0], 0);
-        a.assume(x0);
-        let x1 = a.lit(v[0], 1);
-        let y1 = a.lit(v[1], 1);
-        assert!(!a.is_sat(x1), "x==1 assumed away");
-        assert!(a.is_sat(y1), "y still free");
-    }
-
-    #[test]
-    fn restrict_substitutes_a_choice() {
-        let (mut a, v) = arena(&[2, 2]);
-        let x1 = a.lit(v[0], 1);
-        let y1 = a.lit(v[1], 1);
-        let both = a.and(x1, y1);
-        let rx1 = a.restrict(both, v[0], 1);
-        assert_eq!(rx1, y1, "x==1 makes it just y==1");
-        assert!(a.restrict(both, v[0], 0).is_false(), "x==0 kills it");
-        assert_eq!(a.support(rx1), vec![v[1]]);
+        let id = Pc(self.nodes.len() as u32);
+        self.nodes.push(node.clone());
+        self.memo.insert(node, id);
+        stats::max(&stats::ARENA_NODES, self.nodes.len() as u64);
+        id
     }
 }

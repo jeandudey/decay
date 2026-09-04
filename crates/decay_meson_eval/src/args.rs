@@ -5,6 +5,7 @@ use {
     },
     decay_meson_ast::Args,
     decay_meson_logic::{
+        Solver,
         Variational, //
     },
 };
@@ -38,7 +39,7 @@ impl CallArgs {
     }
 }
 
-impl<'a> Interp<'a> {
+impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn eval_args(&mut self, args: &Args) -> eyre::Result<CallArgs> {
         let mut pos = Vec::with_capacity(args.pos.len());
         for arg in &args.pos {

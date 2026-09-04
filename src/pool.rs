@@ -1,12 +1,11 @@
 //! Running the projects on a scoped pool, one thread per project for that
 //! project's whole life.
 //!
-//! The same `Logic` is built during evaluation and mutated again during
-//! emission, so a project is evaluated *and* emitted on the one worker that
+//! `Logic<Z3Solver>` is not `Send` — z3 keeps its context in a thread-local —
+//! and the same `Logic` is built during evaluation and mutated again during
+//! emission. So a project is evaluated *and* emitted on the one worker that
 //! owns it; only its `Graph` (plain data) and the emitted build file text ever
-//! move between threads. (The BDD `Logic` is `Send`, so this is now a
-//! scheduling choice rather than a hard requirement, but it keeps the graph and
-//! its logic together with no hand-off.)
+//! move between threads.
 //!
 //! The coordinator ([`import`]) hands work out wave by wave, folds each wave's
 //! results into [`Packages`] in project order, crosses the single barrier where
@@ -33,7 +32,10 @@ use {
         Used, //
     },
     decay_build_ir::Graph,
-    decay_meson_logic::Logic,
+    decay_meson_logic::{
+        Logic,
+        Z3Solver, //
+    },
     eyre::{
         Context,
         eyre, //
@@ -56,8 +58,8 @@ use {
 };
 
 /// What a worker sends back once it has evaluated a project: the graph travels
-/// to the coordinator, the logic stays on the worker as [`Pinned`] so it and
-/// its graph are never separated.
+/// to the coordinator, everything else (the `!Send` logic included) stays on
+/// the worker as [`Pinned`].
 struct Evaled {
     idx: usize,
     package: String,
@@ -65,12 +67,10 @@ struct Evaled {
 }
 
 /// The worker-local half of an evaluated project, kept until it is emitted.
-/// Holds the presence-condition logic; kept with the graph rather than
-/// handed back and forth.
 struct Pinned {
     out: PathBuf,
     package: String,
-    logic: Logic,
+    logic: Logic<Z3Solver>,
 }
 
 enum Job {
@@ -262,8 +262,8 @@ fn worker(
     jobs: mpsc::Receiver<Job>,
     done: mpsc::Sender<Done>,
 ) {
-    // This worker's evaluated-but-not-yet-emitted projects. Holds the `Logic`,
-    // kept beside its graph rather than shipped back for emission.
+    // This worker's evaluated-but-not-yet-emitted projects. Holds the `!Send`
+    // `Logic`, so it must never leave this thread.
     let mut pinned: HashMap<usize, Pinned> = HashMap::new();
 
     while let Ok(job) = jobs.recv() {

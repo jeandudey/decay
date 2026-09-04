@@ -18,6 +18,7 @@ use {
     decay_meson_logic::{
         ANY_OTHER,
         Pc,
+        Solver,
         Var,
         VarId,
         VarKind,
@@ -35,7 +36,7 @@ use {
     tracing::debug,
 };
 
-impl<'a> Interp<'a> {
+impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn method(
         &mut self,
         obj: &Variational<Value>,

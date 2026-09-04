@@ -20,6 +20,7 @@ toml = "1.1.4"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { version = "2.5.8", features = ["serde"] }
+z3 = "0.21.0"
 
 [package]
 name = "decay"
@@ -44,3 +45,4 @@ toml.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
+z3.workspace = true

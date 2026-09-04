@@ -20,7 +20,10 @@ use {
         Graph,
         Origin, //
     },
-    decay_meson_logic::Logic,
+    decay_meson_logic::{
+        Logic,
+        Z3Solver, //
+    },
     eyre::{
         Context,
         ContextCompat,
@@ -129,7 +132,7 @@ pub(crate) struct Imported {
     out: PathBuf,
     package: String,
     graph: Graph,
-    logic: Logic,
+    logic: Logic<Z3Solver>,
 }
 
 pub(crate) fn execute(

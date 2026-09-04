@@ -23,6 +23,7 @@ use {
         ANY_OTHER,
         Logic,
         Pc,
+        Solver,
         Variant,
         Variational,
         Var,
@@ -65,9 +66,9 @@ const CONSTRAINT: &str = "constraint:";
 /// and is what generated labels are anchored to.
 /// Returns the generated build file, which says which constraints are worth
 /// declaring: one nothing selects on configures nothing.
-pub fn emit(
+pub fn emit<S: Solver>(
     graph: &Graph,
-    logic: &mut Logic,
+    logic: &mut Logic<S>,
     known: &Labels,
     shared: &Shared,
     out: &Path,
@@ -319,9 +320,9 @@ fn describe(var: &Var) -> String {
 
 // -- the build file -------------------------------------------------------
 
-fn build_file(
+fn build_file<S: Solver>(
     graph: &Graph,
-    logic: &mut Logic,
+    logic: &mut Logic<S>,
     selects: &Selects,
     known: &Labels,
     package: &str,
@@ -474,9 +475,9 @@ impl Rendered {
     }
 }
 
-fn render_target(
+fn render_target<S: Solver>(
     graph: &Graph,
-    logic: &mut Logic,
+    logic: &mut Logic<S>,
     selects: &Selects,
     known: &Labels,
     target: &Target,
@@ -973,9 +974,9 @@ fn file_arg(graph: &Graph, path: &Path) -> String {
 
 /// The command line of a `custom_target`, with meson's placeholders rewritten
 /// into the shell variables a genrule provides.
-fn command(
+fn command<S: Solver>(
     graph: &Graph,
-    logic: &mut Logic,
+    logic: &mut Logic<S>,
     selects: &Selects,
     known: &Labels,
     target: &Target,
@@ -1092,7 +1093,7 @@ const OUT_DIR: &str = "${OUT%/*}";
 /// meson's own rule for a name nobody set is `/* #undef NAME */` — the same
 /// as this closes an open define set with, so a project that only ever
 /// `.set()`s a name inside an `if` still gets a valid header outside it.
-fn complete_defines(logic: &mut Logic, defines: &Variational<Define>, cond: Pc) -> Variational<Define> {
+fn complete_defines<S: Solver>(logic: &mut Logic<S>, defines: &Variational<Define>, cond: Pc) -> Variational<Define> {
     let mut covered: BTreeMap<String, Pc> = BTreeMap::new();
     for variant in defines.variants() {
         let entry = covered.entry(variant.value.name.clone()).or_insert(Pc::FALSE);
@@ -1120,9 +1121,9 @@ fn complete_defines(logic: &mut Logic, defines: &Variational<Define>, cond: Pc) 
 /// With no template meson writes a C header from scratch; with one it
 /// substitutes into it. Both are shell commands here, assembled so that each
 /// entry can carry its own `select()`.
-fn config_header_cmd(
+fn config_header_cmd<S: Solver>(
     graph: &Graph,
-    logic: &mut Logic,
+    logic: &mut Logic<S>,
     selects: &Selects,
     target: &Target,
 ) -> String {
