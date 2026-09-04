@@ -84,7 +84,16 @@ impl<'a, S: Solver> Interp<'a, S> {
             "files" => self.fn_files(args),
             "include_directories" => self.fn_include_directories(args),
             "import" => self.fn_import(args),
-            "subproject" => bail!("subprojects are not supported yet"),
+            // Subprojects are not evaluated. A project that pulls one in is
+            // expected to have it listed as its own `[[project]]` instead, so
+            // the `dependency()` the subproject would have provided resolves
+            // against that sibling. The call itself does nothing here; code
+            // that uses the returned subproject object will fail later, which
+            // is the signal to add it to `decay.toml`.
+            "subproject" => {
+                self.warn_unsupported(&format!("`{name}()`"), loc);
+                Ok(self.pure(Value::Unset))
+            }
 
             // -- structure --
             "subdir" => self.fn_subdir(args),
@@ -1101,7 +1110,23 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.compile_args = compile_args;
         target.attrs.link_args = link_args;
         target.attrs.headers = headers;
-        target.attrs.variables = variables;
+        target.attrs.variables = variables.clone();
+
+        // A `declare_dependency()` in the project's own root `meson.build` is
+        // that project's public face — the analogue of a wrap's
+        // `[provide] dependency_names`. Recording it lets a sibling project
+        // resolve `dependency('<this project>')` against it, the same way one
+        // resolves against another's `pkg.generate()`. Subdir
+        // `declare_dependency()` calls are internal glue and are left alone.
+        if self.cur_dir().as_os_str().is_empty() {
+            let provided = self.graph.project.name.clone();
+            let variables = single_valued_pairs(&variables);
+            self.graph.provides.push(Package {
+                name: provided,
+                target: Some(id),
+                variables,
+            });
+        }
 
         let value = self.dep_obj(Dep {
             name,
@@ -1235,20 +1260,42 @@ impl<'a, S: Solver> Interp<'a, S> {
     fn fn_find_program(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
         let name = self.one_string(args.at(0).ok_or_eyre("find_program() needs a name")?)?;
         let required = self.required(args)?;
+        let value = self.resolve_program(&name, required)?;
+        Ok(self.pure(value))
+    }
 
+    /// `import('python').find_installation()` — the interpreter that runs the
+    /// build's Python tooling. It is looked up the same way any other program
+    /// is (a `[programs]` entry, typically `python3`), and carries a fabricated
+    /// language version, the way `meson.version()` and `cc.version()` are.
+    pub(crate) fn fn_find_installation(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let name = match args.at(0) {
+            Some(v) => self.one_string(v)?,
+            None => Rc::from("python3"),
+        };
+        let required = self.required(args)?;
+        let value = self.resolve_program(&name, required)?;
+        Ok(self.pure(value))
+    }
+
+    /// `find_program('x')` proper: a program is found only when it is a script
+    /// in the project tree or the importer was told where it lives; nothing a
+    /// platform could set makes one appear, so a required one that is neither
+    /// is a hard error and an optional one is simply absent.
+    pub(crate) fn resolve_program(&mut self, name: &str, required: Pc) -> eyre::Result<Value> {
         // A program named by a path inside the project is a file, not something
         // to go looking for on the build machine.
-        let candidate = self.resolve(&name);
+        let candidate = self.resolve(name);
         let in_tree = self.sources.exists(&self.root.join(&candidate));
         let path = in_tree.then(|| PathBuf::from(&candidate));
 
         let key = format!("prog:{name}");
-        let target = self.external(&key, &name, External::Program {
+        let target = self.external(&key, name, External::Program {
             name: name.to_string(),
             path: path.clone(),
         });
 
-        let found = if in_tree || self.oracle.has_program(&name) {
+        let found = if in_tree || self.oracle.has_program(name) {
             Pc::TRUE
         } else {
             // Not a configuration knob: nothing a platform could set would make
@@ -1267,13 +1314,12 @@ impl<'a, S: Solver> Interp<'a, S> {
             Pc::FALSE
         };
 
-        let value = self.program_obj(Program {
+        Ok(self.program_obj(Program {
             name: name.to_string(),
             found,
             target,
             path: path.map(|p| p.display().to_string()),
-        });
-        Ok(self.pure(value))
+        }))
     }
 
     fn fn_files(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {

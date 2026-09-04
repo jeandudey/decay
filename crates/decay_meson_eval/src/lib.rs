@@ -137,11 +137,15 @@ pub fn eval(
 }
 
 /// Statement-level control flow.
+///
+/// `Break`/`Continue` carry the path condition they fired under, so a loop
+/// over a static list can still translate a `break` that only some
+/// configurations take — the remaining iterations run under its negation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Flow {
     Normal,
-    Break,
-    Continue,
+    Break(Pc),
+    Continue(Pc),
     /// `error()` was reached: this path does not configure at all.
     Abort,
 }
@@ -343,8 +347,8 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
             Stmt::If(v) => self.exec_if(v)?,
             Stmt::Foreach(v) => self.exec_foreach(v)?,
-            Stmt::Break => self.flow = Flow::Break,
-            Stmt::Continue => self.flow = Flow::Continue,
+            Stmt::Break => self.flow = Flow::Break(self.pc),
+            Stmt::Continue => self.flow = Flow::Continue(self.pc),
         }
         Ok(())
     }
@@ -428,8 +432,17 @@ impl<'a, S: Solver> Interp<'a, S> {
             let entries = self.loop_entries(&variant.value, &stmt.names, base)?;
             let last = entries.len().saturating_sub(1);
 
+            // Configurations in which an earlier iteration has already `break`ed.
+            // Later iterations run under the negation, so a "first match wins"
+            // loop over a static list becomes a chain of conditions.
+            let mut broken = Pc::FALSE;
+
             for (i, (cond, bindings)) in entries.into_iter().enumerate() {
-                let g = self.logic.and(base, cond);
+                let alive = self.logic.not(broken);
+                let g = {
+                    let gc = self.logic.and(base, cond);
+                    self.logic.and(gc, alive)
+                };
                 if g.is_false() || !self.logic.is_sat(g) {
                     continue;
                 }
@@ -448,22 +461,20 @@ impl<'a, S: Solver> Interp<'a, S> {
                     Flow::Abort => {
                         self.flow = Flow::Normal;
                     }
-                    Flow::Break => {
+                    Flow::Break(bpc) => {
                         self.flow = Flow::Normal;
-                        if cond.is_true() {
+                        broken = self.logic.or(broken, bpc);
+                        if self.logic.entails(base, broken) {
                             break;
                         }
-                        // A `break` that only happens in some configurations
-                        // would make every later iteration conditional on it,
-                        // which no static build description can express.
-                        bail!(
-                            "`break` inside a loop over a configuration-dependent element \
-                             has no static translation"
-                        );
                     }
-                    Flow::Continue => {
+                    Flow::Continue(cpc) => {
                         self.flow = Flow::Normal;
-                        if !cond.is_true() && i != last {
+                        // Everything after a `continue` in the body was skipped
+                        // for the whole iteration; that is only faithful if the
+                        // `continue` covers it, or there is no later iteration
+                        // whose bindings those statements would have seen.
+                        if i != last && !self.logic.entails(g, cpc) {
                             bail!(
                                 "`continue` inside a loop over a configuration-dependent \
                                  element has no static translation"

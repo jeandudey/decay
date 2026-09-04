@@ -258,6 +258,12 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let _ = program;
                 Ok(self.pure(Value::str("unknown")))
             }
+            // The Python interpreter object (`find_installation()`) is a
+            // program with one extra query. A concrete version has to come
+            // from somewhere for a `version_compare()` against it to mean
+            // anything; a recent one is assumed, the way tool versions
+            // generally are here.
+            (Obj::Program(_), "language_version") => Ok(self.pure(Value::str("3.12"))),
 
             // -- build targets --
             (Obj::Target(id), "full_path" | "path") => {
@@ -276,6 +282,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
 
             // -- modules --
+            (Obj::Module(Module::Python), "find_installation") => self.fn_find_installation(args),
             (Obj::Module(Module::PkgConfig), "generate") => self.fn_pkgconfig_generate(args),
             (Obj::Module(Module::GNOME), "compile_resources") => self.fn_compile_resources(args),
             (Obj::Module(Module::GNOME), "mkenums") => self.fn_mkenums(args),

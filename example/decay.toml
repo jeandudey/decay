@@ -67,6 +67,7 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # [programs]
 # doxygen = "//third-party/tools:doxygen"
 [programs]
+python3 = "//third-party/tools:python3"
 "glib-compile-resources" = "//third-party/tools:glib-compile-resources"
 "glib-mkenums" = "//third-party/tools:glib-mkenums"
 "glib-genmarshal" = "//third-party/tools:glib-genmarshal"
@@ -117,9 +118,17 @@ zlib = "//third-party/system:Z"
 "size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86]" = 4 }
 
 [[project]]
+repo = "https://gitlab.gnome.org/GNOME/gvdb.git"
+rev = "2b42fc75f09dbe1cd1057580b5782b08f2dcb400"
+# gvdb's own tests link `gio-2.0`, which would be a cycle back to glib; glib
+# imports it with the same option off.
+options.tests = false
+
+[[project]]
 repo = "https://gitlab.gnome.org/GNOME/glib.git"
 # Pinned to tag 2.88.3.
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
+depends = ["gvdb"]
 options.prefix = "/usr/local"
 options.libdir = "lib"
 options.datadir = "share"
