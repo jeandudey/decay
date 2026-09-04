@@ -72,15 +72,42 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   systems we could have this built-in in decay (altough with an option
   to disable it in decay.toml or allow overriding the results), e.g.
   has_function('dlvsym') or whatever should just compile to a select for linux
-  and gnu abi. This should be a database built-in into decay. How to build it? No
-  idea but it shouldn't be manual, `zig cc` has support for nearly every OS
-  combination Buck2 supports in the constraints. Might be a crate(s) of it's
-  own, e.g. a build support crate that calls into `zig cc` mimicking what
-  `meson` does for  `has_function`. Initially this could be implemented only
-  for `has_function` and a known gaps section should be added for the rest
-  that we need like `has_header` (from system libraries that libc provides).
-  This should reduce a lot the amount of lines of codes and constraints generated
-  since we can reuse a lot the buck2 prelude.
+  and gnu abi. This should be a database built-in into decay, and it must never
+  be hand-curated — built by parsing an authoritative data source, the way
+  `bindgen` reads a header instead of a person transcribing it.
+
+  Plan, scoped to `has_function` on `linux`+`gnu` first:
+  1. Zig ships exactly such a source: `lib/libc/glibc/abilists`, a compact
+     binary listing, for every glibc version and target triple, which
+     symbols each versioned glibc release exports — the data glibc's own
+     project publishes and zig uses to synthesize its glibc stub `.so`s for
+     cross-linking. Vendor that one file (pinned to one zig release, noted
+     in-tree) into a new crate rather than requiring `zig` installed, since
+     it is a plain data file. A refresh means re-fetching that file from a
+     newer zig release, never editing a function list by hand.
+  2. Parse its binary format (documented by `loadMetaData` and the
+     function-inclusion loop in zig's own `src/libs/glibc.zig`) into the set
+     of symbol names present in the function table (skip the object table —
+     data symbols, not functions) for the `x86_64-linux-gnu` column, unioned
+     across libc/libm/libpthread/libdl/librt/libutil/libresolv, since
+     `has_function` doesn't care which of those a symbol lives in.
+  3. Wire it into `src/oracle.rs` as a fallback `Oracle::probe` consults only
+     after a project's own `decay.toml` `[probes]` entry misses — an explicit
+     answer there still wins, and a project-wide toggle turns the built-in
+     table off entirely.
+  4. Buck2's `abi` constraint (`gnu`/`msvc`/`musl`/`unspecified`) is shared
+     across every OS — `abi[gnu]` also means mingw on Windows, not just
+     glibc — so a glibc-derived fact must select on `os == linux AND abi ==
+     gnu` together, not `abi` alone. `Probe` needs a variant that ANDs the
+     `Pc` `[systems]` already builds with the one `[probes]`'s
+     `Probe::Constraint` already builds, rather than reusing `Probe::Constraint`
+     unchanged.
+  5. A later pass extends the same vendored file to other glibc target
+     columns, and separately to musl/Darwin/mingw once an equally
+     authoritative, automatically-parseable source for each is found — and,
+     after that, to `has_header` and the rest, which is a harder problem
+     (header presence also depends on optional dev packages, not just the
+     libc), so it stays its own follow-up.
 
 - **Formatting.** If a literal inside a select array e.g. `"cpu[x86_64]": [":dep"]` can go in
   the same line instead of a new one, confirm `buildifier` doesn't change it, should reduce

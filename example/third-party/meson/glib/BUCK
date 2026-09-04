@@ -10195,6 +10195,25 @@ genrule(
             }),
         }),
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
+                    "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
+                }),
+            }),
+            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
+                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
+                    "prelude//abi/constraints:abi[gnu]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
+                        "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
+                    }),
+                }),
+                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
+            }),
+        }),
         "prelude//os/constraints:os[windows]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
         "DEFAULT": select({
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
@@ -10261,6 +10280,25 @@ genrule(
             }),
         }),
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
+                    "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
+                }),
+            }),
+            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
+                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
+                    "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
+                        "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
+                    }),
+                }),
+                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
+            }),
+        }),
         "prelude//os/constraints:os[windows]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
         "DEFAULT": select({
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
@@ -12228,10 +12266,21 @@ cxx_library(
         ],
         "DEFAULT": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
+                        "//third-party/meson/constraints:has_function_inotify_init1[false]": [
+                            "//third-party/meson/constraints:unsatisfiable[yes]",
+                        ],
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": [
+                        "//third-party/meson/constraints:unsatisfiable[yes]",
+                    ],
+                }),
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": [
                 "//third-party/meson/constraints:unsatisfiable[yes]",
@@ -12995,19 +13044,42 @@ cxx_library(
         ],
         "DEFAULT": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
-                    "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                        "//third-party/meson/constraints:has_function_kevent[true]": [],
-                        "//third-party/meson/constraints:has_function_kevent[false]": [
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": [
+                        "//third-party/meson/constraints:unsatisfiable[yes]",
+                    ],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_inotify_init1[true]": [
+                            "//third-party/meson/constraints:unsatisfiable[yes]",
+                        ],
+                        "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                            "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                                "//third-party/meson/constraints:has_function_kevent[true]": [],
+                                "//third-party/meson/constraints:has_function_kevent[false]": [
+                                    "//third-party/meson/constraints:unsatisfiable[yes]",
+                                ],
+                            }),
+                            "//third-party/meson/constraints:has_function_kqueue[false]": [
+                                "//third-party/meson/constraints:unsatisfiable[yes]",
+                            ],
+                        }),
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": [
+                        "//third-party/meson/constraints:unsatisfiable[yes]",
+                    ],
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                        "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                            "//third-party/meson/constraints:has_function_kevent[true]": [],
+                            "//third-party/meson/constraints:has_function_kevent[false]": [
+                                "//third-party/meson/constraints:unsatisfiable[yes]",
+                            ],
+                        }),
+                        "//third-party/meson/constraints:has_function_kqueue[false]": [
                             "//third-party/meson/constraints:unsatisfiable[yes]",
                         ],
                     }),
-                    "//third-party/meson/constraints:has_function_kqueue[false]": [
-                        "//third-party/meson/constraints:unsatisfiable[yes]",
-                    ],
                 }),
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": select({
@@ -14061,28 +14133,23 @@ cxx_library(
         "//third-party/meson/glib/constraints:file_monitor_backend[win32]": [],
         "DEFAULT": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": [
-                    "//third-party/meson/constraints:unsatisfiable[yes]",
-                ],
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
-                    "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                        "//third-party/meson/constraints:has_function_kevent[true]": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
-                        "//third-party/meson/constraints:has_function_kevent[false]": select({
-                            "prelude//os/constraints:os[windows]": [],
-                            "DEFAULT": [
+                "prelude//os/constraints:os[windows]": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": [
+                        "//third-party/meson/constraints:unsatisfiable[yes]",
+                    ],
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                        "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                            "//third-party/meson/constraints:has_function_kevent[true]": [
                                 "//third-party/meson/constraints:unsatisfiable[yes]",
                             ],
+                            "//third-party/meson/constraints:has_function_kevent[false]": [],
                         }),
-                    }),
-                    "//third-party/meson/constraints:has_function_kqueue[false]": select({
-                        "prelude//os/constraints:os[windows]": [],
-                        "DEFAULT": [
-                            "//third-party/meson/constraints:unsatisfiable[yes]",
-                        ],
+                        "//third-party/meson/constraints:has_function_kqueue[false]": [],
                     }),
                 }),
+                "DEFAULT": [
+                    "//third-party/meson/constraints:unsatisfiable[yes]",
+                ],
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": select({
                 "//third-party/meson/constraints:has_function_kqueue[true]": select({
@@ -14356,6 +14423,17 @@ cxx_library(
             ":glib.git[gio/gdocumentportal.c]",
         ],
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": [
+                ":glib.git[gio/gmemorymonitorpoll.c]",
+            ],
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_sysinfo[true]": [
+                    ":glib.git[gio/gmemorymonitorpoll.c]",
+                ],
+                "//third-party/meson/constraints:has_function_sysinfo[false]": [],
+            }),
+        }),
         "prelude//os/constraints:os[illumos]": [],
         "prelude//os/constraints:os[windows]": [],
         "DEFAULT": select({
@@ -16236,10 +16314,23 @@ cxx_library(
     }) + select({
         "//third-party/meson/glib/constraints:file_monitor_backend[auto]": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": [
-                    ":inotify",
-                ],
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": [],
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": [
+                        ":inotify",
+                    ],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_inotify_init1[true]": [
+                            ":inotify",
+                        ],
+                        "//third-party/meson/constraints:has_function_inotify_init1[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": [
+                        ":inotify",
+                    ],
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": [],
+                }),
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": [],
         }),
@@ -16260,15 +16351,32 @@ cxx_library(
     }) + select({
         "//third-party/meson/glib/constraints:file_monitor_backend[auto]": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
-                    "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                        "//third-party/meson/constraints:has_function_kevent[true]": [
-                            ":kqueue",
-                        ],
-                        "//third-party/meson/constraints:has_function_kevent[false]": [],
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
+                        "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                            "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                                "//third-party/meson/constraints:has_function_kevent[true]": [
+                                    ":kqueue",
+                                ],
+                                "//third-party/meson/constraints:has_function_kevent[false]": [],
+                            }),
+                            "//third-party/meson/constraints:has_function_kqueue[false]": [],
+                        }),
                     }),
-                    "//third-party/meson/constraints:has_function_kqueue[false]": [],
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                        "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                            "//third-party/meson/constraints:has_function_kevent[true]": [
+                                ":kqueue",
+                            ],
+                            "//third-party/meson/constraints:has_function_kevent[false]": [],
+                        }),
+                        "//third-party/meson/constraints:has_function_kqueue[false]": [],
+                    }),
                 }),
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": select({
@@ -16290,24 +16398,21 @@ cxx_library(
     }) + select({
         "//third-party/meson/glib/constraints:file_monitor_backend[auto]": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
-                    "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                        "//third-party/meson/constraints:has_function_kevent[true]": [],
-                        "//third-party/meson/constraints:has_function_kevent[false]": select({
-                            "prelude//os/constraints:os[windows]": [
+                "prelude//os/constraints:os[windows]": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                        "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                            "//third-party/meson/constraints:has_function_kevent[true]": [],
+                            "//third-party/meson/constraints:has_function_kevent[false]": [
                                 ":giowin32",
                             ],
-                            "DEFAULT": [],
                         }),
-                    }),
-                    "//third-party/meson/constraints:has_function_kqueue[false]": select({
-                        "prelude//os/constraints:os[windows]": [
+                        "//third-party/meson/constraints:has_function_kqueue[false]": [
                             ":giowin32",
                         ],
-                        "DEFAULT": [],
                     }),
                 }),
+                "DEFAULT": [],
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": select({
                 "//third-party/meson/constraints:has_function_kqueue[true]": select({
@@ -16368,6 +16473,40 @@ cxx_library(
         }),
         "DEFAULT": [],
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "//third-party/meson/constraints:xattr[true]": select({
+                "//third-party/meson/glib/constraints:xattr[true]": select({
+                    "prelude//abi/constraints:abi[gnu]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [
+                                ":xattr",
+                            ],
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                        }),
+                    }),
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [
+                                    ":xattr",
+                                ],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [
+                                ":xattr",
+                            ],
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                        }),
+                    }),
+                }),
+                "//third-party/meson/glib/constraints:xattr[false]": [],
+            }),
+            "//third-party/meson/constraints:xattr[false]": [],
+        }),
         "prelude//os/constraints:os[windows]": [],
         "DEFAULT": select({
             "//third-party/meson/constraints:xattr[true]": select({
@@ -19180,41 +19319,149 @@ genrule(
         }),
         "DEFAULT": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_if_nametoindex[true]": " '#define HAVE_IF_NAMETOINDEX 1'",
-        "//third-party/meson/constraints:has_function_if_nametoindex[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_IF_NAMETOINDEX 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_if_nametoindex[true]": " '#define HAVE_IF_NAMETOINDEX 1'",
+                "//third-party/meson/constraints:has_function_if_nametoindex[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_if_nametoindex[true]": " '#define HAVE_IF_NAMETOINDEX 1'",
+            "//third-party/meson/constraints:has_function_if_nametoindex[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_if_indextoname[true]": " '#define HAVE_IF_INDEXTONAME 1'",
-        "//third-party/meson/constraints:has_function_if_indextoname[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_IF_INDEXTONAME 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_if_indextoname[true]": " '#define HAVE_IF_INDEXTONAME 1'",
+                "//third-party/meson/constraints:has_function_if_indextoname[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_if_indextoname[true]": " '#define HAVE_IF_INDEXTONAME 1'",
+            "//third-party/meson/constraints:has_function_if_indextoname[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_accept4[true]": " '#define HAVE_ACCEPT4 1'",
-        "//third-party/meson/constraints:has_function_accept4[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ACCEPT4 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_accept4[true]": " '#define HAVE_ACCEPT4 1'",
+                "//third-party/meson/constraints:has_function_accept4[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_accept4[true]": " '#define HAVE_ACCEPT4 1'",
+            "//third-party/meson/constraints:has_function_accept4[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
-        "//third-party/meson/constraints:has_function_close_range[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
+                "//third-party/meson/constraints:has_function_close_range[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
+            "//third-party/meson/constraints:has_function_close_range[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_copy_file_range[true]": " '#define HAVE_COPY_FILE_RANGE 1'",
-        "//third-party/meson/constraints:has_function_copy_file_range[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_COPY_FILE_RANGE 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_copy_file_range[true]": " '#define HAVE_COPY_FILE_RANGE 1'",
+                "//third-party/meson/constraints:has_function_copy_file_range[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_copy_file_range[true]": " '#define HAVE_COPY_FILE_RANGE 1'",
+            "//third-party/meson/constraints:has_function_copy_file_range[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_endmntent[true]": " '#define HAVE_ENDMNTENT 1'",
-        "//third-party/meson/constraints:has_function_endmntent[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ENDMNTENT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_endmntent[true]": " '#define HAVE_ENDMNTENT 1'",
+                "//third-party/meson/constraints:has_function_endmntent[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_endmntent[true]": " '#define HAVE_ENDMNTENT 1'",
+            "//third-party/meson/constraints:has_function_endmntent[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_endservent[true]": " '#define HAVE_ENDSERVENT 1'",
-        "//third-party/meson/constraints:has_function_endservent[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ENDSERVENT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_endservent[true]": " '#define HAVE_ENDSERVENT 1'",
+                "//third-party/meson/constraints:has_function_endservent[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_endservent[true]": " '#define HAVE_ENDSERVENT 1'",
+            "//third-party/meson/constraints:has_function_endservent[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_epoll_create1[true]": " '#define HAVE_EPOLL_CREATE1 1'",
-        "//third-party/meson/constraints:has_function_epoll_create1[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_EPOLL_CREATE1 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_epoll_create1[true]": " '#define HAVE_EPOLL_CREATE1 1'",
+                "//third-party/meson/constraints:has_function_epoll_create1[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_epoll_create1[true]": " '#define HAVE_EPOLL_CREATE1 1'",
+            "//third-party/meson/constraints:has_function_epoll_create1[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_faccessat[true]": " '#define HAVE_FACCESSAT 1'",
-        "//third-party/meson/constraints:has_function_faccessat[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FACCESSAT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_faccessat[true]": " '#define HAVE_FACCESSAT 1'",
+                "//third-party/meson/constraints:has_function_faccessat[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_faccessat[true]": " '#define HAVE_FACCESSAT 1'",
+            "//third-party/meson/constraints:has_function_faccessat[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_fallocate[true]": " '#define HAVE_FALLOCATE 1'",
-        "//third-party/meson/constraints:has_function_fallocate[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FALLOCATE 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_fallocate[true]": " '#define HAVE_FALLOCATE 1'",
+                "//third-party/meson/constraints:has_function_fallocate[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_fallocate[true]": " '#define HAVE_FALLOCATE 1'",
+            "//third-party/meson/constraints:has_function_fallocate[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_fchmod[true]": " '#define HAVE_FCHMOD 1'",
-        "//third-party/meson/constraints:has_function_fchmod[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FCHMOD 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_fchmod[true]": " '#define HAVE_FCHMOD 1'",
+                "//third-party/meson/constraints:has_function_fchmod[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_fchmod[true]": " '#define HAVE_FCHMOD 1'",
+            "//third-party/meson/constraints:has_function_fchmod[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_fchown[true]": " '#define HAVE_FCHOWN 1'",
-        "//third-party/meson/constraints:has_function_fchown[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FCHOWN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_fchown[true]": " '#define HAVE_FCHOWN 1'",
+                "//third-party/meson/constraints:has_function_fchown[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_fchown[true]": " '#define HAVE_FCHOWN 1'",
+            "//third-party/meson/constraints:has_function_fchown[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_function_fdwalk[true]": " '#define HAVE_FDWALK 1'",
         "//third-party/meson/constraints:has_function_fdwalk[false]": "",
@@ -19225,53 +19472,179 @@ genrule(
         "//third-party/meson/constraints:has_function_free_sized[true]": " '#define HAVE_FREE_SIZED 1'",
         "//third-party/meson/constraints:has_function_free_sized[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_fsync[true]": " '#define HAVE_FSYNC 1'",
-        "//third-party/meson/constraints:has_function_fsync[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSYNC 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_fsync[true]": " '#define HAVE_FSYNC 1'",
+                "//third-party/meson/constraints:has_function_fsync[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_fsync[true]": " '#define HAVE_FSYNC 1'",
+            "//third-party/meson/constraints:has_function_fsync[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
-        "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
+                "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
+            "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getauxval[true]": " '#define HAVE_GETAUXVAL 1'",
-        "//third-party/meson/constraints:has_function_getauxval[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETAUXVAL 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getauxval[true]": " '#define HAVE_GETAUXVAL 1'",
+                "//third-party/meson/constraints:has_function_getauxval[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getauxval[true]": " '#define HAVE_GETAUXVAL 1'",
+            "//third-party/meson/constraints:has_function_getauxval[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getc_unlocked[true]": " '#define HAVE_GETC_UNLOCKED 1'",
-        "//third-party/meson/constraints:has_function_getc_unlocked[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETC_UNLOCKED 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getc_unlocked[true]": " '#define HAVE_GETC_UNLOCKED 1'",
+                "//third-party/meson/constraints:has_function_getc_unlocked[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getc_unlocked[true]": " '#define HAVE_GETC_UNLOCKED 1'",
+            "//third-party/meson/constraints:has_function_getc_unlocked[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
-        "//third-party/meson/constraints:has_function_getfsent[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
+                "//third-party/meson/constraints:has_function_getfsent[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
+            "//third-party/meson/constraints:has_function_getfsent[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_function_getfsstat[true]": " '#define HAVE_GETFSSTAT 1'",
         "//third-party/meson/constraints:has_function_getfsstat[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_getgrgid_r[true]": " '#define HAVE_GETGRGID_R 1'",
-        "//third-party/meson/constraints:has_function_getgrgid_r[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETGRGID_R 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getgrgid_r[true]": " '#define HAVE_GETGRGID_R 1'",
+                "//third-party/meson/constraints:has_function_getgrgid_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getgrgid_r[true]": " '#define HAVE_GETGRGID_R 1'",
+            "//third-party/meson/constraints:has_function_getgrgid_r[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getifaddrs[true]": " '#define HAVE_GETIFADDRS 1'",
-        "//third-party/meson/constraints:has_function_getifaddrs[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETIFADDRS 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getifaddrs[true]": " '#define HAVE_GETIFADDRS 1'",
+                "//third-party/meson/constraints:has_function_getifaddrs[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getifaddrs[true]": " '#define HAVE_GETIFADDRS 1'",
+            "//third-party/meson/constraints:has_function_getifaddrs[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getmntent_r[true]": " '#define HAVE_GETMNTENT_R 1'",
-        "//third-party/meson/constraints:has_function_getmntent_r[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETMNTENT_R 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getmntent_r[true]": " '#define HAVE_GETMNTENT_R 1'",
+                "//third-party/meson/constraints:has_function_getmntent_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getmntent_r[true]": " '#define HAVE_GETMNTENT_R 1'",
+            "//third-party/meson/constraints:has_function_getmntent_r[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getpwnam_r[true]": " '#define HAVE_GETPWNAM_R 1'",
-        "//third-party/meson/constraints:has_function_getpwnam_r[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPWNAM_R 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getpwnam_r[true]": " '#define HAVE_GETPWNAM_R 1'",
+                "//third-party/meson/constraints:has_function_getpwnam_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getpwnam_r[true]": " '#define HAVE_GETPWNAM_R 1'",
+            "//third-party/meson/constraints:has_function_getpwnam_r[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getpwuid_r[true]": " '#define HAVE_GETPWUID_R 1'",
-        "//third-party/meson/constraints:has_function_getpwuid_r[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPWUID_R 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getpwuid_r[true]": " '#define HAVE_GETPWUID_R 1'",
+                "//third-party/meson/constraints:has_function_getpwuid_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getpwuid_r[true]": " '#define HAVE_GETPWUID_R 1'",
+            "//third-party/meson/constraints:has_function_getpwuid_r[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getresuid[true]": " '#define HAVE_GETRESUID 1'",
-        "//third-party/meson/constraints:has_function_getresuid[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETRESUID 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_getresuid[true]": " '#define HAVE_GETRESUID 1'",
+                "//third-party/meson/constraints:has_function_getresuid[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getresuid[true]": " '#define HAVE_GETRESUID 1'",
+            "//third-party/meson/constraints:has_function_getresuid[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_function_getvfsstat[true]": " '#define HAVE_GETVFSSTAT 1'",
         "//third-party/meson/constraints:has_function_getvfsstat[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_gmtime_r[true]": " '#define HAVE_GMTIME_R 1'",
-        "//third-party/meson/constraints:has_function_gmtime_r[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GMTIME_R 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_gmtime_r[true]": " '#define HAVE_GMTIME_R 1'",
+                "//third-party/meson/constraints:has_function_gmtime_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_gmtime_r[true]": " '#define HAVE_GMTIME_R 1'",
+            "//third-party/meson/constraints:has_function_gmtime_r[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_hasmntopt[true]": " '#define HAVE_HASMNTOPT 1'",
-        "//third-party/meson/constraints:has_function_hasmntopt[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_HASMNTOPT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_hasmntopt[true]": " '#define HAVE_HASMNTOPT 1'",
+                "//third-party/meson/constraints:has_function_hasmntopt[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_hasmntopt[true]": " '#define HAVE_HASMNTOPT 1'",
+            "//third-party/meson/constraints:has_function_hasmntopt[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define HAVE_INOTIFY_INIT1 1'",
-        "//third-party/meson/constraints:has_function_inotify_init1[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_INOTIFY_INIT1 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define HAVE_INOTIFY_INIT1 1'",
+                "//third-party/meson/constraints:has_function_inotify_init1[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define HAVE_INOTIFY_INIT1 1'",
+            "//third-party/meson/constraints:has_function_inotify_init1[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_function_issetugid[true]": " '#define HAVE_ISSETUGID 1'",
         "//third-party/meson/constraints:has_function_issetugid[false]": "",
@@ -19282,99 +19655,394 @@ genrule(
         "//third-party/meson/constraints:has_function_kqueue[true]": " '#define HAVE_KQUEUE 1'",
         "//third-party/meson/constraints:has_function_kqueue[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_lchmod[true]": " '#define HAVE_LCHMOD 1'",
-        "//third-party/meson/constraints:has_function_lchmod[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LCHMOD 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_lchmod[true]": " '#define HAVE_LCHMOD 1'",
+                "//third-party/meson/constraints:has_function_lchmod[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_lchmod[true]": " '#define HAVE_LCHMOD 1'",
+            "//third-party/meson/constraints:has_function_lchmod[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_lchown[true]": " '#define HAVE_LCHOWN 1'",
-        "//third-party/meson/constraints:has_function_lchown[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LCHOWN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_lchown[true]": " '#define HAVE_LCHOWN 1'",
+                "//third-party/meson/constraints:has_function_lchown[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_lchown[true]": " '#define HAVE_LCHOWN 1'",
+            "//third-party/meson/constraints:has_function_lchown[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_link[true]": " '#define HAVE_LINK 1'",
-        "//third-party/meson/constraints:has_function_link[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LINK 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_link[true]": " '#define HAVE_LINK 1'",
+                "//third-party/meson/constraints:has_function_link[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_link[true]": " '#define HAVE_LINK 1'",
+            "//third-party/meson/constraints:has_function_link[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_localtime_r[true]": " '#define HAVE_LOCALTIME_R 1'",
-        "//third-party/meson/constraints:has_function_localtime_r[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOCALTIME_R 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_localtime_r[true]": " '#define HAVE_LOCALTIME_R 1'",
+                "//third-party/meson/constraints:has_function_localtime_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_localtime_r[true]": " '#define HAVE_LOCALTIME_R 1'",
+            "//third-party/meson/constraints:has_function_localtime_r[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_lstat[true]": " '#define HAVE_LSTAT 1'",
-        "//third-party/meson/constraints:has_function_lstat[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LSTAT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_lstat[true]": " '#define HAVE_LSTAT 1'",
+                "//third-party/meson/constraints:has_function_lstat[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_lstat[true]": " '#define HAVE_LSTAT 1'",
+            "//third-party/meson/constraints:has_function_lstat[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_mbrtowc[true]": " '#define HAVE_MBRTOWC 1'",
-        "//third-party/meson/constraints:has_function_mbrtowc[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MBRTOWC 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_mbrtowc[true]": " '#define HAVE_MBRTOWC 1'",
+                "//third-party/meson/constraints:has_function_mbrtowc[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_mbrtowc[true]": " '#define HAVE_MBRTOWC 1'",
+            "//third-party/meson/constraints:has_function_mbrtowc[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
-        "//third-party/meson/constraints:has_function_memalign[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
+                "//third-party/meson/constraints:has_function_memalign[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
+            "//third-party/meson/constraints:has_function_memalign[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_memmem[true]": " '#define HAVE_MEMMEM 1'",
-        "//third-party/meson/constraints:has_function_memmem[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMMEM 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_memmem[true]": " '#define HAVE_MEMMEM 1'",
+                "//third-party/meson/constraints:has_function_memmem[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_memmem[true]": " '#define HAVE_MEMMEM 1'",
+            "//third-party/meson/constraints:has_function_memmem[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_mmap[true]": " '#define HAVE_MMAP 1'",
-        "//third-party/meson/constraints:has_function_mmap[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_mmap[true]": " '#define HAVE_MMAP 1'",
+                "//third-party/meson/constraints:has_function_mmap[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_mmap[true]": " '#define HAVE_MMAP 1'",
+            "//third-party/meson/constraints:has_function_mmap[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_newlocale[true]": " '#define HAVE_NEWLOCALE 1'",
-        "//third-party/meson/constraints:has_function_newlocale[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_NEWLOCALE 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_newlocale[true]": " '#define HAVE_NEWLOCALE 1'",
+                "//third-party/meson/constraints:has_function_newlocale[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_newlocale[true]": " '#define HAVE_NEWLOCALE 1'",
+            "//third-party/meson/constraints:has_function_newlocale[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_pipe2[true]": " '#define HAVE_PIPE2 1'",
-        "//third-party/meson/constraints:has_function_pipe2[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_PIPE2 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_pipe2[true]": " '#define HAVE_PIPE2 1'",
+                "//third-party/meson/constraints:has_function_pipe2[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_pipe2[true]": " '#define HAVE_PIPE2 1'",
+            "//third-party/meson/constraints:has_function_pipe2[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_poll[true]": " '#define HAVE_POLL 1'",
-        "//third-party/meson/constraints:has_function_poll[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POLL 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_poll[true]": " '#define HAVE_POLL 1'",
+                "//third-party/meson/constraints:has_function_poll[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_poll[true]": " '#define HAVE_POLL 1'",
+            "//third-party/meson/constraints:has_function_poll[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_prlimit[true]": " '#define HAVE_PRLIMIT 1'",
-        "//third-party/meson/constraints:has_function_prlimit[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_PRLIMIT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_prlimit[true]": " '#define HAVE_PRLIMIT 1'",
+                "//third-party/meson/constraints:has_function_prlimit[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_prlimit[true]": " '#define HAVE_PRLIMIT 1'",
+            "//third-party/meson/constraints:has_function_prlimit[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_readlink[true]": " '#define HAVE_READLINK 1'",
-        "//third-party/meson/constraints:has_function_readlink[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_READLINK 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_readlink[true]": " '#define HAVE_READLINK 1'",
+                "//third-party/meson/constraints:has_function_readlink[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_readlink[true]": " '#define HAVE_READLINK 1'",
+            "//third-party/meson/constraints:has_function_readlink[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_recvmmsg[true]": " '#define HAVE_RECVMMSG 1'",
-        "//third-party/meson/constraints:has_function_recvmmsg[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RECVMMSG 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_recvmmsg[true]": " '#define HAVE_RECVMMSG 1'",
+                "//third-party/meson/constraints:has_function_recvmmsg[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_recvmmsg[true]": " '#define HAVE_RECVMMSG 1'",
+            "//third-party/meson/constraints:has_function_recvmmsg[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_sendmmsg[true]": " '#define HAVE_SENDMMSG 1'",
-        "//third-party/meson/constraints:has_function_sendmmsg[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SENDMMSG 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_sendmmsg[true]": " '#define HAVE_SENDMMSG 1'",
+                "//third-party/meson/constraints:has_function_sendmmsg[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_sendmmsg[true]": " '#define HAVE_SENDMMSG 1'",
+            "//third-party/meson/constraints:has_function_sendmmsg[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_setenv[true]": " '#define HAVE_SETENV 1'",
-        "//third-party/meson/constraints:has_function_setenv[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SETENV 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_setenv[true]": " '#define HAVE_SETENV 1'",
+                "//third-party/meson/constraints:has_function_setenv[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_setenv[true]": " '#define HAVE_SETENV 1'",
+            "//third-party/meson/constraints:has_function_setenv[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_setmntent[true]": " '#define HAVE_SETMNTENT 1'",
-        "//third-party/meson/constraints:has_function_setmntent[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SETMNTENT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_setmntent[true]": " '#define HAVE_SETMNTENT 1'",
+                "//third-party/meson/constraints:has_function_setmntent[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_setmntent[true]": " '#define HAVE_SETMNTENT 1'",
+            "//third-party/meson/constraints:has_function_setmntent[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strerror_r[true]": " '#define HAVE_STRERROR_R 1'",
-        "//third-party/meson/constraints:has_function_strerror_r[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR_R 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strerror_r[true]": " '#define HAVE_STRERROR_R 1'",
+                "//third-party/meson/constraints:has_function_strerror_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strerror_r[true]": " '#define HAVE_STRERROR_R 1'",
+            "//third-party/meson/constraints:has_function_strerror_r[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strnlen[true]": " '#define HAVE_STRNLEN 1'",
-        "//third-party/meson/constraints:has_function_strnlen[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRNLEN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strnlen[true]": " '#define HAVE_STRNLEN 1'",
+                "//third-party/meson/constraints:has_function_strnlen[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strnlen[true]": " '#define HAVE_STRNLEN 1'",
+            "//third-party/meson/constraints:has_function_strnlen[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strsignal[true]": " '#define HAVE_STRSIGNAL 1'",
-        "//third-party/meson/constraints:has_function_strsignal[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRSIGNAL 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strsignal[true]": " '#define HAVE_STRSIGNAL 1'",
+                "//third-party/meson/constraints:has_function_strsignal[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strsignal[true]": " '#define HAVE_STRSIGNAL 1'",
+            "//third-party/meson/constraints:has_function_strsignal[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strtod_l[true]": " '#define HAVE_STRTOD_L 1'",
-        "//third-party/meson/constraints:has_function_strtod_l[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOD_L 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strtod_l[true]": " '#define HAVE_STRTOD_L 1'",
+                "//third-party/meson/constraints:has_function_strtod_l[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strtod_l[true]": " '#define HAVE_STRTOD_L 1'",
+            "//third-party/meson/constraints:has_function_strtod_l[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
-        "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
+                "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
+            "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
-        "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
+                "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
+            "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_symlink[true]": " '#define HAVE_SYMLINK 1'",
-        "//third-party/meson/constraints:has_function_symlink[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYMLINK 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_symlink[true]": " '#define HAVE_SYMLINK 1'",
+                "//third-party/meson/constraints:has_function_symlink[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_symlink[true]": " '#define HAVE_SYMLINK 1'",
+            "//third-party/meson/constraints:has_function_symlink[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_timegm[true]": " '#define HAVE_TIMEGM 1'",
-        "//third-party/meson/constraints:has_function_timegm[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_TIMEGM 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_timegm[true]": " '#define HAVE_TIMEGM 1'",
+                "//third-party/meson/constraints:has_function_timegm[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_timegm[true]": " '#define HAVE_TIMEGM 1'",
+            "//third-party/meson/constraints:has_function_timegm[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_unsetenv[true]": " '#define HAVE_UNSETENV 1'",
-        "//third-party/meson/constraints:has_function_unsetenv[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UNSETENV 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_unsetenv[true]": " '#define HAVE_UNSETENV 1'",
+                "//third-party/meson/constraints:has_function_unsetenv[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_unsetenv[true]": " '#define HAVE_UNSETENV 1'",
+            "//third-party/meson/constraints:has_function_unsetenv[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_uselocale[true]": " '#define HAVE_USELOCALE 1'",
-        "//third-party/meson/constraints:has_function_uselocale[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_USELOCALE 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_uselocale[true]": " '#define HAVE_USELOCALE 1'",
+                "//third-party/meson/constraints:has_function_uselocale[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_uselocale[true]": " '#define HAVE_USELOCALE 1'",
+            "//third-party/meson/constraints:has_function_uselocale[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_utimes[true]": " '#define HAVE_UTIMES 1'",
-        "//third-party/meson/constraints:has_function_utimes[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UTIMES 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_utimes[true]": " '#define HAVE_UTIMES 1'",
+                "//third-party/meson/constraints:has_function_utimes[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_utimes[true]": " '#define HAVE_UTIMES 1'",
+            "//third-party/meson/constraints:has_function_utimes[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_utimensat[true]": " '#define HAVE_UTIMENSAT 1'",
-        "//third-party/meson/constraints:has_function_utimensat[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UTIMENSAT 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_utimensat[true]": " '#define HAVE_UTIMENSAT 1'",
+                "//third-party/meson/constraints:has_function_utimensat[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_utimensat[true]": " '#define HAVE_UTIMENSAT 1'",
+            "//third-party/meson/constraints:has_function_utimensat[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_valloc[true]": " '#define HAVE_VALLOC 1'",
-        "//third-party/meson/constraints:has_function_valloc[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VALLOC 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_valloc[true]": " '#define HAVE_VALLOC 1'",
+                "//third-party/meson/constraints:has_function_valloc[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_valloc[true]": " '#define HAVE_VALLOC 1'",
+            "//third-party/meson/constraints:has_function_valloc[false]": "",
+        }),
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
+                "//third-party/meson/constraints:run_C99_snprintf[true]": select({
+                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": select({
+                        "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VASPRINTF 1'",
+                        "DEFAULT": select({
+                            "//third-party/meson/constraints:has_function_vasprintf[true]": " '#define HAVE_VASPRINTF 1'",
+                            "//third-party/meson/constraints:has_function_vasprintf[false]": "",
+                        }),
+                    }),
+                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": " '#define HAVE_VASPRINTF 1'",
+                }),
+                "//third-party/meson/constraints:run_C99_snprintf[false]": " '#define HAVE_VASPRINTF 1'",
+            }),
+            "//third-party/meson/constraints:run_C99_vsnprintf[false]": " '#define HAVE_VASPRINTF 1'",
+        }),
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[msvc]": " '#define HAVE_VASPRINTF 1'",
             "DEFAULT": select({
@@ -19405,17 +20073,53 @@ genrule(
             "//third-party/meson/constraints:run_C99_vsnprintf[false]": " '#define HAVE_VASPRINTF 1'",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_vsnprintf[true]": " '#define HAVE_VSNPRINTF 1'",
-        "//third-party/meson/constraints:has_function_vsnprintf[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSNPRINTF 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_vsnprintf[true]": " '#define HAVE_VSNPRINTF 1'",
+                "//third-party/meson/constraints:has_function_vsnprintf[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_vsnprintf[true]": " '#define HAVE_VSNPRINTF 1'",
+            "//third-party/meson/constraints:has_function_vsnprintf[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_wcrtomb[true]": " '#define HAVE_WCRTOMB 1'",
-        "//third-party/meson/constraints:has_function_wcrtomb[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_WCRTOMB 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_wcrtomb[true]": " '#define HAVE_WCRTOMB 1'",
+                "//third-party/meson/constraints:has_function_wcrtomb[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_wcrtomb[true]": " '#define HAVE_WCRTOMB 1'",
+            "//third-party/meson/constraints:has_function_wcrtomb[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_wcslen[true]": " '#define HAVE_WCSLEN 1'",
-        "//third-party/meson/constraints:has_function_wcslen[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_WCSLEN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_wcslen[true]": " '#define HAVE_WCSLEN 1'",
+                "//third-party/meson/constraints:has_function_wcslen[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_wcslen[true]": " '#define HAVE_WCSLEN 1'",
+            "//third-party/meson/constraints:has_function_wcslen[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_wcsnlen[true]": " '#define HAVE_WCSNLEN 1'",
-        "//third-party/meson/constraints:has_function_wcsnlen[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_WCSNLEN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_wcsnlen[true]": " '#define HAVE_WCSNLEN 1'",
+                "//third-party/meson/constraints:has_function_wcsnlen[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_wcsnlen[true]": " '#define HAVE_WCSNLEN 1'",
+            "//third-party/meson/constraints:has_function_wcsnlen[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_function_sysctlbyname[true]": " '#define HAVE_SYSCTLBYNAME 1'",
         "//third-party/meson/constraints:has_function_sysctlbyname[false]": "",
@@ -19427,40 +20131,101 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
-            "//third-party/meson/constraints:has_function_statvfs[true]": " '#define HAVE_STATVFS 1'",
-            "//third-party/meson/constraints:has_function_statvfs[false]": "",
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STATVFS 1'",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statvfs[true]": " '#define HAVE_STATVFS 1'",
+                    "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                }),
+            }),
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_statvfs[true]": " '#define HAVE_STATVFS 1'",
+                "//third-party/meson/constraints:has_function_statvfs[false]": "",
+            }),
         }),
         "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
     }) + select({
         "//third-party/meson/constraints:has_header_sys_statfs_h[true]": select({
-            "//third-party/meson/constraints:has_function_statfs[true]": " '#define HAVE_STATFS 1'",
-            "//third-party/meson/constraints:has_function_statfs[false]": "",
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STATFS 1'",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": " '#define HAVE_STATFS 1'",
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
+                }),
+            }),
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_statfs[true]": " '#define HAVE_STATFS 1'",
+                "//third-party/meson/constraints:has_function_statfs[false]": "",
+            }),
         }),
         "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
             "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
-                "//third-party/meson/constraints:has_function_statfs[true]": " '#define HAVE_STATFS 1'",
-                "//third-party/meson/constraints:has_function_statfs[false]": "",
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STATFS 1'",
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_statfs[true]": " '#define HAVE_STATFS 1'",
+                        "//third-party/meson/constraints:has_function_statfs[false]": "",
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": " '#define HAVE_STATFS 1'",
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
+                }),
             }),
             "//third-party/meson/constraints:has_header_sys_mount_h[false]": "",
         }),
     }) + select({
         "//third-party/meson/constraints:has_header_sys_prctl_h[true]": select({
-            "//third-party/meson/constraints:has_function_prctl[true]": " '#define HAVE_PRCTL 1'",
-            "//third-party/meson/constraints:has_function_prctl[false]": "",
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_PRCTL 1'",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_prctl[true]": " '#define HAVE_PRCTL 1'",
+                    "//third-party/meson/constraints:has_function_prctl[false]": "",
+                }),
+            }),
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_prctl[true]": " '#define HAVE_PRCTL 1'",
+                "//third-party/meson/constraints:has_function_prctl[false]": "",
+            }),
         }),
         "//third-party/meson/constraints:has_header_sys_prctl_h[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_splice[true]": " '#define HAVE_SPLICE 1'",
-        "//third-party/meson/constraints:has_function_splice[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SPLICE 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_splice[true]": " '#define HAVE_SPLICE 1'",
+                "//third-party/meson/constraints:has_function_splice[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_splice[true]": " '#define HAVE_SPLICE 1'",
+            "//third-party/meson/constraints:has_function_splice[false]": "",
+        }),
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYSINFO 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_sysinfo[true]": " '#define HAVE_SYSINFO 1'",
+                "//third-party/meson/constraints:has_function_sysinfo[false]": "",
+            }),
+        }),
         "prelude//os/constraints:os[illumos]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_sysinfo[true]": " '#define HAVE_SYSINFO 1'",
             "//third-party/meson/constraints:has_function_sysinfo[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_stpcpy[true]": " '#define HAVE_STPCPY 1'",
-        "//third-party/meson/constraints:has_function_stpcpy[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STPCPY 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_stpcpy[true]": " '#define HAVE_STPCPY 1'",
+                "//third-party/meson/constraints:has_function_stpcpy[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_stpcpy[true]": " '#define HAVE_STPCPY 1'",
+            "//third-party/meson/constraints:has_function_stpcpy[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:compiles_getservbyname_r[true]": " '#define HAVE_GETSERVBYNAME_R 1'",
         "//third-party/meson/constraints:compiles_getservbyname_r[false]": "",
@@ -19468,59 +20233,166 @@ genrule(
         "//third-party/meson/constraints:has_function_aligned_malloc[true]": " '#define HAVE__ALIGNED_MALLOC 1'",
         "//third-party/meson/constraints:has_function_aligned_malloc[false]": "",
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ALIGNED_ALLOC 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_aligned_alloc[true]": " '#define HAVE_ALIGNED_ALLOC 1'",
+                "//third-party/meson/constraints:has_function_aligned_alloc[false]": "",
+            }),
+        }),
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_aligned_alloc[true]": " '#define HAVE_ALIGNED_ALLOC 1'",
             "//third-party/meson/constraints:has_function_aligned_alloc[false]": "",
         }),
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_posix_memalign[true]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "//third-party/meson/constraints:has_function_posix_memalign[false]": "",
+            }),
+        }),
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_posix_memalign[true]": " '#define HAVE_POSIX_MEMALIGN 1'",
             "//third-party/meson/constraints:has_function_posix_memalign[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_posix_spawn[true]": " '#define HAVE_POSIX_SPAWN 1'",
-        "//third-party/meson/constraints:has_function_posix_spawn[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:has_function_strerror_r[true]": select({
-            "//third-party/meson/constraints:compiles_strerror_r_returns_char[true]": " '#define STRERROR_R_CHAR_P 1'",
-            "//third-party/meson/constraints:compiles_strerror_r_returns_char[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_SPAWN 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_posix_spawn[true]": " '#define HAVE_POSIX_SPAWN 1'",
+                "//third-party/meson/constraints:has_function_posix_spawn[false]": "",
+            }),
         }),
-        "//third-party/meson/constraints:has_function_strerror_r[false]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_posix_spawn[true]": " '#define HAVE_POSIX_SPAWN 1'",
+            "//third-party/meson/constraints:has_function_posix_spawn[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_snprintf[true]": "",
-        "//third-party/meson/constraints:has_function_snprintf[false]": select({
-            "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": "",
-            "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": select({
-                "//third-party/meson/constraints:c_has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1\n#define snprintf _snprintf'",
-                "//third-party/meson/constraints:c_has_function_snprintf[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "//third-party/meson/constraints:compiles_strerror_r_returns_char[true]": " '#define STRERROR_R_CHAR_P 1'",
+                "//third-party/meson/constraints:compiles_strerror_r_returns_char[false]": "",
+            }),
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strerror_r[true]": select({
+                    "//third-party/meson/constraints:compiles_strerror_r_returns_char[true]": " '#define STRERROR_R_CHAR_P 1'",
+                    "//third-party/meson/constraints:compiles_strerror_r_returns_char[false]": "",
+                }),
+                "//third-party/meson/constraints:has_function_strerror_r[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strerror_r[true]": select({
+                "//third-party/meson/constraints:compiles_strerror_r_returns_char[true]": " '#define STRERROR_R_CHAR_P 1'",
+                "//third-party/meson/constraints:compiles_strerror_r_returns_char[false]": "",
+            }),
+            "//third-party/meson/constraints:has_function_strerror_r[false]": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": "",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_snprintf[true]": "",
+                "//third-party/meson/constraints:has_function_snprintf[false]": select({
+                    "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": "",
+                    "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": select({
+                        "//third-party/meson/constraints:c_has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1\n#define snprintf _snprintf'",
+                        "//third-party/meson/constraints:c_has_function_snprintf[false]": "",
+                    }),
+                }),
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_snprintf[true]": "",
+            "//third-party/meson/constraints:has_function_snprintf[false]": select({
+                "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": "",
+                "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": select({
+                    "//third-party/meson/constraints:c_has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1\n#define snprintf _snprintf'",
+                    "//third-party/meson/constraints:c_has_function_snprintf[false]": "",
+                }),
             }),
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1'",
-        "//third-party/meson/constraints:has_function_snprintf[false]": select({
-            "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": " '#define HAVE_SNPRINTF 1'",
-            "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SNPRINTF 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1'",
+                "//third-party/meson/constraints:has_function_snprintf[false]": select({
+                    "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": " '#define HAVE_SNPRINTF 1'",
+                    "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": "",
+                }),
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1'",
+            "//third-party/meson/constraints:has_function_snprintf[false]": select({
+                "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": " '#define HAVE_SNPRINTF 1'",
+                "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": "",
+            }),
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strcasecmp[true]": "",
-        "//third-party/meson/constraints:has_function_strcasecmp[false]": select({
-            "//third-party/meson/constraints:has_function_stricmp[true]": " '#define HAVE_STRCASECMP 1\n#define strcasecmp _stricmp'",
-            "//third-party/meson/constraints:has_function_stricmp[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": "",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strcasecmp[true]": "",
+                "//third-party/meson/constraints:has_function_strcasecmp[false]": select({
+                    "//third-party/meson/constraints:has_function_stricmp[true]": " '#define HAVE_STRCASECMP 1\n#define strcasecmp _stricmp'",
+                    "//third-party/meson/constraints:has_function_stricmp[false]": "",
+                }),
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strcasecmp[true]": "",
+            "//third-party/meson/constraints:has_function_strcasecmp[false]": select({
+                "//third-party/meson/constraints:has_function_stricmp[true]": " '#define HAVE_STRCASECMP 1\n#define strcasecmp _stricmp'",
+                "//third-party/meson/constraints:has_function_stricmp[false]": "",
+            }),
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strcasecmp[true]": " '#define HAVE_STRCASECMP 1'",
-        "//third-party/meson/constraints:has_function_strcasecmp[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:has_function_strncasecmp[true]": "",
-        "//third-party/meson/constraints:has_function_strncasecmp[false]": select({
-            "//third-party/meson/constraints:has_function_strnicmp[true]": " '#define HAVE_STRNCASECMP 1\n#define strncasecmp _strnicmp'",
-            "//third-party/meson/constraints:has_function_strnicmp[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRCASECMP 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strcasecmp[true]": " '#define HAVE_STRCASECMP 1'",
+                "//third-party/meson/constraints:has_function_strcasecmp[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strcasecmp[true]": " '#define HAVE_STRCASECMP 1'",
+            "//third-party/meson/constraints:has_function_strcasecmp[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strncasecmp[true]": " '#define HAVE_STRNCASECMP 1'",
-        "//third-party/meson/constraints:has_function_strncasecmp[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": "",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strncasecmp[true]": "",
+                "//third-party/meson/constraints:has_function_strncasecmp[false]": select({
+                    "//third-party/meson/constraints:has_function_strnicmp[true]": " '#define HAVE_STRNCASECMP 1\n#define strncasecmp _strnicmp'",
+                    "//third-party/meson/constraints:has_function_strnicmp[false]": "",
+                }),
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strncasecmp[true]": "",
+            "//third-party/meson/constraints:has_function_strncasecmp[false]": select({
+                "//third-party/meson/constraints:has_function_strnicmp[true]": " '#define HAVE_STRNCASECMP 1\n#define strncasecmp _strnicmp'",
+                "//third-party/meson/constraints:has_function_strnicmp[false]": "",
+            }),
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRNCASECMP 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strncasecmp[true]": " '#define HAVE_STRNCASECMP 1'",
+                "//third-party/meson/constraints:has_function_strncasecmp[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strncasecmp[true]": " '#define HAVE_STRNCASECMP 1'",
+            "//third-party/meson/constraints:has_function_strncasecmp[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[true]": " '#define MAJOR_IN_SYSMACROS 1'",
         "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[false]": "",
@@ -19546,24 +20418,42 @@ genrule(
         "//third-party/meson/constraints:has_type_loff_t[true]": " '#define HAVE_LOFF_T 1'",
         "//third-party/meson/constraints:has_type_loff_t[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_unshare[true]": " '#define HAVE_UNSHARE 1'",
-        "//third-party/meson/constraints:has_function_unshare[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UNSHARE 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_unshare[true]": " '#define HAVE_UNSHARE 1'",
+                "//third-party/meson/constraints:has_function_unshare[false]": "",
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_unshare[true]": " '#define HAVE_UNSHARE 1'",
+            "//third-party/meson/constraints:has_function_unshare[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_header_sys_statfs_h[true]": select({
-            "//third-party/meson/constraints:has_function_statfs[true]": select({
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
-                    "//third-party/meson/constraints:has_function_statvfs[true]": select({
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                     }),
-                    "//third-party/meson/constraints:has_function_statvfs[false]": " '#define USE_STATFS 1'",
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": " '#define USE_STATFS 1'",
                 }),
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": " '#define USE_STATFS 1'",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": " '#define USE_STATFS 1'",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": " '#define USE_STATFS 1'",
+                    }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
+                }),
             }),
-            "//third-party/meson/constraints:has_function_statfs[false]": "",
-        }),
-        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
-            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+            "DEFAULT": select({
                 "//third-party/meson/constraints:has_function_statfs[true]": select({
                     "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:has_function_statvfs[true]": select({
@@ -19576,30 +20466,78 @@ genrule(
                 }),
                 "//third-party/meson/constraints:has_function_statfs[false]": "",
             }),
+        }),
+        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
+            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": " '#define USE_STATFS 1'",
+                    }),
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_statfs[true]": select({
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                                "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                                }),
+                                "//third-party/meson/constraints:has_function_statvfs[false]": " '#define USE_STATFS 1'",
+                            }),
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": " '#define USE_STATFS 1'",
+                        }),
+                        "//third-party/meson/constraints:has_function_statfs[false]": "",
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": " '#define USE_STATFS 1'",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": " '#define USE_STATFS 1'",
+                    }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
+                }),
+            }),
             "//third-party/meson/constraints:has_header_sys_mount_h[false]": "",
         }),
     }) + select({
         "//third-party/meson/constraints:has_header_sys_statfs_h[true]": select({
-            "//third-party/meson/constraints:has_function_statfs[true]": select({
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
-                    "//third-party/meson/constraints:has_function_statvfs[true]": select({
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": "",
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                     }),
-                    "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
                 }),
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
-            }),
-            "//third-party/meson/constraints:has_function_statfs[false]": select({
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
-                    "//third-party/meson/constraints:has_function_statvfs[true]": " '#define USE_STATVFS 1'",
-                    "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": "",
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
+                    }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": " '#define USE_STATVFS 1'",
+                            "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
+                    }),
                 }),
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
             }),
-        }),
-        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
-            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+            "DEFAULT": select({
                 "//third-party/meson/constraints:has_function_statfs[true]": select({
                     "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:has_function_statvfs[true]": select({
@@ -19618,18 +20556,81 @@ genrule(
                     "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
                 }),
             }),
+        }),
+        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
+            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": "",
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
+                    }),
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_statfs[true]": select({
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                                "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": "",
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
+                                }),
+                                "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_function_statfs[false]": select({
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                                "//third-party/meson/constraints:has_function_statvfs[true]": " '#define USE_STATVFS 1'",
+                                "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
+                        }),
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": "",
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
+                    }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": " '#define USE_STATVFS 1'",
+                            "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
+                    }),
+                }),
+            }),
             "//third-party/meson/constraints:has_header_sys_mount_h[false]": select({
                 "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
-                    "//third-party/meson/constraints:has_function_statvfs[true]": " '#define USE_STATVFS 1'",
-                    "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                    "prelude//os/constraints:os[linux]": select({
+                        "prelude//abi/constraints:abi[gnu]": " '#define USE_STATVFS 1'",
+                        "DEFAULT": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": " '#define USE_STATVFS 1'",
+                            "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                        }),
+                    }),
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_statvfs[true]": " '#define USE_STATVFS 1'",
+                        "//third-party/meson/constraints:has_function_statvfs[false]": "",
+                    }),
                 }),
                 "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": "",
             }),
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "//third-party/meson/constraints:has_function_mkostemp[true]": " '#define HAVE_MKOSTEMP 1'",
-            "//third-party/meson/constraints:has_function_mkostemp[false]": "",
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKOSTEMP 1'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_mkostemp[true]": " '#define HAVE_MKOSTEMP 1'",
+                "//third-party/meson/constraints:has_function_mkostemp[false]": "",
+            }),
         }),
         "DEFAULT": "",
     }) + select({
@@ -19658,9 +20659,9 @@ genrule(
         }),
     }) + select({
         "//third-party/meson/constraints:has_header_sys_statfs_h[true]": select({
-            "//third-party/meson/constraints:has_function_statfs[true]": select({
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
-                    "//third-party/meson/constraints:has_function_statvfs[true]": select({
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                             "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                             "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -19670,7 +20671,7 @@ genrule(
                         }),
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                     }),
-                    "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
                             "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
@@ -19678,18 +20679,39 @@ genrule(
                         }),
                     }),
                 }),
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
-                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
-                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                    }),
+                                }),
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                }),
+                            }),
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                            }),
+                        }),
                     }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
                 }),
             }),
-            "//third-party/meson/constraints:has_function_statfs[false]": "",
-        }),
-        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
-            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+            "DEFAULT": select({
                 "//third-party/meson/constraints:has_function_statfs[true]": select({
                     "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:has_function_statvfs[true]": select({
@@ -19720,33 +20742,135 @@ genrule(
                 }),
                 "//third-party/meson/constraints:has_function_statfs[false]": "",
             }),
+        }),
+        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
+            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                }),
+                            }),
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                            }),
+                        }),
+                    }),
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_statfs[true]": select({
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                                "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                        }),
+                                    }),
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                                }),
+                                "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                    }),
+                                }),
+                            }),
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                }),
+                            }),
+                        }),
+                        "//third-party/meson/constraints:has_function_statfs[false]": "",
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                    }),
+                                }),
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                                }),
+                            }),
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                            }),
+                        }),
+                    }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
+                }),
+            }),
             "//third-party/meson/constraints:has_header_sys_mount_h[false]": "",
         }),
     }) + select({
         "//third-party/meson/constraints:has_header_sys_statfs_h[true]": select({
-            "//third-party/meson/constraints:has_function_statfs[true]": select({
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
-                    "//third-party/meson/constraints:has_function_statvfs[true]": select({
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                             "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                             "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
                         }),
                         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                     }),
-                    "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                    "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
                     }),
                 }),
-                "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
-                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
-                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                                }),
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                            }),
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                        }),
+                    }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
                 }),
             }),
-            "//third-party/meson/constraints:has_function_statfs[false]": "",
-        }),
-        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
-            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+            "DEFAULT": select({
                 "//third-party/meson/constraints:has_function_statfs[true]": select({
                     "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
                         "//third-party/meson/constraints:has_function_statvfs[true]": select({
@@ -19767,6 +20891,69 @@ genrule(
                     }),
                 }),
                 "//third-party/meson/constraints:has_function_statfs[false]": "",
+            }),
+        }),
+        "//third-party/meson/constraints:has_header_sys_statfs_h[false]": select({
+            "//third-party/meson/constraints:has_header_sys_mount_h[true]": select({
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                            }),
+                            "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                        }),
+                    }),
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_statfs[true]": select({
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                                "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                                    }),
+                                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                                }),
+                                "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                                }),
+                            }),
+                            "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                            }),
+                        }),
+                        "//third-party/meson/constraints:has_function_statfs[false]": "",
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_statfs[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[true]": select({
+                            "//third-party/meson/constraints:has_function_statvfs[true]": select({
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                    "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                                }),
+                                "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_function_statvfs[false]": select({
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                                "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                            }),
+                        }),
+                        "//third-party/meson/constraints:has_header_sys_statvfs_h[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                        }),
+                    }),
+                    "//third-party/meson/constraints:has_function_statfs[false]": "",
+                }),
             }),
             "//third-party/meson/constraints:has_header_sys_mount_h[false]": "",
         }),
@@ -20081,11 +21268,23 @@ genrule(
         }),
     }) + select({
         "//third-party/meson/constraints:intl[true]": select({
-            "//third-party/meson/constraints:has_function_ngettext[true]": select({
-                "//third-party/meson/constraints:has_function_bind_textdomain_codeset[true]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
-                "//third-party/meson/constraints:has_function_bind_textdomain_codeset[false]": " '/* #undef HAVE_BIND_TEXTDOMAIN_CODESET */'",
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_ngettext[true]": select({
+                        "//third-party/meson/constraints:has_function_bind_textdomain_codeset[true]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
+                        "//third-party/meson/constraints:has_function_bind_textdomain_codeset[false]": " '/* #undef HAVE_BIND_TEXTDOMAIN_CODESET */'",
+                    }),
+                    "//third-party/meson/constraints:has_function_ngettext[false]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
+                }),
             }),
-            "//third-party/meson/constraints:has_function_ngettext[false]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_ngettext[true]": select({
+                    "//third-party/meson/constraints:has_function_bind_textdomain_codeset[true]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
+                    "//third-party/meson/constraints:has_function_bind_textdomain_codeset[false]": " '/* #undef HAVE_BIND_TEXTDOMAIN_CODESET */'",
+                }),
+                "//third-party/meson/constraints:has_function_ngettext[false]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
+            }),
         }),
         "//third-party/meson/constraints:intl[false]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
     }) + select({
@@ -20122,6 +21321,22 @@ genrule(
         }),
         "DEFAULT": "",
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "//third-party/meson/glib/constraints:xattr[true]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "//third-party/meson/constraints:has_function_getxattr[false]": "",
+                }),
+            }),
+            "//third-party/meson/glib/constraints:xattr[false]": "",
+        }),
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/glib/constraints:xattr[true]": select({
@@ -20134,6 +21349,31 @@ genrule(
             "//third-party/meson/glib/constraints:xattr[false]": "",
         }),
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "//third-party/meson/glib/constraints:xattr[true]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                    }),
+                }),
+            }),
+            "//third-party/meson/glib/constraints:xattr[false]": "",
+        }),
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/glib/constraints:xattr[true]": select({
@@ -20167,11 +21407,26 @@ genrule(
             "//third-party/meson/glib/constraints:xattr[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_strlcpy[true]": select({
-            "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-            "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+            }),
+            "DEFAULT": select({
+                "//third-party/meson/constraints:has_function_strlcpy[true]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "//third-party/meson/constraints:has_function_strlcpy[false]": "",
+            }),
         }),
-        "//third-party/meson/constraints:has_function_strlcpy[false]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_strlcpy[true]": select({
+                "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+            }),
+            "//third-party/meson/constraints:has_function_strlcpy[false]": "",
+        }),
     }) + select({
         "//third-party/meson/constraints:run_proc_self_cmdline[true]": " '#define HAVE_PROC_SELF_CMDLINE'",
         "//third-party/meson/constraints:run_proc_self_cmdline[false]": " '/* #undef HAVE_PROC_SELF_CMDLINE */'",
@@ -20850,8 +22105,17 @@ genrule(
     }) + select({
         "//third-party/meson/glib/constraints:file_monitor_backend[auto]": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define FILE_MONITOR_BACKEND_INOTIFY 1'",
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": "",
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": " '#define FILE_MONITOR_BACKEND_INOTIFY 1'",
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define FILE_MONITOR_BACKEND_INOTIFY 1'",
+                        "//third-party/meson/constraints:has_function_inotify_init1[false]": "",
+                    }),
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define FILE_MONITOR_BACKEND_INOTIFY 1'",
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": "",
+                }),
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": "",
         }),
@@ -20868,13 +22132,28 @@ genrule(
     }) + select({
         "//third-party/meson/glib/constraints:file_monitor_backend[auto]": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": "",
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
-                    "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                        "//third-party/meson/constraints:has_function_kevent[true]": " '#define FILE_MONITOR_BACKEND_KQUEUE 1'",
-                        "//third-party/meson/constraints:has_function_kevent[false]": "",
+                "prelude//os/constraints:os[linux]": select({
+                    "prelude//abi/constraints:abi[gnu]": "",
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_function_inotify_init1[true]": "",
+                        "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                            "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                                "//third-party/meson/constraints:has_function_kevent[true]": " '#define FILE_MONITOR_BACKEND_KQUEUE 1'",
+                                "//third-party/meson/constraints:has_function_kevent[false]": "",
+                            }),
+                            "//third-party/meson/constraints:has_function_kqueue[false]": "",
+                        }),
                     }),
-                    "//third-party/meson/constraints:has_function_kqueue[false]": "",
+                }),
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": "",
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                        "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                            "//third-party/meson/constraints:has_function_kevent[true]": " '#define FILE_MONITOR_BACKEND_KQUEUE 1'",
+                            "//third-party/meson/constraints:has_function_kevent[false]": "",
+                        }),
+                        "//third-party/meson/constraints:has_function_kqueue[false]": "",
+                    }),
                 }),
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": select({
@@ -20892,20 +22171,17 @@ genrule(
     }) + select({
         "//third-party/meson/glib/constraints:file_monitor_backend[auto]": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": "",
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
-                    "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                        "//third-party/meson/constraints:has_function_kevent[true]": "",
-                        "//third-party/meson/constraints:has_function_kevent[false]": select({
-                            "prelude//os/constraints:os[windows]": " '#define FILE_MONITOR_BACKEND_WIN32 1'",
-                            "DEFAULT": "",
+                "prelude//os/constraints:os[windows]": select({
+                    "//third-party/meson/constraints:has_function_inotify_init1[true]": "",
+                    "//third-party/meson/constraints:has_function_inotify_init1[false]": select({
+                        "//third-party/meson/constraints:has_function_kqueue[true]": select({
+                            "//third-party/meson/constraints:has_function_kevent[true]": "",
+                            "//third-party/meson/constraints:has_function_kevent[false]": " '#define FILE_MONITOR_BACKEND_WIN32 1'",
                         }),
-                    }),
-                    "//third-party/meson/constraints:has_function_kqueue[false]": select({
-                        "prelude//os/constraints:os[windows]": " '#define FILE_MONITOR_BACKEND_WIN32 1'",
-                        "DEFAULT": "",
+                        "//third-party/meson/constraints:has_function_kqueue[false]": " '#define FILE_MONITOR_BACKEND_WIN32 1'",
                     }),
                 }),
+                "DEFAULT": "",
             }),
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": select({
                 "//third-party/meson/constraints:has_function_kqueue[true]": select({

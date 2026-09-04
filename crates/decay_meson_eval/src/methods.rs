@@ -617,6 +617,23 @@ impl<'a, S: Solver> Interp<'a, S> {
                 domain,
                 values,
             }) => Ok(self.constraint_is(&setting, domain, &values)),
+            Some(Probe::SystemsAndConstraint {
+                systems,
+                setting,
+                domain,
+                values,
+            }) => {
+                let on_systems = self.host_system_is(&systems, key)?;
+                let has_constraint = self.constraint_is(&setting, domain, &values);
+                let known = self.logic.and(on_systems, has_constraint);
+                // Outside the known region this is not a "no", just an
+                // unknown — the same open choice as if the oracle had
+                // declined to answer at all, so `known ∨ open` is `true`
+                // where the fact is settled and exactly as configurable as
+                // an ordinary probe everywhere else.
+                let open_elsewhere = self.probe(key, description);
+                Ok(self.logic.or(known, open_elsewhere))
+            }
             None => Ok(self.probe(key, description)),
         }
     }
