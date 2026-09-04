@@ -198,3 +198,23 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `capture: bool` on the custom-target `Attrs`, set where `custom_target()`
   is parsed, and `> $OUT` appended in `decay_buck2`'s command-rendering when
   it is set.
+
+- **A `#mesondefine NAME` whose name is never `.set()` in any reachable
+  configuration passes through a template untouched.** `config_header_cmd`'s
+  `complete_defines` (`decay_buck2/src/lib.rs`) only emits an
+  `/* #undef NAME */` sed rule for a name that appears as a `Define` variant
+  somewhere — but pinning an option can make the only `.set()` for a name
+  statically dead, and `decay_meson_eval` does not evaluate expressions
+  under an unsatisfiable path condition, so that `.set()` never runs and the
+  name never becomes a `Define` at all. glib's `glibconfig.h.in` hits this
+  once `default_library` is pinned away from `static`/`both`:
+  `GLIB_STATIC_COMPILATION` and friends are only ever `.set()` inside `if
+  glib_build_static_only`, which becomes dead, so `#mesondefine
+  GLIB_STATIC_COMPILATION` survives into `glibconfig.h` verbatim and gcc
+  rejects it as an invalid preprocessing directive. Real meson still
+  substitutes it, because it substitutes a template against the names in
+  `configuration_data()` regardless of which C code path is reachable.
+  Fixing it needs the full set of `#mesondefine` names a template
+  references — from scanning the template file's text, since decay does not
+  otherwise know a name it was never told to `.set()` — not just the names
+  that got a live `Define` variant.
