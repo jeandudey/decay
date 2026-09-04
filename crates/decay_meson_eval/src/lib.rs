@@ -29,6 +29,7 @@ use {
     },
     decay_meson_ast::{
         AssignStmt,
+        BinOpKind,
         Block,
         Expr,
         ForeachStmt,
@@ -319,6 +320,20 @@ impl<'a, S: Solver> Interp<'a, S> {
                 self.expr(v)?;
             }
             Stmt::Assign(AssignStmt { name, val, is_plus }) => {
+                // `x = x + e` is `x += e`: route it through the in-place growth
+                // so a fragment appended under a chain of `if`s does not fork
+                // `x` into a variant per combination. Without this, glib's
+                // `glib_conf_prefix = glib_conf_prefix + …` in a `foreach` over
+                // header checks blows up.
+                if let (false, Expr::BinOp(op)) = (*is_plus, val) {
+                    if op.kind == BinOpKind::Add
+                        && matches!(op.lhs.as_ref(), Expr::Id(n) if n == name)
+                    {
+                        let rhs = self.expr(&op.rhs)?;
+                        self.plus_assign(name, &rhs)?;
+                        return Ok(());
+                    }
+                }
                 let val = self.expr(val)?;
                 if *is_plus {
                     self.plus_assign(name, &val)?;
@@ -545,6 +560,33 @@ impl<'a, S: Solver> Interp<'a, S> {
                     items.extend(self.elements_under(rhs, base));
                 }
                 out.push(Variant::new(variant.cond, Value::list(items)));
+            }
+            self.vars.insert(name.to_owned(), out);
+            return Ok(());
+        }
+
+        // Same idea for a string: grow it as conditional pieces instead of
+        // rewriting the variable, so appending under a chain of `if`s stays one
+        // variant rather than `2^n`.
+        if !old.is_empty()
+            && old
+                .variants()
+                .iter()
+                .all(|v| matches!(v.value, Value::Str(_) | Value::StrCat(_)))
+        {
+            let pc = self.pc;
+            let mut out = Variational::empty();
+            for variant in old.variants() {
+                let base = self.logic.and(variant.cond, pc);
+                let mut pieces: Vec<Variant<Rc<str>>> = match &variant.value {
+                    Value::Str(s) => vec![Variant::new(Pc::TRUE, s.clone())],
+                    Value::StrCat(ps) => ps.to_vec(),
+                    _ => unreachable!("every variant was checked to be a string"),
+                };
+                if !base.is_false() {
+                    pieces.extend(self.str_pieces_under(rhs, base));
+                }
+                out.push(Variant::new(variant.cond, Value::str_cat(pieces)));
             }
             self.vars.insert(name.to_owned(), out);
             return Ok(());

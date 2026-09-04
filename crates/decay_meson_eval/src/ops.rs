@@ -78,6 +78,39 @@ impl<'a, S: Solver> Interp<'a, S> {
         lhs: &Variational<Value>,
         rhs: &Variational<Value>,
     ) -> eyre::Result<Variational<Value>> {
+        let strish = |v: &Value| matches!(v, Value::Str(_) | Value::StrCat(_));
+        if !lhs.is_empty()
+            && !rhs.is_empty()
+            && lhs.variants().iter().all(|v| strish(&v.value))
+            && rhs.variants().iter().all(|v| strish(&v.value))
+        {
+            // A string built up from conditional fragments stays one value
+            // carrying its pieces, so `x = x + fragment` under a chain of
+            // `if`s is linear rather than `2^n`.
+            let pc = self.pc;
+            let mut pieces = self.str_pieces(lhs);
+            pieces.extend(self.str_pieces(rhs));
+            pieces.retain_mut(|p| {
+                // A piece the current path already guarantees carries no
+                // condition of its own here; one the path rules out drops.
+                // Without this reduction `'HAVE_' + x.to_upper()` would defer
+                // as a `StrCat` just because the two halves came back tagged
+                // with structurally different (but equivalent) conditions.
+                if p.cond == pc || p.cond.is_true() {
+                    p.cond = Pc::TRUE;
+                    return true;
+                }
+                if self.logic.and(pc, p.cond).is_false() {
+                    return false;
+                }
+                if self.logic.entails(pc, p.cond) {
+                    p.cond = Pc::TRUE;
+                }
+                true
+            });
+            return Ok(self.pure(Value::str_cat(pieces)));
+        }
+
         if lhs.variants().iter().any(|v| v.value.is_list()) {
             // Concatenating conditional lists element-wise keeps the result a
             // single list, so a chain of `if`s appending to one variable does
@@ -154,6 +187,71 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
         }
         Ok(out)
+    }
+
+    /// Flatten string-ish variants into ordered conditional pieces. A piece's
+    /// condition is relative to the value existing at all — the caller's path
+    /// condition is not folded in here, the same way [`Value::List`] entries
+    /// carry only their own condition.
+    fn str_pieces(&mut self, v: &Variational<Value>) -> Vec<Variant<Rc<str>>> {
+        let mut out = Vec::new();
+        for variant in v.variants() {
+            if variant.cond.is_false() {
+                continue;
+            }
+            match &variant.value {
+                Value::Str(s) => out.push(Variant::new(variant.cond, s.clone())),
+                // Pieces already carry their own condition. When the whole
+                // value is present on exactly the current path — the usual
+                // case straight out of `pure` — they pass through untouched;
+                // re-`and`ing each one is what turned `x = x + fragment` in a
+                // loop into `O(n^2)` fresh arena nodes.
+                Value::StrCat(pieces) if variant.cond == self.pc || variant.cond.is_true() => {
+                    out.extend(pieces.iter().cloned());
+                }
+                Value::StrCat(pieces) => {
+                    for p in pieces.iter() {
+                        let c = self.logic.and(variant.cond, p.cond);
+                        if !c.is_false() {
+                            out.push(Variant::new(c, p.value.clone()));
+                        }
+                    }
+                }
+                // `add` only calls this once both sides are all string-ish.
+                _ => {}
+            }
+        }
+        out
+    }
+
+    /// [`Self::str_pieces`], but under an explicit condition folded into every
+    /// piece — the string analogue of [`Interp::elements_under`], for growing a
+    /// string variable in place.
+    pub(crate) fn str_pieces_under(
+        &mut self,
+        v: &Variational<Value>,
+        pc: Pc,
+    ) -> Vec<Variant<Rc<str>>> {
+        let mut out = Vec::new();
+        for variant in v.variants() {
+            let cond = self.logic.and(pc, variant.cond);
+            if cond.is_false() {
+                continue;
+            }
+            match &variant.value {
+                Value::Str(s) => out.push(Variant::new(cond, s.clone())),
+                Value::StrCat(pieces) => {
+                    for p in pieces.iter() {
+                        let c = self.logic.and(cond, p.cond);
+                        if !c.is_false() {
+                            out.push(Variant::new(c, p.value.clone()));
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        out
     }
 
     /// Apply a binary function across the product of both sides' variants.

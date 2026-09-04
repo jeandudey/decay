@@ -69,6 +69,21 @@ impl<'a, S: Solver> Interp<'a, S> {
         match obj {
             Value::Obj(o) => self.obj_method(o, name, args, loc),
             Value::Str(s) => self.str_method(s, name, args),
+            // A deferred concatenation the current path pins down to one string
+            // behaves like any other string; one that genuinely still varies
+            // has no single value to call a method on.
+            Value::StrCat(pieces) => {
+                let pc = self.pc;
+                if pieces.iter().all(|p| p.cond.is_true() || self.logic.entails(pc, p.cond)) {
+                    let s: Rc<str> = pieces.iter().map(|p| &*p.value).collect::<String>().into();
+                    self.str_method(&s, name, args)
+                } else {
+                    bail!(
+                        "`.{name}()` on a string whose value depends on the configuration \
+                         has no single answer"
+                    )
+                }
+            }
             Value::Int(i) => self.int_method(*i, name, args),
             Value::Bool(b) => self.bool_method(*b, name, args),
             Value::List(_) => self.list_method(obj, name, args),
@@ -829,6 +844,15 @@ impl<'a, S: Solver> Interp<'a, S> {
             // `.returncode()` on that answer reads the way `== 0` checks on
             // it expect: 0 when it did, 1 when it did not.
             "returncode" => Ok(self.pure(Value::Int(if b { 0 } else { 1 }))),
+            // Likewise `.compiled()`: the single probe already stands for "the
+            // check behaved as expected", so compilation succeeding is that
+            // same answer.
+            "compiled" => Ok(self.pure(Value::Bool(b))),
+            // The output of a run cannot be known without running it; a project
+            // that inspects it is asking for something the importer cannot
+            // provide, so give the empty string and let any equality check
+            // against it decide.
+            "stdout" | "stderr" => Ok(self.pure(Value::str(""))),
             other => bail!("a bool has no method `{other}`"),
         }
     }

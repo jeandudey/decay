@@ -1631,6 +1631,15 @@ pub(crate) fn builtin_option(name: &str) -> Option<ProjectOption> {
         "warning_level" => combo(&["0", "1", "2", "3", "everything"], "1"),
         "b_ndebug" => combo(&["true", "false", "if-release"], "false"),
         "b_vscrt" => combo(&["none", "md", "mdd", "mt", "mtd", "from_buildtype"], "from_buildtype"),
+        "b_sanitize" => combo(
+            &[
+                "none", "address", "thread", "undefined", "memory", "leak",
+                "address,undefined",
+            ],
+            "none",
+        ),
+        "b_pgo" => combo(&["off", "generate", "use"], "off"),
+        "b_colorout" => combo(&["auto", "always", "never"], "always"),
         "layout" => combo(&["mirror", "flat"], "mirror"),
         "wrap_mode" => combo(
             &["default", "nofallback", "nodownload", "forcefallback", "nopromote"],
@@ -1651,7 +1660,8 @@ pub(crate) fn builtin_option(name: &str) -> Option<ProjectOption> {
         "strip" | "werror" | "prefer_static" | "b_lto" | "b_coverage" | "b_pie" | "vsenv" => {
             bool_opt(false)
         }
-        "b_staticpic" | "b_asneeded" | "b_lundef" => bool_opt(true),
+        "b_staticpic" | "b_asneeded" | "b_lundef" | "b_pch" => bool_opt(true),
+        "b_bitcode" => bool_opt(false),
 
         "c_args" | "cpp_args" | "c_link_args" | "cpp_link_args" | "pkg_config_path"
         | "cmake_prefix_path" => ProjectOptionKind::Array {

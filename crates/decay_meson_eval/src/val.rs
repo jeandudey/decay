@@ -24,6 +24,13 @@ pub enum Value {
     Bool(bool),
     Int(i64),
     Str(Rc<str>),
+    /// A string assembled from conditional pieces, in order: its value in any
+    /// configuration is the concatenation of the pieces whose condition holds
+    /// there. Keeping the pieces conditional is what stops `x = x + fragment`
+    /// under a dozen independent `if`s from forking `x` into 2^12 concrete
+    /// strings — the same trick [`Self::List`] plays with its entries. Only
+    /// ever conditional: an unconditional concatenation is a plain [`Self::Str`].
+    StrCat(Rc<[Variant<Rc<str>>]>),
     List(Rc<Vec<Variant<Value>>>),
     Dict(Rc<Vec<Variant<(Rc<str>, Value)>>>),
     Obj(Obj),
@@ -40,6 +47,20 @@ impl Value {
 
     pub fn str(s: impl AsRef<str>) -> Self {
         Self::Str(Rc::from(s.as_ref()))
+    }
+
+    /// A string from ordered conditional pieces. If every piece is present
+    /// unconditionally there is nothing to defer, so the result is a plain
+    /// [`Self::Str`] and the rest of the executor sees what it expects.
+    pub fn str_cat(pieces: Vec<Variant<Rc<str>>>) -> Self {
+        if pieces.iter().all(|p| p.cond.is_true()) {
+            let mut s = String::new();
+            for p in &pieces {
+                s.push_str(&p.value);
+            }
+            return Self::Str(Rc::from(s));
+        }
+        Self::StrCat(Rc::from(pieces))
     }
 
     pub fn as_str(&self) -> Option<&Rc<str>> {
@@ -80,7 +101,7 @@ impl Value {
             Self::Unset => "unset",
             Self::Bool(_) => "bool",
             Self::Int(_) => "int",
-            Self::Str(_) => "str",
+            Self::Str(_) | Self::StrCat(_) => "str",
             Self::List(_) => "list",
             Self::Dict(_) => "dict",
             Self::Obj(o) => o.type_name(),
@@ -95,6 +116,12 @@ impl Display for Value {
             Self::Bool(v) => write!(f, "{v}"),
             Self::Int(v) => write!(f, "{v}"),
             Self::Str(v) => f.write_str(v),
+            Self::StrCat(pieces) => {
+                for p in pieces.iter() {
+                    f.write_str(&p.value)?;
+                }
+                Ok(())
+            }
             Self::List(items) => {
                 f.write_str("[")?;
                 for (i, item) in items.iter().enumerate() {
