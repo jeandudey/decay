@@ -616,18 +616,22 @@ pub fn indent(depth: Depth) -> String {
     "    ".repeat(depth)
 }
 
-/// A Starlark list, one entry per line.
+/// A Starlark list: compact `[item]` for single-element lists, or multiline
+/// with one entry per line otherwise.
 pub fn list(values: &[String], depth: Depth) -> String {
-    if values.is_empty() {
-        return "[]".to_owned();
+    match values {
+        [] => "[]".to_owned(),
+        [single] if !single.contains('\n') => format!("[{single}]"),
+        _ => {
+            let pad = indent(depth + 1);
+            let mut out = String::from("[\n");
+            for value in values {
+                out.push_str(&format!("{pad}{value},\n"));
+            }
+            out.push_str(&format!("{}]", indent(depth)));
+            out
+        }
     }
-    let pad = indent(depth + 1);
-    let mut out = String::from("[\n");
-    for value in values {
-        out.push_str(&format!("{pad}{value},\n"));
-    }
-    out.push_str(&format!("{}]", indent(depth)));
-    out
 }
 
 /// Whether two conditions are each other's answer: never both, never neither.
@@ -662,3 +666,31 @@ pub fn simplify<S: Solver>(logic: &mut Logic<S>, cond: Pc, context: Pc) -> Pc {
     }
     cond
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn list_formats_empty_as_brackets() {
+        assert_eq!(list(&[], 0), "[]");
+    }
+
+    #[test]
+    fn list_formats_single_line_for_single_item() {
+        assert_eq!(list(&["\":dep\"".into()], 0), "[\":dep\"]");
+    }
+
+    #[test]
+    fn list_formats_multiline_for_multiple_items() {
+        let items = vec![":a".into(), ":b".into()];
+        assert_eq!(list(&items, 0), "[\n    :a,\n    :b,\n]");
+    }
+
+    #[test]
+    fn list_formats_multiline_if_single_item_contains_newline() {
+        let items = vec!["line1\nline2".into()];
+        assert_eq!(list(&items, 0), "[\n    line1\nline2,\n]");
+    }
+}
+
