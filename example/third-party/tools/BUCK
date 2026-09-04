@@ -7,6 +7,12 @@
 # own tools here, only a pointer at whatever this machine already has.
 
 sh_binary(
+    name = "python3",
+    main = "python3.sh",
+    visibility = ["PUBLIC"],
+)
+
+sh_binary(
     name = "glib-compile-resources",
     main = "glib-compile-resources.sh",
     visibility = ["PUBLIC"],
