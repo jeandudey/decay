@@ -886,10 +886,15 @@ fn describe_external(external: &External) -> String {
 
 /// The directories an `#include` is resolved against.
 ///
-/// `own_dir` is where the compiled target itself was declared: meson always
-/// puts a target's own directory (and its build-mirror) on the quote-include
-/// path, with no `include_directories()` needed, so a generated header
-/// sitting right beside the sources that use it is still found.
+/// Tried in the order `include_directories()` actually lists them, the same
+/// order the compiler would see them as `-I` flags: a header reachable
+/// through more than one root is spelled the way the first one names it, not
+/// however the longest happens to. `own_dir` is where the compiled target
+/// itself was declared: meson always puts a target's own directory (and its
+/// build-mirror) on the quote-include path, with no `include_directories()`
+/// needed, so a generated header sitting right beside the sources that use
+/// it is still found — but only once every declared root has had a chance,
+/// since an explicit root always outranks that implicit fallback.
 fn include_roots(dirs: &Variational<PathBuf>, own_dir: &Path) -> Vec<PathBuf> {
     let mut out: Vec<PathBuf> = Vec::new();
     for entry in dirs {
@@ -900,8 +905,6 @@ fn include_roots(dirs: &Variational<PathBuf>, own_dir: &Path) -> Vec<PathBuf> {
     if !out.iter().any(|p| p == own_dir) {
         out.push(own_dir.to_path_buf());
     }
-    // Longest first, so the most specific root wins.
-    out.sort_by_key(|p| std::cmp::Reverse(p.as_os_str().len()));
     out
 }
 
