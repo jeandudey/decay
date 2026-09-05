@@ -102,8 +102,11 @@ genrule(
     name = "config.h",
     out = "config.h",
     cmd = "printf '%s\\n'" + " '#define PACKAGE_NAME \"libepoxy\"' '#define PACKAGE_VERSION \"1.5.10\"' '#define PACKAGE_STRING \"libepoxy-1.5.10\"' '#define PACKAGE_DATADIR \"/usr/local/share\"' '#define PACKAGE_LIBDIR \"/usr/local/lib\"' '#define PACKAGE_LOCALEDIR \"/usr/local/share/locale\"' '#define PACKAGE_LIBEXECDIR \"/usr/local/libexec\"' '#define ENABLE_X11 1'" + select({
-        "//third-party/meson/constraints:has_header_KHR_khrplatform_h[true]": " '#define HAVE_KHRPLATFORM_H'",
-        "//third-party/meson/constraints:has_header_KHR_khrplatform_h[false]": " '/* #undef HAVE_KHRPLATFORM_H */'",
+        "prelude//os/constraints:os[linux]": " '/* #undef HAVE_KHRPLATFORM_H */'",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_KHR_khrplatform_h[true]": " '#define HAVE_KHRPLATFORM_H'",
+            "//third-party/meson/constraints:has_header_KHR_khrplatform_h[false]": " '/* #undef HAVE_KHRPLATFORM_H */'",
+        }),
     }) + select({
         "prelude//os/constraints:os[freebsd]": " '#define ENABLE_GLX 1'",
         "prelude//os/constraints:os[fuchsia]": " '#define ENABLE_GLX 1'",

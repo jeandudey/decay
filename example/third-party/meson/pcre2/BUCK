@@ -186,23 +186,131 @@ genrule(
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": " '#define SUPPORT_JIT 1'",
     }) + select({
-        "//third-party/meson/constraints:has_header_sys_stat_h[true]": " '#define HAVE_SYS_STAT_H 1'",
-        "//third-party/meson/constraints:has_header_sys_stat_h[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_STAT_H 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_STAT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_STAT_H 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_sys_stat_h[true]": " '#define HAVE_SYS_STAT_H 1'",
+            "//third-party/meson/constraints:has_header_sys_stat_h[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_sys_types_h[true]": " '#define HAVE_SYS_TYPES_H 1'",
-        "//third-party/meson/constraints:has_header_sys_types_h[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_TYPES_H 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_TYPES_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_TYPES_H 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_sys_types_h[true]": " '#define HAVE_SYS_TYPES_H 1'",
+            "//third-party/meson/constraints:has_header_sys_types_h[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_assert_h[true]": " '#define HAVE_ASSERT_H 1'",
-        "//third-party/meson/constraints:has_header_assert_h[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ASSERT_H 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ASSERT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ASSERT_H 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_assert_h[true]": " '#define HAVE_ASSERT_H 1'",
+            "//third-party/meson/constraints:has_header_assert_h[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_dirent_h[true]": " '#define HAVE_DIRENT_H 1'",
-        "//third-party/meson/constraints:has_header_dirent_h[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DIRENT_H 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DIRENT_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DIRENT_H 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_dirent_h[true]": " '#define HAVE_DIRENT_H 1'",
+            "//third-party/meson/constraints:has_header_dirent_h[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_windows_h[true]": " '#define HAVE_WINDOWS_H 1'",
-        "//third-party/meson/constraints:has_header_windows_h[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_windows_h[true]": " '#define HAVE_WINDOWS_H 1'",
+            "//third-party/meson/constraints:has_header_windows_h[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_unistd_h[true]": " '#define HAVE_UNISTD_H 1'",
-        "//third-party/meson/constraints:has_header_unistd_h[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UNISTD_H 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_UNISTD_H 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UNISTD_H 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_unistd_h[true]": " '#define HAVE_UNISTD_H 1'",
+            "//third-party/meson/constraints:has_header_unistd_h[false]": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
@@ -378,8 +486,29 @@ genrule(
         "//third-party/meson/constraints:links_assume[true]": " '#define HAVE_BUILTIN_ASSUME 1'",
         "//third-party/meson/constraints:links_assume[false]": "",
     }) + select({
-        "//third-party/meson/constraints:compiles_attribute_uninitialized[true]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
-        "//third-party/meson/constraints:compiles_attribute_uninitialized[false]": "",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:compiles_attribute_uninitialized[true]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+            "//third-party/meson/constraints:compiles_attribute_uninitialized[false]": "",
+        }),
     }) + " > $OUT",
     visibility = ["PUBLIC"],
 )

@@ -154,17 +154,101 @@ genrule(
     name = "config.h",
     out = "config.h",
     cmd = "printf '%s\\n'" + select({
-        "//third-party/meson/constraints:has_header_stdlib_h[true]": " '#define HAVE_STDLIB_H'",
-        "//third-party/meson/constraints:has_header_stdlib_h[false]": " '/* #undef HAVE_STDLIB_H */'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDLIB_H'",
+                "DEFAULT": " '/* #undef HAVE_STDLIB_H */'",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDLIB_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDLIB_H'",
+                "DEFAULT": " '/* #undef HAVE_STDLIB_H */'",
+            }),
+            "DEFAULT": " '/* #undef HAVE_STDLIB_H */'",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_stdlib_h[true]": " '#define HAVE_STDLIB_H'",
+            "//third-party/meson/constraints:has_header_stdlib_h[false]": " '/* #undef HAVE_STDLIB_H */'",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_stdint_h[true]": " '#define HAVE_STDINT_H'",
-        "//third-party/meson/constraints:has_header_stdint_h[false]": " '/* #undef HAVE_STDINT_H */'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDINT_H'",
+                "DEFAULT": " '/* #undef HAVE_STDINT_H */'",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDINT_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDINT_H'",
+                "DEFAULT": " '/* #undef HAVE_STDINT_H */'",
+            }),
+            "DEFAULT": " '/* #undef HAVE_STDINT_H */'",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_stdint_h[true]": " '#define HAVE_STDINT_H'",
+            "//third-party/meson/constraints:has_header_stdint_h[false]": " '/* #undef HAVE_STDINT_H */'",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_stdbool_h[true]": " '#define HAVE_STDBOOL_H'",
-        "//third-party/meson/constraints:has_header_stdbool_h[false]": " '/* #undef HAVE_STDBOOL_H */'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDBOOL_H'",
+                "DEFAULT": " '/* #undef HAVE_STDBOOL_H */'",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDBOOL_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDBOOL_H'",
+                "DEFAULT": " '/* #undef HAVE_STDBOOL_H */'",
+            }),
+            "DEFAULT": " '/* #undef HAVE_STDBOOL_H */'",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_stdbool_h[true]": " '#define HAVE_STDBOOL_H'",
+            "//third-party/meson/constraints:has_header_stdbool_h[false]": " '/* #undef HAVE_STDBOOL_H */'",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_header_memory_h[true]": " '#define HAVE_MEMORY_H'",
-        "//third-party/meson/constraints:has_header_memory_h[false]": " '/* #undef HAVE_MEMORY_H */'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMORY_H'",
+                "DEFAULT": " '/* #undef HAVE_MEMORY_H */'",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMORY_H'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMORY_H'",
+                "DEFAULT": " '/* #undef HAVE_MEMORY_H */'",
+            }),
+            "DEFAULT": " '/* #undef HAVE_MEMORY_H */'",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_header_memory_h[true]": " '#define HAVE_MEMORY_H'",
+            "//third-party/meson/constraints:has_header_memory_h[false]": " '/* #undef HAVE_MEMORY_H */'",
+        }),
     }) + select({
         "//third-party/meson/constraints:has_header_pthread_h[true]": " '#define HAVE_PTHREAD_H'",
         "//third-party/meson/constraints:has_header_pthread_h[false]": " '/* #undef HAVE_PTHREAD_H */'",
