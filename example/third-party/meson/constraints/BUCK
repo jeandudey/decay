@@ -294,14 +294,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:egl`: `egl` is available
-constraint(
-    name = "egl",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `lib:opengl32`: `opengl32` is available
 constraint(
     name = "opengl32",

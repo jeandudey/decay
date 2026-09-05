@@ -73,28 +73,10 @@ alias(
     visibility = ["PUBLIC"],
 )
 
-# meson: find_library("libGLESv2")
-cxx_library(
-    name = "libGLESv2",
-    exported_linker_flags = [
-        "-llibGLESv2",
-    ],
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency("glesv1_cm") — resolved by pkg-config
 alias(
     name = "glesv1_cm",
     actual = "//third-party/meson/libglvnd:GLESv1_CM",
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("libGLESv1_CM")
-cxx_library(
-    name = "libGLESv1_CM",
-    exported_linker_flags = [
-        "-llibGLESv1_CM",
-    ],
     visibility = ["PUBLIC"],
 )
 
@@ -433,10 +415,7 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[macos]": [],
         "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:egl[true]": [":egl"],
-            "//third-party/meson/constraints:egl[false]": [],
-        }),
+        "DEFAULT": [":egl"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -543,10 +522,7 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[macos]": [],
         "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:egl[true]": [":egl"],
-            "//third-party/meson/constraints:egl[false]": [],
-        }),
+        "DEFAULT": [":egl"],
     }),
     visibility = ["PUBLIC"],
 )
