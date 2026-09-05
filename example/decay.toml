@@ -1,4 +1,5 @@
 third_party_dir = "third-party/meson"
+wrap_dir = "subprojects"
 
 [systems]
 android = "prelude//os/constraints:os[android]"
