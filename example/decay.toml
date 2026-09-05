@@ -173,7 +173,7 @@ repo = "https://gitlab.gnome.org/GNOME/glib.git"
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
 depends = ["gvdb"]
 # TODO: force_posix_threads should be true for GNU/Windows toolchain, false for MSVC/Windows.
-options = { bsymbolic_functions = true, glib_assert = true, glib_checks = true, tests = false, multiarch = false, force_posix_threads = false }
+options = { bsymbolic_functions = true, glib_assert = true, glib_checks = true, tests = false, multiarch = false, force_posix_threads = false, xattr = true }
 # options.glib_debug = "disabled" # TODO: This does not work, it should.
 
 # TODO: Fails with

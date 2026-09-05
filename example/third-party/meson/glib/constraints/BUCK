@@ -12,14 +12,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# build option `option:xattr`: build with xattr support
-constraint(
-    name = "xattr",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # build option `option:file_monitor_backend`: The name of the system API to use as a GFileMonitor backend
 constraint(
     name = "file_monitor_backend",

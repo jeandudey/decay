@@ -15814,129 +15814,107 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "//third-party/meson/constraints:xattr[true]": select({
-                "//third-party/meson/glib/constraints:xattr[true]": select({
-                    "prelude//abi/constraints:abi[gnu]": select({
-                        "//third-party/meson/constraints:has_function_getxattr[true]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:has_function_getxattr[false]": select({
-                            "prelude//cpu/constraints:cpu[arm32]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[arm64]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[riscv64]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[x86_32]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[x86_64]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                            }),
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
                         }),
                     }),
-                    "prelude//abi/constraints:abi[musl]": select({
-                        "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                        "prelude//cpu/constraints:cpu[arm32]": select({
                             "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
                             "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
                                 "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
                                 "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
                             }),
                         }),
-                        "//third-party/meson/constraints:has_function_getxattr[false]": select({
-                            "prelude//cpu/constraints:cpu[arm32]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[arm64]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[riscv64]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[x86_32]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "prelude//cpu/constraints:cpu[x86_64]": select({
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
-                                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                                }),
-                            }),
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
-                            }),
-                        }),
-                    }),
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                        "prelude//cpu/constraints:cpu[arm64]": select({
                             "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
                             "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
                                 "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
                                 "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
                             }),
                         }),
-                        "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                        "prelude//cpu/constraints:cpu[riscv64]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "prelude//cpu/constraints:cpu[x86_32]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "prelude//cpu/constraints:cpu[x86_64]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "DEFAULT": select({
                             "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
                             "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
                         }),
                     }),
                 }),
-                "//third-party/meson/glib/constraints:xattr[false]": [],
-            }),
-            "//third-party/meson/constraints:xattr[false]": [],
-        }),
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:xattr[true]": select({
-                "//third-party/meson/glib/constraints:xattr[true]": select({
+                "prelude//abi/constraints:abi[musl]": select({
+                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                        }),
+                    }),
+                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                        "prelude//cpu/constraints:cpu[arm32]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "prelude//cpu/constraints:cpu[arm64]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "prelude//cpu/constraints:cpu[riscv64]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "prelude//cpu/constraints:cpu[x86_32]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "prelude//cpu/constraints:cpu[x86_64]": select({
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                            }),
+                        }),
+                        "DEFAULT": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                        }),
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:has_function_getxattr[true]": select({
                         "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
                         "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
@@ -15949,7 +15927,23 @@ cxx_library(
                         "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
                     }),
                 }),
-                "//third-party/meson/glib/constraints:xattr[false]": [],
+            }),
+            "//third-party/meson/constraints:xattr[false]": [],
+        }),
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:xattr[true]": select({
+                "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[true]": [],
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                    }),
+                }),
+                "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": [":xattr"],
+                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": [],
+                }),
             }),
             "//third-party/meson/constraints:xattr[false]": [],
         }),
@@ -21991,7 +21985,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[windows]": " '#define EXEEXT \".exe\"' '#define THREADS_WIN32 1'",
-        "DEFAULT": " '#define EXEEXT ' '#define THREADS_POSIX 1'",
+        "DEFAULT": " '#define EXEEXT ' '#define THREADS_POSIX 1' '#define HAVE_XATTR 1'",
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[msvc]": " '/* #undef USE_SYSTEM_PRINTF */' '#define gl_unused \n/* Define as a marker that can be attached to declarations that might not\n    be used.  This helps to reduce warnings, such as from\n    GCC -Wunused-parameter.  */\n#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7)\n# define _GL_UNUSED __attribute__ ((__unused__))\n#else\n# define _GL_UNUSED\n#endif\n' '#define gl_extern_inline \n/* Please see the Gnulib manual for how to use these macros.\n\n   Suppress extern inline with HP-UX cc, as it appears to be broken; see\n   <https://lists.gnu.org/r/bug-texinfo/2013-02/msg00030.html>.\n\n   Suppress extern inline with Sun C in standards-conformance mode, as it\n   mishandles inline functions that call each other.  E.g., for '\\''inline void f\n   (void) { } inline void g (void) { f (); }'\\'', c99 incorrectly complains\n   '\\''reference to static identifier \"f\" in extern inline function'\\''.\n   This bug was observed with Sun C 5.12 SunOS_i386 2011/11/16.\n\n   Suppress extern inline (with or without __attribute__ ((__gnu_inline__)))\n   on configurations that mistakenly use '\\''static inline'\\'' to implement\n   functions or macros in standard C headers like <ctype.h>.  For example,\n   if isdigit is mistakenly implemented via a static inline function,\n   a program containing an extern inline function that calls isdigit\n   may not work since the C standard prohibits extern inline functions\n   from calling static functions.  This bug is known to occur on:\n\n     OS X 10.8 and earlier; see:\n     https://lists.gnu.org/r/bug-gnulib/2012-12/msg00023.html\n\n     DragonFly; see\n     http://muscles.dragonflybsd.org/bulk/bleeding-edge-potential/latest-per-pkg/ah-tty-0.3.12.log\n\n     FreeBSD; see:\n     https://lists.gnu.org/r/bug-gnulib/2014-07/msg00104.html\n\n   OS X 10.9 has a macro __header_inline indicating the bug is fixed for C and\n   for clang but remains for g++; see <https://trac.macports.org/ticket/41033>.\n   Assume DragonFly and FreeBSD will be similar.  */\n#if (((defined __APPLE__ && defined __MACH__) \\\n      || defined __DragonFly__ || defined __FreeBSD__) \\\n     && (defined __header_inline \\\n         ? (defined __cplusplus && defined __GNUC_STDC_INLINE__ \\\n            && ! defined __clang__) \\\n         : ((! defined _DONT_USE_CTYPE_INLINE_ \\\n             && (defined __GNUC__ || defined __cplusplus)) \\\n            || (defined _FORTIFY_SOURCE && 0 < _FORTIFY_SOURCE \\\n                && defined __GNUC__ && ! defined __cplusplus))))\n# define _GL_EXTERN_INLINE_STDHEADER_BUG\n#endif\n#if ((__GNUC__ \\\n      ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \\\n      : (199901L <= __STDC_VERSION__ \\\n         && !defined __HP_cc \\\n         && !defined __PGI \\\n         && !(defined __SUNPRO_C && __STDC__))) \\\n     && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)\n# define _GL_INLINE inline\n# define _GL_EXTERN_INLINE extern inline\n# define _GL_EXTERN_INLINE_IN_USE\n#elif (2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __STRICT_ANSI__ \\\n       && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)\n# if defined __GNUC_GNU_INLINE__ && __GNUC_GNU_INLINE__\n   /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */\n#  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__)) __attribute__ ((always_inline))\n# else\n#  define _GL_INLINE extern inline\n# endif\n# define _GL_EXTERN_INLINE extern\n# define _GL_EXTERN_INLINE_IN_USE\n#else\n# define _GL_INLINE static _GL_UNUSED\n# define _GL_EXTERN_INLINE static _GL_UNUSED\n#endif\n\n/* In GCC 4.6 (inclusive) to 5.1 (exclusive),\n   suppress bogus \"no previous prototype for '\\''FOO'\\''\"\n   and \"no previous declaration for '\\''FOO'\\''\" diagnostics,\n   when FOO is an inline function in the header; see\n   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113> and\n   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63877>.  */\n#if __GNUC__ == 4 && 6 <= __GNUC_MINOR__\n# if defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__\n#  define _GL_INLINE_HEADER_CONST_PRAGMA\n# else\n#  define _GL_INLINE_HEADER_CONST_PRAGMA \\\n     _Pragma (\"GCC diagnostic ignored \\\"-Wsuggest-attribute=const\\\"\")\n# endif\n# define _GL_INLINE_HEADER_BEGIN \\\n    _Pragma (\"GCC diagnostic push\") \\\n    _Pragma (\"GCC diagnostic ignored \\\"-Wmissing-prototypes\\\"\") \\\n    _Pragma (\"GCC diagnostic ignored \\\"-Wmissing-declarations\\\"\") \\\n    _GL_INLINE_HEADER_CONST_PRAGMA\n# define _GL_INLINE_HEADER_END \\\n    _Pragma (\"GCC diagnostic pop\")\n#else\n# define _GL_INLINE_HEADER_BEGIN\n# define _GL_INLINE_HEADER_END\n#endif\n'",
@@ -22238,208 +22232,183 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "//third-party/meson/glib/constraints:xattr[true]": select({
-                "prelude//abi/constraints:abi[gnu]": select({
-                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
-                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                    }),
-                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
-                        "prelude//cpu/constraints:cpu[arm32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[arm64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[riscv64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "DEFAULT": "",
-                    }),
+            "prelude//abi/constraints:abi[gnu]": select({
+                "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
                 }),
-                "prelude//abi/constraints:abi[musl]": select({
-                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                    "prelude//cpu/constraints:cpu[arm32]": select({
                         "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
                         "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
                     }),
-                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
-                        "prelude//cpu/constraints:cpu[arm32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[arm64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[riscv64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
-                        }),
-                        "DEFAULT": "",
-                    }),
-                }),
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "prelude//cpu/constraints:cpu[arm64]": select({
                         "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
                         "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
                     }),
-                    "//third-party/meson/constraints:has_function_getxattr[false]": "",
+                    "prelude//cpu/constraints:cpu[riscv64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_32]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "DEFAULT": "",
                 }),
             }),
-            "//third-party/meson/glib/constraints:xattr[false]": "",
-        }),
-        "prelude//os/constraints:os[windows]": "",
-        "DEFAULT": select({
-            "//third-party/meson/glib/constraints:xattr[true]": select({
+            "prelude//abi/constraints:abi[musl]": select({
+                "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                }),
+                "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                    "prelude//cpu/constraints:cpu[arm32]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "prelude//cpu/constraints:cpu[arm64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "prelude//cpu/constraints:cpu[riscv64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_32]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+                    }),
+                    "DEFAULT": "",
+                }),
+            }),
+            "DEFAULT": select({
                 "//third-party/meson/constraints:has_function_getxattr[true]": select({
                     "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
                     "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
                 }),
                 "//third-party/meson/constraints:has_function_getxattr[false]": "",
             }),
-            "//third-party/meson/glib/constraints:xattr[false]": "",
+        }),
+        "prelude//os/constraints:os[windows]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": " '#define HAVE_SYS_XATTR_H 1'",
+                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": "",
+            }),
+            "//third-party/meson/constraints:has_function_getxattr[false]": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "//third-party/meson/glib/constraints:xattr[true]": select({
-                "prelude//abi/constraints:abi[gnu]": select({
-                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
-                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                        }),
-                    }),
-                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
-                        "prelude//cpu/constraints:cpu[arm32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[arm64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[riscv64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                        }),
+            "prelude//abi/constraints:abi[gnu]": select({
+                "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
                     }),
                 }),
-                "prelude//abi/constraints:abi[musl]": select({
-                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                    "prelude//cpu/constraints:cpu[arm32]": select({
                         "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
                         "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
                             "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
                             "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
                         }),
                     }),
-                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
-                        "prelude//cpu/constraints:cpu[arm32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[arm64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[riscv64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_32]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "prelude//cpu/constraints:cpu[x86_64]": select({
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
-                            "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                            }),
-                        }),
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
-                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
-                        }),
-                    }),
-                }),
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "prelude//cpu/constraints:cpu[arm64]": select({
                         "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
                         "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
                             "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
                             "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
                         }),
                     }),
-                    "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                    "prelude//cpu/constraints:cpu[riscv64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_32]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "DEFAULT": select({
                         "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
                         "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
                     }),
                 }),
             }),
-            "//third-party/meson/glib/constraints:xattr[false]": "",
-        }),
-        "prelude//os/constraints:os[windows]": "",
-        "DEFAULT": select({
-            "//third-party/meson/glib/constraints:xattr[true]": select({
+            "prelude//abi/constraints:abi[musl]": select({
+                "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                    "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                    }),
+                }),
+                "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                    "prelude//cpu/constraints:cpu[arm32]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "prelude//cpu/constraints:cpu[arm64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "prelude//cpu/constraints:cpu[riscv64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_32]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "prelude//cpu/constraints:cpu[x86_64]": select({
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                        "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                            "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                        }),
+                    }),
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                        "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                    }),
+                }),
+            }),
+            "DEFAULT": select({
                 "//third-party/meson/constraints:has_function_getxattr[true]": select({
                     "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
                     "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
@@ -22452,22 +22421,26 @@ genrule(
                     "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
                 }),
             }),
-            "//third-party/meson/glib/constraints:xattr[false]": "",
         }),
-    }) + select({
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
-            "//third-party/meson/glib/constraints:xattr[true]": " '#define HAVE_XATTR 1'",
-            "//third-party/meson/glib/constraints:xattr[false]": "",
-        }),
-    }) + select({
-        "prelude//os/constraints:os[windows]": "",
-        "DEFAULT": select({
-            "//third-party/meson/glib/constraints:xattr[true]": select({
-                "//third-party/meson/constraints:compiles_XATTR_NOFOLLOW[true]": " '#define HAVE_XATTR_NOFOLLOW 1'",
-                "//third-party/meson/constraints:compiles_XATTR_NOFOLLOW[false]": "",
+            "//third-party/meson/constraints:has_function_getxattr[true]": select({
+                "//third-party/meson/constraints:has_header_sys_xattr_h[true]": "",
+                "//third-party/meson/constraints:has_header_sys_xattr_h[false]": select({
+                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                    "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+                }),
             }),
-            "//third-party/meson/glib/constraints:xattr[false]": "",
+            "//third-party/meson/constraints:has_function_getxattr[false]": select({
+                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[true]": " '#define HAVE_ATTR_XATTR_H 1'",
+                "//third-party/meson/constraints:has_header_symbol_attr_xattr_h[false]": "",
+            }),
+        }),
+    }) + select({
+        "prelude//os/constraints:os[windows]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:compiles_XATTR_NOFOLLOW[true]": " '#define HAVE_XATTR_NOFOLLOW 1'",
+            "//third-party/meson/constraints:compiles_XATTR_NOFOLLOW[false]": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
