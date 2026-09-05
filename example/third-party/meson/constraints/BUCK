@@ -166,14 +166,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# machine property `machine:host:endian`: host machine endian
-constraint(
-    name = "endian",
-    values = ["little", "big"],
-    default = "little",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `lib:dl`: `dl` is available
 constraint(
     name = "dl",
@@ -1995,6 +1987,14 @@ constraint(
     name = "compiles_int64_t_is_long_long",
     values = ["true", "false"],
     default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# machine property `machine:host:endian`: host machine endian
+constraint(
+    name = "endian",
+    values = ["little", "big"],
+    default = "little",
     visibility = ["PUBLIC"],
 )
 

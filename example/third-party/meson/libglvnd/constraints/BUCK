@@ -4,22 +4,6 @@
 # chosen. Set them on a platform to configure this project. Options
 # meson provides to every project live alongside, one directory up.
 
-# build option `option:asm`: Use ASM when compiling.
-constraint(
-    name = "asm",
-    values = ["enabled", "disabled", "auto"],
-    default = "auto",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:glx`: Support the GLX platform.
-constraint(
-    name = "glx",
-    values = ["enabled", "disabled", "auto"],
-    default = "auto",
-    visibility = ["PUBLIC"],
-)
-
 # build option `option:entrypoint-patching`: Allow vendor libraries to patch OpenGL entrypoint functions.
 constraint(
     name = "entrypoint_patching",

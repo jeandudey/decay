@@ -157,7 +157,7 @@ options = { sse2 = true, gcc_vector = true, arm_neon = true, debug = false, gobj
 [[project]]
 repo = "https://github.com/NVIDIA/libglvnd"
 rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
-options = { dispatch-tls = true, egl = true, gles1 = true, gles2 = true, headers = true, hgl = false, tls = true }
+options = { asm = "auto", dispatch-tls = true, egl = true, entrypoint_patching = "auto", gles1 = true, gles2 = true, glx = "auto", headers = true, hgl = false, tls = true }
 
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
@@ -176,8 +176,7 @@ repo = "https://gitlab.gnome.org/GNOME/glib.git"
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
 depends = ["gvdb"]
 # TODO: force_posix_threads should be true for GNU/Windows toolchain, false for MSVC/Windows.
-options = { bsymbolic_functions = true, glib_assert = true, glib_checks = true, tests = false, multiarch = false, force_posix_threads = false, xattr = true }
-# options.glib_debug = "disabled" # TODO: This does not work, it should.
+options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_assert = true, glib_debug = "disabled", glib_checks = true, tests = false, libelf = "auto", multiarch = false, force_posix_threads = false, xattr = true }
 
 # TODO: Fails with
 #   Error: Failed to import `glycin`
@@ -264,7 +263,7 @@ options = { bsymbolic_functions = true, glib_assert = true, glib_checks = true, 
 
 [[project]]
 wrap = "pcre2"
-options = { grep = false, test = false, jit = "enabled" }
+options = { grep = false, test = false, jit = "auto", jit_sealloc = "auto" }
 
 # TODO: Fails with:
 #   Error: Failed to import `libffi`
