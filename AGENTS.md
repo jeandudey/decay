@@ -272,3 +272,56 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   references — from scanning the template file's text, since decay does not
   otherwise know a name it was never told to `.set()` — not just the names
   that got a live `Define` variant.
+
+- **Better diagnostics.** If something fails to import because it needs user input
+  we should provide a way for the user to fix it if possible. If it is something
+  we don't have implemented then we should provide that. Ideally we should collect
+  unimplemented functions and methods in meson and either provide these in the
+  program to let the user know it hasn't been implemented, and also to keep a
+  list here in known gaps.
+
+- **has_function compaction.** This still uses `has_function_memalign[true]` when it is not necessary,
+  either the function exists for glibc for the combinations _we_ check or not. Ideally
+  has_function_memalign should be gone completely from the generated constraints and
+  build file. That is the main reason for the libc database.
+
+```
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
+                "//third-party/meson/constraints:has_function_memalign[false]": select({
+                }),
+```
+  Ideally this should be
+
+```
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": "",
+```
+
+- **Adding meson specific buck2 rules.** We shall be able to take the .h.in files with `#mesondefine` et all
+  and just substitute correctly instead of assuming the layout of the file with `.set` calls, output should
+  be more or less identical to what meson generates.
+
+- **add_test_setup.** Implement this, I'm tired of seeing this in the output and it should more or less
+  work with buck2 too.
+
+- **Libraries provided by the compiler should exist or not.** See this:
+
+``` 
+# external dependency `lib:m`: `m` is available
+constraint(
+    name = "m",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+```
+
+  It should just be true for the systems that provide it, that's it, libc DB needs this.
