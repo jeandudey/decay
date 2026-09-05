@@ -90,7 +90,6 @@ cp = "//third-party/tools:cp"
 x11 = "//third-party/system:X11"
 gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
-libffi = "//third-party/system:FFI"
 zlib = "//third-party/system:Z"
 
 # `cc.sizeof()` / `cc.alignment()` yield a concrete integer a generated
@@ -246,3 +245,17 @@ options.multiarch = false
 
 [[project]]
 wrap = "pcre2"
+
+# TODO: Fails with:
+#   Error: Failed to import `libffi`
+#
+#   Caused by:
+#      0: Failed to execute `libffi`
+#      1: in /meson.build
+#      2: in `run_command()` at /meson.build:21:18
+#      3: `run_command()` would have to run a program at import time, which would bake this machine's answer into the generated build
+#
+#   Location:
+#       crates/decay_meson_eval/src/builtins.rs:218:30
+# [[project]]
+# wrap = "libffi"
