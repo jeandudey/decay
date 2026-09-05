@@ -4139,7 +4139,7 @@ cxx_library(
 # meson: dependency("zlib") — resolved by pkg-config
 alias(
     name = "zlib",
-    actual = "//third-party/system:Z",
+    actual = "//third-party/meson/zlib:z",
     visibility = ["PUBLIC"],
 )
 

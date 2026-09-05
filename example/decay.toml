@@ -90,7 +90,6 @@ cp = "//third-party/tools:cp"
 x11 = "//third-party/system:X11"
 gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
-zlib = "//third-party/system:Z"
 
 # `cc.sizeof()` / `cc.alignment()` yield a concrete integer a generated
 # config header bakes in, so — unlike a probe — there is no knob to leave
@@ -174,7 +173,7 @@ options = { tests = false, default_library = "both" }
 repo = "https://gitlab.gnome.org/GNOME/glib.git"
 # Pinned to tag 2.88.3.
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
-depends = ["gvdb"]
+depends = ["gvdb", "zlib"]
 # TODO: force_posix_threads should be true for GNU/Windows toolchain, false for MSVC/Windows.
 options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_assert = true, glib_debug = "disabled", glib_checks = true, tests = false, libelf = "auto", multiarch = false, force_posix_threads = false, xattr = true }
 
@@ -246,7 +245,7 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 
 [[project]]
 wrap = "zlib"
-options = { tests = "disabled" }
+options = { solo = false, tests = "disabled" }
 
 [[project]]
 wrap = "pcre2"
