@@ -143,6 +143,10 @@ enum Flow {
     Normal,
     Break(Pc),
     Continue(Pc),
+    /// `subdir_done()` was reached under this condition: the rest of the
+    /// current `meson.build` is skipped for those configurations, the others
+    /// carry on past the `subdir()` that entered it.
+    Done(Pc),
     /// `error()` was reached: this path does not configure at all.
     Abort,
 }
@@ -318,7 +322,7 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         self.dirs.push(dir.to_path_buf());
         let saved_flow = mem::replace(&mut self.flow, Flow::Normal);
-        let r = self.block(&block);
+        let r = self.file_block(&block);
         self.flow = saved_flow;
         self.dirs.pop();
         r.wrap_err_with(|| format!("in {}/meson.build", dir.display()))
@@ -333,6 +337,34 @@ impl<'a, S: Solver> Interp<'a, S> {
                 break;
             }
         }
+        Ok(())
+    }
+
+    /// Like [`Self::block`], but for a whole `meson.build`. A `subdir_done()`
+    /// under a partial condition drops the rest of the file for exactly those
+    /// configurations and keeps interpreting it under the complement, rather
+    /// than stopping the file for everything.
+    fn file_block(&mut self, block: &Block) -> eyre::Result<()> {
+        let entry = self.pc;
+        for stmt in &block.0 {
+            self.stmt(stmt)?;
+            match self.flow {
+                Flow::Normal => {}
+                Flow::Done(done) => {
+                    self.flow = Flow::Normal;
+                    let rest = {
+                        let not_done = self.logic.not(done);
+                        self.logic.and(self.pc, not_done)
+                    };
+                    if rest.is_false() || !self.logic.is_sat(rest) {
+                        break;
+                    }
+                    self.pc = rest;
+                }
+                _ => break,
+            }
+        }
+        self.pc = entry;
         Ok(())
     }
 
@@ -499,8 +531,14 @@ impl<'a, S: Solver> Interp<'a, S> {
                             );
                         }
                     }
+                    // `subdir_done()` fired in the body: unwind the loop and
+                    // let `file_block` skip the rest of the file.
+                    Flow::Done(_) => break,
                     Flow::Normal => {}
                 }
+            }
+            if matches!(self.flow, Flow::Done(_)) {
+                break;
             }
         }
 
@@ -1173,6 +1211,13 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// `error()` and do not configure.
     pub(crate) fn abort(&mut self) {
         self.flow = Flow::Abort;
+    }
+
+    /// `subdir_done()`: stop interpreting the current `meson.build` for the
+    /// configurations executing right now. [`Self::file_block`] resumes the
+    /// file under the complement.
+    pub(crate) fn subdir_done(&mut self) {
+        self.flow = Flow::Done(self.pc);
     }
 
     pub(crate) fn warn_unsupported(&self, what: &str, loc: Loc) {

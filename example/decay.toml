@@ -244,22 +244,9 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 # repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
 # rev = "badd9563b2ac3117ea2a99348bbe46298d6992ec" # Tag 1.29.2
 
-# TODO: Fails with:
-#   Error: Failed to import `zlib`
-#
-#   Caused by:
-#      0: Failed to execute `zlib`
-#      1: in /meson.build
-#      2: in `subdir()` at /meson.build:103:0
-#      3: in test/meson.build
-#      4: in `subdir_done()` at test/meson.build:2:2
-#      5: unimplemented function `subdir_done()`
-#
-#   Location:
-#       crates/decay_meson_eval/src/builtins.rs:223:18
-# [[project]]
-# wrap = "zlib"
-# options = { solo = false } # TODO: Disable tests
+[[project]]
+wrap = "zlib"
+options = { tests = "disabled" }
 
 [[project]]
 wrap = "pcre2"

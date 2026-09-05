@@ -97,6 +97,10 @@ impl<'a, S: Solver> Interp<'a, S> {
 
             // -- structure --
             "subdir" => self.fn_subdir(args),
+            "subdir_done" => {
+                self.subdir_done();
+                Ok(self.pure(Value::Unset))
+            }
             "test" | "benchmark" => self.fn_test(args),
             "install_headers" => self.fn_install(args, "include"),
             "install_data" => self.fn_install(args, "share"),
