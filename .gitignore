@@ -3,4 +3,4 @@
 # buck2 build output in the example workspace.
 /example/buck-out
 # Claude
-.claude
+.claude/worktrees
