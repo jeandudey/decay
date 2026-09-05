@@ -93,6 +93,14 @@ fn resolve_jobs(flag: Option<usize>) -> usize {
 fn buckify(jobs: usize) -> eyre::Result<()> {
     let config = Config::from_file("decay.toml")?;
 
+    // The directory is wholly ours: wipe it before regenerating so it ends up
+    // holding exactly what `decay.toml` produces, not leftovers from a project
+    // that used to be imported or a file nothing here writes.
+    if config.third_party_dir.exists() {
+        fs::remove_dir_all(&config.third_party_dir)
+            .wrap_err("Failed to clean the third-party directory")?;
+    }
+
     let cache_dir = cache_dir()?;
     if !cache_dir.exists() {
         fs::create_dir_all(&cache_dir).wrap_err("Failed to create cache directory")?;
