@@ -279,8 +279,15 @@ impl<'a, S: Solver> Interp<'a, S> {
         let name = self.one_string(args.at(0).ok_or_eyre("get_option() needs a name")?)?;
 
         // Anything the importer pinned is answered straight away and never
-        // reaches the configuration space.
+        // reaches the configuration space. A `feature` option pinned as a
+        // bare string in `decay.toml` still has to come back as a feature
+        // object, so `.disabled()`/`.enabled()`/`.auto()` keep working —
+        // `option_choice` maps a string onto the declared kind, and is a
+        // no-op for string/combo options.
         if let Some(pinned) = self.oracle.option(&name) {
+            if let (Pinned::Str(s), Some(decl)) = (&pinned, self.option_decl(&name)) {
+                return Ok(self.pure(option_choice(&decl.kind, s)));
+            }
             return Ok(self.pure(pinned_value(&pinned)));
         }
 

@@ -141,15 +141,12 @@ _headers2 = {
     "config.h": ":config.h",
 }
 _deps = select({
-    "//third-party/meson/pcre2/constraints:jit[disabled]": [],
+    "prelude//os/constraints:os[fuchsia]": [],
+    "prelude//os/constraints:os[illumos]": [],
+    "prelude//os/constraints:os[windows]": [],
     "DEFAULT": select({
-        "prelude//os/constraints:os[fuchsia]": [],
-        "prelude//os/constraints:os[illumos]": [],
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:threads[true]": [":threads"],
-            "//third-party/meson/constraints:threads[false]": [],
-        }),
+        "//third-party/meson/constraints:threads[true]": [":threads"],
+        "//third-party/meson/constraints:threads[false]": [],
     }),
 })
 
@@ -183,13 +180,10 @@ genrule(
         "//third-party/meson/constraints:compiler[clang]": " '#define PCRE2_EXPORT __attribute__ ((visibility (\"default\")))'",
         "//third-party/meson/constraints:compiler[msvc]": " '#define PCRE2_EXPORT '",
     }) + select({
-        "//third-party/meson/pcre2/constraints:jit[disabled]": "",
-        "DEFAULT": select({
-            "prelude//os/constraints:os[fuchsia]": "",
-            "prelude//os/constraints:os[illumos]": "",
-            "prelude//os/constraints:os[windows]": "",
-            "DEFAULT": " '#define SUPPORT_JIT 1'",
-        }),
+        "prelude//os/constraints:os[fuchsia]": "",
+        "prelude//os/constraints:os[illumos]": "",
+        "prelude//os/constraints:os[windows]": "",
+        "DEFAULT": " '#define SUPPORT_JIT 1'",
     }) + select({
         "//third-party/meson/pcre2/constraints:jit_sealloc[enabled]": " '#define SLJIT_PROT_EXECUTABLE_ALLOCATOR 1'",
         "//third-party/meson/pcre2/constraints:jit_sealloc[disabled]": " '#define SLJIT_PROT_EXECUTABLE_ALLOCATOR 0'",

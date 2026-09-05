@@ -264,8 +264,7 @@ options = { bsymbolic_functions = true, glib_assert = true, glib_checks = true, 
 
 [[project]]
 wrap = "pcre2"
-options = { grep = false, test = false }
-# options.jit = "enabled" TODO: Should work
+options = { grep = false, test = false, jit = "enabled" }
 
 # TODO: Fails with:
 #   Error: Failed to import `libffi`

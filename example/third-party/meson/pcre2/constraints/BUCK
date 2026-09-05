@@ -4,14 +4,6 @@
 # chosen. Set them on a platform to configure this project. Options
 # meson provides to every project live alongside, one directory up.
 
-# build option `option:jit`: Support for Just-in-time compiling
-constraint(
-    name = "jit",
-    values = ["enabled", "disabled", "auto"],
-    default = "enabled",
-    visibility = ["PUBLIC"],
-)
-
 # build option `option:jit_sealloc`: SELinux compatible execmem allocator in JIT (experimental)
 constraint(
     name = "jit_sealloc",
