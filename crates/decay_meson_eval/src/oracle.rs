@@ -131,24 +131,33 @@ pub enum Probe {
         /// The values this probe holds for, a subset of `domain`.
         values: Vec<String>,
     },
-    /// True on these systems when the constraint `setting` also holds one of
-    /// `values` — and, everywhere else, left open, exactly as if the oracle
-    /// had answered nothing at all.
+    /// True on these systems when one of `rows` also holds — and, everywhere
+    /// else, left open, exactly as if the oracle had answered nothing at all.
     ///
-    /// For a fact a *partial* database knows (glibc's symbols, say) rather
-    /// than an oracle that truly knows the whole answer: [`Probe::Constraint`]
-    /// alone would overreach, since a constraint can be shared across
-    /// operating systems the way buck2's `abi` is (`abi[gnu]` also names
-    /// mingw on Windows, not just glibc on Linux) — asserting *false*
-    /// wherever the system/ABI pair does not match would claim a symbol
-    /// absent on a libc the database simply has no answer for. Only the
-    /// known region is settled; the rest stays exactly as configurable as an
-    /// unanswered probe.
+    /// For a fact a *partial* database knows (glibc's or musl's symbols, say)
+    /// rather than an oracle that truly knows the whole answer:
+    /// [`Probe::Constraint`] alone would overreach, since a constraint can be
+    /// shared across operating systems the way buck2's `abi` is (`abi[gnu]`
+    /// also names mingw on Windows, not just glibc on Linux) — asserting
+    /// *false* wherever the system does not match would claim a symbol
+    /// absent on a libc the database simply has no answer for.
+    ///
+    /// `rows` names each *combination* the database actually confirmed,
+    /// rather than ranging every axis independently: a symbol musl exports on
+    /// `arm64` but glibc does not, say, must not turn into `abi ∈ {gnu,
+    /// musl}` ANDed with `cpu ∈ {arm64}` — that would round up to a
+    /// rectangle and also claim `gnu`+`arm64`, a combination nothing
+    /// confirmed. Only the exact rows are settled; the rest — including any
+    /// combination of individually-mentioned values that is not itself a
+    /// row — stays exactly as configurable as an unanswered probe.
     SystemsAndConstraint {
         systems: Vec<String>,
-        setting: String,
-        domain: Vec<String>,
-        values: Vec<String>,
+        /// One constraint setting and its known domain per axis (e.g.
+        /// `abi`, `cpu`), shared across every row.
+        axes: Vec<(String, Vec<String>)>,
+        /// Each confirmed combination, one value per entry of `axes`, in the
+        /// same order.
+        rows: Vec<Vec<String>>,
     },
 }
 

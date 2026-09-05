@@ -85,28 +85,65 @@ impl<'a> ConfigOracle<'a> {
     /// Decay's built-in `has_function` fallback, consulted only once a
     /// project's own `[probes]` entry misses.
     ///
-    /// Answers only the symbols `decay_libc_db` (parsed from glibc's own
-    /// published ABI list, not hand-curated) knows are part of glibc, and
-    /// only when the project actually has a `linux` system to ask — a
-    /// project that never targets `linux` gets nothing here, same as if the
-    /// database did not exist, rather than an error about an unconfigured
-    /// system.
+    /// Answers only the symbols `decay_libc_db` knows are part of glibc or
+    /// musl, on any of [`decay_libc_db::Cpu::ALL`] (parsed from glibc's own
+    /// published ABI list, and derived from a real `zig cc` for musl —
+    /// neither hand-curated), and only when the project actually has a
+    /// `linux` system to ask — a project that never targets `linux` gets
+    /// nothing here, same as if the database did not exist, rather than an
+    /// error about an unconfigured system.
     fn builtin_has_function(&self, what: &str) -> Option<Probe> {
-        if !self.config.builtin_has_function || !decay_libc_db::has_function(what) {
+        if !self.config.builtin_has_function {
             return None;
         }
+        const ABI_SETTING: &str = "prelude//abi/constraints:abi";
+        const CPU_SETTING: &str = "prelude//cpu/constraints:cpu";
+        const LIBCS: [(decay_libc_db::Libc, &str); 2] =
+            [(decay_libc_db::Libc::Glibc, "gnu"), (decay_libc_db::Libc::Musl, "musl")];
+
+        // One row per (abi, cpu) pair the database actually confirms —
+        // never every abi crossed with every cpu, since presence can (and,
+        // for real x86 port-I/O syscalls musl still declares everywhere,
+        // does) differ by architecture; see `Probe::SystemsAndConstraint`'s
+        // own doc comment for why that distinction matters.
+        let rows: Vec<Vec<String>> = decay_libc_db::Cpu::ALL
+            .into_iter()
+            .flat_map(|cpu| {
+                LIBCS
+                    .into_iter()
+                    .filter(move |(libc, _)| decay_libc_db::has_function(*libc, cpu, what))
+                    .map(move |(_, abi)| vec![abi.to_owned(), cpu.buck2_value().to_owned()])
+            })
+            .collect();
+        if rows.is_empty() {
+            return None;
+        }
+
         self.config.systems.contains_key("linux").then(|| {
-            const ABI_SETTING: &str = "prelude//abi/constraints:abi";
-            let mut domain = self.config.constraint_domain(ABI_SETTING);
-            if !domain.iter().any(|v| v == "gnu") {
-                domain.push("gnu".to_owned());
-                domain.sort();
+            let mut abi_domain = self.config.constraint_domain(ABI_SETTING);
+            for (_, abi) in LIBCS {
+                if !abi_domain.iter().any(|v| v == abi) {
+                    abi_domain.push(abi.to_owned());
+                }
             }
+            abi_domain.sort();
+
+            let mut cpu_domain = self.config.constraint_domain(CPU_SETTING);
+            for cpu in decay_libc_db::Cpu::ALL {
+                let value = cpu.buck2_value();
+                if !cpu_domain.iter().any(|v| v == value) {
+                    cpu_domain.push(value.to_owned());
+                }
+            }
+            cpu_domain.sort();
+
             Probe::SystemsAndConstraint {
                 systems: vec!["linux".to_owned()],
-                setting: ABI_SETTING.to_owned(),
-                domain,
-                values: vec!["gnu".to_owned()],
+                axes: vec![
+                    (ABI_SETTING.to_owned(), abi_domain),
+                    (CPU_SETTING.to_owned(), cpu_domain),
+                ],
+                rows,
             }
         })
     }

@@ -68,8 +68,9 @@ pub struct Config {
     /// Answers to `cc.alignment()`, in the same shape as [`Self::sizeof`].
     #[serde(default)]
     pub alignment: BTreeMap<String, SizeValue>,
-    /// Whether `has_function` falls back to decay's built-in glibc symbol
-    /// database (see `decay_libc_db`) when `[probes]` has no entry for it.
+    /// Whether `has_function` falls back to decay's built-in glibc/musl
+    /// symbol database (see `decay_libc_db`) when `[probes]` has no entry
+    /// for it.
     ///
     /// An explicit `[probes]` entry for the same check always wins over the
     /// built-in answer; this only turns the fallback off entirely, for a

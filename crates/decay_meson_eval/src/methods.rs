@@ -619,13 +619,21 @@ impl<'a, S: Solver> Interp<'a, S> {
             }) => Ok(self.constraint_is(&setting, domain, &values)),
             Some(Probe::SystemsAndConstraint {
                 systems,
-                setting,
-                domain,
-                values,
+                axes,
+                rows,
             }) => {
                 let on_systems = self.host_system_is(&systems, key)?;
-                let has_constraint = self.constraint_is(&setting, domain, &values);
-                let known = self.logic.and(on_systems, has_constraint);
+                let mut any_row = Pc::from_bool(false);
+                for row in &rows {
+                    let mut row_holds = Pc::from_bool(true);
+                    for ((setting, domain), value) in axes.iter().zip(row) {
+                        let value = std::slice::from_ref(value);
+                        let holds = self.constraint_is(setting, domain.clone(), value);
+                        row_holds = self.logic.and(row_holds, holds);
+                    }
+                    any_row = self.logic.or(any_row, row_holds);
+                }
+                let known = self.logic.and(on_systems, any_row);
                 // Outside the known region this is not a "no", just an
                 // unknown — the same open choice as if the oracle had
                 // declined to answer at all, so `known ∨ open` is `true`
