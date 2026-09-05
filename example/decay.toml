@@ -130,7 +130,14 @@ default_library = "shared"
 [[project]]
 repo = "https://github.com/ebassi/graphene"
 rev = "4e2578450809c2099400cf85caf18eafcd7100aa" # Tag 1.10.8
+depends = ["glib"]
+options.sse2 = true
+options.gcc_vector = true
+options.arm_neon = true
+options.debug = false
+options.gobject_types = true
 options.gtk_doc = false
+options.tests = false
 
 # TODO: Fails with:
 #   Error: Failed to import `shared-mime-info`

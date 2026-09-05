@@ -4936,9 +4936,10 @@ cxx_library(
 )
 
 # meson: dependency("libffi") — resolved by pkg-config
-alias(
+# Empty stub: map it to a real target with `dependencies.libffi = "//some:target"`
+# in decay.toml, or edit it here.
+cxx_library(
     name = "libffi",
-    actual = "//third-party/system:FFI",
     visibility = ["PUBLIC"],
 )
 

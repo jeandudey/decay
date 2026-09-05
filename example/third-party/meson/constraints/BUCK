@@ -142,22 +142,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# meson build option `option:debug`
-constraint(
-    name = "debug",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:gobject-2.0`: `gobject-2.0` is available
-constraint(
-    name = "gobject_2_0",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:InitOnceExecuteOnce`: `InitOnceExecuteOnce` is available to the c compiler
 constraint(
     name = "compiles_InitOnceExecuteOnce",
@@ -177,14 +161,6 @@ constraint(
 # external dependency `dep:`: `` is available
 constraint(
     name = "unnamed",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:mutest-1`: `mutest-1` is available
-constraint(
-    name = "mutest_1",
     values = ["true", "false"],
     default = "false",
     visibility = ["PUBLIC"],
