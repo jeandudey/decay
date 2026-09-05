@@ -45,41 +45,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("gl") — resolved by pkg-config
-alias(
-    name = "gl",
-    actual = "//third-party/system:GL",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("egl") — resolved by pkg-config
-alias(
-    name = "egl",
-    actual = "//third-party/system:EGL",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("x11") — resolved by pkg-config
-alias(
-    name = "x11",
-    actual = "//third-party/system:X11",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("glesv2") — resolved by pkg-config
-alias(
-    name = "glesv2",
-    actual = "//third-party/meson/libglvnd:GLESv2",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("glesv1_cm") — resolved by pkg-config
-alias(
-    name = "glesv1_cm",
-    actual = "//third-party/meson/libglvnd:GLESv1_CM",
-    visibility = ["PUBLIC"],
-)
-
 # meson: find_library("opengl32")
 cxx_library(
     name = "opengl32",
@@ -410,12 +375,12 @@ cxx_library(
         }),
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/constraints:x11[true]": [":x11"],
+        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
         "//third-party/meson/constraints:x11[false]": [],
     }) + select({
         "prelude//os/constraints:os[macos]": [],
         "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": [":egl"],
+        "DEFAULT": ["//third-party/system:EGL"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -517,12 +482,12 @@ cxx_library(
         }),
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/constraints:x11[true]": [":x11"],
+        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
         "//third-party/meson/constraints:x11[false]": [],
     }) + select({
         "prelude//os/constraints:os[macos]": [],
         "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": [":egl"],
+        "DEFAULT": ["//third-party/system:EGL"],
     }),
     visibility = ["PUBLIC"],
 )

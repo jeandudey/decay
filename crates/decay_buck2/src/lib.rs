@@ -552,6 +552,20 @@ impl Rendered {
     }
 }
 
+/// Render a reference to a dependency target, using the full path for external
+/// deps to avoid unnecessary alias rules.
+fn render_dep_ref(graph: &Graph, known: &Labels, id: TargetId) -> String {
+    let target = graph.target(id);
+    // External dependencies with a known mapping use the full path directly.
+    if let Kind::External(_) = &target.kind {
+        if let Some(actual) = known.dependencies.get(&target.label) {
+            return format!("{actual:?}");
+        }
+    }
+    // Everything else uses the short name.
+    format!("\":{}\"", target.name)
+}
+
 fn render_target<S: Solver>(
     graph: &Graph,
     logic: &mut Logic<S>,
@@ -705,7 +719,7 @@ fn render_target<S: Solver>(
                 attrs.push((
                     key,
                     selects.render_list(logic, &deps, cond, 1, |id| {
-                        format!("\":{}\"", graph.target(*id).name)
+                        render_dep_ref(graph, known, *id)
                     }),
                 ));
             }
@@ -906,14 +920,9 @@ fn static_linkage(kind: &Kind) -> Option<&'static str> {
 fn render_external(target: &Target, external: &External, known: &Labels) -> String {
     let mut out = String::new();
 
-    // Anything the importer was given a real target for is just an alias.
-    if let Some(actual) = known.dependencies.get(&target.label) {
-        let _ = writeln!(out, "# meson: {}", describe_external(external));
-        let _ = writeln!(out, "alias(");
-        let _ = writeln!(out, "    name = {:?},", target.name);
-        let _ = writeln!(out, "    actual = {actual:?},");
-        let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
-        let _ = writeln!(out, ")");
+    // Anything the importer was given a real target for is resolved directly in
+    // deps, so no alias rule is needed here.
+    if known.dependencies.contains_key(&target.label) {
         return out;
     }
 

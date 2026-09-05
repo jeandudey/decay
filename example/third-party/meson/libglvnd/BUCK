@@ -707,13 +707,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("x11") — resolved by pkg-config
-alias(
-    name = "x11",
-    actual = "//third-party/system:X11",
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency("xext") — resolved by pkg-config
 # Empty stub: map it to a real target with `dependencies.xext = "//some:target"`
 # in decay.toml, or edit it here.
@@ -2485,7 +2478,7 @@ cxx_library(
     header_namespace = "",
     compiler_flags = _cflags_cpu_os_compiler,
     deps = select({
-        "//third-party/meson/constraints:x11[true]": [":x11"],
+        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
         "//third-party/meson/constraints:x11[false]": [],
     }),
     preferred_linkage = "static",
@@ -2682,7 +2675,7 @@ cxx_library(
         "//third-party/meson/constraints:m[true]": [":m"],
         "//third-party/meson/constraints:m[false]": [],
     }) + select({
-        "//third-party/meson/constraints:x11[true]": [":x11"],
+        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
         "//third-party/meson/constraints:x11[false]": [],
     }),
     preferred_linkage = "shared",
@@ -2755,7 +2748,7 @@ cxx_library(
         "//third-party/meson/constraints:dl[true]": [":dl"],
         "//third-party/meson/constraints:dl[false]": [],
     }) + [
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-11",
         ":glvnd-dep-4",
         ":glvnd-dep",
@@ -2841,7 +2834,7 @@ cxx_library(
         ":glvnd-dep-7",
         ":glvnd-dep-14",
         ":glvnd-dep-3",
-        ":x11",
+        "//third-party/system:X11",
     ],
     preferred_linkage = "shared",
     target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
@@ -3037,7 +3030,7 @@ cxx_library(
         ":patchentrypoints",
         ":glvnd-dep-4",
         ":glvnd-dep-3",
-        ":x11",
+        "//third-party/system:X11",
     ],
     preferred_linkage = "shared",
     target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
@@ -3435,7 +3428,7 @@ cxx_binary(
     deps = [
         ":OpenGL",
         ":glvnd-dep-14",
-        ":x11",
+        "//third-party/system:X11",
     ],
     target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
@@ -3449,7 +3442,7 @@ cxx_binary(
     compiler_flags = _cflags_cpu_os_compiler2,
     deps = [
         ":OpenGL",
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-4",
         ":glvnd-dep-3",
         ":glvnd-dep-14",
@@ -3625,7 +3618,7 @@ cxx_binary(
     }),
     deps = [
         ":OpenGL",
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-4",
         ":glvnd-dep-3",
         ":glvnd-dep-14",
@@ -3643,7 +3636,7 @@ cxx_binary(
     compiler_flags = _cflags_cpu_os_compiler2,
     deps = [
         ":GL",
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-4",
         ":glvnd-dep-3",
     ],
@@ -3658,7 +3651,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_cpu_os_compiler2,
     deps = [
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-14",
         ":glvnd-dep-11",
     ],
@@ -3673,7 +3666,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_cpu_os_compiler2,
     deps = [
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-14",
     ],
     target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
@@ -3688,7 +3681,7 @@ cxx_binary(
     compiler_flags = _cflags_cpu_os_compiler2,
     deps = [
         ":OpenGL",
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-14",
         ":glvnd-dep-4",
         ":glvnd-dep-3",
@@ -3705,7 +3698,7 @@ cxx_binary(
     compiler_flags = _cflags_cpu_os_compiler2,
     deps = [
         ":OpenGL",
-        ":x11",
+        "//third-party/system:X11",
         ":glvnd-dep-14",
     ],
     target_compatible_with = ["//third-party/meson/constraints:x11[true]"],

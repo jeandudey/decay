@@ -101,13 +101,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("gobject-2.0") — resolved by pkg-config
-alias(
-    name = "gobject-2.0",
-    actual = "//third-party/meson/glib:gobject-2.0",
-    visibility = ["PUBLIC"],
-)
-
 genrule(
     name = "graphene-config.h",
     out = "graphene-config.h",
@@ -621,7 +614,7 @@ cxx_library(
         "//third-party/meson/constraints:m[false]": [],
     }) + [
         ":threads",
-        ":gobject-2.0",
+        "//third-party/meson/glib:gobject-2.0",
     ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -639,7 +632,7 @@ cxx_library(
     exported_deps = [
         ":graphene-1.0",
         ":threads",
-        ":gobject-2.0",
+        "//third-party/meson/glib:gobject-2.0",
     ] + select({
         "//third-party/meson/constraints:m[true]": [":m"],
         "//third-party/meson/constraints:m[false]": [],

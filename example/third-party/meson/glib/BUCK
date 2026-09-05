@@ -1246,7 +1246,7 @@ _headers2 = {
 _deps_os_compiler_run_C99_vsnprintf = [
     ":charset",
     ":intl",
-    ":libpcre2-8",
+    "//third-party/meson/pcre2:pcre2-8",
 ] + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:compiler[msvc]": [":gnulib"],
@@ -3210,7 +3210,7 @@ _deps_os2 = [
     ":glib-dep-7",
     ":glib-dep-10",
     ":glib-dep-5",
-    ":gvdb",
+    "//third-party/meson/gvdb:gvdb-dep",
 ] + select({
     "prelude//os/constraints:os[windows]": [":glib-dep"],
     "DEFAULT": [":glib-dep-3"],
@@ -4105,20 +4105,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("libpcre2-8") — resolved by pkg-config
-alias(
-    name = "libpcre2-8",
-    actual = "//third-party/meson/pcre2:pcre2-8",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("gvdb") — resolved by pkg-config
-alias(
-    name = "gvdb",
-    actual = "//third-party/meson/gvdb:gvdb-dep",
-    visibility = ["PUBLIC"],
-)
-
 # meson: find_library("m")
 cxx_library(
     name = "m",
@@ -4133,13 +4119,6 @@ cxx_library(
 # in decay.toml, or edit it here.
 cxx_library(
     name = "libffi",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("zlib") — resolved by pkg-config
-alias(
-    name = "zlib",
-    actual = "//third-party/meson/zlib:z",
     visibility = ["PUBLIC"],
 )
 
@@ -15697,12 +15676,12 @@ cxx_library(
             }),
         }),
     }) + [
-        ":zlib",
+        "//third-party/meson/zlib:z",
         ":glib-dep-5",
         ":glib-dep-7",
         ":glib-dep-10",
         ":glib-dep-11",
-        ":gvdb",
+        "//third-party/meson/gvdb:gvdb-dep",
     ] + select({
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
