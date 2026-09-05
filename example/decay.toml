@@ -157,7 +157,7 @@ options = { sse2 = true, gcc_vector = true, arm_neon = true, debug = false, gobj
 [[project]]
 repo = "https://github.com/NVIDIA/libglvnd"
 rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
-options = { asm = "auto", dispatch-tls = true, egl = true, entrypoint_patching = "auto", gles1 = true, gles2 = true, glx = "auto", headers = true, hgl = false, tls = true }
+options = { asm = "auto", dispatch-tls = true, egl = true, entrypoint-patching = "auto", gles1 = true, gles2 = true, glx = "auto", headers = true, hgl = false, tls = true }
 
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
