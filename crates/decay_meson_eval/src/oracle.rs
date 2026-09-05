@@ -56,6 +56,19 @@ pub trait Oracle {
         None
     }
 
+    /// The answer to a probe the importer can settle by actually compiling
+    /// it — once for every target in its configured matrix — rather than
+    /// leaving it an open knob.
+    ///
+    /// Consulted only for the plain shapes [`CompileProbe`] can reproduce
+    /// faithfully (no project `args:`/`dependencies:` the importer cannot
+    /// replay). `None` leaves the probe open, exactly as [`Oracle::probe`]
+    /// returning `None` does.
+    fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
+        let _ = probe;
+        None
+    }
+
     /// Whether toolchain and dependency probes (`cc.has_header`,
     /// `dependency()`, ...) should be left open.
     ///
@@ -166,6 +179,52 @@ pub enum Probe {
         /// same order.
         rows: Vec<Vec<String>>,
     },
+    /// True on exactly the `rows` that hold — and, on the named `systems`,
+    /// *false* everywhere else, with no knob: the probe was compiled for
+    /// every `(cpu, abi, ...)` combination those systems have, so within
+    /// them the answer is complete. Only outside `systems` — a target the
+    /// importer did not build the probe for — does it stay open, the same
+    /// as an unanswered probe.
+    ///
+    /// Distinct from [`Probe::SystemsAndConstraint`], which leaves the
+    /// complement open even inside its systems because its source (a
+    /// partial symbol database) genuinely does not know it; here the
+    /// compiler answered for the whole matrix.
+    Matrix {
+        systems: Vec<String>,
+        /// One constraint setting and its known domain per axis, as in
+        /// [`Probe::SystemsAndConstraint`].
+        axes: Vec<(String, Vec<String>)>,
+        /// Each combination the probe compiled for, one value per axis.
+        rows: Vec<Vec<String>>,
+    },
+}
+
+/// A compiler probe the importer can answer by building it, once per target
+/// in its configured matrix. Carries everything needed to reconstruct the
+/// translation unit meson would have compiled.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompileProbe {
+    /// `cc.has_header('h')` with no `prefix:`/`args:`/`dependencies:`.
+    Header { header: String },
+    /// `cc.has_type('t', prefix: p)` with no `args:`/`dependencies:`.
+    Type { name: String, prefix: String },
+    /// `cc.compiles(code, prefix: p)` with no `args:`/`dependencies:`.
+    Compiles { prefix: String, code: String },
+}
+
+impl CompileProbe {
+    /// The C translation unit to compile (`-fsyntax-only`; presence is
+    /// "does it compile", never "does it link").
+    pub fn snippet(&self) -> String {
+        match self {
+            Self::Header { header } => format!("#include <{header}>\n"),
+            Self::Type { name, prefix } => {
+                format!("{prefix}\nvoid _decay_probe(void) {{ sizeof({name}); }}\n")
+            }
+            Self::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
+        }
+    }
 }
 
 /// A value pinned by the importer's configuration.

@@ -231,13 +231,32 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `decay.toml [probes]` answer still wins first, and a project-wide toggle
   turns the whole mechanism off.
 
-  In scope for the first pass: `cc.has_header`, `cc.has_type`,
-  `cc.compiles` / `cc.links`, and compile-time `cc.sizeof` of a *type* (the
-  `static_assert` binary search meson itself falls back to when it cannot
-  run). These are toolchain-agnostic enough that a clang-based `zig cc`
-  answer matches what a gcc build would see.
+  **Landed (first slice).** `cc.has_header`, `cc.has_type`, and
+  `cc.compiles` — bare shapes only (no project `args:`/`dependencies:` the
+  importer cannot replay; `has_header` also skips anything but a plain
+  header path) — are answered by `src/probe.rs`: `zig cc -c` (compile to a
+  discarded object; zig 0.15.2's own `-fsyntax-only` is broken) for each
+  `(abi, cpu)` in `decay_libc_db::Cpu::ALL` × {gnu, musl}, on `linux` only.
+  The result is `oracle::Probe::Matrix` — true on the rows that compiled,
+  settled *false* (no knob) on every other `(abi, cpu)` under `linux`, and
+  left open only off `linux` where nothing was built. `decay_meson_eval`
+  gains `oracle::CompileProbe` (the reconstructed translation unit) and
+  `Oracle::compile_probe`; `src/config.rs` gains `probe_with_zig` (default
+  true, no effect without `zig` on `PATH`); an explicit `[probes]` entry
+  still wins first via the existing `Oracle::probe` path.
 
-  Deferred — out of scope for that pass, each its own follow-up:
+  Still in scope, not yet done:
+  - **`cc.links`** — needs a real link (output file, `main` handling), not
+    just `-c`; `CompileProbe` has no `Links` variant yet.
+  - **compile-time `cc.sizeof` of a *type*** — the `static_assert` binary
+    search meson falls back to when it cannot run. Goes through the
+    `SizeAnswer` path (`Oracle::type_size`), not `compile_probe`.
+  - **Other systems / abis** — only `linux` + {gnu, musl} today, mirroring
+    `builtin_has_function`. Windows/mingw, macOS, and `x86`/`arm` beyond
+    `Cpu::ALL` are a later pass; `msvc` is unreachable (`zig` has no MSVC
+    headers).
+
+  Deferred — out of scope, each its own follow-up:
   - **`cc.has_argument()` / `has_link_argument()` / `has_multi_arguments()`
     are compiler-specific.** `zig cc` *is* clang, so "does `-Wfoo` exist"
     can diverge from a gcc toolchain. These stay open constraints (default
