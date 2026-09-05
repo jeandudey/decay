@@ -106,6 +106,24 @@ impl Config {
             }
         }
 
+        for project in &self.projects {
+            for (name, val) in &project.options {
+                let check = || -> eyre::Result<()> {
+                    let Some(setting) = val.setting()? else {
+                        return Ok(());
+                    };
+                    if self.is_system_setting(setting) {
+                        return Err(eyre!(
+                            "`{setting}` is the constraint `[systems]` already selects on; \
+                             key the option on `abi`, `cpu` or the compiler instead"
+                        ));
+                    }
+                    Ok(())
+                };
+                check().wrap_err_with(|| format!("Option `{name}` cannot be pinned"))?;
+            }
+        }
+
         for (probe, answer) in &self.probes {
             let check = || -> eyre::Result<()> {
                 let Some(setting) = answer.setting()? else {
@@ -369,7 +387,7 @@ impl<'de> Deserialize<'de> for SizeValue {
 
 /// One value of one constraint, written the way a `select()` key is:
 /// `prelude//abi/constraints:abi[gnu]`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstraintValue {
     /// Label of the constraint setting, without the value.
     pub setting: String,
@@ -532,13 +550,96 @@ impl Repo {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
-#[serde(untagged)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum OptionValue {
     Bool(bool),
     Int(i64),
     String(String),
     List(Vec<String>),
+    /// One scalar per value of a constraint the build already selects on,
+    /// written as a table of `select()` key to value — the option
+    /// counterpart of a `[sizeof]` table. A `DEFAULT` key sets the value for
+    /// every other constraint value.
+    ByConstraint {
+        cases: Vec<(ConstraintValue, OptionScalar)>,
+        default: Option<OptionScalar>,
+    },
+}
+
+/// A plain option value, as it appears inside an [`OptionValue::ByConstraint`]
+/// table.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
+pub enum OptionScalar {
+    Bool(bool),
+    Int(i64),
+    String(String),
+}
+
+impl OptionValue {
+    /// The constraint values a by-constraint pin branches on, none otherwise.
+    fn constraint_values(&self) -> impl Iterator<Item = &ConstraintValue> {
+        let cases: &[(ConstraintValue, OptionScalar)] = match self {
+            OptionValue::ByConstraint { cases, .. } => cases,
+            _ => &[],
+        };
+        cases.iter().map(|(value, _)| value)
+    }
+
+    /// The one setting every key of a by-constraint pin must share.
+    pub fn setting(&self) -> eyre::Result<Option<&str>> {
+        let mut values = self.constraint_values();
+        let Some(first) = values.next() else {
+            return Ok(None);
+        };
+        for other in values {
+            if other.setting != first.setting {
+                return Err(eyre!(
+                    "`{first}` and `{other}` are values of different constraints, which \
+                     cannot both answer one option"
+                ));
+            }
+        }
+        Ok(Some(&first.setting))
+    }
+}
+
+impl<'de> Deserialize<'de> for OptionValue {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Bool(bool),
+            Int(i64),
+            String(String),
+            List(Vec<String>),
+            Map(BTreeMap<String, OptionScalar>),
+        }
+
+        Ok(match Raw::deserialize(de)? {
+            Raw::Bool(v) => OptionValue::Bool(v),
+            Raw::Int(v) => OptionValue::Int(v),
+            Raw::String(v) => OptionValue::String(v),
+            Raw::List(v) => OptionValue::List(v),
+            Raw::Map(map) => {
+                let mut cases = Vec::new();
+                let mut default = None;
+                for (key, val) in map {
+                    if key == "DEFAULT" {
+                        default = Some(val);
+                    } else {
+                        cases.push((key.parse().map_err(serde::de::Error::custom)?, val));
+                    }
+                }
+                if cases.is_empty() {
+                    return Err(serde::de::Error::custom(
+                        "an option table needs at least one `//setting:name[value]` key",
+                    ));
+                }
+                OptionValue::ByConstraint { cases, default }
+            }
+        })
+    }
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -633,6 +734,45 @@ mod tests {
             Some(&OptionValue::String("shared".into()))
         );
         assert_eq!(p_b.options.get("tests"), Some(&OptionValue::Bool(false)));
+    }
+
+    #[test]
+    fn option_parses_scalar_and_by_constraint() {
+        let cfg = config(
+            "[[project]]\n\
+             repo = \"https://example.com/x/glib.git\"\n\
+             rev = \"0000000000000000000000000000000000000000\"\n\
+             options.tests = false\n\
+             options.force_posix_threads = { \"prelude//abi/constraints:abi[gnu]\" = true, \"DEFAULT\" = false }\n",
+        )
+        .unwrap();
+
+        let opts = &cfg.projects[0].options;
+        assert_eq!(opts.get("tests"), Some(&OptionValue::Bool(false)));
+        let OptionValue::ByConstraint { cases, default } = &opts["force_posix_threads"] else {
+            panic!("expected a constraint map");
+        };
+        assert_eq!(cases.len(), 1);
+        assert_eq!(cases[0].0.to_string(), "prelude//abi/constraints:abi[gnu]");
+        assert_eq!(cases[0].1, OptionScalar::Bool(true));
+        assert_eq!(*default, Some(OptionScalar::Bool(false)));
+        assert_eq!(
+            opts["force_posix_threads"].setting().unwrap(),
+            Some("prelude//abi/constraints:abi")
+        );
+    }
+
+    #[test]
+    fn option_on_system_setting_is_rejected() {
+        let err = config(
+            "[[project]]\n\
+             repo = \"https://example.com/x/glib.git\"\n\
+             rev = \"0000000000000000000000000000000000000000\"\n\
+             options.force_posix_threads = { \"prelude//os/constraints:os[windows]\" = false, \"DEFAULT\" = true }\n",
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("force_posix_threads"), "{err}");
     }
 
     #[test]

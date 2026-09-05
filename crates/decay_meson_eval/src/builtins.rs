@@ -286,13 +286,27 @@ impl<'a, S: Solver> Interp<'a, S> {
         // reaches the configuration space. A `feature` option pinned as a
         // bare string in `decay.toml` still has to come back as a feature
         // object, so `.disabled()`/`.enabled()`/`.auto()` keep working —
-        // `option_choice` maps a string onto the declared kind, and is a
+        // `pinned_scalar` maps a string onto the declared kind, and is a
         // no-op for string/combo options.
         if let Some(pinned) = self.oracle.option(&name) {
-            if let (Pinned::Str(s), Some(decl)) = (&pinned, self.option_decl(&name)) {
-                return Ok(self.pure(option_choice(&decl.kind, s)));
+            let kind = self.option_decl(&name).map(|d| d.kind);
+            if let Pinned::ByConstraint {
+                setting,
+                domain,
+                cases,
+                default,
+            } = &pinned
+            {
+                return self.option_by_constraint(
+                    &name,
+                    setting,
+                    domain.clone(),
+                    cases,
+                    default.as_deref(),
+                    kind.as_ref(),
+                );
             }
-            return Ok(self.pure(pinned_value(&pinned)));
+            return Ok(self.pure(pinned_scalar(&pinned, kind.as_ref())));
         }
 
         let decl = self
@@ -320,6 +334,57 @@ impl<'a, S: Solver> Interp<'a, S> {
         let value = self.option_default(&name, &decl)?;
         debug!(%name, "option has no finite domain; using its default");
         Ok(self.pure(value))
+    }
+
+    /// A `get_option()` pinned to one value per value of a constraint the
+    /// build already selects on — the option counterpart of a `[sizeof]`
+    /// table, keyed the same way and sharing the same constraint variable.
+    fn option_by_constraint(
+        &mut self,
+        name: &str,
+        setting: &str,
+        domain: Vec<String>,
+        cases: &[(String, Box<Pinned>)],
+        default: Option<&Pinned>,
+        kind: Option<&ProjectOptionKind>,
+    ) -> eyre::Result<Variational<Value>> {
+        let (id, choices) = self.constraint_var(setting, domain);
+        let mut out = Variational::empty();
+        let mut covered = vec![false; choices.len()];
+        for (value, inner) in cases {
+            let Some(ci) = choices.iter().position(|c| c == value) else {
+                continue;
+            };
+            covered[ci] = true;
+            let lit = self.logic.lit(id, ci as u32);
+            let cond = self.logic.and(self.pc, lit);
+            if cond.is_false() {
+                continue;
+            }
+            out.push(Variant::new(cond, pinned_scalar(inner, kind)));
+        }
+        if let Some(def) = default {
+            let value = pinned_scalar(def, kind);
+            for (ci, done) in covered.iter().enumerate() {
+                if *done {
+                    continue;
+                }
+                let lit = self.logic.lit(id, ci as u32);
+                let cond = self.logic.and(self.pc, lit);
+                if cond.is_false() {
+                    continue;
+                }
+                out.push(Variant::new(cond, value.clone()));
+            }
+        }
+        out.normalize(&mut self.logic);
+        if out.is_empty() {
+            bail!(
+                "option `{name}` is pinned by constraint, but none of its values apply \
+                 where it is read here"
+            );
+        }
+        Ok(out)
     }
 
     fn option_default(&mut self, name: &str, decl: &ProjectOption) -> eyre::Result<Value> {
@@ -1843,6 +1908,19 @@ fn pinned_value(pinned: &Pinned) -> Value {
                 .map(|s| Variant::new(Pc::TRUE, Value::Str(s.clone())))
                 .collect(),
         ),
+        // `ByConstraint` never reaches here: `fn_get_option` peels it off
+        // into `option_by_constraint` before any scalar conversion.
+        Pinned::ByConstraint { .. } => unreachable!("by-constraint pin is not a scalar"),
+    }
+}
+
+/// A pinned scalar as the [`Value`] `get_option` returns, coerced to the
+/// option's declared kind so a `feature` string comes back as a feature
+/// object. A no-op for string/combo options, and when the kind is unknown.
+fn pinned_scalar(pinned: &Pinned, kind: Option<&ProjectOptionKind>) -> Value {
+    match (pinned, kind) {
+        (Pinned::Str(s), Some(kind)) => option_choice(kind, s),
+        _ => pinned_value(pinned),
     }
 }
 

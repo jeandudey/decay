@@ -174,8 +174,9 @@ repo = "https://gitlab.gnome.org/GNOME/glib.git"
 # Pinned to tag 2.88.3.
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
 depends = ["gvdb", "zlib"]
-# TODO: force_posix_threads should be true for GNU/Windows toolchain, false for MSVC/Windows.
-options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_assert = true, glib_debug = "disabled", glib_checks = true, tests = false, libelf = "auto", multiarch = false, force_posix_threads = false, xattr = true }
+# force_posix_threads: POSIX threads under a GNU toolchain (mingw), win32
+# threads under MSVC. On non-Windows glib always uses POSIX threads anyway.
+options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_assert = true, glib_debug = "disabled", glib_checks = true, tests = false, libelf = "auto", multiarch = false, force_posix_threads = { "prelude//abi/constraints:abi[gnu]" = true, "DEFAULT" = false }, xattr = true }
 
 # TODO: Fails with
 #   Error: Failed to import `glycin`

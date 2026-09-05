@@ -628,7 +628,11 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// `[alignment]` — shares one variable per constraint and its `select()`s
     /// all key on the same thing. Returns the choice list too, so a caller can
     /// map a value back to its index.
-    fn constraint_var(&mut self, setting: &str, domain: Vec<String>) -> (VarId, Vec<String>) {
+    pub(crate) fn constraint_var(
+        &mut self,
+        setting: &str,
+        domain: Vec<String>,
+    ) -> (VarId, Vec<String>) {
         let mut choices = domain;
         choices.push(ANY_OTHER.to_owned());
         let id = self.logic.declare(Var {

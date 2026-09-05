@@ -3,6 +3,7 @@ use {
         config::{
             Config,
             Machine,
+            OptionScalar,
             OptionValue,
             ProbeValue,
             Project,
@@ -187,6 +188,27 @@ impl Oracle for ConfigOracle<'_> {
             OptionValue::Int(v) => Pinned::Int(*v),
             OptionValue::String(v) => Pinned::Str(Rc::from(v.as_str())),
             OptionValue::List(v) => Pinned::List(v.iter().map(|s| Rc::from(s.as_str())).collect()),
+            OptionValue::ByConstraint { cases, default } => {
+                // `cases` is non-empty and shares one setting — both checked
+                // when the configuration was loaded.
+                let setting = cases[0].0.setting.as_str();
+                let mut domain = self.config.constraint_domain(setting);
+                for (value, _) in cases {
+                    if !domain.iter().any(|d| *d == value.value) {
+                        domain.push(value.value.clone());
+                    }
+                }
+                domain.sort();
+                Pinned::ByConstraint {
+                    setting: setting.to_owned(),
+                    domain,
+                    cases: cases
+                        .iter()
+                        .map(|(v, s)| (v.value.clone(), Box::new(scalar_pinned(s))))
+                        .collect(),
+                    default: default.as_ref().map(|s| Box::new(scalar_pinned(s))),
+                }
+            }
         })
     }
 
@@ -255,5 +277,13 @@ impl Oracle for ConfigOracle<'_> {
             return ["gcc", "clang", "msvc"].map(str::to_owned).to_vec();
         }
         self.config.compilers.keys().cloned().collect()
+    }
+}
+
+fn scalar_pinned(scalar: &OptionScalar) -> Pinned {
+    match scalar {
+        OptionScalar::Bool(v) => Pinned::Bool(*v),
+        OptionScalar::Int(v) => Pinned::Int(*v),
+        OptionScalar::String(v) => Pinned::Str(Rc::from(v.as_str())),
     }
 }

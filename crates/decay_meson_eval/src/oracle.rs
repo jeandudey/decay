@@ -175,6 +175,17 @@ pub enum Pinned {
     Int(i64),
     Str(Rc<str>),
     List(Vec<Rc<str>>),
+    /// One scalar value per value of a constraint the build already selects
+    /// on — keyed the same way as [`Probe::Constraint`] and
+    /// [`SizeAnswer::Constraint`], so an option pinned this way shares the
+    /// one constraint variable. `default` is the value everywhere `cases`
+    /// does not name; without it those configurations are left uncovered.
+    ByConstraint {
+        setting: String,
+        domain: Vec<String>,
+        cases: Vec<(String, Box<Pinned>)>,
+        default: Option<Box<Pinned>>,
+    },
 }
 
 /// Which of `cc.sizeof()` / `cc.alignment()` is being asked.
