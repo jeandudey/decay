@@ -44,6 +44,7 @@ use {
     },
     std::{
         collections::HashMap,
+        fs,
         panic::{
             AssertUnwindSafe,
             catch_unwind, //
@@ -197,6 +198,15 @@ pub(crate) fn import(
                 packages.register(&e.package, &e.graph);
                 graphs[e.idx] = Some(e.graph);
             }
+        }
+
+        // Every project evaluated cleanly, so we know something will be
+        // written: only now is it safe to clean the directory. Wiping it
+        // earlier — before evaluation could still fail — would trade a stale
+        // leftover for an empty directory on every failed run.
+        if config.third_party_dir.exists() {
+            fs::remove_dir_all(&config.third_party_dir)
+                .wrap_err("Failed to clean the third-party directory")?;
         }
 
         // --- barrier: the shared constraints need every graph ---
