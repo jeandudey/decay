@@ -495,6 +495,15 @@ constraint(
 
   It should just be true for the systems that provide it, that's it, libc DB needs this.
 
+  Partly done: `find_library()` for a libc-split library MSVC has no
+  standalone `.lib` for (`m`, `dl`, `rt`, `pthread`, `resolv`, `nsl`,
+  `socket`, `anl`, `crypt`, `util`, `execinfo` — `is_crt_provided_lib` in
+  `decay_buck2`) now emits its `-l…` under `select({ abi[msvc]: [], DEFAULT:
+  … })`, so it contributes nothing on the MSVC ABI (matching meson's own
+  not-found there). The remaining half — settling the `m[true/false]` knob to
+  *true* on the systems that do provide it, instead of an open probe — still
+  wants the libc DB.
+
 - **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
 
 - **dependency('threads') is a builtin.** `fn_dependency` special-cases it

@@ -85,11 +85,13 @@ _headers = {
 }
 
 # meson: find_library("m")
+# `m` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
+    exported_linker_flags = select({
+        "prelude//abi/constraints:abi[msvc]": [],
+        "DEFAULT": ["-lm"],
+    }),
     visibility = ["PUBLIC"],
 )
 

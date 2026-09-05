@@ -938,15 +938,33 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
         // reject the flag, which `abi[msvc]` — a prelude constraint, always
         // available — names exactly.
         External::Threads => {
-            let sel = "select({\n\
-                \x20       \"prelude//abi/constraints:abi[msvc]\": [],\n\
-                \x20       \"DEFAULT\": [\"-pthread\"],\n\
-                \x20   })";
+            let sel = non_msvc_select(&["-pthread".to_owned()]);
             let _ = writeln!(out, "# meson: {}", describe_external(external));
             let _ = writeln!(out, "cxx_library(");
             let _ = writeln!(out, "    name = {:?},", target.name);
             let _ = writeln!(out, "    exported_preprocessor_flags = {sel},");
             let _ = writeln!(out, "    exported_linker_flags = {sel},");
+            let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
+            let _ = writeln!(out, ")");
+        }
+        // A `find_library()` for something POSIX toolchains split out of libc
+        // but MSVC folds into the CRT: meson's own `find_library` returns
+        // not-found for these on MSVC, so the target must contribute nothing
+        // under `abi[msvc]` rather than a `-l` the MSVC linker would reject.
+        External::SystemLibrary { name } if is_crt_provided_lib(name) => {
+            let _ = writeln!(out, "# meson: {}", describe_external(external));
+            let _ = writeln!(
+                out,
+                "# `{name}` has no standalone link library on MSVC / clang-cl (folded into \
+                 the CRT, or absent); not found there."
+            );
+            let _ = writeln!(out, "cxx_library(");
+            let _ = writeln!(out, "    name = {:?},", target.name);
+            let _ = writeln!(
+                out,
+                "    exported_linker_flags = {},",
+                non_msvc_select(&[format!("-l{name}")])
+            );
             let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
             let _ = writeln!(out, ")");
         }
@@ -988,6 +1006,32 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
         }
     }
     out
+}
+
+/// Link libraries POSIX toolchains split out of libc but MSVC / clang-cl fold
+/// into the CRT (or that simply have no import library there). meson's
+/// `find_library()` returns not-found for these on MSVC.
+fn is_crt_provided_lib(name: &str) -> bool {
+    matches!(
+        name,
+        "m" | "dl" | "rt" | "pthread" | "resolv" | "nsl" | "socket" | "anl" | "crypt" | "util"
+            | "execinfo"
+    )
+}
+
+/// A `select()` yielding `flags` everywhere except the MSVC ABI, where it is
+/// empty. `abi` is a prelude constraint, so it is always available without
+/// decay declaring one.
+fn non_msvc_select(flags: &[String]) -> String {
+    let list = flags
+        .iter()
+        .map(|f| format!("{f:?}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "select({{\n        \"prelude//abi/constraints:abi[msvc]\": [],\n        \
+         \"DEFAULT\": [{list}],\n    }})"
+    )
 }
 
 fn describe_external(external: &External) -> String {

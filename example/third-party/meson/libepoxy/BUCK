@@ -37,11 +37,13 @@ _needs = select({
 })
 
 # meson: find_library("dl")
+# `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "dl",
-    exported_linker_flags = [
-        "-ldl",
-    ],
+    exported_linker_flags = select({
+        "prelude//abi/constraints:abi[msvc]": [],
+        "DEFAULT": ["-ldl"],
+    }),
     visibility = ["PUBLIC"],
 )
 
