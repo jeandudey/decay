@@ -9,10 +9,6 @@ http_archive(
     sha256 = "b6c68fdf6f3ac31388b50aa89ff0fc49c00c987c16e7b5146491d12003f2c8ed",
     strip_prefix = "pcre2-10.48",
     sub_targets = [
-        "RunGrepTest",
-        "RunGrepTest.bat",
-        "RunTest",
-        "RunTest.bat",
         "deps/sljit/sljit_src/sljitConfig.h",
         "deps/sljit/sljit_src/sljitConfigCPU.h",
         "deps/sljit/sljit_src/sljitConfigInternal.h",
@@ -64,11 +60,8 @@ http_archive(
         "src/pcre2_util.h",
         "src/pcre2_valid_utf.c",
         "src/pcre2_xclass.c",
-        "src/pcre2grep.c",
         "src/pcre2posix.c",
         "src/pcre2posix.h",
-        "src/pcre2posix_test.c",
-        "src/pcre2test.c",
         "src/pcre2test_inc.h",
         "vms/stdint.h",
     ],
@@ -158,16 +151,6 @@ _deps = select({
             "//third-party/meson/constraints:threads[false]": [],
         }),
     }),
-})
-_cflags = [
-    "-DHAVE_CONFIG_H",
-    "-D_GNU_SOURCE",
-] + select({
-    "prelude//os/constraints:os[windows]": [
-        "-D_CRT_SECURE_NO_DEPRECATE",
-        "-D_CRT_SECURE_NO_WARNINGS",
-    ],
-    "DEFAULT": [],
 })
 
 # meson: dependency("threads") — resolved by pkg-config
@@ -569,60 +552,3 @@ cxx_library(
     exported_deps = [":pcre2-32"],
     visibility = ["PUBLIC"],
 )
-
-cxx_binary(
-    name = "pcre2grep",
-    srcs = [":pcre2.git[src/pcre2grep.c]"],
-    headers = _headers2,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    deps = [":pcre2-dep"],
-    target_compatible_with = ["//third-party/meson/pcre2/constraints:grep[true]"],
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "pcre2test",
-    srcs = [":pcre2.git[src/pcre2test.c]"],
-    headers = _headers2,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": ["/STACK:2500000"],
-    }),
-    deps = [
-        ":pcre2-dep",
-        ":pcre2-dep-2",
-        ":pcre2-dep-3",
-        ":pcre2-dep-4",
-    ],
-    target_compatible_with = ["//third-party/meson/pcre2/constraints:test[true]"],
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "pcre2posix_test",
-    srcs = [":pcre2.git[src/pcre2posix_test.c]"],
-    headers = _headers2,
-    header_namespace = "",
-    linker_flags = select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": ["/STACK:2500000"],
-    }),
-    deps = [
-        ":pcre2-dep",
-        ":pcre2-dep-2",
-    ],
-    target_compatible_with = ["//third-party/meson/pcre2/constraints:test[true]"],
-    visibility = ["PUBLIC"],
-)
-
-# Tests declared by the meson build, as `name -> target`:
-#   pcre2posix_test -> :pcre2posix_test
-#   RunTest -> :RunTest
-#   RunTest -> :RunTest.bat
-#   RunGrepTest -> :RunGrepTest
-#   RunGrepTest -> :RunGrepTest.bat

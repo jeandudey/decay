@@ -19,19 +19,3 @@ constraint(
     default = "disabled",
     visibility = ["PUBLIC"],
 )
-
-# build option `option:grep`: Compile the PCRE2 grep executable
-constraint(
-    name = "grep",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:test`: Compile the test executable and enable tests
-constraint(
-    name = "test",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)

@@ -252,6 +252,8 @@ options.multiarch = false
 
 [[project]]
 wrap = "pcre2"
+options = { grep = false, test = false }
+# options.jit = "enabled" TODO: Should work
 
 # TODO: Fails with:
 #   Error: Failed to import `libffi`
