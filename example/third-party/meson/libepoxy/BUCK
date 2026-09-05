@@ -4,7 +4,7 @@
 git_fetch(
     name = "libepoxy.git",
     repo = "https://github.com/anholt/libepoxy",
-    rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973",
+    rev = "70a20c62fa0d095c386a5eb62eaf9ebf7cc4cb38",
     sub_targets = [
         "include/epoxy/common.h",
         "include/epoxy/egl.h",

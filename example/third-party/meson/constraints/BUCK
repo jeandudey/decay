@@ -166,6 +166,38 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
+# toolchain probe `probe:c:has_header:sys/param.h`: `sys/param.h` is available to the c compiler
+constraint(
+    name = "has_header_sys_param_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:sys/types.h`: `sys/types.h` is available to the c compiler
+constraint(
+    name = "has_header_sys_types_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:sys/time.h`: `sys/time.h` is available to the c compiler
+constraint(
+    name = "has_header_sys_time_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:sys/select.h`: `sys/select.h` is available to the c compiler
+constraint(
+    name = "has_header_sys_select_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
 # external dependency `dep:`: `` is available
 constraint(
     name = "unnamed",
@@ -201,14 +233,6 @@ constraint(
 # external dependency `dep:xext`: `xext` is available
 constraint(
     name = "xext",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:glproto`: `glproto` is available
-constraint(
-    name = "glproto",
     values = ["true", "false"],
     default = "false",
     visibility = ["PUBLIC"],
@@ -582,14 +606,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:sys/param.h`: `sys/param.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_param_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header:sys/prctl.h`: `sys/prctl.h` is available to the c compiler
 constraint(
     name = "has_header_sys_prctl_h",
@@ -601,14 +617,6 @@ constraint(
 # toolchain probe `probe:c:has_header:sys/resource.h`: `sys/resource.h` is available to the c compiler
 constraint(
     name = "has_header_sys_resource_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/select.h`: `sys/select.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_select_h",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -646,25 +654,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:sys/time.h`: `sys/time.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_time_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header:sys/times.h`: `sys/times.h` is available to the c compiler
 constraint(
     name = "has_header_sys_times_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/types.h`: `sys/types.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_types_h",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],

@@ -4711,6 +4711,7 @@ cxx_library(
         "//third-party/meson/constraints:dl[false]": [],
     }) + [
         "//third-party/system:X11",
+        ":glproto",
         ":glvnd-dep-11",
         ":glvnd-dep-4",
         ":glvnd-dep",
@@ -4720,9 +4721,6 @@ cxx_library(
     ] + select({
         "//third-party/meson/constraints:xext[true]": [":xext"],
         "//third-party/meson/constraints:xext[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:glproto[true]": [":glproto"],
-        "//third-party/meson/constraints:glproto[false]": [],
     }),
     preferred_linkage = "shared",
     target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
