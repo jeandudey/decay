@@ -428,3 +428,7 @@ constraint(
   It should just be true for the systems that provide it, that's it, libc DB needs this.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
+
+- **dependency('threads').** This is a special case in meson, it should be
+  handled as a builtin dependency and not as a normal one, will likely involve
+  libc DB.
