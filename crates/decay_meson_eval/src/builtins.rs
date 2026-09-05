@@ -505,13 +505,13 @@ impl<'a, S: Solver> Interp<'a, S> {
         let mut compile_args = Variational::empty();
         for key in ["c_args", "cpp_args", "objc_args", "objcpp_args", "args"] {
             if let Some(v) = args.get(key) {
-                compile_args.extend(self.strings(v)?.map(|s| s.to_string()));
+                compile_args.extend(self.strings(v)?.map(|s| self.capture_flag(&s)));
             }
         }
 
         let mut link_args = Variational::empty();
         if let Some(v) = args.get("link_args") {
-            link_args.extend(self.strings(v)?.map(|s| s.to_string()));
+            link_args.extend(self.strings(v)?.map(|s| self.capture_flag(&s)));
         }
 
         let install = self.flag(args, "install", Pc::FALSE)?;
@@ -1294,12 +1294,12 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         let mut compile_args = Variational::empty();
         if let Some(v) = args.get("compile_args") {
-            compile_args.extend(self.strings(v)?.map(|s| s.to_string()));
+            compile_args.extend(self.strings(v)?.map(|s| self.capture_flag(&s)));
         }
 
         let mut link_args = Variational::empty();
         if let Some(v) = args.get("link_args") {
-            link_args.extend(self.strings(v)?.map(|s| s.to_string()));
+            link_args.extend(self.strings(v)?.map(|s| self.capture_flag(&s)));
         }
 
         let mut headers = Variational::empty();

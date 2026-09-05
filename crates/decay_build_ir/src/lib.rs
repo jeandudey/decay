@@ -171,8 +171,8 @@ pub struct Attrs {
     pub headers: Variational<Source>,
     /// Include directories, relative to the project root.
     pub include_dirs: Variational<PathBuf>,
-    pub compile_args: Variational<String>,
-    pub link_args: Variational<String>,
+    pub compile_args: Variational<Flag>,
+    pub link_args: Variational<Flag>,
     pub deps: Variational<TargetId>,
     /// Targets linked into this one without inheriting their usage
     /// requirements (`link_with:`).
@@ -220,6 +220,24 @@ pub enum CmdArg {
     Inputs,
     Outputs,
     OutDir,
+}
+
+/// One `compile_args:`/`link_args:` entry: a plain flag, or one whose text
+/// embeds a reference to a file this project's own graph provides.
+///
+/// `meson.current_build_dir()`/`current_source_dir()` have no real directory
+/// to answer with at import time, so a flag built by `.format()`-interpolating
+/// one — pcre2's `'-Wl,--version-script,@0@/lib@1@.sym'.format(meson.
+/// current_build_dir(), lib)`, zlib's own version-script naming a plain file
+/// in its checkout the same way — comes out as a path that only ever
+/// resolved because decay evaluated it from that same checkout, unchanged.
+/// `File` keeps the reference live instead: `prefix` is the flag's literal
+/// text up to the embedded path, and `Source` is what actually answers it —
+/// another target's declared output, or a file already in the project.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Flag {
+    Literal(String),
+    File(String, Source),
 }
 
 /// One entry of a generated configuration header.

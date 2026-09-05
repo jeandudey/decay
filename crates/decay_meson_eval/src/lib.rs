@@ -22,6 +22,7 @@ use {
     },
     decay_build_ir::{
         External,
+        Flag,
         Graph,
         Kind,
         Source,
@@ -273,11 +274,11 @@ impl<'a, S: Solver> Interp<'a, S> {
                 ) {
                     continue;
                 }
-                let mut args = self.project_args.clone();
+                let mut args = self.project_args.clone().map(Flag::Literal);
                 args.extend(std::mem::take(&mut target.attrs.compile_args));
                 target.attrs.compile_args = args;
 
-                let mut link_args = self.project_link_args.clone();
+                let mut link_args = self.project_link_args.clone().map(Flag::Literal);
                 link_args.extend(std::mem::take(&mut target.attrs.link_args));
                 target.attrs.link_args = link_args;
             }
@@ -1082,6 +1083,50 @@ impl<'a, S: Solver> Interp<'a, S> {
             out.push(Variant::new(variant.cond, s));
         }
         Ok(out)
+    }
+
+    /// A `compile_args:`/`link_args:` entry, recognizing a `.format()`-
+    /// interpolated `meson.current_build_dir()`/`current_source_dir()` that
+    /// — once its fabricated directory is stripped — names a file this
+    /// project's own graph already provides, instead of leaving it a path
+    /// that only worked because decay evaluated it from that checkout.
+    /// See [`Flag`]'s own doc comment.
+    ///
+    /// The embedded path is always the flag's last comma- or space-delimited
+    /// word (`-Wl,--version-script,./lib.sym`, `-include`+`./foo.h` as two
+    /// separate list entries): whatever text precedes the last `,`/` ` is
+    /// kept as `Flag::File`'s literal prefix, and only that trailing word is
+    /// checked against the project. A flag with no match — most of them —
+    /// comes back unchanged.
+    pub(crate) fn capture_flag(&self, flag: &str) -> Flag {
+        let (prefix, candidate) = match flag.rfind([',', ' ']) {
+            Some(i) => flag.split_at(i + 1),
+            None => ("", flag),
+        };
+        if candidate.is_empty() || !(candidate.contains('/') || candidate.contains('.')) {
+            return Flag::Literal(flag.to_owned());
+        }
+        let normalized = normalize_path(Path::new(candidate));
+        let basename = Path::new(&normalized)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(normalized.as_str());
+
+        let mut generated = self.graph.targets.iter().filter(|t| {
+            matches!(t.kind, Kind::Custom | Kind::ConfigHeader)
+                && t.attrs.outs.iter().any(|o| o == basename)
+        });
+        // Two targets declaring the same output name is not something this
+        // project models happening, but guessing which one a flag meant
+        // would risk linking the wrong file in silently; leave it a literal
+        // instead, same as no match at all.
+        if let (Some(target), None) = (generated.next(), generated.next()) {
+            return Flag::File(prefix.to_owned(), Source::Generated(target.id));
+        }
+        if self.sources.exists(&self.root.join(&normalized)) {
+            return Flag::File(prefix.to_owned(), Source::File(PathBuf::from(normalized)));
+        }
+        Flag::Literal(flag.to_owned())
     }
 
     /// An argument that must not vary and must be a single string, e.g. a

@@ -11,6 +11,7 @@ use {
         Define,
         DefineValue,
         External,
+        Flag,
         Graph,
         Kind,
         Linkage,
@@ -507,6 +508,17 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
             }
         }
 
+        for entry in target
+            .attrs
+            .compile_args
+            .iter()
+            .chain(target.attrs.link_args.iter())
+        {
+            if let Flag::File(_, Source::File(path)) = &entry.value {
+                out.insert(path.display().to_string());
+            }
+        }
+
         if let Kind::External(External::Program {
             path: Some(path), ..
         }) = &target.kind
@@ -677,7 +689,7 @@ fn render_target<S: Solver>(
             if !a.compile_args.is_empty() {
                 attrs.push((
                     "compiler_flags",
-                    selects.render_list(logic, &a.compile_args, cond, 1, |s| format!("{s:?}")),
+                    selects.render_list(logic, &a.compile_args, cond, 1, |f| flag(graph, f)),
                 ));
             }
             if !a.link_args.is_empty() {
@@ -688,7 +700,7 @@ fn render_target<S: Solver>(
                 };
                 attrs.push((
                     key,
-                    selects.render_list(logic, &a.link_args, cond, 1, |s| format!("{s:?}")),
+                    selects.render_list(logic, &a.link_args, cond, 1, |f| flag(graph, f)),
                 ));
             }
 
@@ -1165,6 +1177,24 @@ fn source(graph: &Graph, source: &Source) -> String {
 /// A file as it is named on a command line.
 fn file_arg(graph: &Graph, path: &Path) -> String {
     format!("$(location :{}[{}])", repo_target(graph), path.display())
+}
+
+/// A `compiler_flags`/`exported_linker_flags` entry, as a quoted Starlark
+/// string literal: a plain flag unchanged, or one with a `$(location ...)`
+/// macro spliced into its literal prefix in place of the reference `Flag::File`
+/// carries — buck2 expands the macro (and adds the referenced target as a
+/// dependency) the same way it does anywhere else a string attribute takes one.
+fn flag(graph: &Graph, flag: &Flag) -> String {
+    match flag {
+        Flag::Literal(text) => format!("{text:?}"),
+        Flag::File(prefix, source) => {
+            let reference = match source {
+                Source::File(path) => file_arg(graph, path),
+                Source::Generated(id) => format!("$(location :{})", graph.target(*id).name),
+            };
+            format!("{:?}", format!("{prefix}{reference}"))
+        }
+    }
 }
 
 /// The command line of a `custom_target`, with meson's placeholders rewritten

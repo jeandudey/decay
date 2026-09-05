@@ -322,45 +322,35 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   (glib's `multiarch`-keyed `giomoduledir`) rather than emitting a
   `select()`. Both want the value carried variationally through to emit.
 
-- **`link_args:`/`c_args:` embedding a path to a same-project generated file
-  are opaque strings, so buck2 can't find them at link/compile time.**
-  Surfaced by pcre2 (`wrap = "pcre2"`, now importing — see above): its
-  `meson.build` builds each library's version script this way —
-  ```
-  configure_file(input: 'src/lib@0@.sym.in'.format(lib), output: 'lib@0@.sym'.format(lib), ...)
-  ...
-  '-Wl,--version-script,@0@/lib@1@.sym'.format(meson.current_build_dir(), lib)
-  ```
-  `meson.current_build_dir()` (`methods.rs`, `"current_build_dir"` arm) has no
-  real build directory to answer with — decay never runs a build — so it
-  fabricates `"."`, same as real meson would answer for the top-level
-  directory. `.format()` then bakes that into one plain string,
-  `-Wl,--version-script,./libpcre2-8.sym`, and `link_args:`
-  (`Attrs.link_args: Variational<String>`, `decay_build_ir/src/lib.rs`) has
-  no representation for "this flag embeds a reference to a target's output"
-  the way `srcs`/`headers` do via `Source::Target` — `fn_library`'s
-  `link_args:` handling (`builtins.rs`, `self.strings(v)?`) just stores the
-  formatted string verbatim. `decay_buck2` emits it unchanged as an
-  `exported_linker_flags` entry, so the `cxx_library` neither depends on the
-  `libpcre2-8.sym` genrule nor gets a path that resolves under buck2 (each
-  genrule's output lives in its own `buck-out` location, never `.`/cwd) —
-  linking fails with "cannot open linker script file ./libpcre2-8.sym: No
-  such file or directory", buck2 having never been told the genrule needs to
-  run first or where its output actually lands.
+- **`link_args:`/`c_args:` embedding a path to a same-project file are now
+  resolved instead of opaque strings.** Surfaced by pcre2's version scripts
+  (`'-Wl,--version-script,@0@/lib@1@.sym'.format(meson.current_build_dir(),
+  lib)`, `meson.current_build_dir()` having no real directory to answer with
+  and fabricating `"."`) and, the same shape one level simpler, zlib's and
+  libglvnd's own version scripts naming a plain file already in their
+  checkout via `current_source_dir()`/a bare relative path. `Attrs.
+  compile_args`/`link_args` (`decay_build_ir/src/lib.rs`) are now
+  `Variational<Flag>` — `Flag::Literal` unchanged, `Flag::File(prefix, Source)`
+  for a flag whose trailing path names something the project's own graph
+  provides. `Interp::capture_flag` (`decay_meson_eval/src/lib.rs`) recognizes
+  it at the point `link_args:`/`compile_args:` is captured: the flag's last
+  comma- or space-delimited word, normalized (`normalize_path`, which is what
+  turns `current_source_dir()`'s fabricated leading `/` or `current_build_dir()`'s
+  `./` into a clean relative path), checked first against every
+  `configure_file()`/`custom_target()` output this project's graph already
+  declares, then against the project's own checkout (`Sources::exists`) —
+  anything else comes back unchanged. `decay_buck2`'s `flag()` renders a match
+  as `$(location ...)` spliced into the flag's literal prefix — buck2 expands
+  the macro and adds the referenced target as an implicit dependency the same
+  way it does anywhere else a string attribute takes one — and
+  `referenced_files()` picks up a `Flag::File` the same way it already does
+  `Source::File`/`CmdArg::File`, so a plain checked-out file like `zlib.map`
+  reaches the http_archive's own `sub_targets`.
 
-  Fixing it needs two things: `Attrs.link_args` (and probably
-  `compile_args`, for the analogous `c_args: ['-include', '@0@/foo.h'.
-  format(meson.current_build_dir())]` shape) carrying something richer than
-  `String` — a small enum mixing literal text with a target reference, the
-  way `CmdArg` already does for `custom_target()` commands — plus, at the
-  point such a string is captured, recognizing when a `.format()`-interpolated
-  segment names an output this same project's graph already produces (a
-  `configure_file()`/`custom_target()` whose `output:` matches the trailing
-  path component) and swapping that piece for the reference instead of the
-  literal path, so `decay_buck2` can render it as `$(location :libpcre2-8.sym)`
-  and add the genrule as a dependency of the library. Absent that, a project
-  needing this shape has no `decay.toml` escape hatch either — unlike a
-  probe or a sizeof, there's nowhere to just hand decay the right answer.
+  Still narrow on purpose: only the flag's *own* trailing word is checked
+  (not an arbitrary embedded substring), and an ambiguous match — two targets
+  declaring the same output name — is not disambiguated, just left as a
+  literal. Nothing has hit that yet.
 
 - **Conditional `continue` in a `foreach` over a static list.** `break` now
   splits the remaining iterations under its negation (`Flow::Break(Pc)` in
