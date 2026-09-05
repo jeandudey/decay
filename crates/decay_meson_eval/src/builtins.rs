@@ -255,7 +255,15 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
         self.graph.project.languages = languages;
 
-        self.graph.project.version = self.opt_string(args, "version")?.map(|v| v.to_string());
+        self.graph.project.version = if let Some(path) = self.opt_file(args, "version")? {
+            let path = self
+                .root
+                .join(self.dirs.last().unwrap())
+                .join(path.as_ref());
+            self.sources.read(&path).map(Some)?
+        } else {
+            self.opt_string(args, "version")?.map(|v| v.to_string())
+        };
 
         if let Some(v) = args.get("license") {
             self.graph.project.license = self

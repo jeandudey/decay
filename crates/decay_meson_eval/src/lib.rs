@@ -1169,6 +1169,26 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
     }
 
+    pub(crate) fn opt_file(
+        &mut self,
+        args: &CallArgs,
+        name: &str,
+    ) -> eyre::Result<Option<Rc<str>>> {
+        match args.get(name) {
+            Some(v) => {
+                let flat = self.flat(v);
+                match flat.as_slice() {
+                    [only] => match &only.value {
+                        Value::Obj(Obj::File(v)) => Ok(Some(v.clone())),
+                        _ => Ok(None),
+                    },
+                    _ => Ok(None),
+                }
+            }
+            None => Ok(None),
+        }
+    }
+
     /// An argument that must be a single bool, not configuration-dependent —
     /// unlike a `[systems]`/`[probes]`-backed flag, a kwarg like
     /// `custom_target(capture:)` is meson syntax for a plain literal, not
