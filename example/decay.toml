@@ -161,6 +161,7 @@ rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
 rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973" # 1.5.10
+options = { x11 = true, glx = "auto", egl = "auto", tests = false, docs = false }
 
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/gvdb.git"

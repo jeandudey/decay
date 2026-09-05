@@ -294,49 +294,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:gl`: `gl` is available
-constraint(
-    name = "gl",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `dep:egl`: `egl` is available
 constraint(
     name = "egl",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:glesv2`: `glesv2` is available
-constraint(
-    name = "glesv2",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:libGLESv2`: `libGLESv2` is available
-constraint(
-    name = "libGLESv2",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:glesv1_cm`: `glesv1_cm` is available
-constraint(
-    name = "glesv1_cm",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:libGLESv1_CM`: `libGLESv1_CM` is available
-constraint(
-    name = "libGLESv1_CM",
     values = ["true", "false"],
     default = "false",
     visibility = ["PUBLIC"],
