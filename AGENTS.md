@@ -80,6 +80,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   rather than a commit (resolved once via `git ls-remote`, the same relation
   `Cargo.lock` has to `Cargo.toml`).
 
+  WRAP IS BROKEN, it doesn't use the correct API, maybe this needs first to
+  read the meson source code to see how they do it.
+
   Still open:
   - **`[wrap-git]` is refused**, with a message pointing at `[[project]]`
     instead: it is already exactly `repo`/`rev`, so it gets the full pipeline

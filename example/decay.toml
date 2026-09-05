@@ -149,3 +149,33 @@ options.datadir = "share"
 options.includedir = "include"
 # options.glib_debug = "disabled" # TODO: This does not work, it should.
 options.multiarch = false
+
+# TODO: Fails with:
+#   Error: Failed to import `gtk`
+#
+#   Caused by:
+#      0: Failed to execute `gtk`
+#      1: in /meson.build
+#      2: in `.get_variable()` at /meson.build:525:55
+#      3: `iso-codes` has no such variable
+#
+#   Location:
+#       crates/decay_meson_eval/src/methods.rs:245:29
+#[[project]]
+#repo = "https://gitlab.gnome.org/GNOME/gtk"
+#rev = "7f99ab1a26408b6499a18f353f081e3c0598ea5c" # Tag 4.22.4
+
+# TODO: Fails with:
+#   2026-09-05T08:24:26.243421Z ERROR decay_meson_parse: error=Expected a key node, found Arithmetic { left: Arithmetic { left: Method { args: Argument(Argument { arguments: [String { is_fstring: false, value: "namespace" }], kwargs: [] }), name: Id { value: "get" }, source_object: Id { value: "gir" }, line: 576, col: 25 }, right: String { is_fstring: false, value: "-" }, operation: "add" }, right: Method { args: Argument(Argument { arguments: [String { is_fstring: false, value: "nsversion" }], kwargs: [] }), name: Id { value: "get" }, source_object: Id { value: "gir" }, line: 576, col: 54 }, operation: "add" }
+#   Error: Failed to import `gstreamer`
+#
+#   Caused by:
+#      0: Failed to execute `gstreamer`
+#      1: in /home/jeandudey/.cache/decay/git/checkouts/gstreamergstreamer-946bba4a5af3bc87/badd9563b2ac3117/meson.build
+#      2: Expected a key node, found Arithmetic { left: Arithmetic { left: Method { args: Argument(Argument { arguments: [String { is_fstring: false, value: "namespace" }], kwargs: [] }), name: Id { value: "get" }, source_object: Id { value: "gir" }, line: 576, col: 25 }, right: String { is_fstring: false, value: "-" }, operation: "add" }, right: Method { args: Argument(Argument { arguments: [String { is_fstring: false, value: "nsversion" }], kwargs: [] }), name: Id { value: "get" }, source_object: Id { value: "gir" }, line: 576, col: 54 }, operation: "add" }
+#
+#   Location:
+#       crates/decay_meson_parse/src/node.rs:140:18
+# [[project]]
+# repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
+# rev = "badd9563b2ac3117ea2a99348bbe46298d6992ec" # Tag 1.29.2
