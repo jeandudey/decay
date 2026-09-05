@@ -130,12 +130,12 @@ options = { sse2 = true, gcc_vector = true, arm_neon = true, debug = false, gobj
 
 [[project]]
 repo = "https://github.com/NVIDIA/libglvnd"
-rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
+tag = "1.7.0"
 options = { asm = "auto", dispatch-tls = true, egl = true, entrypoint-patching = "auto", gles1 = true, gles2 = true, glx = "auto", headers = true, hgl = false, tls = true }
 
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
-rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973" # 1.5.10
+tag = "1.5.10"
 options = { x11 = true, glx = "auto", egl = "auto", tests = false, docs = false }
 depends = ["libglvnd"]
 
@@ -146,8 +146,7 @@ options = { tests = false, default_library = "both" }
 
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/glib.git"
-# Pinned to tag 2.88.3.
-rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
+tag = "2.88.3"
 depends = ["gvdb", "zlib"]
 # force_posix_threads: POSIX threads under a GNU toolchain (mingw), win32
 # threads under MSVC. On non-Windows glib always uses POSIX threads anyway.
