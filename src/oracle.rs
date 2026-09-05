@@ -11,9 +11,14 @@ use {
         },
         packages::Packages,
     },
+    crate::probe::{
+        self,
+        ProbeCache, //
+    },
     decay_meson_eval::{
         obj,
         oracle::{
+            CompileProbe,
             Oracle,
             Pinned,
             Probe,
@@ -21,7 +26,10 @@ use {
             SizeQuery, //
         },
     },
-    std::rc::Rc,
+    std::{
+        cell::RefCell,
+        rc::Rc, //
+    },
 };
 
 /// Answers from the importer's own configuration, and from whatever earlier
@@ -33,6 +41,8 @@ pub struct ConfigOracle<'a> {
     project: &'a Project,
     config: &'a Config,
     packages: &'a Packages,
+    /// Memoised `zig cc` probe results — see [`Oracle::compile_probe`].
+    probe_cache: RefCell<ProbeCache>,
 }
 
 impl<'a> ConfigOracle<'a> {
@@ -41,6 +51,7 @@ impl<'a> ConfigOracle<'a> {
             project,
             config,
             packages,
+            probe_cache: RefCell::default(),
         }
     }
 
@@ -101,8 +112,6 @@ impl<'a> ConfigOracle<'a> {
         if !self.config.builtin_has_function {
             return None;
         }
-        const ABI_SETTING: &str = "prelude//abi/constraints:abi";
-        const CPU_SETTING: &str = "prelude//cpu/constraints:cpu";
         const LIBCS: [(decay_libc_db::Libc, &str); 2] = [
             (decay_libc_db::Libc::Glibc, "gnu"),
             (decay_libc_db::Libc::Musl, "musl"),
@@ -126,32 +135,64 @@ impl<'a> ConfigOracle<'a> {
             return None;
         }
 
-        self.config.systems.contains_key("linux").then(|| {
-            let mut abi_domain = self.config.constraint_domain(ABI_SETTING);
-            for (_, abi) in LIBCS {
-                if !abi_domain.iter().any(|v| v == abi) {
-                    abi_domain.push(abi.to_owned());
-                }
-            }
-            abi_domain.sort();
-
-            let mut cpu_domain = self.config.constraint_domain(CPU_SETTING);
-            for cpu in decay_libc_db::Cpu::ALL {
-                let value = cpu.buck2_value();
-                if !cpu_domain.iter().any(|v| v == value) {
-                    cpu_domain.push(value.to_owned());
-                }
-            }
-            cpu_domain.sort();
-
-            Probe::SystemsAndConstraint {
+        self.config
+            .systems
+            .contains_key("linux")
+            .then(|| Probe::SystemsAndConstraint {
                 systems: vec!["linux".to_owned()],
-                axes: vec![
-                    (ABI_SETTING.to_owned(), abi_domain),
-                    (CPU_SETTING.to_owned(), cpu_domain),
-                ],
+                axes: self.linux_abi_cpu_axes(),
                 rows,
+            })
+    }
+
+    /// The `(abi, cpu)` axes a `linux` matrix answer selects on: each buck2
+    /// constraint setting paired with its known domain — what `decay.toml`
+    /// already mentions, unioned with every value decay's own matrix can
+    /// produce.
+    fn linux_abi_cpu_axes(&self) -> Vec<(String, Vec<String>)> {
+        let union = |setting: &str, extra: &[&str]| {
+            let mut domain = self.config.constraint_domain(setting);
+            for value in extra {
+                if !domain.iter().any(|v| v == value) {
+                    domain.push((*value).to_owned());
+                }
             }
+            domain.sort();
+            domain
+        };
+        let cpus: Vec<&str> = decay_libc_db::Cpu::ALL
+            .iter()
+            .map(|c| c.buck2_value())
+            .collect();
+        vec![
+            (probe::ABI_SETTING.to_owned(), union(probe::ABI_SETTING, &["gnu", "musl"])),
+            (probe::CPU_SETTING.to_owned(), union(probe::CPU_SETTING, &cpus)),
+        ]
+    }
+
+    /// Answer a [`CompileProbe`] by building it for every `linux` target in
+    /// the matrix, when the configuration lets decay do that: needs
+    /// `probe_with_zig` on, `zig` present, and a `linux` system to attach
+    /// the answer to. An explicit `[probes]` entry for the same check has
+    /// already won by the time this is reached (see [`Oracle::probe`]).
+    fn compile_probe_answer(&self, probe: &CompileProbe) -> Option<Probe> {
+        if let CompileProbe::Header { header } = probe
+            && !probe::is_plain_header(header)
+        {
+            return None;
+        }
+        if !self.config.probe_with_zig
+            || !self.config.systems.contains_key("linux")
+            || !probe::zig_present()
+        {
+            return None;
+        }
+
+        let rows = probe::linux_rows(&mut self.probe_cache.borrow_mut(), probe);
+        Some(Probe::Matrix {
+            systems: vec!["linux".to_owned()],
+            axes: self.linux_abi_cpu_axes(),
+            rows,
         })
     }
 
@@ -224,6 +265,10 @@ impl Oracle for ConfigOracle<'_> {
                 None
             }
         })
+    }
+
+    fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
+        self.compile_probe_answer(probe)
     }
 
     fn has_program(&self, name: &str) -> bool {

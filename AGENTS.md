@@ -215,6 +215,74 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
      (header presence also depends on optional dev packages, not just the
      libc), so it stays its own follow-up.
 
+- **Compile/link probes resolved by `zig cc` at import time.** The
+  `has_function` database above answers one probe kind from a parsed table;
+  the more general version is to *link-test* a probe against `zig cc
+  -target <triple>` once per `(os, cpu, abi)` tuple in decay's configured
+  matrix (the `[systems]` set intersected with the constraints left open).
+  A probe then stops being a `VarKind::Probe` constraint and becomes a
+  presence condition over constraints decay already tracks: compiles for
+  every tuple → just `true`, no `select()`; compiles for none → the
+  dependent branch is dead and nothing is emitted; compiles for some → a
+  `select()` over `os`/`cpu`/`abi`, never a synthetic `has_foo_bar`
+  constraint. `zig` is one hermetic cross-compiler with bundled
+  glibc/musl/mingw/wasi headers and stubs, pinned to one release the same
+  way `decay_libc_db/data/glibc-abilists` already is; an explicit
+  `decay.toml [probes]` answer still wins first, and a project-wide toggle
+  turns the whole mechanism off.
+
+  **Landed (first slice).** `cc.has_header`, `cc.has_type`, and
+  `cc.compiles` — bare shapes only (no project `args:`/`dependencies:` the
+  importer cannot replay; `has_header` also skips anything but a plain
+  header path) — are answered by `src/probe.rs`: `zig cc -c` (compile to a
+  discarded object; zig 0.15.2's own `-fsyntax-only` is broken) for each
+  `(abi, cpu)` in `decay_libc_db::Cpu::ALL` × {gnu, musl}, on `linux` only.
+  The result is `oracle::Probe::Matrix` — true on the rows that compiled,
+  settled *false* (no knob) on every other `(abi, cpu)` under `linux`, and
+  left open only off `linux` where nothing was built. `decay_meson_eval`
+  gains `oracle::CompileProbe` (the reconstructed translation unit) and
+  `Oracle::compile_probe`; `src/config.rs` gains `probe_with_zig` (default
+  true, no effect without `zig` on `PATH`); an explicit `[probes]` entry
+  still wins first via the existing `Oracle::probe` path.
+
+  Still in scope, not yet done:
+  - **`cc.links`** — needs a real link (output file, `main` handling), not
+    just `-c`; `CompileProbe` has no `Links` variant yet.
+  - **compile-time `cc.sizeof` of a *type*** — the `static_assert` binary
+    search meson falls back to when it cannot run. Goes through the
+    `SizeAnswer` path (`Oracle::type_size`), not `compile_probe`.
+  - **Other systems / abis** — only `linux` + {gnu, musl} today, mirroring
+    `builtin_has_function`. Windows/mingw, macOS, and `x86`/`arm` beyond
+    `Cpu::ALL` are a later pass; `msvc` is unreachable (`zig` has no MSVC
+    headers).
+
+  Deferred — out of scope, each its own follow-up:
+  - **`cc.has_argument()` / `has_link_argument()` / `has_multi_arguments()`
+    are compiler-specific.** `zig cc` *is* clang, so "does `-Wfoo` exist"
+    can diverge from a gcc toolchain. These stay open constraints (default
+    `true`, as today) or a `decay.toml [probes]` answer until decay
+    standardizes the cxx toolchain of its emitted builds on clang/zig — the
+    same direction as the hermetic-`python3`-in-`toolchains//` note below.
+  - **`cc.run()` proper, `cc.alignment()`'s value, `cc.compute_int()`.**
+    These need the probe *executed*, not just linked, and decay does not
+    cross-run (no qemu). They stay on the `decay.toml` path — see
+    "`cc.compute_int()` has no configured answer" below, which this does not
+    change.
+  - **Kernel/libc-header-vintage probes.** `HAVE_FUTEX_TIME64` and kin
+    resolve against `zig`'s *bundled* Linux headers — one pinned answer.
+    Better than today's "default to `true` then fail to compile" (see "An
+    unanswered probe defaults to `true`" below), but it is a zig-release
+    pin, not a real per-host fact; real Linux systems still disagree.
+  - **Probe context threading.** Meson runs a probe with the project's
+    `c_args` and each named dependency's cflags/include paths. `zig cc`
+    needs the same flags for `cc.has_header('x.h', dependencies: dep)` and
+    friends to answer correctly; without them a header behind a dependency's
+    include dir reads as absent.
+  - **Determinism / golden tree.** Probe answers get baked into the emitted
+    build, so `example/`'s golden tree shifts whenever the pinned `zig`'s
+    libc or headers change — the same maintenance tradeoff the abilists
+    database already accepted.
+
 - **Python3 genrules.** the genrules using python should try to use python rules if possible
   to define the scripts, and only fallback to genrule with an override in decay.toml if it
   turns out it doesn't work with buck2 rules, also python3 should point to an hermetic

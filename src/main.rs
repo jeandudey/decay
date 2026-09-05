@@ -55,6 +55,7 @@ mod lock;
 mod oracle;
 mod packages;
 mod pool;
+mod probe;
 mod schedule;
 mod sources;
 mod wrap_cache;

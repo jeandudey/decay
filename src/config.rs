@@ -76,6 +76,15 @@ pub struct Config {
     /// project that wants every `has_function` left open regardless.
     #[serde(default = "default_true")]
     pub builtin_has_function: bool,
+    /// Whether `cc.has_header` / `cc.has_type` / `cc.compiles` are answered
+    /// by building the probe with a live `zig cc` for every target in the
+    /// configured matrix, instead of leaving each an open knob. Needs `zig`
+    /// on `PATH`; without it this has no effect. An explicit `[probes]`
+    /// entry for the same check always wins, and a probe carrying an
+    /// `args:` / `dependencies:` the importer cannot replay is left open
+    /// regardless.
+    #[serde(default = "default_true")]
+    pub probe_with_zig: bool,
     /// Global options applied to every project unless overridden by that project.
     #[serde(default)]
     pub options: BTreeMap<String, OptionValue>,

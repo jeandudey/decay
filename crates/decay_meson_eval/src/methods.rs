@@ -11,6 +11,7 @@ use {
             Obj, //
         },
         oracle::{
+            CompileProbe,
             Probe,
             SizeAnswer,
             SizeQuery, //
@@ -701,11 +702,43 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// the compiler. One the configuration ties to the operating system asks
     /// the machine instead, so the generated build selects on the system it
     /// already knows rather than on a second, redundant constraint.
-    fn probe_cond(&mut self, lang: Lang, name: &str, what: &str) -> eyre::Result<Pc> {
-        let answer = self.oracle.probe(name, what);
+    fn probe_cond(
+        &mut self,
+        lang: Lang,
+        name: &str,
+        what: &str,
+        args: &CallArgs,
+    ) -> eyre::Result<Pc> {
+        let answer = match self.oracle.probe(name, what) {
+            Some(a) => Some(a),
+            None => self.compile_probe_answer(name, args),
+        };
         let key = format!("probe:{}:{name}:{what}", lang.as_str());
         let description = format!("`{what}` is available to the {} compiler", lang.as_str());
         self.resolve_probe(answer, &key, description)
+    }
+
+    /// Turn a `cc.has_header` / `cc.has_type` / `cc.compiles` call into a
+    /// [`CompileProbe`] and let the oracle answer it by compiling — but only
+    /// for the plain shapes it can reproduce faithfully: a project `args:`
+    /// or `dependencies:` adds flags and include paths the importer cannot
+    /// replay, so anything carrying one stays an open knob.
+    fn compile_probe_answer(&mut self, name: &str, args: &CallArgs) -> Option<Probe> {
+        if args.get("args").is_some() || args.get("dependencies").is_some() {
+            return None;
+        }
+        let prefix = match self.opt_string(args, "prefix") {
+            Ok(p) => p.map(|s| s.to_string()).unwrap_or_default(),
+            Err(_) => return None,
+        };
+        let arg0 = self.one_string(args.at(0)?).ok()?.to_string();
+        let probe = match name {
+            "has_header" if prefix.is_empty() => CompileProbe::Header { header: arg0 },
+            "has_type" => CompileProbe::Type { name: arg0, prefix },
+            "compiles" => CompileProbe::Compiles { prefix, code: arg0 },
+            _ => return None,
+        };
+        self.oracle.compile_probe(&probe)
     }
 
     /// Turn an [`Oracle`] answer into a condition, the way [`Self::probe_cond`]
@@ -732,16 +765,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 rows,
             }) => {
                 let on_systems = self.host_system_is(&systems, key)?;
-                let mut any_row = Pc::from_bool(false);
-                for row in &rows {
-                    let mut row_holds = Pc::from_bool(true);
-                    for ((setting, domain), value) in axes.iter().zip(row) {
-                        let value = std::slice::from_ref(value);
-                        let holds = self.constraint_is(setting, domain.clone(), value);
-                        row_holds = self.logic.and(row_holds, holds);
-                    }
-                    any_row = self.logic.or(any_row, row_holds);
-                }
+                let any_row = self.matrix_any_row(&axes, &rows);
                 let known = self.logic.and(on_systems, any_row);
                 // Outside the known region this is not a "no", just an
                 // unknown — the same open choice as if the oracle had
@@ -751,8 +775,41 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let open_elsewhere = self.probe(key, description);
                 Ok(self.logic.or(known, open_elsewhere))
             }
+            Some(Probe::Matrix {
+                systems,
+                axes,
+                rows,
+            }) => {
+                let on_systems = self.host_system_is(&systems, key)?;
+                let any_row = self.matrix_any_row(&axes, &rows);
+                let settled = self.logic.and(on_systems, any_row);
+                // Complete within the probed systems — a `(cpu, abi)` not in
+                // any row genuinely did not compile, so it is a settled `no`
+                // with no knob. Only off those systems, where nothing was
+                // built, does it stay open.
+                let elsewhere = self.logic.not(on_systems);
+                let open = self.probe(key, description);
+                let open_elsewhere = self.logic.and(elsewhere, open);
+                Ok(self.logic.or(settled, open_elsewhere))
+            }
             None => Ok(self.probe(key, description)),
         }
+    }
+
+    /// The condition that one of `rows` holds — each row an AND across the
+    /// `axes` constraints, the rows OR'd together. Shared by
+    /// [`Probe::SystemsAndConstraint`] and [`Probe::Matrix`].
+    fn matrix_any_row(&mut self, axes: &[(String, Vec<String>)], rows: &[Vec<String>]) -> Pc {
+        let mut any_row = Pc::from_bool(false);
+        for row in rows {
+            let mut row_holds = Pc::from_bool(true);
+            for ((setting, domain), value) in axes.iter().zip(row) {
+                let holds = self.constraint_is(setting, domain.clone(), std::slice::from_ref(value));
+                row_holds = self.logic.and(row_holds, holds);
+            }
+            any_row = self.logic.or(any_row, row_holds);
+        }
+        any_row
     }
 
     // -- compilers --------------------------------------------------------
@@ -788,7 +845,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                     Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
                     None => Rc::from("expr"),
                 };
-                let cond = self.probe_cond(lang, name, &what)?;
+                let cond = self.probe_cond(lang, name, &what, args)?;
                 Ok(self.bool_value(cond))
             }
             // A source snippet makes an unwieldy, fragile probe key — and, if
@@ -804,7 +861,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                         None => Rc::from("expr"),
                     },
                 };
-                let cond = self.probe_cond(lang, name, &what)?;
+                let cond = self.probe_cond(lang, name, &what, args)?;
                 Ok(self.bool_value(cond))
             }
             "sizeof" => self.type_size(SizeQuery::Sizeof, args),
