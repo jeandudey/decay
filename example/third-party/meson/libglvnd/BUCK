@@ -201,11 +201,8 @@ _cflags_asm_cpu_family_os = select({
     "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
     "//third-party/meson/constraints:compiles_typeof[false]": [],
 }) + select({
-    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-        "//third-party/meson/constraints:compiles_thread[false]": [],
-    }),
-    "//third-party/meson/libglvnd/constraints:tls[false]": [],
+    "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+    "//third-party/meson/constraints:compiles_thread[false]": [],
 }) + select({
     "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
         "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -280,29 +277,17 @@ _cflags_asm_cpu_family_os = select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                    "//third-party/meson/constraints:compiles_thread[true]": select({
-                        "prelude//os/constraints:os[freebsd]": [],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_thread[false]": select({
+            "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//os/constraints:os[freebsd]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
             }),
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+            "//third-party/meson/constraints:compiles_thread[false]": select({
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
@@ -351,70 +336,34 @@ _cflags_asm_cpu_family_os = select({
         }),
         "DEFAULT": select({
             "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": [],
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "prelude//os/constraints:os[linux]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -611,20 +560,14 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
 }) + select({
     "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
         "//third-party/meson/constraints:cpu_family[x86]": select({
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                    "//third-party/meson/constraints:compiles_thread[true]": select({
-                        "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_thread[false]": [],
+            "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:tls[false]": [],
             }),
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+            "//third-party/meson/constraints:compiles_thread[false]": [],
         }),
         "//third-party/meson/constraints:cpu_family[x86_64]": [],
         "//third-party/meson/constraints:cpu_family[arm]": [],
@@ -641,40 +584,22 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
     "//third-party/meson/libglvnd/constraints:asm[auto]": select({
         "//third-party/meson/constraints:cpu_family[x86]": select({
             "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
-                }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "prelude//os/constraints:os[linux]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "DEFAULT": [],
         }),
@@ -692,20 +617,14 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
 }) + select({
     "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
         "//third-party/meson/constraints:cpu_family[x86]": select({
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                    "//third-party/meson/constraints:compiles_thread[true]": select({
-                        "prelude//os/constraints:os[freebsd]": [],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//os/constraints:os[freebsd]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
         }),
         "//third-party/meson/constraints:cpu_family[x86_64]": [],
         "//third-party/meson/constraints:cpu_family[arm]": [],
@@ -722,40 +641,22 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
     "//third-party/meson/libglvnd/constraints:asm[auto]": select({
         "//third-party/meson/constraints:cpu_family[x86]": select({
             "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": [],
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
             "prelude//os/constraints:os[linux]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
             "DEFAULT": [],
         }),
@@ -773,20 +674,14 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
 }) + select({
     "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
         "//third-party/meson/constraints:cpu_family[x86_64]": select({
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                    "//third-party/meson/constraints:compiles_thread[true]": select({
-                        "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_thread[false]": [],
+            "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:tls[false]": [],
             }),
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+            "//third-party/meson/constraints:compiles_thread[false]": [],
         }),
         "DEFAULT": [],
     }),
@@ -794,40 +689,22 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
     "//third-party/meson/libglvnd/constraints:asm[auto]": select({
         "//third-party/meson/constraints:cpu_family[x86_64]": select({
             "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
-                }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "prelude//os/constraints:os[linux]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "DEFAULT": [],
         }),
@@ -836,20 +713,14 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
 }) + select({
     "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
         "//third-party/meson/constraints:cpu_family[x86_64]": select({
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                    "//third-party/meson/constraints:compiles_thread[true]": select({
-                        "prelude//os/constraints:os[freebsd]": [],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//os/constraints:os[freebsd]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
         }),
         "DEFAULT": [],
     }),
@@ -857,40 +728,22 @@ _srcs_asm_cpu_family_compiler = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] 
     "//third-party/meson/libglvnd/constraints:asm[auto]": select({
         "//third-party/meson/constraints:cpu_family[x86_64]": select({
             "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": [],
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
             "prelude//os/constraints:os[linux]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
             "DEFAULT": [],
         }),
@@ -987,11 +840,8 @@ _cflags_asm_cpu_family_os2 = select({
     "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
     "//third-party/meson/constraints:compiles_typeof[false]": [],
 }) + select({
-    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-        "//third-party/meson/constraints:compiles_thread[false]": [],
-    }),
-    "//third-party/meson/libglvnd/constraints:tls[false]": [],
+    "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+    "//third-party/meson/constraints:compiles_thread[false]": [],
 }) + select({
     "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
         "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -1066,29 +916,17 @@ _cflags_asm_cpu_family_os2 = select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                    "//third-party/meson/constraints:compiles_thread[true]": select({
-                        "prelude//os/constraints:os[freebsd]": [],
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_thread[false]": select({
+            "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//os/constraints:os[freebsd]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
             }),
-            "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+            "//third-party/meson/constraints:compiles_thread[false]": select({
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
@@ -1137,70 +975,34 @@ _cflags_asm_cpu_family_os2 = select({
         }),
         "DEFAULT": select({
             "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": [],
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "prelude//os/constraints:os[linux]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                            "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -1576,11 +1378,8 @@ cxx_library(
         ":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]",
         ":glvnd.git[src/GLdispatch/vnd-glapi/table.c]",
     ] + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
-            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tsd.c]"],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tsd.c]"],
+        "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
+        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tsd.c]"],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[x86]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
@@ -1660,20 +1459,14 @@ cxx_library(
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[x86]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "//third-party/meson/constraints:cpu_family[x86_64]": [],
             "//third-party/meson/constraints:cpu_family[arm]": [],
@@ -1690,40 +1483,22 @@ cxx_library(
         "//third-party/meson/libglvnd/constraints:asm[auto]": select({
             "//third-party/meson/constraints:cpu_family[x86]": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                            "//third-party/meson/constraints:compiles_thread[false]": [],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:compiles_thread[false]": [],
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": [],
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": [],
                 }),
                 "DEFAULT": [],
             }),
@@ -1741,20 +1516,14 @@ cxx_library(
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[x86]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
             "//third-party/meson/constraints:cpu_family[x86_64]": [],
             "//third-party/meson/constraints:cpu_family[arm]": [],
@@ -1771,40 +1540,22 @@ cxx_library(
         "//third-party/meson/libglvnd/constraints:asm[auto]": select({
             "//third-party/meson/constraints:cpu_family[x86]": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
                 "DEFAULT": [],
             }),
@@ -1822,20 +1573,14 @@ cxx_library(
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[x86_64]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                "//third-party/meson/constraints:compiles_thread[false]": [],
             }),
             "DEFAULT": [],
         }),
@@ -1843,40 +1588,22 @@ cxx_library(
         "//third-party/meson/libglvnd/constraints:asm[auto]": select({
             "//third-party/meson/constraints:cpu_family[x86_64]": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                            "//third-party/meson/constraints:compiles_thread[false]": [],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:compiles_thread[false]": [],
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": [],
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": [],
                 }),
                 "DEFAULT": [],
             }),
@@ -1885,20 +1612,14 @@ cxx_library(
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[x86_64]": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
             "DEFAULT": [],
         }),
@@ -1906,40 +1627,22 @@ cxx_library(
         "//third-party/meson/libglvnd/constraints:asm[auto]": select({
             "//third-party/meson/constraints:cpu_family[x86_64]": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                    "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
                 "DEFAULT": [],
             }),
@@ -2055,11 +1758,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -2134,29 +1834,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -2205,70 +1893,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -2453,11 +2105,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -2532,29 +2181,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -2603,70 +2240,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -2860,11 +2461,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -2939,29 +2537,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -3010,70 +2596,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -3267,11 +2817,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -3346,29 +2893,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -3417,70 +2952,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -3674,11 +3173,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -3753,29 +3249,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -3824,70 +3308,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -4026,11 +3474,8 @@ cxx_library(
     header_namespace = "",
     compiler_flags = _cflags_asm_cpu_family_os,
     exported_linker_flags = ["-Wl,--version-script"] + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["src/GLdispatch/export_list_tls.ver"],
-            "//third-party/meson/constraints:compiles_thread[false]": ["src/GLdispatch/export_list_tsd.ver"],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": ["src/GLdispatch/export_list_tsd.ver"],
+        "//third-party/meson/constraints:compiles_thread[true]": ["src/GLdispatch/export_list_tls.ver"],
+        "//third-party/meson/constraints:compiles_thread[false]": ["src/GLdispatch/export_list_tsd.ver"],
     }),
     deps = [
         ":libglapi",
@@ -4217,7 +3662,6 @@ cxx_library(
         "//third-party/meson/constraints:x11[false]": [],
     }),
     preferred_linkage = "static",
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4288,11 +3732,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -4367,29 +3808,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -4438,70 +3867,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -4590,7 +3983,6 @@ cxx_library(
         "//third-party/meson/constraints:x11[false]": [],
     }),
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4600,7 +3992,6 @@ cxx_library(
     exported_headers = _headers2,
     header_namespace = "",
     exported_deps = [":EGL"],
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4776,7 +4167,6 @@ cxx_library(
         ":glvnd-dep-9",
     ],
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:gles1[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4786,7 +4176,6 @@ cxx_library(
     exported_headers = _headers2,
     header_namespace = "",
     exported_deps = [":GLESv1_CM"],
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:gles1[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4802,7 +4191,6 @@ cxx_library(
         ":glvnd-dep-10",
     ],
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:gles2[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4812,7 +4200,6 @@ cxx_library(
     exported_headers = _headers2,
     header_namespace = "",
     exported_deps = [":GLESv2"],
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:gles2[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -5015,11 +4402,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -5094,29 +4478,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -5165,70 +4537,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -5301,7 +4637,6 @@ cxx_library(
         ":glvnd-dep",
     ],
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -5366,11 +4701,8 @@ cxx_library(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -5445,29 +4777,17 @@ cxx_library(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -5516,70 +4836,34 @@ cxx_library(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -5652,7 +4936,6 @@ cxx_library(
         ":glvnd-dep",
     ],
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -5782,11 +5065,8 @@ cxx_binary(
         "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
         "//third-party/meson/constraints:compiles_typeof[false]": [],
     }) + select({
-        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
-        "//third-party/meson/libglvnd/constraints:tls[false]": [],
+        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
+        "//third-party/meson/constraints:compiles_thread[false]": [],
     }) + select({
         "//third-party/meson/libglvnd/constraints:asm[enabled]": select({
             "//third-party/meson/constraints:cpu_family[arm]": select({
@@ -5861,29 +5141,17 @@ cxx_binary(
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                    "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                        "//third-party/meson/constraints:compiles_thread[true]": select({
-                            "prelude//os/constraints:os[freebsd]": [],
-                            "DEFAULT": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                        }),
-                        "//third-party/meson/constraints:compiles_thread[false]": select({
+                "//third-party/meson/constraints:compiles_thread[true]": select({
+                    "prelude//os/constraints:os[freebsd]": [],
+                    "DEFAULT": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
                 }),
-                "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                "//third-party/meson/constraints:compiles_thread[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
@@ -5932,70 +5200,34 @@ cxx_binary(
             }),
             "DEFAULT": select({
                 "prelude//os/constraints:os[freebsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": [],
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                        }),
-                    }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": [],
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[linux]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
                 "prelude//os/constraints:os[netbsd]": select({
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[true]": select({
-                        "//third-party/meson/libglvnd/constraints:tls[true]": select({
-                            "//third-party/meson/constraints:compiles_thread[true]": select({
-                                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                                }),
-                            }),
-                            "//third-party/meson/constraints:compiles_thread[false]": select({
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                            }),
-                        }),
-                        "//third-party/meson/libglvnd/constraints:tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[true]": select({
+                        "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                        "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                         }),
                     }),
-                    "//third-party/meson/libglvnd/constraints:dispatch_tls[false]": select({
+                    "//third-party/meson/constraints:compiles_thread[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
@@ -6159,7 +5391,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_asm_cpu_family_os,
     deps = _deps,
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6173,7 +5404,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_asm_cpu_family_os,
     deps = _deps,
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6187,7 +5417,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_asm_cpu_family_os,
     deps = _deps,
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6208,7 +5437,6 @@ cxx_binary(
         "//third-party/meson/constraints:dl[true]": [":dl"],
         "//third-party/meson/constraints:dl[false]": [],
     }),
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6228,7 +5456,6 @@ cxx_binary(
         "//third-party/meson/constraints:dl[true]": [":dl"],
         "//third-party/meson/constraints:dl[false]": [],
     }),
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6242,7 +5469,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_asm_cpu_family_os,
     deps = _deps,
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6256,7 +5482,6 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags_asm_cpu_family_os,
     deps = _deps,
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6270,7 +5495,6 @@ cxx_binary(
         ":EGL",
         ":threads",
     ],
-    target_compatible_with = ["//third-party/meson/libglvnd/constraints:egl[true]"],
     visibility = ["PUBLIC"],
 )
 

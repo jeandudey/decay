@@ -20,50 +20,10 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# build option `option:tls`: Use Thread Local Storage (if supported).
-constraint(
-    name = "tls",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:dispatch-tls`: Use TLS-based stubs in libGLdispatch (if supported).
-constraint(
-    name = "dispatch_tls",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # build option `option:entrypoint-patching`: Allow vendor libraries to patch OpenGL entrypoint functions.
 constraint(
     name = "entrypoint_patching",
     values = ["enabled", "disabled", "auto"],
     default = "auto",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:gles1`: Support OpenGL ES 1.x.
-constraint(
-    name = "gles1",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:gles2`: Support OpenGL ES 2.x and 3.x.
-constraint(
-    name = "gles2",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:egl`: Support the EGL platform.
-constraint(
-    name = "egl",
-    values = ["true", "false"],
-    default = "true",
     visibility = ["PUBLIC"],
 )
