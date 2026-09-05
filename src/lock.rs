@@ -56,6 +56,11 @@ struct LockedWrap {
     /// deleted or edited by hand.
     pin: Option<String>,
     version: String,
+    /// The wrapdb commit `{name}_{version}` resolved to — pins
+    /// `patch_directory`'s content the same way `source_hash`/`git_rev`
+    /// pins the rest, since that tag is not guaranteed to still point where
+    /// it did (wrapdb has force-moved one before).
+    wrapdb_rev: String,
     #[serde(default)]
     patch_directory: Option<String>,
     /// Exactly one of these two field groups is populated, depending on
@@ -86,6 +91,7 @@ impl LockedWrap {
             name: name.to_owned(),
             pin: pin.map(str::to_owned),
             version: version.to_owned(),
+            wrapdb_rev: file.wrapdb_rev.clone(),
             patch_directory: file.patch_directory.clone(),
             source_url,
             source_filename,
@@ -121,7 +127,11 @@ impl LockedWrap {
                 self.name
             ),
         };
-        Ok(WrapFile { source, patch_directory: self.patch_directory.clone() })
+        Ok(WrapFile {
+            source,
+            patch_directory: self.patch_directory.clone(),
+            wrapdb_rev: self.wrapdb_rev.clone(),
+        })
     }
 }
 
@@ -328,6 +338,7 @@ mod tests {
                 hash: "deadbeef".to_owned(),
             },
             patch_directory: None,
+            wrapdb_rev: "f".repeat(40),
         };
         save(&path, &LockFile {
             projects: vec![],
@@ -348,6 +359,7 @@ mod tests {
                         hash: "deadbeef".to_owned(),
                     }
                 );
+                assert_eq!(file.wrapdb_rev, "f".repeat(40));
             }
             Resolved::Git { .. } => panic!("expected a wrap"),
         }
@@ -364,6 +376,7 @@ mod tests {
                 revision: resolved_sha.clone(),
             },
             patch_directory: None,
+            wrapdb_rev: "f".repeat(40),
         };
         save(&path, &LockFile {
             projects: vec![],

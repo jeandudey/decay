@@ -118,6 +118,19 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   the plain tarball would just fail loudly for it rather than silently
   produce a wrong build, but nothing does that fetch yet.
 
+  `decay.lock` also pins the wrapdb commit a `patch_directory` overlay came
+  from (`WrapFile::wrapdb_rev`, `LockedWrap::wrapdb_rev`), not just the
+  tarball's own hash or the `[wrap-git]` commit — `source`'s hash or resolved
+  commit already made the *source* reproducible, but nothing pinned the
+  overlay's own content the same way, only the `{name}_{version}` tag's
+  name, and that tag is not actually immutable: wrapdb force-moved
+  `ff-nvcodec-headers_11.1.5.1-0` from a `[wrap-git]` wrap to an unrelated
+  `[wrap-file]` one after the fact. `wrapdb::fetch` resolves that tag to a
+  commit hash once and stamps it onto the result; `wrapdb::patch_dir` then
+  takes that hash directly rather than ever re-resolving the tag, so a
+  second run overlays the exact same files a first one did even if wrapdb's
+  tag has since moved.
+
   A `[wrap-git]` wrap (`url`/`revision`, plus an optional `patch_directory` —
   wrapdb's `ff-nvcodec-headers_11.1.5.1-0` once carried both) resolves and
   fetches exactly the way an ordinary `[[project]]` `repo`/`rev` does:

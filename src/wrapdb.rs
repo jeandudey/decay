@@ -57,6 +57,15 @@ pub struct WrapFile {
     /// applies after either kind of `source` is fetched.
     /// [`crate::wrap_cache::WrapCache`] is what applies it.
     pub patch_directory: Option<String>,
+    /// The wrapdb commit `{name}_{version}` resolved to when this was
+    /// fetched. `source`'s own hash (or, for `[wrap-git]`, its resolved
+    /// commit) already pins the source; nothing pinned `patch_directory`'s
+    /// *content* the same way, only its name — and wrapdb tags are not
+    /// actually immutable (`ff-nvcodec-headers_11.1.5.1-0` was force-moved
+    /// from a `[wrap-git]` wrap to a `[wrap-file]` one after the fact). This
+    /// is what `decay.lock` pins instead, so a later run overlays the exact
+    /// same files rather than trusting the tag to still point where it did.
+    pub wrapdb_rev: String,
 }
 
 /// Where a wrap's source actually comes from — one `.wrap` file has exactly
@@ -91,9 +100,15 @@ pub fn latest_version(git_cache: &GitCache, name: &str) -> eyre::Result<String> 
 
 /// Fetch and parse the `.wrap` file wrapdb published for `name` at `version`
 /// (wrapdb's own `version-revision` spelling, e.g. `1.3.1-1`) — the state of
-/// `subprojects/{name}.wrap` at the git tag `{name}_{version}`.
+/// `subprojects/{name}.wrap` at the git tag `{name}_{version}`, resolved to a
+/// commit hash once here and stamped onto the result as `wrapdb_rev` so
+/// nothing downstream has to trust that tag not to move later.
 pub fn fetch(git_cache: &GitCache, name: &str, version: &str) -> eyre::Result<WrapFile> {
-    let checkout = checkout_release(git_cache, name, version)?;
+    let wrapdb_rev = git_cache::resolve_rev(&REPO, &format!("{name}_{version}"))
+        .wrap_err_with(|| format!("Failed to resolve `{name}_{version}` in wrapdb"))?;
+    let checkout = git_cache
+        .checkout(&REPO, &wrapdb_rev)
+        .wrap_err_with(|| format!("Failed to check out wrapdb at `{name}_{version}`"))?;
     let path = checkout.join("subprojects").join(format!("{name}.wrap"));
     let text = fs::read_to_string(&path).wrap_err_with(|| {
         format!(
@@ -102,18 +117,24 @@ pub fn fetch(git_cache: &GitCache, name: &str, version: &str) -> eyre::Result<Wr
             path.display()
         )
     })?;
-    parse_wrap(&text)
+    let mut file = parse_wrap(&text)?;
+    file.wrapdb_rev = wrapdb_rev;
+    Ok(file)
 }
 
-/// The overlay directory a `patch_directory` names, once wrapdb is checked
-/// out at `name`/`version`.
-pub fn patch_dir(git_cache: &GitCache, name: &str, version: &str, dir: &str) -> eyre::Result<PathBuf> {
-    let checkout = checkout_release(git_cache, name, version)?;
+/// The overlay directory a `patch_directory` names, at the wrapdb commit
+/// `wrapdb_rev` a prior [`fetch`] resolved and pinned — never re-resolving
+/// `{name}_{version}` itself, since that tag is not guaranteed to still
+/// point where it did.
+pub fn patch_dir(git_cache: &GitCache, wrapdb_rev: &str, dir: &str) -> eyre::Result<PathBuf> {
+    let checkout = git_cache
+        .checkout(&REPO, wrapdb_rev)
+        .wrap_err_with(|| format!("Failed to check out wrapdb at `{wrapdb_rev}`"))?;
     let path = checkout.join("subprojects").join("packagefiles").join(dir);
     if !path.is_dir() {
         bail!(
-            "`{name}_{version}` names patch_directory `{dir}`, but `subprojects/packagefiles/{dir}` \
-             does not exist in wrapdb"
+            "wrapdb at `{wrapdb_rev}` names patch_directory `{dir}`, but \
+             `subprojects/packagefiles/{dir}` does not exist there"
         );
     }
     Ok(path)
@@ -136,10 +157,6 @@ pub fn download(url: &str, dest: &Path) -> eyre::Result<()> {
         );
     }
     Ok(())
-}
-
-fn checkout_release(git_cache: &GitCache, name: &str, version: &str) -> eyre::Result<PathBuf> {
-    checkout_rev(git_cache, &format!("{name}_{version}"))
 }
 
 /// Check `rev` (a branch or tag name) out of wrapdb.
@@ -172,6 +189,8 @@ fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
                 revision: get("revision")?,
             },
             patch_directory: git.get("patch_directory").cloned(),
+            // Stamped by `fetch`, the only caller that can resolve it.
+            wrapdb_rev: String::new(),
         });
     }
 
@@ -197,6 +216,8 @@ fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
             hash: get("source_hash")?,
         },
         patch_directory: file.get("patch_directory").cloned(),
+        // Stamped by `fetch`, the only caller that can resolve it.
+        wrapdb_rev: String::new(),
     })
 }
 

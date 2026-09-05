@@ -170,7 +170,7 @@ pub(crate) fn execute(
                 let overlay = file
                     .patch_directory
                     .as_deref()
-                    .map(|dir| wrapdb::patch_dir(git_cache, &name, version, dir))
+                    .map(|dir| wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir))
                     .transpose()?;
                 let dir = wrap_cache.materialize_git(&name, version, &checkout, overlay.as_deref())?;
                 let origin = Origin::Git { repo: url.clone(), rev: revision.clone() };
