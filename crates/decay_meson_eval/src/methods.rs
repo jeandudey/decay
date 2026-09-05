@@ -484,6 +484,29 @@ impl<'a, S: Solver> Interp<'a, S> {
             return Ok(self.pure(Value::from(pinned)));
         }
 
+        // `cpu()` names the exact processor, which nothing here pins any
+        // finer than `cpu_family()` already does — so pair the two instead
+        // of demanding a second pin: same presence conditions as
+        // `cpu_family()`, each value mapped through that family's usual
+        // `cpu()` spelling (identical to the family name for every family
+        // but x86, whose processors report the historical `i686` instead).
+        if property == "cpu" {
+            let family = self.machine_property(machine, "cpu_family")?;
+            let mut out = Variational::empty();
+            for variant in family.variants() {
+                let Value::Str(family) = &variant.value else {
+                    bail!(
+                        "`{}_machine.cpu_family()` did not resolve to a string",
+                        machine.as_str()
+                    );
+                };
+                let cpu = if &**family == "x86" { "i686" } else { family };
+                out.push(Variant::new(variant.cond, Value::from(cpu)));
+            }
+            out.normalize(&mut self.logic);
+            return Ok(out);
+        }
+
         let choices = match property {
             "system" => self.oracle.systems(),
             "endian" => ["little", "big"].map(str::to_owned).to_vec(),
@@ -493,11 +516,6 @@ impl<'a, S: Solver> Interp<'a, S> {
             ]
             .map(str::to_owned)
             .to_vec(),
-            "cpu" => bail!(
-                "`{}_machine.cpu()` names an exact CPU, which cannot be left open; \
-                 pin it in the importer configuration",
-                machine.as_str()
-            ),
             other => bail!("unknown machine property `{other}()`"),
         };
 

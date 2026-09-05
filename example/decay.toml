@@ -170,7 +170,6 @@ options.gtk_doc = false
 #[[project]]
 #repo = "https://github.com/NVIDIA/libglvnd"
 #rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
-#host_machine.cpu = "x86_64" # TODO: this should not be necessary
 
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
