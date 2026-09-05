@@ -190,11 +190,19 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:KHR/khrplatform.h`: `KHR/khrplatform.h` is available to the c compiler
+# toolchain probe `probe:c:compiles:ARMv7 macros`: `ARMv7 macros` is available to the c compiler
 constraint(
-    name = "has_header_KHR_khrplatform_h",
+    name = "compiles_ARMv7_macros",
     values = ["true", "false"],
     default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# machine property `machine:host:endian`: host machine endian
+constraint(
+    name = "endian",
+    values = ["little", "big"],
+    default = "little",
     visibility = ["PUBLIC"],
 )
 
@@ -203,6 +211,110 @@ constraint(
     name = "dl",
     values = ["true", "false"],
     default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:x11`: `x11` is available
+constraint(
+    name = "x11",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:xext`: `xext` is available
+constraint(
+    name = "xext",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:glproto`: `glproto` is available
+constraint(
+    name = "glproto",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:typeof`: `typeof` is available to the c compiler
+constraint(
+    name = "compiles_typeof",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:__thread`: `__thread` is available to the c compiler
+constraint(
+    name = "compiles_thread",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header_symbol:features.h`: `features.h` is available to the c compiler
+constraint(
+    name = "has_header_symbol_features_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:run:-mtls-dialect=gnu2`: `-mtls-dialect=gnu2` is available to the c compiler
+constraint(
+    name = "run_mtls_dialect_gnu2",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:pthread rwlock`: `pthread rwlock` is available to the c compiler
+constraint(
+    name = "compiles_pthread_rwlock",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:sync intrinsics`: `sync intrinsics` is available to the c compiler
+constraint(
+    name = "compiles_sync_intrinsics",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:mincore`: `mincore` is available to the c compiler
+constraint(
+    name = "has_function_mincore",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header_symbol:dlfcn.h`: `dlfcn.h` is available to the c compiler
+constraint(
+    name = "has_header_symbol_dlfcn_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_member:struct dirent`: `struct dirent` is available to the c compiler
+constraint(
+    name = "has_member_struct_dirent",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:KHR/khrplatform.h`: `KHR/khrplatform.h` is available to the c compiler
+constraint(
+    name = "has_header_KHR_khrplatform_h",
+    values = ["true", "false"],
+    default = "true",
     visibility = ["PUBLIC"],
 )
 
@@ -217,14 +329,6 @@ constraint(
 # external dependency `dep:egl`: `egl` is available
 constraint(
     name = "egl",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:x11`: `x11` is available
-constraint(
-    name = "x11",
     values = ["true", "false"],
     default = "false",
     visibility = ["PUBLIC"],
@@ -1670,14 +1774,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header_symbol:dlfcn.h`: `dlfcn.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_dlfcn_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_type:loff_t`: `loff_t` is available to the c compiler
 constraint(
     name = "has_type_loff_t",
@@ -1979,14 +2075,6 @@ constraint(
     name = "compiles_int64_t_is_long_long",
     values = ["true", "false"],
     default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# machine property `machine:host:endian`: host machine endian
-constraint(
-    name = "endian",
-    values = ["little", "big"],
-    default = "little",
     visibility = ["PUBLIC"],
 )
 

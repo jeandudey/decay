@@ -243,7 +243,10 @@ pub struct Test {
     pub name: String,
     pub target: TargetId,
     pub cond: Pc,
-    pub args: Variational<String>,
+    /// A literal, a file, or a reference to another target in the same
+    /// project (a build target `args:` names directly, e.g. to hand a test
+    /// its own library's path) — same shape as a `custom_target()` command.
+    pub args: Variational<CmdArg>,
 }
 
 /// Files installed on their own rather than as a target's output, e.g. public

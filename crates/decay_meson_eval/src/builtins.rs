@@ -1512,9 +1512,13 @@ impl<'a, S: Solver> Interp<'a, S> {
         let mut targets = self.deps(exe)?;
         targets.normalize(&mut self.logic);
 
+        // `args:` can hold a build target directly (libglvnd's symbol-check
+        // tests hand a just-built shared_library() to a checker script), not
+        // just strings — the same shape a `custom_target()` command already
+        // reads, so reuse it here too.
         let mut cmd_args = Variational::empty();
         if let Some(v) = args.get("args") {
-            cmd_args.extend(self.strings(v)?.map(|s| s.to_string()));
+            cmd_args.extend(self.command(v)?);
         }
 
         for variant in targets.variants() {

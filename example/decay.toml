@@ -74,6 +74,7 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 python3 = "//third-party/tools:python3"
 nm = "//third-party/tools:nm"
 cargo = "//third-party/tools:cargo"
+cp = "//third-party/tools:cp"
 "glib-compile-resources" = "//third-party/tools:glib-compile-resources"
 "glib-mkenums" = "//third-party/tools:glib-mkenums"
 "glib-genmarshal" = "//third-party/tools:glib-genmarshal"
@@ -149,27 +150,9 @@ options.gtk_doc = false
 #repo = "https://gitlab.freedesktop.org/xdg/shared-mime-info"
 #rev = "fd8ab89c20093f1bfba8fa9e302ba584fffd0fd7" # Tag 2.5.1
 
-# TODO: Fails with:
-#   Error: Failed to import `libglvnd`
-#
-#   Caused by:
-#      0: Failed to execute `libglvnd`
-#      1: in /meson.build
-#      2: in `subdir()` at /meson.build:254:0
-#      3: in src/meson.build
-#      4: in `subdir()` at src/meson.build:27:0
-#      5: in src/OpenGL/meson.build
-#      6: in `test()` at src/OpenGL/meson.build:56:0
-#      7: expected a string, found a build_tgt
-#
-#   Location:
-#       crates/decay_meson_eval/src/lib.rs:1026:32
-#
-# `.has_function_attribute()` is fixed; `test()` now needs to accept a
-# `build_tgt` (an executable() result) as its command, not just a string.
-#[[project]]
-#repo = "https://github.com/NVIDIA/libglvnd"
-#rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
+[[project]]
+repo = "https://github.com/NVIDIA/libglvnd"
+rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
 
 [[project]]
 repo = "https://github.com/anholt/libepoxy"

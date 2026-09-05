@@ -324,10 +324,9 @@ alias(
 )
 
 # meson: dependency("glesv2") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.glesv2 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
+alias(
     name = "glesv2",
+    actual = "//third-party/meson/libglvnd:GLESv2",
     visibility = ["PUBLIC"],
 )
 
@@ -341,10 +340,9 @@ cxx_library(
 )
 
 # meson: dependency("glesv1_cm") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.glesv1_cm = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
+alias(
     name = "glesv1_cm",
+    actual = "//third-party/meson/libglvnd:GLESv1_CM",
     visibility = ["PUBLIC"],
 )
 
