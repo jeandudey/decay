@@ -4,7 +4,7 @@
 git_fetch(
     name = "glib.git",
     repo = "https://gitlab.gnome.org/GNOME/glib.git",
-    rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079",
+    rev = "8861fc77046a6b2218f49fe10c0a12d9f70de52e",
     sub_targets = [
         ".gitlab-ci/thorough-test-wrapper.sh",
         "build-aux/win32/app.c",
