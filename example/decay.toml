@@ -72,6 +72,7 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # doxygen = "//third-party/tools:doxygen"
 [programs]
 python3 = "//third-party/tools:python3"
+nm = "//third-party/tools:nm"
 "glib-compile-resources" = "//third-party/tools:glib-compile-resources"
 "glib-mkenums" = "//third-party/tools:glib-mkenums"
 "glib-genmarshal" = "//third-party/tools:glib-genmarshal"
@@ -125,6 +126,22 @@ zlib = "//third-party/system:Z"
 buildtype = "release"
 optimization = "3"
 default_library = "shared"
+
+# TODO: Fails with:
+#   Error: Failed to import `libglvnd`
+#
+#   Caused by:
+#      0: Failed to execute `libglvnd`
+#      1: in /meson.build
+#      2: in `.has_function_attribute()` at /meson.build:199:6
+#      3: a compiler has no method `has_function_attribute`
+#
+#   Location:
+#       crates/decay_meson_eval/src/methods.rs:772:22
+#[[project]]
+#repo = "https://github.com/NVIDIA/libglvnd"
+#rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0
+#host_machine.cpu = "x86_64" # TODO: this should not be necessary
 
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
