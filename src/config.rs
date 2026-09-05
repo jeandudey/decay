@@ -436,13 +436,10 @@ pub struct Repo(pub Url);
 
 impl Repo {
     pub fn ident(&self) -> eyre::Result<String> {
-        let mut name = String::new();
-        let segments = self.0
+        let name: String = self.0
             .path_segments()
-            .ok_or(eyre!("Repository URL doesn't contain segments, this probably shouldn't be an error if someone hosts a git repository at the URL root"))?;
-        for segment in segments {
-            name.push_str(segment);
-        }
+            .ok_or(eyre!("Repository URL doesn't contain segments, this probably shouldn't be an error if someone hosts a git repository at the URL root"))?
+            .collect();
         let hash = Sha256::digest(self.0.to_string());
         Ok(format!("{name}-{}", hex::encode(&hash[..8])))
     }

@@ -12,10 +12,7 @@ use {
             DiskSources, //
         },
     },
-    clap::{
-        Parser,
-        Subcommand, //
-    },
+    clap::Parser,
     decay_build_ir::{
         Graph,
         Origin, //
@@ -54,23 +51,15 @@ mod pool;
 mod schedule;
 mod sources;
 
+/// Generate Buck build files
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    #[command(subcommand)]
-    command: Command,
-
     /// How many projects to evaluate at once. Independent projects (those whose
     /// `depends` are all already imported) run in parallel up to this many
     /// workers. Defaults to the number of CPUs, or `DECAY_JOBS` if set.
     #[arg(short = 'j', long, global = true)]
     jobs: Option<usize>,
-}
-
-#[derive(Subcommand)]
-enum Command {
-    /// Generate Buck build files
-    Buckify,
 }
 
 fn main() -> eyre::Result<()> {
@@ -83,11 +72,7 @@ fn main() -> eyre::Result<()> {
         .with_span_events(FmtSpan::CLOSE)
         .init();
 
-    let jobs = resolve_jobs(cli.jobs);
-
-    match cli.command {
-        Command::Buckify => buckify(jobs),
-    }
+    buckify(resolve_jobs(cli.jobs))
 }
 
 /// Worker count: `--jobs`, else `DECAY_JOBS`, else the CPU count, else 1. Always
