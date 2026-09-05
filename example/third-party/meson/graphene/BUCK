@@ -585,11 +585,11 @@ cxx_library(
         "//third-party/meson/constraints:compiler[msvc]": [],
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:cpu_family[aarch64]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
                 "DEFAULT": ["-mfpu=neon"],
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:cpu_family[aarch64]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
                 "DEFAULT": ["-mfpu=neon"],
             }),
             "DEFAULT": [],

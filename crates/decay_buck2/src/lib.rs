@@ -180,6 +180,22 @@ impl Used {
     }
 }
 
+/// `host_machine.cpu_family()`'s meson-side spelling, mapped onto the value
+/// buck2's own `prelude//cpu/constraints:cpu` uses for it — the same five
+/// architectures `decay_libc_db::Cpu` tracks (see its own doc comment for
+/// why only five of buck2's seven `cpu` values are real targets: the other
+/// two, `arm64_32` and `wasm32`, drop out for reasons specific to that
+/// crate's `has_function` database and are not modelled here either).
+/// `decay_meson_eval::methods::machine_property` keeps `cpu_family()`'s own
+/// domain to exactly these five for the same reason.
+const CPU_FAMILY_LABELS: [(&str, &str); 5] = [
+    ("x86", "x86_32"),
+    ("x86_64", "x86_64"),
+    ("arm", "arm32"),
+    ("aarch64", "arm64"),
+    ("riscv64", "riscv64"),
+];
+
 /// Build-file labels the importer was given for choices it should not invent
 /// constraints for, keyed by the choice name.
 #[derive(Debug, Default)]
@@ -206,6 +222,19 @@ impl Labels {
         }
         if var.key.starts_with("machine:") && var.key.ends_with(":system") {
             return self.systems.get(choice).cloned();
+        }
+        // `cpu_family()`'s domain is meson's own vocabulary (`decay_meson_eval`
+        // needs that for `== 'x86_64'` comparisons to work at all), but the
+        // architecture it names is not project-specific the way an OS
+        // mapping can be: buck2's own `prelude//cpu/constraints:cpu` already
+        // has a value for it, so select on that directly instead of
+        // inventing a project-local constraint nothing else agrees with.
+        if var.key.starts_with("machine:") && var.key.ends_with(":cpu_family") {
+            let value = CPU_FAMILY_LABELS
+                .iter()
+                .find(|(name, _)| *name == choice)?
+                .1;
+            return Some(format!("prelude//cpu/constraints:cpu[{value}]"));
         }
         if var.key.starts_with("compiler:") {
             return self.compilers.get(choice).cloned();

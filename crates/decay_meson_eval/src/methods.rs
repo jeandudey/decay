@@ -526,21 +526,15 @@ impl<'a, S: Solver> Interp<'a, S> {
         let choices = match property {
             "system" => self.oracle.systems(),
             "endian" => ["little", "big"].map(str::to_owned).to_vec(),
-            "cpu_family" => [
-                "x86",
-                "x86_64",
-                "arm",
-                "aarch64",
-                "riscv32",
-                "riscv64",
-                "ppc64",
-                "s390x",
-                "mips64",
-                "loongarch64",
-                "wasm32",
-            ]
-            .map(str::to_owned)
-            .to_vec(),
+            // Kept to the families buck2's own `prelude//cpu/constraints:cpu`
+            // has a value for (`decay_buck2` maps each straight onto it —
+            // see its `CPU_FAMILY_LABELS`), rather than every family meson
+            // itself knows about: a value with nowhere to select on in the
+            // generated build is worse than an unsupported one, which at
+            // least fails loudly instead of silently losing a branch.
+            "cpu_family" => ["x86", "x86_64", "arm", "aarch64", "riscv64"]
+                .map(str::to_owned)
+                .to_vec(),
             other => bail!("unknown machine property `{other}()`"),
         };
 

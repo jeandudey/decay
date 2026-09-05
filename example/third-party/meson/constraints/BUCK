@@ -14,14 +14,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# machine property `machine:host:cpu_family`: host machine cpu_family
-constraint(
-    name = "cpu_family",
-    values = ["x86", "x86_64", "arm", "aarch64", "riscv32", "riscv64", "ppc64", "s390x", "mips64", "loongarch64", "wasm32"],
-    default = "x86",
-    visibility = ["PUBLIC"],
-)
-
 # machine property `compiler:c`: the c compiler in use
 constraint(
     name = "compiler",
