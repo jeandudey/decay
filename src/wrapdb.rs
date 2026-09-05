@@ -1,5 +1,17 @@
-//! A client for the [meson wrapdb](https://wrapdb.mesonbuild.com), and the
-//! small INI dialect a `.wrap` file is written in.
+//! Discovering and fetching a [meson wrapdb](https://github.com/mesonbuild/wrapdb)
+//! `[wrap-file]`.
+//!
+//! wrapdb publishes itself as a git repository, not a stable API: its old
+//! `v2` query endpoints answer with data that doesn't match what a current
+//! `.wrap` file says (they know nothing of `patch_directory`, for one). The
+//! repository itself is the source of truth instead — `releases.json` at
+//! its root lists every project's known versions, newest first, and each
+//! `name`/`version` pair is tagged `{name}_{version}`, at which
+//! `subprojects/{name}.wrap` and, when the wrap carries one,
+//! `subprojects/packagefiles/{patch_directory}` are exactly what that
+//! release resolved to. `decay` checks it out through
+//! [`crate::git_cache::GitCache`], the same way it checks out any other
+//! project's history, rather than a second fetching path of its own.
 //!
 //! Only `[wrap-file]` is understood. Wrapdb's other kind, `[wrap-git]`, names
 //! a git repository and a revision — exactly what an ordinary `[[project]]`
@@ -7,6 +19,10 @@
 //! second, narrower path to the same thing.
 
 use {
+    crate::{
+        config::Repo,
+        git_cache::{self, GitCache}, //
+    },
     eyre::{
         Context,
         bail,
@@ -14,12 +30,20 @@ use {
     },
     std::{
         collections::BTreeMap,
-        path::Path,
-        process::Command, //
+        fs,
+        path::{
+            Path,
+            PathBuf, //
+        },
+        process::Command,
+        sync::LazyLock, //
     },
+    url::Url,
 };
 
-const BASE: &str = "https://wrapdb.mesonbuild.com/v2";
+/// Where wrapdb itself lives, checked out like any other `[[project]]`.
+pub static REPO: LazyLock<Repo> =
+    LazyLock::new(|| Repo(Url::parse("https://github.com/mesonbuild/wrapdb.git").expect("static URL")));
 
 /// What one `[wrap-file]` promises, once parsed.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,39 +51,61 @@ pub struct WrapFile {
     pub source_url: String,
     pub source_filename: String,
     pub source_hash: String,
-    /// Whether this wrap also carries a patch archive to overlay on the
-    /// source after extraction — refused rather than approximated; see the
-    /// module docs on `[wrap-git]` for why the same reasoning applies here.
-    pub has_patch: bool,
+    /// A directory in wrapdb's own tree
+    /// (`subprojects/packagefiles/<patch_directory>`) to overlay onto the
+    /// extracted source, file by file, the way meson's own `copy_tree`
+    /// does. [`crate::wrap_cache::WrapCache::materialize`] is what applies it.
+    pub patch_directory: Option<String>,
 }
 
-/// The latest release wrapdb offers for `name`, in wrapdb's own
-/// `version-revision` spelling (e.g. `1.3.1-1`).
-pub fn latest_version(name: &str) -> eyre::Result<String> {
-    let json = curl_get(&format!("{BASE}/query/get_latest/{name}"))
-        .wrap_err_with(|| format!("Failed to look up the latest wrapdb version of `{name}`"))?;
-    let value: serde_json::Value =
-        serde_json::from_str(&json).wrap_err("wrapdb did not return valid JSON")?;
-    let branch = value["branch"]
+/// The newest version wrapdb's `releases.json` lists for `name`.
+pub fn latest_version(git_cache: &GitCache, name: &str) -> eyre::Result<String> {
+    let checkout = checkout_rev(git_cache, "master")?;
+    let text = fs::read_to_string(checkout.join("releases.json"))
+        .wrap_err("wrapdb checkout has no releases.json")?;
+    let releases: serde_json::Value =
+        serde_json::from_str(&text).wrap_err("wrapdb's releases.json is not valid JSON")?;
+    releases[name]["versions"][0]
         .as_str()
-        .ok_or_else(|| eyre!("wrapdb's answer for `{name}` has no `branch`"))?;
-    let revision = value["revision"]
-        .as_i64()
-        .ok_or_else(|| eyre!("wrapdb's answer for `{name}` has no `revision`"))?;
-    Ok(format!("{branch}-{revision}"))
+        .map(str::to_owned)
+        .ok_or_else(|| eyre!("wrapdb's releases.json does not list a project named `{name}`"))
 }
 
-/// Fetch and parse the `.wrap` file for `name` at `version` (wrapdb's
-/// `version-revision` spelling).
-pub fn fetch(name: &str, version: &str) -> eyre::Result<WrapFile> {
-    let text = curl_get(&format!("{BASE}/{name}/{version}/get_wrap"))
-        .wrap_err_with(|| format!("Failed to fetch the `{name}` wrap at `{version}`"))?;
+/// Fetch and parse the `.wrap` file wrapdb published for `name` at `version`
+/// (wrapdb's own `version-revision` spelling, e.g. `1.3.1-1`) — the state of
+/// `subprojects/{name}.wrap` at the git tag `{name}_{version}`.
+pub fn fetch(git_cache: &GitCache, name: &str, version: &str) -> eyre::Result<WrapFile> {
+    let checkout = checkout_release(git_cache, name, version)?;
+    let path = checkout.join("subprojects").join(format!("{name}.wrap"));
+    let text = fs::read_to_string(&path).wrap_err_with(|| {
+        format!(
+            "wrapdb has no `{}` at `{name}_{version}` — this version may predate decay's \
+             supported layout",
+            path.display()
+        )
+    })?;
     parse_wrap(&text)
 }
 
-/// Download `url` straight to `dest`, verbatim.
+/// The overlay directory a `patch_directory` names, once wrapdb is checked
+/// out at `name`/`version`.
+pub fn patch_dir(git_cache: &GitCache, name: &str, version: &str, dir: &str) -> eyre::Result<PathBuf> {
+    let checkout = checkout_release(git_cache, name, version)?;
+    let path = checkout.join("subprojects").join("packagefiles").join(dir);
+    if !path.is_dir() {
+        bail!(
+            "`{name}_{version}` names patch_directory `{dir}`, but `subprojects/packagefiles/{dir}` \
+             does not exist in wrapdb"
+        );
+    }
+    Ok(path)
+}
+
+/// Download a wrap's `source_url` straight to `dest`, verbatim — the actual
+/// project tarball, which lives wherever upstream hosts it, not in wrapdb's
+/// own repository.
 pub fn download(url: &str, dest: &Path) -> eyre::Result<()> {
-    let out = curl()
+    let out = Command::new("curl")
         .args(["-fsSL", "-o"])
         .arg(dest)
         .arg(url)
@@ -72,6 +118,25 @@ pub fn download(url: &str, dest: &Path) -> eyre::Result<()> {
         );
     }
     Ok(())
+}
+
+fn checkout_release(git_cache: &GitCache, name: &str, version: &str) -> eyre::Result<PathBuf> {
+    checkout_rev(git_cache, &format!("{name}_{version}"))
+}
+
+/// Check `rev` (a branch or tag name) out of wrapdb.
+///
+/// [`GitCache::checkout`] only takes a full commit hash reliably — a bare
+/// branch or tag name doesn't resolve against the local mirror it fetches,
+/// the same reason [`crate::lock`] resolves a `[[project]]`'s own `rev`
+/// through [`git_cache::resolve_rev`] before ever calling it — so this does
+/// that first.
+fn checkout_rev(git_cache: &GitCache, rev: &str) -> eyre::Result<PathBuf> {
+    let sha = git_cache::resolve_rev(&REPO, rev)
+        .wrap_err_with(|| format!("Failed to resolve `{rev}` in wrapdb"))?;
+    git_cache
+        .checkout(&REPO, &sha)
+        .wrap_err_with(|| format!("Failed to check out wrapdb at `{rev}`"))
 }
 
 fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
@@ -87,11 +152,18 @@ fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
             .cloned()
             .ok_or_else(|| eyre!("`[wrap-file]` has no `{key}`"))
     };
+    if file.contains_key("patch_filename") {
+        bail!(
+            "this wrap overlays a legacy `patch_filename` archive, which decay does not support \
+             (see the wrap known gap in AGENTS.md); every current wrapdb release uses \
+             `patch_directory` instead"
+        );
+    }
     Ok(WrapFile {
         source_url: get("source_url")?,
         source_filename: get("source_filename")?,
         source_hash: get("source_hash")?,
-        has_patch: file.contains_key("patch_filename"),
+        patch_directory: file.get("patch_directory").cloned(),
     })
 }
 
@@ -121,21 +193,6 @@ fn parse_ini(text: &str) -> BTreeMap<String, BTreeMap<String, String>> {
     sections
 }
 
-fn curl_get(url: &str) -> eyre::Result<String> {
-    let out = curl().arg("-fsSL").arg(url).output().wrap_err("Failed to run `curl`")?;
-    if !out.status.success() {
-        bail!(
-            "curl failed fetching {url}:\n{}",
-            String::from_utf8_lossy(&out.stderr).trim()
-        );
-    }
-    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-}
-
-fn curl() -> Command {
-    Command::new("curl")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,11 +211,21 @@ mod tests {
         assert_eq!(wrap.source_url, "https://example.com/zlib-1.3.1.tar.gz");
         assert_eq!(wrap.source_filename, "zlib-1.3.1.tar.gz");
         assert_eq!(wrap.source_hash, "deadbeef");
-        assert!(!wrap.has_patch);
+        assert_eq!(wrap.patch_directory, None);
     }
 
     #[test]
-    fn a_patch_is_detected() {
+    fn a_patch_directory_is_captured() {
+        let text = "[wrap-file]\n\
+             source_url = https://example.com/x.tar.gz\n\
+             source_filename = x.tar.gz\n\
+             source_hash = deadbeef\n\
+             patch_directory = x\n";
+        assert_eq!(parse_wrap(text).unwrap().patch_directory.as_deref(), Some("x"));
+    }
+
+    #[test]
+    fn a_legacy_patch_filename_is_refused() {
         let text = "[wrap-file]\n\
              source_url = https://example.com/x.tar.gz\n\
              source_filename = x.tar.gz\n\
@@ -166,7 +233,8 @@ mod tests {
              patch_filename = x_1-1_patch.zip\n\
              patch_url = https://example.com/x_1-1_patch.zip\n\
              patch_hash = cafef00d\n";
-        assert!(parse_wrap(text).unwrap().has_patch);
+        let err = parse_wrap(text).unwrap_err().to_string();
+        assert!(err.contains("patch_filename"), "{err}");
     }
 
     #[test]

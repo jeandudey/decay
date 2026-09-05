@@ -16,7 +16,7 @@ use {
             Source,
             is_full_sha, //
         },
-        git_cache,
+        git_cache::{self, GitCache},
         wrapdb::{self, WrapFile},
     },
     eyre::Context,
@@ -53,7 +53,8 @@ struct LockedWrap {
     source_url: String,
     source_filename: String,
     source_hash: String,
-    has_patch: bool,
+    #[serde(default)]
+    patch_directory: Option<String>,
 }
 
 /// What a project resolved to, ready for [`crate::execute`] to fetch: a git
@@ -67,7 +68,7 @@ pub enum Resolved {
 /// Resolve every project in `projects`, consulting and then updating the lock
 /// file at `path`. One [`Resolved`] per entry of `projects`, in the same
 /// order.
-pub fn resolve(path: &Path, projects: &[Project]) -> eyre::Result<Vec<Resolved>> {
+pub fn resolve(path: &Path, projects: &[Project], git_cache: &GitCache) -> eyre::Result<Vec<Resolved>> {
     let mut lock = load(path)?;
     let mut dirty = false;
     let mut out = Vec::with_capacity(projects.len());
@@ -111,14 +112,14 @@ pub fn resolve(path: &Path, projects: &[Project]) -> eyre::Result<Vec<Resolved>>
                         source_url: locked.source_url.clone(),
                         source_filename: locked.source_filename.clone(),
                         source_hash: locked.source_hash.clone(),
-                        has_patch: locked.has_patch,
+                        patch_directory: locked.patch_directory.clone(),
                     }),
                     None => {
                         let resolved_version = match version {
                             Some(v) => v.clone(),
-                            None => wrapdb::latest_version(name)?,
+                            None => wrapdb::latest_version(git_cache, name)?,
                         };
-                        let file = wrapdb::fetch(name, &resolved_version).wrap_err_with(|| {
+                        let file = wrapdb::fetch(git_cache, name, &resolved_version).wrap_err_with(|| {
                             format!("Failed to fetch the `{name}` wrap at `{resolved_version}`")
                         })?;
                         info!(name, version = resolved_version, "locked");
@@ -130,7 +131,7 @@ pub fn resolve(path: &Path, projects: &[Project]) -> eyre::Result<Vec<Resolved>>
                             source_url: file.source_url.clone(),
                             source_filename: file.source_filename.clone(),
                             source_hash: file.source_hash.clone(),
-                            has_patch: file.has_patch,
+                            patch_directory: file.patch_directory.clone(),
                         });
                         dirty = true;
                         (resolved_version, file)
@@ -186,6 +187,13 @@ mod tests {
         std::env::temp_dir().join(format!("decay-lock-test-{tag}-{}-{n}.toml", process::id()))
     }
 
+    /// A cache these tests never actually touch — every test here reuses an
+    /// existing lock entry rather than resolving one, so nothing here reaches
+    /// the network.
+    fn tmp_git_cache() -> GitCache {
+        GitCache::new(std::env::temp_dir().join(format!("decay-lock-test-cache-{}", process::id())))
+    }
+
     fn git_project(repo: &str, rev: &str) -> Project {
         Project {
             source: Source::Git { repo: Repo(Url::parse(repo).unwrap()), rev: rev.to_owned() },
@@ -212,7 +220,7 @@ mod tests {
         let sha = "a".repeat(40);
         let projects = [git_project("https://example.test/x.git", &sha)];
 
-        let resolved = resolve(&path, &projects).unwrap();
+        let resolved = resolve(&path, &projects, &tmp_git_cache()).unwrap();
 
         assert!(matches!(&resolved[0], Resolved::Git { rev } if *rev == sha));
         assert!(!path.exists(), "a fully-pinned rev needs no lock entry");
@@ -236,7 +244,7 @@ mod tests {
         // No real `main` branch exists at this URL, so if this reached the
         // network path it would fail rather than quietly resolve to
         // something else.
-        let resolved = resolve(&path, &[git_project(repo, "main")]).unwrap();
+        let resolved = resolve(&path, &[git_project(repo, "main")], &tmp_git_cache()).unwrap();
 
         assert!(matches!(&resolved[0], Resolved::Git { rev } if *rev == resolved_sha));
         let _ = fs::remove_file(&path);
@@ -254,12 +262,12 @@ mod tests {
                 source_url: "https://example.test/zlib-1.3.1.tar.gz".to_owned(),
                 source_filename: "zlib-1.3.1.tar.gz".to_owned(),
                 source_hash: "deadbeef".to_owned(),
-                has_patch: false,
+                patch_directory: None,
             }],
         })
         .unwrap();
 
-        let resolved = resolve(&path, &[wrap_project("zlib", None)]).unwrap();
+        let resolved = resolve(&path, &[wrap_project("zlib", None)], &tmp_git_cache()).unwrap();
 
         match &resolved[0] {
             Resolved::Wrap { version, file } => {

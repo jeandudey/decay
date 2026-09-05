@@ -104,7 +104,7 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
     // wrapdb's latest, is pinned here — once per run, before anything is
     // scheduled — rather than repeated by every worker that happens to
     // evaluate that entry.
-    let resolved = lock::resolve(Path::new("decay.lock"), &config.projects)
+    let resolved = lock::resolve(Path::new("decay.lock"), &config.projects, &git_cache)
         .wrap_err("Failed to resolve decay.lock")?;
 
     // Projects run one wave at a time, so what one provides is known in time
@@ -152,7 +152,7 @@ pub(crate) fn execute(
             (dir, origin)
         }
         (Source::Wrap { .. }, Resolved::Wrap { version, file }) => {
-            let wrap = wrap_cache.materialize(&name, version, file)?;
+            let wrap = wrap_cache.materialize(git_cache, &name, version, file)?;
             let origin = Origin::Archive(ArchiveFile {
                 url: wrap.url,
                 sha256: wrap.sha256,

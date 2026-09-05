@@ -69,31 +69,67 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 - **Wrap support covers `[wrap-file]` only.** A `[[project]]` entry can now be
   `wrap = "name"` (optionally `version = "..."`, wrapdb's own
-  `version-revision` spelling) instead of `repo`/`rev`: `src/wrapdb.rs` fetches
-  and parses the `.wrap` file from wrapdb, `src/wrap_cache.rs` downloads,
-  verifies, and extracts the tarball it names, and the rest of the pipeline
-  treats it exactly like a git project from there (`Packages` resolution,
-  `depends`, `decay_build_ir::Origin::Archive` → a buck2 `http_archive` with
+  `version-revision` spelling) instead of `repo`/`rev`: `src/wrapdb.rs` and
+  `src/wrap_cache.rs` resolve it, and the rest of the pipeline treats it
+  exactly like a git project from there (`Packages` resolution, `depends`,
+  `decay_build_ir::Origin::Archive` → a buck2 `http_archive` with
   `sub_targets`, same as `git_fetch`). `decay.lock` (`src/lock.rs`) pins
   whatever was resolved — a wrap's wrapdb version when `decay.toml` does not
   pin one, and now also a `[[project]]` `rev` that names a branch or tag
   rather than a commit (resolved once via `git ls-remote`, the same relation
   `Cargo.lock` has to `Cargo.toml`).
 
-  WRAP IS BROKEN, it doesn't use the correct API, maybe this needs first to
-  read the meson source code to see how they do it.
+  wrapdb has no supported API for this: its `v2` query endpoints answer with
+  data that doesn't know about `patch_directory` and don't match what a
+  current `.wrap` file says. `src/wrapdb.rs` instead treats wrapdb itself —
+  <https://github.com/mesonbuild/wrapdb> — as the source of truth, checked
+  out through [`crate::git_cache::GitCache`] the same way any other
+  project's git history is: `releases.json` at its root lists every
+  project's known versions (newest first, used when `decay.toml` pins none),
+  and each `name`/`version` pair is tagged `{name}_{version}`, at which
+  `subprojects/{name}.wrap` and, when the wrap carries one,
+  `subprojects/packagefiles/{patch_directory}` are exactly what that release
+  resolved to — matching `mesonbuild.wrap.wrap.PackageDefinition` and
+  `Resolver.apply_patch` in meson's own source, which is what `patch_directory`
+  and its `copy_tree` overlay semantics here are modeled on. A bare branch or
+  tag name doesn't resolve directly against `GitCache`'s local mirror (its
+  fetch lands branches under `refs/remotes/origin/*`, and `checkout` only
+  reliably takes a full commit hash), so `wrapdb.rs` resolves one through
+  `git_cache::resolve_rev` first, the same as `[[project]]`'s own `rev` does
+  in `src/lock.rs`.
+
+  `WrapCache::materialize` downloads and extracts the upstream tarball as
+  before, then — when the wrap names a `patch_directory` — copies wrapdb's
+  own files for it onto the extracted tree before `decay` ever evaluates it,
+  the same recursive overwrite meson's `copy_tree` does. Verified against
+  the real `pcre2` wrap (10.48-1): `wrapdb.rs`'s discovery, fetch, and
+  overlay all produce the same `meson.build` wrapdb ships, letting `decay`
+  evaluate a project whose upstream release has no meson build at all. That
+  overlay only ever lands in `decay`'s own working copy, not in the emitted
+  `Origin::Archive` (still just the plain upstream tarball's URL and hash) —
+  fine for a `patch_directory` that only replaces meson build files (as
+  every wrap wrapdb currently publishes does), which the emitted build never
+  fetches anyway since `decay` forgets meson and replaces it with generated
+  `BUCK` rules. A `patch_directory` that overlaid a file some target's
+  `srcs`/`headers`/`template` actually references — none does today, but a
+  few packagefiles trees carry non-meson helper files (`.def` export lists,
+  `config.h.meson` templates) for other projects — would need that file
+  fetched into the archive some other way; `sub_targets` addressing against
+  the plain tarball would just fail loudly for it rather than silently
+  produce a wrong build, but nothing does that fetch yet.
 
   Still open:
   - **`[wrap-git]` is refused**, with a message pointing at `[[project]]`
     instead: it is already exactly `repo`/`rev`, so it gets the full pipeline
     (branches, tags, sibling `dependency()` resolution) that way rather than a
     second, narrower path to the same thing.
-  - **A wrap that needs a wrapdb patch is refused.** `WrapCache::materialize`
-    bails rather than merge two archives: there is no buck2 rule a merge like
-    that could still expose per-file `sub_targets` through the way a single
-    `http_archive` does, and every other file reference in the emitted build
-    goes through exactly that addressing. Importing such a project still
-    needs a hand-written `[[project]]`.
+  - **The legacy `patch_filename` archive overlay is refused.** No current
+    wrapdb release uses it (every one migrated to `patch_directory`), only a
+    handful of old pinned versions might still need it, and it has the same
+    "can't fetch it into the emitted archive" limitation as a `patch_directory`
+    that overlays a referenced non-meson file, above — just without the
+    "current releases never hit it" mitigation. `wrapdb::parse_wrap` bails
+    with a clear message rather than approximate it.
   - **`[provide] dependency_names` is not read.** A wrap resolves against a
     sibling `dependency()` the same way any other project does — by its own
     `meson.build`'s `declare_dependency()`, matched by name against the wrap's
@@ -102,6 +138,12 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     provide heuristic is narrow." A wrap whose `[provide]` names something
     else would need that gap closed first for `dependency_names` to be worth
     reading.
+  - **pcre2 itself still doesn't fully import.** `wrap = "pcre2"` now
+    resolves, fetches, and overlays correctly (`decay.lock` pins it, and
+    evaluation reaches pcre2's actual, wrapdb-authored `meson.build`), but
+    evaluation currently stops on `cc.has_function_attribute()`, an
+    evaluator method decay doesn't implement yet — an ordinary gap under
+    "Better diagnostics" below, not a wrapdb one.
 
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be

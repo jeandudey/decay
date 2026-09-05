@@ -3,7 +3,10 @@
 //! content hash, and reused after that.
 
 use {
-    crate::wrapdb::{self, WrapFile},
+    crate::{
+        git_cache::GitCache,
+        wrapdb::{self, WrapFile}, //
+    },
     eyre::{
         Context,
         ContextCompat,
@@ -46,22 +49,25 @@ impl WrapCache {
     }
 
     /// Ensure `name`'s wrap-file source at `version` is downloaded, verified,
-    /// and extracted.
-    pub fn materialize(&self, name: &str, version: &str, file: &WrapFile) -> eyre::Result<Wrap> {
-        if file.has_patch {
-            bail!(
-                "`{name}` at `{version}` needs a wrapdb patch overlaid on its source, which \
-                 decay does not support (see the wrap-file known gap in AGENTS.md — there is no \
-                 buck2 rule a merge of two archives could still expose per-file `sub_targets` \
-                 through). Import it by hand as an ordinary `[[project]]` instead."
-            );
-        }
-
+    /// extracted, and — when the wrap names a `patch_directory` — overlaid
+    /// with wrapdb's own files for it.
+    pub fn materialize(
+        &self,
+        git_cache: &GitCache,
+        name: &str,
+        version: &str,
+        file: &WrapFile,
+    ) -> eyre::Result<Wrap> {
         let archive = self.download(file)?;
 
         let dest = self.root.join("src").join(name).join(version);
         if !dest.join(".ok").is_file() {
-            extract(&archive, &file.source_filename, &dest)?;
+            let overlay = file
+                .patch_directory
+                .as_deref()
+                .map(|dir| wrapdb::patch_dir(git_cache, name, version, dir))
+                .transpose()?;
+            extract(&archive, &file.source_filename, &dest, overlay.as_deref())?;
         }
 
         let strip_prefix = single_top_level_dir(&dest)?;
@@ -99,10 +105,12 @@ impl WrapCache {
     }
 }
 
-/// Extract `archive` into a fresh directory and publish it at `dest`, the
-/// same rename-into-place pattern [`crate::git_cache`] uses so a partial
+/// Extract `archive` into a fresh directory, overlay `overlay` onto it (when
+/// given — a `patch_directory`'s files, copied the way meson's own
+/// `copy_tree` does), and publish the result at `dest`, the same
+/// rename-into-place pattern [`crate::git_cache`] uses so a partial
 /// extraction never gets mistaken for a complete one.
-fn extract(archive: &Path, filename: &str, dest: &Path) -> eyre::Result<()> {
+fn extract(archive: &Path, filename: &str, dest: &Path, overlay: Option<&Path>) -> eyre::Result<()> {
     let parent = dest.parent().wrap_err("wrap destination has no parent")?;
     fs::create_dir_all(parent).wrap_err("Failed to create directory for wrap entry")?;
 
@@ -122,6 +130,20 @@ fn extract(archive: &Path, filename: &str, dest: &Path) -> eyre::Result<()> {
         bail!("failed to extract {}", archive.display());
     }
 
+    if let Some(src) = overlay {
+        let overlay_result = (|| {
+            let target = match single_top_level_dir(&tmp)? {
+                Some(prefix) => tmp.join(prefix),
+                None => tmp.clone(),
+            };
+            copy_tree(src, &target)
+        })();
+        if let Err(e) = overlay_result {
+            let _ = fs::remove_dir_all(&tmp);
+            return Err(e);
+        }
+    }
+
     if dest.exists() {
         fs::remove_dir_all(dest).wrap_err("Failed to remove a stale wrap directory")?;
     }
@@ -130,6 +152,30 @@ fn extract(archive: &Path, filename: &str, dest: &Path) -> eyre::Result<()> {
         return Err(e).wrap_err("Failed to publish extracted archive");
     }
     fs::write(dest.join(".ok"), []).wrap_err("Failed to mark wrap extraction complete")
+}
+
+/// Overlay every file in `src` onto `dst`, overwriting what's already there —
+/// the same recursive copy meson's own `PackageDefinition.copy_tree` applies
+/// a `patch_directory` with.
+fn copy_tree(src: &Path, dst: &Path) -> eyre::Result<()> {
+    fs::create_dir_all(dst).wrap_err_with(|| format!("Failed to create {}", dst.display()))?;
+    for entry in fs::read_dir(src).wrap_err_with(|| format!("Failed to read {}", src.display()))? {
+        let entry = entry.wrap_err("Failed to read a directory entry")?;
+        let dst_path = dst.join(entry.file_name());
+        let file_type = entry.file_type().wrap_err("Failed to stat a directory entry")?;
+        if file_type.is_dir() {
+            copy_tree(&entry.path(), &dst_path)?;
+        } else {
+            fs::copy(entry.path(), &dst_path).wrap_err_with(|| {
+                format!(
+                    "Failed to overlay {} onto {}",
+                    entry.path().display(),
+                    dst_path.display()
+                )
+            })?;
+        }
+    }
+    Ok(())
 }
 
 fn verify(path: &Path, expected_sha256: &str) -> eyre::Result<()> {
@@ -157,4 +203,36 @@ fn single_top_level_dir(dest: &Path) -> eyre::Result<Option<String>> {
         return Ok(Some(entries.remove(0).file_name().to_string_lossy().into_owned()));
     }
     Ok(None)
+}
+
+#[cfg(test)]
+mod network_tests {
+    use {
+        super::*,
+        crate::wrapdb, //
+    };
+
+    /// Not run by default (hits the real network and wrapdb) — a manual
+    /// check that a `patch_directory` wrap actually overlays correctly.
+    /// `cargo test -- --ignored materializes_pcre2_with_its_overlay`
+    #[test]
+    #[ignore = "network"]
+    fn materializes_pcre2_with_its_overlay() {
+        let root = std::env::temp_dir().join("decay-wrapdb-smoke-test");
+        let _ = fs::remove_dir_all(&root);
+        let git_cache = GitCache::new(root.join("git"));
+        let wrap_cache = WrapCache::new(root.join("wrap"));
+
+        let file = wrapdb::fetch(&git_cache, "pcre2", "10.48-1").unwrap();
+        assert_eq!(file.patch_directory.as_deref(), Some("pcre2"));
+
+        let wrap = wrap_cache.materialize(&git_cache, "pcre2", "10.48-1", &file).unwrap();
+
+        let meson_build =
+            fs::read_to_string(wrap.dir.join("meson.build")).expect("overlaid meson.build");
+        // pcre2's upstream release tarball ships an autotools build, not a
+        // meson one — this file only exists because the overlay put it
+        // there.
+        assert!(meson_build.contains("'pcre2'"), "not wrapdb's meson.build:\n{meson_build}");
+    }
 }
