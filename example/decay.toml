@@ -38,6 +38,7 @@ python3 = "//third-party/tools:python3"
 nm = "//third-party/tools:nm"
 cargo = "//third-party/tools:cargo"
 cp = "//third-party/tools:cp"
+gperf = "//third-party/tools:gperf"
 "glib-compile-resources" = "//third-party/tools:glib-compile-resources"
 "glib-mkenums" = "//third-party/tools:glib-mkenums"
 "glib-genmarshal" = "//third-party/tools:glib-genmarshal"
@@ -68,7 +69,9 @@ egl = "//third-party/system:EGL"
 "short" = 2
 "int" = 4
 "long long" = 8
+"double" = 8
 "long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"void *" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "ssize_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
@@ -80,7 +83,9 @@ egl = "//third-party/system:EGL"
 "short" = 2
 "int" = 4
 "long long" = 8
+"double" = 8
 "long" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+"void *" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 
@@ -206,6 +211,11 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 # [[project]]
 # repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
 # rev = "badd9563b2ac3117ea2a99348bbe46298d6992ec" # Tag 1.29.2
+
+# TODO: Needs run_command.
+# [[project]]
+# repo = "https://gitlab.freedesktop.org/fontconfig/fontconfig"
+# rev = "2.18.3"
 
 [[project]]
 wrap = "zlib"
