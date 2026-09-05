@@ -5,6 +5,12 @@
 without hand-porting its `meson.build` files or losing the configuration
 choices they expose.
 
+## Notes
+
+Binary files should use git-lfs and if build fails it is because the
+files have not been materialized, so on a fresh clone or worktree
+these need to be checked out.
+
 ## How it works
 
 Meson is normally run once per configuration. `decay` instead runs it
