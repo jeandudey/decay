@@ -61,11 +61,38 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 ## Known gaps
 
-- **Add wrap support.** A `[wrap]` section in `decay.toml` should let a project
-  import a meson wrap, we need to download the wrapdb and cache it like we do
-  for projects. It might be a good idea to introduce a lock file for this,
-  which should be also used by projects so that we add support for branches
-  and tags in projects.
+- **Wrap support covers `[wrap-file]` only.** A `[[project]]` entry can now be
+  `wrap = "name"` (optionally `version = "..."`, wrapdb's own
+  `version-revision` spelling) instead of `repo`/`rev`: `src/wrapdb.rs` fetches
+  and parses the `.wrap` file from wrapdb, `src/wrap_cache.rs` downloads,
+  verifies, and extracts the tarball it names, and the rest of the pipeline
+  treats it exactly like a git project from there (`Packages` resolution,
+  `depends`, `decay_build_ir::Origin::Archive` → a buck2 `http_archive` with
+  `sub_targets`, same as `git_fetch`). `decay.lock` (`src/lock.rs`) pins
+  whatever was resolved — a wrap's wrapdb version when `decay.toml` does not
+  pin one, and now also a `[[project]]` `rev` that names a branch or tag
+  rather than a commit (resolved once via `git ls-remote`, the same relation
+  `Cargo.lock` has to `Cargo.toml`).
+
+  Still open:
+  - **`[wrap-git]` is refused**, with a message pointing at `[[project]]`
+    instead: it is already exactly `repo`/`rev`, so it gets the full pipeline
+    (branches, tags, sibling `dependency()` resolution) that way rather than a
+    second, narrower path to the same thing.
+  - **A wrap that needs a wrapdb patch is refused.** `WrapCache::materialize`
+    bails rather than merge two archives: there is no buck2 rule a merge like
+    that could still expose per-file `sub_targets` through the way a single
+    `http_archive` does, and every other file reference in the emitted build
+    goes through exactly that addressing. Importing such a project still
+    needs a hand-written `[[project]]`.
+  - **`[provide] dependency_names` is not read.** A wrap resolves against a
+    sibling `dependency()` the same way any other project does — by its own
+    `meson.build`'s `declare_dependency()`, matched by name against the wrap's
+    `name` — which already has the "only when the looked-up name equals the
+    project's `short_name`" narrowness noted below under "`declare_dependency()`
+    provide heuristic is narrow." A wrap whose `[provide]` names something
+    else would need that gap closed first for `dependency_names` to be worth
+    reading.
 
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be

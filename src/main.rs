@@ -2,18 +2,22 @@ use {
     crate::{
         config::{
             Config,
-            Project, //
+            Project,
+            Source, //
         },
         git_cache::GitCache,
+        lock::Resolved,
         oracle::ConfigOracle,
         packages::Packages,
         sources::{
             CountingSources,
             DiskSources, //
         },
+        wrap_cache::WrapCache,
     },
     clap::Parser,
     decay_build_ir::{
+        ArchiveFile,
         Graph,
         Origin, //
     },
@@ -23,8 +27,7 @@ use {
     },
     eyre::{
         Context,
-        ContextCompat,
-        bail, //
+        ContextCompat, //
     },
     std::{
         env,
@@ -45,11 +48,14 @@ use {
 
 mod config;
 mod git_cache;
+mod lock;
 mod oracle;
 mod packages;
 mod pool;
 mod schedule;
 mod sources;
+mod wrap_cache;
+mod wrapdb;
 
 /// Generate Buck build files
 #[derive(Parser)]
@@ -92,6 +98,14 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
         fs::create_dir_all(&cache_dir).wrap_err("Failed to create cache directory")?;
     }
     let git_cache = GitCache::new(&cache_dir);
+    let wrap_cache = WrapCache::new(&cache_dir);
+
+    // A `rev` that names a branch or tag, or a wrap left to resolve against
+    // wrapdb's latest, is pinned here — once per run, before anything is
+    // scheduled — rather than repeated by every worker that happens to
+    // evaluate that entry.
+    let resolved = lock::resolve(Path::new("decay.lock"), &config.projects)
+        .wrap_err("Failed to resolve decay.lock")?;
 
     // Projects run one wave at a time, so what one provides is known in time
     // for a later one's `dependency()` to resolve against it. A project whose
@@ -105,7 +119,7 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
         "importing",
     );
 
-    pool::import(&config, &git_cache, &schedule, jobs)
+    pool::import(&config, &git_cache, &wrap_cache, &resolved, &schedule, jobs)
 }
 
 /// Where the constraints shared by every imported project live, relative to the
@@ -122,22 +136,32 @@ pub(crate) struct Imported {
 
 pub(crate) fn execute(
     git_cache: &GitCache,
+    wrap_cache: &WrapCache,
     config: &Config,
     project: &Project,
+    resolved: &Resolved,
     packages: &Packages,
 ) -> eyre::Result<Imported> {
-    let name = project.repo.short_name();
-
-    if !project.is_full_sha() {
-        bail!(
-            "`{name}` is pinned to `{}`; the generated build fetches by commit hash, so \
-             `rev` has to be one",
-            project.rev
-        );
-    }
+    let name = project.short_name();
 
     let checkout_start = Instant::now();
-    let dir = git_cache.checkout(project)?;
+    let (dir, origin) = match (&project.source, resolved) {
+        (Source::Git { repo, .. }, Resolved::Git { rev }) => {
+            let dir = git_cache.checkout(repo, rev)?;
+            let origin = Origin::Git { repo: repo.0.to_string(), rev: rev.clone() };
+            (dir, origin)
+        }
+        (Source::Wrap { .. }, Resolved::Wrap { version, file }) => {
+            let wrap = wrap_cache.materialize(&name, version, file)?;
+            let origin = Origin::Archive(ArchiveFile {
+                url: wrap.url,
+                sha256: wrap.sha256,
+                strip_prefix: wrap.strip_prefix,
+            });
+            (wrap.dir, origin)
+        }
+        _ => unreachable!("`lock::resolve` produces one `Resolved` per `Source`, in the same order"),
+    };
     let checkout_ms = checkout_start.elapsed().as_millis();
 
     let oracle = ConfigOracle::new(config, project, packages);
@@ -150,10 +174,7 @@ pub(crate) fn execute(
 
     // The build files fetch the sources themselves rather than referring to a
     // copy of them checked into this repository.
-    graph.project.origin = Some(Origin {
-        repo: project.repo.0.to_string(),
-        rev: project.rev.clone(),
-    });
+    graph.project.origin = Some(origin);
 
     info!(
         project = %graph.project.name,

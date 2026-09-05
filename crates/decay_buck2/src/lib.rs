@@ -410,12 +410,27 @@ fn repo_target(graph: &Graph) -> String {
 ///
 /// Every file the build refers to is listed as a sub-target, which is how a
 /// rule elsewhere in the file names one: `:libepoxy.git[src/dispatch.c]`.
+/// `git_fetch` and `http_archive` both support that the same way, so the two
+/// origins share everything but the rule name and its own address.
 fn render_fetch(graph: &Graph, origin: &Origin) -> String {
     let mut out = String::new();
-    let _ = writeln!(out, "git_fetch(");
-    let _ = writeln!(out, "    name = {:?},", repo_target(graph));
-    let _ = writeln!(out, "    repo = {:?},", origin.repo);
-    let _ = writeln!(out, "    rev = {:?},", origin.rev);
+    match origin {
+        Origin::Git { repo, rev } => {
+            let _ = writeln!(out, "git_fetch(");
+            let _ = writeln!(out, "    name = {:?},", repo_target(graph));
+            let _ = writeln!(out, "    repo = {:?},", repo);
+            let _ = writeln!(out, "    rev = {:?},", rev);
+        }
+        Origin::Archive(archive) => {
+            let _ = writeln!(out, "http_archive(");
+            let _ = writeln!(out, "    name = {:?},", repo_target(graph));
+            let _ = writeln!(out, "    urls = [{:?}],", archive.url);
+            let _ = writeln!(out, "    sha256 = {:?},", archive.sha256);
+            if let Some(prefix) = &archive.strip_prefix {
+                let _ = writeln!(out, "    strip_prefix = {prefix:?},");
+            }
+        }
+    }
     let _ = writeln!(out, "    sub_targets = [");
     for path in referenced_files(graph) {
         let _ = writeln!(out, "        {path:?},");

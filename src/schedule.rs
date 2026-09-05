@@ -33,7 +33,7 @@ pub struct Schedule {
 /// is a single wave of every project. Errors on an unknown or self `depends`, a
 /// duplicated project name, or a cycle.
 pub fn plan(projects: &[Project]) -> eyre::Result<Schedule> {
-    let names: Vec<String> = projects.iter().map(|p| p.repo.short_name()).collect();
+    let names: Vec<String> = projects.iter().map(Project::short_name).collect();
 
     let mut index_by_name: HashMap<&str, usize> = HashMap::with_capacity(names.len());
     for (i, name) in names.iter().enumerate() {
@@ -124,15 +124,18 @@ mod tests {
         super::*,
         crate::config::{
             Machine,
-            Repo, //
+            Repo,
+            Source, //
         },
         url::Url,
     };
 
     fn project(name: &str, depends: &[&str]) -> Project {
         Project {
-            repo: Repo(Url::parse(&format!("https://example.test/{name}.git")).unwrap()),
-            rev: "0".repeat(40),
+            source: Source::Git {
+                repo: Repo(Url::parse(&format!("https://example.test/{name}.git")).unwrap()),
+                rev: "0".repeat(40),
+            },
             options: Default::default(),
             host_machine: Machine::default(),
             build_machine: Machine::default(),

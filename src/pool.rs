@@ -22,9 +22,11 @@ use {
         },
         execute,
         git_cache::GitCache,
+        lock::Resolved,
         package_path,
         packages::Packages,
         schedule::Schedule,
+        wrap_cache::WrapCache,
     },
     decay_buck2::{
         Labels,
@@ -112,6 +114,8 @@ enum Done {
 pub(crate) fn import(
     config: &Config,
     git_cache: &GitCache,
+    wrap_cache: &WrapCache,
+    resolved: &[Resolved],
     schedule: &Schedule,
     jobs: usize,
 ) -> eyre::Result<()> {
@@ -132,7 +136,9 @@ pub(crate) fn import(
             let (job_tx, job_rx) = mpsc::channel::<Job>();
             inbox.push(job_tx);
             let done_tx = done_tx.clone();
-            scope.spawn(move || worker(git_cache, config, projects, job_rx, done_tx));
+            scope.spawn(move || {
+                worker(git_cache, wrap_cache, config, projects, resolved, job_rx, done_tx)
+            });
         }
         drop(done_tx);
 
@@ -179,7 +185,7 @@ pub(crate) fn import(
                 let (idx, err) = failed.into_iter().next().unwrap();
                 return Err(err.wrap_err(format!(
                     "Failed to import `{}`",
-                    projects[idx].repo.short_name()
+                    projects[idx].short_name()
                 )));
             }
 
@@ -262,8 +268,10 @@ pub(crate) fn import(
 
 fn worker(
     git_cache: &GitCache,
+    wrap_cache: &WrapCache,
     config: &Config,
     projects: &[Project],
+    resolved: &[Resolved],
     jobs: mpsc::Receiver<Job>,
     done: mpsc::Sender<Done>,
 ) {
@@ -277,7 +285,7 @@ fn worker(
 
             Job::Eval { idx, packages } => {
                 let outcome = catch_unwind(AssertUnwindSafe(|| {
-                    execute(git_cache, config, &projects[idx], &packages)
+                    execute(git_cache, wrap_cache, config, &projects[idx], &resolved[idx], &packages)
                 }));
                 match flatten(outcome) {
                     Ok(Imported {
@@ -320,7 +328,7 @@ fn worker(
                 } = pinned
                     .remove(&idx)
                     .expect("emit for a project this worker never evaluated");
-                let name = projects[idx].repo.short_name();
+                let name = projects[idx].short_name();
                 let start = Instant::now();
                 let result = flatten(catch_unwind(AssertUnwindSafe(|| {
                     decay_buck2::emit(&graph, &mut logic, &labels, &shared, &out, &package)

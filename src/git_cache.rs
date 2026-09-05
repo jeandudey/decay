@@ -1,9 +1,13 @@
 use {
-    crate::config::Project,
+    crate::config::{
+        Repo,
+        is_full_sha, //
+    },
     eyre::{
         Context,
         ContextCompat,
-        bail, //
+        bail,
+        eyre, //
     },
     std::{
         fs,
@@ -25,27 +29,31 @@ impl GitCache {
         Self { root: root.into() }
     }
 
-    pub fn checkout(&self, project: &Project) -> eyre::Result<PathBuf> {
-        let ident = project.repo.ident()?;
+    /// `rev` must already be a full commit hash — [`crate::lock`] is what
+    /// turns a `decay.toml` branch or tag into one of these and pins it, so
+    /// the cache never has to decide whether a moving name still points where
+    /// it used to.
+    pub fn checkout(&self, repo: &Repo, rev: &str) -> eyre::Result<PathBuf> {
+        let ident = repo.ident()?;
         let db = self.db_dir(&ident);
 
-        if project.is_full_sha() {
-            let dest = self.checkouts_dir(&ident).join(&project.rev[16..]);
+        if is_full_sha(rev) {
+            let dest = self.checkouts_dir(&ident).join(&rev[16..]);
             if dest.join(".ok").exists() {
                 return Ok(dest);
             }
         }
 
-        self.ensure_db(&db, project)?;
+        self.ensure_db(&db, repo, rev)?;
 
         let oid = run_git(
             git()
                 .arg("--git-dir")
                 .arg(&db)
                 .arg("rev-parse")
-                .arg(format!("{}^{{commit}}", project.rev)),
+                .arg(format!("{rev}^{{commit}}")),
         )
-        .wrap_err_with(|| format!("`{}` is not a commit in {}", project.rev, project.repo.0))?;
+        .wrap_err_with(|| format!("`{rev}` is not a commit in {}", repo.0))?;
 
         let dest = self.checkouts_dir(&ident).join(&oid[..16]);
         if dest.join(".ok").is_file() {
@@ -56,12 +64,12 @@ impl GitCache {
         Ok(dest)
     }
 
-    fn ensure_db(&self, db: &Path, project: &Project) -> eyre::Result<()> {
+    fn ensure_db(&self, db: &Path, repo: &Repo, rev: &str) -> eyre::Result<()> {
         if !db.join("HEAD").is_file() {
             fs::create_dir_all(db).wrap_err("Failed to create database directory")?;
             run_git(git().args(["init", "--quiet", "--bare"]).arg(db))
                 .wrap_err("Failed to initialize git repository")?;
-        } else if has_commit(db, &project.rev) {
+        } else if has_commit(db, rev) {
             return Ok(());
         }
 
@@ -70,16 +78,16 @@ impl GitCache {
         // branch's entire history. GitHub and GitLab both serve an arbitrary
         // reachable commit this way; a host that refuses falls through to the
         // full fetch below.
-        if project.is_full_sha() {
-            let ref_name = format!("refs/decay/{}", project.rev);
+        if is_full_sha(rev) {
+            let ref_name = format!("refs/decay/{rev}");
             let shallow = git()
                 .arg("--git-dir")
                 .arg(db)
                 .args(["fetch", "--depth", "1", "--quiet"])
-                .arg(project.repo.0.to_string())
-                .arg(format!("{}:{ref_name}", project.rev))
+                .arg(repo.0.to_string())
+                .arg(format!("{rev}:{ref_name}"))
                 .output();
-            if shallow.is_ok_and(|out| out.status.success()) && has_commit(db, &project.rev) {
+            if shallow.is_ok_and(|out| out.status.success()) && has_commit(db, rev) {
                 return Ok(());
             }
         }
@@ -89,10 +97,10 @@ impl GitCache {
                 .arg("--git-dir")
                 .arg(db)
                 .args(["fetch", "--force", "--tags", "--quiet"])
-                .arg(project.repo.0.to_string())
+                .arg(repo.0.to_string())
                 .arg("+refs/heads/*:refs/remotes/origin/*"),
         )
-        .wrap_err_with(|| format!("Failed to fetch {}", project.repo.0))?;
+        .wrap_err_with(|| format!("Failed to fetch {}", repo.0))?;
 
         Ok(())
     }
@@ -145,6 +153,35 @@ impl GitCache {
     fn checkouts_dir(&self, ident: impl AsRef<Path>) -> PathBuf {
         self.root.join("git/checkouts").join(ident)
     }
+}
+
+/// What `rev` (a branch, tag, or already-full commit hash) currently names in
+/// `repo`, without fetching or caching anything — [`crate::lock`] is what
+/// pins the answer afterward, the way `Cargo.lock` pins what a version
+/// requirement resolved to.
+pub fn resolve_rev(repo: &Repo, rev: &str) -> eyre::Result<String> {
+    if is_full_sha(rev) {
+        return Ok(rev.to_owned());
+    }
+
+    let out = run_git(
+        git()
+            .args(["ls-remote", "--exit-code"])
+            .arg(repo.0.to_string())
+            .arg(rev),
+    )
+    .wrap_err_with(|| format!("`{rev}` is not a ref in {}", repo.0))?;
+
+    // An annotated tag lists both the tag object and, on a second line, the
+    // commit it points at (suffixed `^{}`); a lightweight tag or branch has
+    // only the one line already naming a commit. Either way, prefer the
+    // peeled line when there is one.
+    out.lines()
+        .find(|line| line.ends_with("^{}"))
+        .or_else(|| out.lines().next())
+        .and_then(|line| line.split_whitespace().next())
+        .map(str::to_owned)
+        .ok_or_else(|| eyre!("`git ls-remote {} {rev}` returned nothing", repo.0))
 }
 
 fn has_commit(db: &Path, rev: &str) -> bool {

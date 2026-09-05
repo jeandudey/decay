@@ -399,19 +399,15 @@ impl fmt::Display for ConstraintValue {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct Project {
-    pub repo: Repo,
-    pub rev: String,
+    pub source: Source,
     /// Options pinned to a fixed value.
     ///
     /// Anything left out stays a build-time choice, which is the point: most
     /// projects should pin nothing here.
-    #[serde(default)]
     pub options: BTreeMap<String, OptionValue>,
-    #[serde(default)]
     pub host_machine: Machine,
-    #[serde(default)]
     pub build_machine: Machine,
     /// Other projects in this file that must be imported before this one,
     /// named the way `short_name()` spells them (`glib`, `graphene`).
@@ -421,17 +417,92 @@ pub struct Project {
     /// A project that names nothing is taken to be independent and runs in the
     /// first wave alongside every other such project; `-j` then decides how many
     /// of them go at once.
-    #[serde(default)]
     pub depends: Vec<String>,
 }
 
 impl Project {
-    pub fn is_full_sha(&self) -> bool {
-        self.rev.len() == 40 && self.rev.bytes().all(|b| b.is_ascii_hexdigit())
+    /// The name a sibling's `depends` and `dependency()` know this project
+    /// by: the repository's last path segment for a git project, the wrap's
+    /// name for a wrap.
+    pub fn short_name(&self) -> String {
+        self.source.short_name()
     }
 }
 
-#[derive(Debug, Deserialize)]
+/// Where a project's sources come from, as one `[[project]]` entry names it:
+/// a git checkout (`repo`, `rev`), or a meson wrap resolved against wrapdb
+/// (`wrap`, optionally pinned to a `version`).
+#[derive(Debug, Clone)]
+pub enum Source {
+    Git { repo: Repo, rev: String },
+    Wrap { name: String, version: Option<String> },
+}
+
+impl Source {
+    pub fn short_name(&self) -> String {
+        match self {
+            Source::Git { repo, .. } => repo.short_name(),
+            Source::Wrap { name, .. } => name.clone(),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Project {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        // Parsed in a second pass rather than by an untagged enum of the final
+        // types, which would report only that nothing matched.
+        #[derive(Deserialize)]
+        struct Raw {
+            repo: Option<Repo>,
+            rev: Option<String>,
+            wrap: Option<String>,
+            version: Option<String>,
+            #[serde(default)]
+            options: BTreeMap<String, OptionValue>,
+            #[serde(default)]
+            host_machine: Machine,
+            #[serde(default)]
+            build_machine: Machine,
+            #[serde(default)]
+            depends: Vec<String>,
+        }
+
+        let raw = Raw::deserialize(de)?;
+        let source = match (raw.repo, raw.rev, raw.wrap, raw.version) {
+            (Some(repo), Some(rev), None, None) => Source::Git { repo, rev },
+            (None, None, Some(name), version) => Source::Wrap { name, version },
+            (Some(_), Some(_), None, Some(_)) => {
+                return Err(serde::de::Error::custom(
+                    "`version` only means something for a `wrap` entry, not a `repo`/`rev` one",
+                ));
+            }
+            _ => {
+                return Err(serde::de::Error::custom(
+                    "a project is either a git checkout (`repo` and `rev`) or a meson wrap \
+                     (`wrap`, and optionally the wrapdb `version` to pin), not a mix of both \
+                     or neither",
+                ));
+            }
+        };
+        Ok(Project {
+            source,
+            options: raw.options,
+            host_machine: raw.host_machine,
+            build_machine: raw.build_machine,
+            depends: raw.depends,
+        })
+    }
+}
+
+/// A full, lowercase 40-character commit hash, as opposed to a branch or tag
+/// name — the only thing the generated build fetches by, so the difference
+/// matters here and in [`crate::lock`], which is what turns the latter into
+/// the former.
+pub fn is_full_sha(rev: &str) -> bool {
+    rev.len() == 40 && rev.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Repo(pub Url);
 
 impl Repo {
@@ -586,5 +657,48 @@ mod tests {
         )
         .unwrap_err();
         assert!(format!("{err:#}").contains("already selects on"));
+    }
+
+    #[test]
+    fn a_project_entry_can_be_a_wrap() {
+        let toml = "third_party_dir = \"tp\"\n\
+             [[project]]\n\
+             wrap = \"zlib\"\n\
+             \n\
+             [[project]]\n\
+             wrap = \"expat\"\n\
+             version = \"2.7.1-1\"\n";
+        let cfg: Config = toml::from_str(toml).unwrap();
+
+        assert_eq!(cfg.projects.len(), 2);
+        assert!(matches!(
+            &cfg.projects[0].source,
+            Source::Wrap { name, version } if name == "zlib" && version.is_none()
+        ));
+        assert!(matches!(
+            &cfg.projects[1].source,
+            Source::Wrap { name, version } if name == "expat" && version.as_deref() == Some("2.7.1-1")
+        ));
+        assert_eq!(cfg.projects[1].short_name(), "expat");
+    }
+
+    #[test]
+    fn a_project_cannot_mix_repo_and_wrap() {
+        let toml = "third_party_dir = \"tp\"\n\
+             [[project]]\n\
+             repo = \"https://example.com/x/zlib.git\"\n\
+             rev = \"0000000000000000000000000000000000000000\"\n\
+             wrap = \"zlib\"\n";
+        let err = toml::from_str::<Config>(toml).unwrap_err();
+        assert!(format!("{err}").contains("mix"));
+    }
+
+    #[test]
+    fn a_project_needs_either_repo_or_wrap() {
+        let toml = "third_party_dir = \"tp\"\n\
+             [[project]]\n\
+             rev = \"0000000000000000000000000000000000000000\"\n";
+        let err = toml::from_str::<Config>(toml).unwrap_err();
+        assert!(format!("{err}").contains("either a git checkout"));
     }
 }

@@ -49,13 +49,37 @@ pub struct Project {
     pub origin: Option<Origin>,
 }
 
-/// An upstream revision to fetch the sources from.
+/// Where a project's sources are fetched from.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Origin {
-    pub repo: String,
-    /// A full commit hash: anything else would let the imported sources move
-    /// under a build that is supposed to be reproducible.
-    pub rev: String,
+pub enum Origin {
+    /// A git repository, pinned to a commit.
+    Git {
+        repo: String,
+        /// A full commit hash: anything else would let the imported sources
+        /// move under a build that is supposed to be reproducible.
+        rev: String,
+    },
+    /// A tarball, as a meson wrap's `[wrap-file]` names one.
+    ///
+    /// A wrap that also ships a wrapdb patch (a second archive overlaid on
+    /// top, for a project wrapdb writes a `meson.build` for rather than one
+    /// it was born with) is rejected before this is ever built: there is no
+    /// buck2 rule this could name that still supports `sub_targets`
+    /// addressing for a merge of two archives, so it stays unsupported
+    /// rather than silently wrong.
+    Archive(ArchiveFile),
+}
+
+/// One archive to fetch and extract, content-addressed so the build stays
+/// reproducible without pinning a revision the way git does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchiveFile {
+    pub url: String,
+    pub sha256: String,
+    /// The single top-level directory the archive extracts into, if it has
+    /// one, so a backend can strip it and land the project at the archive
+    /// root the way `decay` evaluated it.
+    pub strip_prefix: Option<String>,
 }
 
 /// A node in the build graph.
