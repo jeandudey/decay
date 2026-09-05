@@ -129,6 +129,23 @@ optimization = "3"
 default_library = "shared"
 
 # TODO: Fails with:
+#   Error: Failed to import `shared-mime-info`
+#
+#   Caused by:
+#      0: Failed to execute `shared-mime-info`
+#      1: in /meson.build
+#      2: in `subdir()` at /meson.build:50:0
+#      3: in data/meson.build
+#      4: in `.merge_file()` at data/meson.build:6:27
+#      5: module `I18n` has no method `merge_file`
+#
+#   Location:
+#       crates/decay_meson_eval/src/methods.rs:337:36
+#[[project]]
+#repo = "https://gitlab.freedesktop.org/xdg/shared-mime-info"
+#rev = "fd8ab89c20093f1bfba8fa9e302ba584fffd0fd7" # Tag 2.5.1
+
+# TODO: Fails with:
 #   Error: Failed to import `libglvnd`
 #
 #   Caused by:
