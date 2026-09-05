@@ -13,6 +13,13 @@ pub trait Oracle {
     /// A value the user pinned for a build option.
     fn option(&self, name: &str) -> Option<Pinned>;
 
+    /// Every option name the user pinned, so the evaluator can reject a pin
+    /// that names an option the project never declares (a typo, or the
+    /// backend-sanitised name rather than the meson one).
+    fn pinned_options(&self) -> Vec<String> {
+        Vec::new()
+    }
+
     /// Whether the importer was given a target for a program the build looks
     /// up on the machine it runs on.
     ///

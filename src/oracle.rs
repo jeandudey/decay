@@ -190,6 +190,10 @@ impl Oracle for ConfigOracle<'_> {
         })
     }
 
+    fn pinned_options(&self) -> Vec<String> {
+        self.project.options.keys().cloned().collect()
+    }
+
     fn probe(&self, name: &str, what: &str) -> Option<Probe> {
         self.probe_answer(&format!("{name}:{what}")).or_else(|| {
             if name == "has_function" {

@@ -237,6 +237,15 @@ impl<'a, S: Solver> Interp<'a, S> {
         if let Some(options) = self.sources.options(&self.root)? {
             self.options = options;
         }
+        // A pin that names an option the project never declares silently did
+        // nothing before — usually a typo, or the backend-sanitised
+        // constraint name (`_`) instead of the meson one (`-`), which are not
+        // interchangeable.
+        for name in self.oracle.pinned_options() {
+            if self.option_decl(&name).is_none() {
+                bail!("`decay.toml` pins option `{name}`, which this project does not declare");
+            }
+        }
         self.subdir(Path::new(""))
     }
 
