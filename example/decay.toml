@@ -126,6 +126,10 @@ zlib = "//third-party/system:Z"
 buildtype = "release"
 optimization = "3"
 default_library = "shared"
+prefix = "/usr/local"
+libdir = "lib"
+datadir = "share"
+includedir = "include"
 
 [[project]]
 repo = "https://github.com/ebassi/graphene"
@@ -177,10 +181,6 @@ repo = "https://gitlab.gnome.org/GNOME/glib.git"
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
 depends = ["gvdb"]
 options.tests = false
-options.prefix = "/usr/local"
-options.libdir = "lib"
-options.datadir = "share"
-options.includedir = "include"
 # options.glib_debug = "disabled" # TODO: This does not work, it should.
 options.multiarch = false
 
