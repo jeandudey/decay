@@ -27,7 +27,11 @@ use {
         eyre, //
     },
     serde::{Deserialize, Serialize},
-    std::{fs, path::Path},
+    sha2::{Digest, Sha256},
+    std::{
+        fs,
+        path::{Path, PathBuf},
+    },
     tracing::info,
     url::Url,
 };
@@ -179,6 +183,7 @@ impl LockedWrap {
             source,
             patch_directory: self.patch_directory.clone(),
             wrapdb_rev: self.wrapdb_rev.clone(),
+            local_overlay: None,
         })
     }
 }
@@ -198,6 +203,7 @@ pub fn resolve(
     path: &Path,
     projects: &[Project],
     git_cache: &GitCache,
+    local_wrap_dir: Option<&Path>,
 ) -> eyre::Result<Vec<Resolved>> {
     let mut lock = load(path)?;
     let mut dirty = false;
@@ -243,6 +249,46 @@ pub fn resolve(
             }
 
             Source::Wrap { name, version } => {
+                if let Some(dir) = local_wrap_dir {
+                    let path = dir.join(format!("{name}.wrap"));
+                    if path.is_file() {
+                        if version.is_some() {
+                            bail!(
+                                "local wrap `{name}` at {} does not support `version`; the local .wrap file is the pin",
+                                path.display()
+                            );
+                        }
+                        let mut file = wrapdb::load_local(&path)?;
+                        if let WrapSource::Git { url, revision } = &mut file.source
+                            && !is_full_sha(revision)
+                        {
+                            let repo = Repo(Url::parse(url).wrap_err_with(|| {
+                                format!("`{url}` (the `[wrap-git]` url for local wrap `{name}`) is not a URL")
+                            })?);
+                            *revision =
+                                git_cache::resolve_rev(&repo, revision).wrap_err_with(|| {
+                                    format!(
+                                        "Failed to resolve `{revision}` for local wrap `{name}`"
+                                    )
+                                })?;
+                        }
+                        // The cache key includes the immutable source identity, so editing a
+                        // local wrap cannot reuse a stale extracted/overlaid tree.
+                        let source_version = match &file.source {
+                            WrapSource::Archive { hash, .. } => &hash[..16.min(hash.len())],
+                            WrapSource::Git { revision, .. } => &revision[..16.min(revision.len())],
+                        };
+                        let local_version = format!(
+                            "local-{source_version}-{}",
+                            &local_fingerprint(&path, file.local_overlay.as_deref())[..16]
+                        );
+                        out.push(Resolved::Wrap {
+                            version: local_version,
+                            file,
+                        });
+                        continue;
+                    }
+                }
                 let existing = lock
                     .wraps
                     .iter()
@@ -303,6 +349,40 @@ pub fn resolve(
     Ok(out)
 }
 
+/// Include the local wrap and its overlay in the materialization key.  Unlike
+/// wrapdb, local files are deliberately editable, so reusing an old cache
+/// entry after changing `packagefiles/` would be surprising.
+fn local_fingerprint(wrap: &Path, overlay: Option<&Path>) -> String {
+    let mut hash = Sha256::new();
+    hash.update(fs::read(wrap).expect("local wrap was just read"));
+    if let Some(overlay) = overlay {
+        for file in files_under(overlay) {
+            hash.update(
+                file.strip_prefix(overlay)
+                    .unwrap()
+                    .to_string_lossy()
+                    .as_bytes(),
+            );
+            hash.update(fs::read(file).expect("local overlay was just checked"));
+        }
+    }
+    hex::encode(hash.finalize())
+}
+
+fn files_under(dir: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for entry in fs::read_dir(dir).expect("local overlay was just checked") {
+        let path = entry.expect("local overlay entry").path();
+        if path.is_dir() {
+            out.extend(files_under(&path));
+        } else {
+            out.push(path);
+        }
+    }
+    out.sort();
+    out
+}
+
 fn load(path: &Path) -> eyre::Result<LockFile> {
     if !path.is_file() {
         return Ok(LockFile::default());
@@ -326,6 +406,7 @@ mod tests {
             Repo, //
         },
         std::{
+            fs,
             path::PathBuf,
             process,
             sync::atomic::{
@@ -376,6 +457,38 @@ mod tests {
     }
 
     #[test]
+    fn a_local_wrap_is_preferred_and_keeps_its_overlay() {
+        let root = std::env::temp_dir().join(format!("decay-local-wrap-lock-{}", process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("packagefiles/zlib")).unwrap();
+        fs::write(root.join("packagefiles/zlib/meson.build"), "project('z')\n").unwrap();
+        fs::write(
+            root.join("zlib.wrap"),
+            "[wrap-file]\nsource_url = https://example.test/zlib.tar.gz\nsource_filename = zlib.tar.gz\nsource_hash = deadbeef\npatch_directory = packagefiles/zlib\n",
+        )
+        .unwrap();
+
+        let resolved = resolve(
+            &tmp_lock_path("local-wrap"),
+            &[wrap_project("zlib", None)],
+            &tmp_git_cache(),
+            Some(&root),
+        )
+        .unwrap();
+        match &resolved[0] {
+            Resolved::Wrap { version, file } => {
+                assert!(version.starts_with("local-deadbeef-"));
+                assert_eq!(
+                    file.local_overlay.as_deref(),
+                    Some(root.join("packagefiles/zlib").as_path())
+                );
+            }
+            Resolved::Git { .. } => panic!("expected local wrap"),
+        }
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn a_full_sha_resolves_without_touching_the_lock_file() {
         let path = tmp_lock_path("full-sha");
         let sha = "a".repeat(40);
@@ -384,7 +497,7 @@ mod tests {
             GitReference::Rev(sha.clone()),
         )];
 
-        let resolved = resolve(&path, &projects, &tmp_git_cache()).unwrap();
+        let resolved = resolve(&path, &projects, &tmp_git_cache(), None).unwrap();
 
         assert!(matches!(&resolved[0], Resolved::Git { rev } if *rev == sha));
         assert!(!path.exists(), "a fully-pinned rev needs no lock entry");
@@ -417,6 +530,7 @@ mod tests {
             &path,
             &[git_project(repo, GitReference::Branch("main".to_owned()))],
             &tmp_git_cache(),
+            None,
         )
         .unwrap();
 
@@ -448,6 +562,7 @@ mod tests {
             &path,
             &[git_project(repo, GitReference::Tag("release".to_owned()))],
             &tmp_git_cache(),
+            None,
         )
         .err()
         .expect("a tag must not reuse a branch lock entry");
@@ -466,6 +581,7 @@ mod tests {
             },
             patch_directory: None,
             wrapdb_rev: "f".repeat(40),
+            local_overlay: None,
         };
         save(
             &path,
@@ -476,7 +592,8 @@ mod tests {
         )
         .unwrap();
 
-        let resolved = resolve(&path, &[wrap_project("zlib", None)], &tmp_git_cache()).unwrap();
+        let resolved =
+            resolve(&path, &[wrap_project("zlib", None)], &tmp_git_cache(), None).unwrap();
 
         match &resolved[0] {
             Resolved::Wrap { version, file } => {
@@ -507,6 +624,7 @@ mod tests {
             },
             patch_directory: None,
             wrapdb_rev: "f".repeat(40),
+            local_overlay: None,
         };
         save(
             &path,
@@ -520,7 +638,7 @@ mod tests {
         // No real `x.git` exists at this URL, so if this reached the network
         // path (re-resolving `revision`) it would fail rather than quietly
         // reuse the pin.
-        let resolved = resolve(&path, &[wrap_project("x", None)], &tmp_git_cache()).unwrap();
+        let resolved = resolve(&path, &[wrap_project("x", None)], &tmp_git_cache(), None).unwrap();
 
         match &resolved[0] {
             Resolved::Wrap { file, .. } => assert_eq!(

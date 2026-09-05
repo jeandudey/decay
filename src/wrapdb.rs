@@ -67,6 +67,10 @@ pub struct WrapFile {
     /// is what `decay.lock` pins instead, so a later run overlays the exact
     /// same files rather than trusting the tag to still point where it did.
     pub wrapdb_rev: String,
+    /// A local overlay, resolved relative to the directory containing a local
+    /// `.wrap` file.  Wrapdb overlays continue to be located from
+    /// `patch_directory` and `wrapdb_rev` above.
+    pub local_overlay: Option<PathBuf>,
 }
 
 /// Where a wrap's source actually comes from — one `.wrap` file has exactly
@@ -120,6 +124,27 @@ pub fn fetch(git_cache: &GitCache, name: &str, version: &str) -> eyre::Result<Wr
     })?;
     let mut file = parse_wrap(&text)?;
     file.wrapdb_rev = wrapdb_rev;
+    Ok(file)
+}
+
+/// Load a `.wrap` from a local Meson subprojects directory.  Meson resolves a
+/// `patch_directory` beside its wrap file, so do the same rather than looking
+/// it up in wrapdb.
+pub fn load_local(path: &Path) -> eyre::Result<WrapFile> {
+    let text = fs::read_to_string(path)
+        .wrap_err_with(|| format!("Failed to read local wrap {}", path.display()))?;
+    let mut file = parse_wrap(&text)?;
+    if let Some(dir) = &file.patch_directory {
+        let overlay = path.parent().unwrap_or_else(|| Path::new(".")).join(dir);
+        if !overlay.is_dir() {
+            bail!(
+                "local wrap {} names patch_directory `{dir}`, but {} is not a directory",
+                path.display(),
+                overlay.display()
+            );
+        }
+        file.local_overlay = Some(overlay);
+    }
     Ok(file)
 }
 
@@ -192,6 +217,7 @@ fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
             patch_directory: git.get("patch_directory").cloned(),
             // Stamped by `fetch`, the only caller that can resolve it.
             wrapdb_rev: String::new(),
+            local_overlay: None,
         });
     }
 
@@ -219,6 +245,7 @@ fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
         patch_directory: file.get("patch_directory").cloned(),
         // Stamped by `fetch`, the only caller that can resolve it.
         wrapdb_rev: String::new(),
+        local_overlay: None,
     })
 }
 
@@ -251,6 +278,7 @@ fn parse_ini(text: &str) -> BTreeMap<String, BTreeMap<String, String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{fs, process};
 
     #[test]
     fn parses_a_wrap_file_without_a_patch() {
@@ -339,5 +367,25 @@ mod tests {
             err.contains("wrap-file") && err.contains("wrap-git"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn local_wrap_resolves_patch_directory_beside_the_wrap() {
+        let root = std::env::temp_dir().join(format!("decay-local-wrap-{}", process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("packagefiles/thing")).unwrap();
+        let wrap = root.join("thing.wrap");
+        fs::write(
+            &wrap,
+            "[wrap-file]\nsource_url = https://example.test/thing.tar.gz\nsource_filename = thing.tar.gz\nsource_hash = deadbeef\npatch_directory = packagefiles/thing\n",
+        )
+        .unwrap();
+
+        let file = load_local(&wrap).unwrap();
+        assert_eq!(
+            file.local_overlay.as_deref(),
+            Some(root.join("packagefiles/thing").as_path())
+        );
+        let _ = fs::remove_dir_all(root);
     }
 }

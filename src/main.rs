@@ -108,8 +108,13 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
     // wrapdb's latest, is pinned here — once per run, before anything is
     // scheduled — rather than repeated by every worker that happens to
     // evaluate that entry.
-    let resolved = lock::resolve(Path::new("decay.lock"), &config.projects, &git_cache)
-        .wrap_err("Failed to resolve decay.lock")?;
+    let resolved = lock::resolve(
+        Path::new("decay.lock"),
+        &config.projects,
+        &git_cache,
+        config.wrap_dir.as_deref(),
+    )
+    .wrap_err("Failed to resolve decay.lock")?;
 
     // Projects run one wave at a time, so what one provides is known in time
     // for a later one's `dependency()` to resolve against it. A project whose
@@ -171,11 +176,15 @@ pub(crate) fn execute(
             WrapSource::Git { url, revision } => {
                 let repo = Repo(Url::parse(url).wrap_err_with(|| format!("`{url}` is not a URL"))?);
                 let checkout = git_cache.checkout(&repo, revision)?;
-                let overlay = file
-                    .patch_directory
-                    .as_deref()
-                    .map(|dir| wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir))
-                    .transpose()?;
+                let overlay =
+                    file.patch_directory
+                        .as_deref()
+                        .map(|dir| {
+                            file.local_overlay.clone().map(Ok).unwrap_or_else(|| {
+                                wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir)
+                            })
+                        })
+                        .transpose()?;
                 let dir =
                     wrap_cache.materialize_git(&name, version, &checkout, overlay.as_deref())?;
                 let origin = Origin::Git {

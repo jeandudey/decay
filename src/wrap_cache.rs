@@ -74,9 +74,14 @@ impl WrapCache {
         let dest = self.root.join("src").join(name).join(version);
         if !dest.join(".ok").is_file() {
             let overlay = file
-                .patch_directory
-                .as_deref()
-                .map(|dir| wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir))
+                .local_overlay
+                .clone()
+                .map(Ok)
+                .or_else(|| {
+                    file.patch_directory
+                        .as_deref()
+                        .map(|dir| wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir))
+                })
                 .transpose()?;
             extract(&archive, filename, &dest, overlay.as_deref())?;
         }

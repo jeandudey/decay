@@ -25,6 +25,11 @@ pub struct Config {
     /// Where generated build files are written, relative to the repository
     /// root.
     pub third_party_dir: PathBuf,
+    /// An optional Meson `subprojects`-style directory containing local
+    /// `.wrap` files.  A `[[project]] wrap = "name"` uses `name.wrap` from
+    /// here when present, before falling back to wrapdb.
+    #[serde(default, alias = "local_wraps")]
+    pub wrap_dir: Option<PathBuf>,
     /// The systems a build may target, mapped to the build-file label that
     /// selects each one.
     #[serde(default)]
@@ -98,9 +103,15 @@ fn default_true() -> bool {
 
 impl Config {
     pub fn from_file(path: impl AsRef<Path>) -> eyre::Result<Self> {
+        let path = path.as_ref();
         let file = fs::read_to_string(path).wrap_err("Failed to load configuration file")?;
         let mut config: Self =
             toml::from_str(&file).wrap_err("Failed to parse configuration file")?;
+        if let Some(dir) = &mut config.wrap_dir
+            && dir.is_relative()
+        {
+            *dir = path.parent().unwrap_or_else(|| Path::new(".")).join(&dir);
+        }
         config.check()?;
         Ok(config)
     }
@@ -904,6 +915,15 @@ mod tests {
             Source::Wrap { name, version } if name == "expat" && version.as_deref() == Some("2.7.1-1")
         ));
         assert_eq!(cfg.projects[1].short_name(), "expat");
+    }
+
+    #[test]
+    fn local_wrap_directory_is_accepted() {
+        let cfg: Config = toml::from_str(
+            "third_party_dir = \"tp\"\nwrap_dir = \"subprojects\"\n[[project]]\nwrap = \"thing\"\n",
+        )
+        .unwrap();
+        assert_eq!(cfg.wrap_dir, Some(PathBuf::from("subprojects")));
     }
 
     #[test]
