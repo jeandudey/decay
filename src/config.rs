@@ -457,18 +457,56 @@ impl Project {
 }
 
 /// Where a project's sources come from, as one `[[project]]` entry names it:
-/// a git checkout (`repo`, `rev`), or a meson wrap resolved against wrapdb
+/// a git checkout (`repo`, plus exactly one of `branch`, `tag`, or `rev`),
+/// or a meson wrap resolved against wrapdb
 /// (`wrap`, optionally pinned to a `version`).
 #[derive(Debug, Clone)]
 pub enum Source {
     Git {
         repo: Repo,
-        rev: String,
+        reference: GitReference,
     },
     Wrap {
         name: String,
         version: Option<String>,
     },
+}
+
+/// The spelling used to select a git checkout.  These are deliberately
+/// distinct: a repository can have both a branch and a tag called `v1`, and
+/// Cargo's `branch`/`tag`/`rev` keys promise to select different namespaces.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GitReference {
+    Branch(String),
+    Tag(String),
+    Rev(String),
+}
+
+impl GitReference {
+    pub fn value(&self) -> &str {
+        match self {
+            Self::Branch(value) | Self::Tag(value) | Self::Rev(value) => value,
+        }
+    }
+
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Branch(_) => "branch",
+            Self::Tag(_) => "tag",
+            Self::Rev(_) => "rev",
+        }
+    }
+
+    /// The precise remote ref to resolve. `rev` intentionally remains Cargo's
+    /// general git-revision syntax, while branch and tag never fall through to
+    /// each other's namespace.
+    pub fn remote_ref(&self) -> String {
+        match self {
+            Self::Branch(value) => format!("refs/heads/{value}"),
+            Self::Tag(value) => format!("refs/tags/{value}"),
+            Self::Rev(value) => value.clone(),
+        }
+    }
 }
 
 impl Source {
@@ -488,6 +526,8 @@ impl<'de> Deserialize<'de> for Project {
         struct Raw {
             repo: Option<Repo>,
             rev: Option<String>,
+            branch: Option<String>,
+            tag: Option<String>,
             wrap: Option<String>,
             version: Option<String>,
             #[serde(default)]
@@ -501,17 +541,28 @@ impl<'de> Deserialize<'de> for Project {
         }
 
         let raw = Raw::deserialize(de)?;
-        let source = match (raw.repo, raw.rev, raw.wrap, raw.version) {
-            (Some(repo), Some(rev), None, None) => Source::Git { repo, rev },
+        let reference = match (raw.branch, raw.tag, raw.rev) {
+            (Some(branch), None, None) => Some(GitReference::Branch(branch)),
+            (None, Some(tag), None) => Some(GitReference::Tag(tag)),
+            (None, None, Some(rev)) => Some(GitReference::Rev(rev)),
+            (None, None, None) => None,
+            _ => {
+                return Err(serde::de::Error::custom(
+                    "a git project may specify only one of `branch`, `tag`, or `rev`",
+                ));
+            }
+        };
+        let source = match (raw.repo, reference, raw.wrap, raw.version) {
+            (Some(repo), Some(reference), None, None) => Source::Git { repo, reference },
             (None, None, Some(name), version) => Source::Wrap { name, version },
             (Some(_), Some(_), None, Some(_)) => {
                 return Err(serde::de::Error::custom(
-                    "`version` only means something for a `wrap` entry, not a `repo`/`rev` one",
+                    "`version` only means something for a `wrap` entry, not a git project",
                 ));
             }
             _ => {
                 return Err(serde::de::Error::custom(
-                    "a project is either a git checkout (`repo` and `rev`) or a meson wrap \
+                    "a project is either a git checkout (`repo` and one of `branch`, `tag`, or `rev`) or a meson wrap \
                      (`wrap`, and optionally the wrapdb `version` to pin), not a mix of both \
                      or neither",
                 ));
@@ -873,5 +924,30 @@ mod tests {
              rev = \"0000000000000000000000000000000000000000\"\n";
         let err = toml::from_str::<Config>(toml).unwrap_err();
         assert!(format!("{err}").contains("either a git checkout"));
+    }
+
+    #[test]
+    fn git_projects_accept_cargo_style_branch_tag_and_rev() {
+        for (key, expected) in [
+            ("branch", GitReference::Branch("main".to_owned())),
+            ("tag", GitReference::Tag("v1.2.3".to_owned())),
+            ("rev", GitReference::Rev("deadbeef".to_owned())),
+        ] {
+            let toml = format!(
+                "third_party_dir = \"tp\"\n[[project]]\nrepo = \"https://example.com/x.git\"\n{key} = \"{}\"\n",
+                expected.value(),
+            );
+            let cfg: Config = toml::from_str(&toml).unwrap();
+            assert!(
+                matches!(&cfg.projects[0].source, Source::Git { reference, .. } if reference == &expected)
+            );
+        }
+    }
+
+    #[test]
+    fn git_projects_reject_multiple_reference_kinds() {
+        let toml = "third_party_dir = \"tp\"\n[[project]]\nrepo = \"https://example.com/x.git\"\nbranch = \"main\"\ntag = \"v1\"\n";
+        let err = toml::from_str::<Config>(toml).unwrap_err();
+        assert!(format!("{err}").contains("only one of `branch`, `tag`, or `rev`"));
     }
 }

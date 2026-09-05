@@ -104,7 +104,7 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
     let git_cache = GitCache::new(&cache_dir);
     let wrap_cache = WrapCache::new(&cache_dir);
 
-    // A `rev` that names a branch or tag, or a wrap left to resolve against
+    // A moving git `branch`, `tag`, or `rev`, or a wrap left to resolve against
     // wrapdb's latest, is pinned here — once per run, before anything is
     // scheduled — rather than repeated by every worker that happens to
     // evaluate that entry.

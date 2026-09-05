@@ -123,6 +123,7 @@ mod tests {
     use {
         super::*,
         crate::config::{
+            GitReference,
             Machine,
             Repo,
             Source, //
@@ -134,7 +135,7 @@ mod tests {
         Project {
             source: Source::Git {
                 repo: Repo(Url::parse(&format!("https://example.test/{name}.git")).unwrap()),
-                rev: "0".repeat(40),
+                reference: GitReference::Rev("0".repeat(40)),
             },
             options: Default::default(),
             host_machine: Machine::default(),

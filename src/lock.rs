@@ -1,10 +1,10 @@
 //! `decay.lock`: pins whatever `decay.toml` left to resolve against a moving
-//! target — a git `rev` that names a branch or tag rather than a commit, and
+//! target — a git `branch`, `tag`, or non-commit `rev`, and
 //! a wrap's wrapdb version when `decay.toml` does not pin one itself — so a
 //! second run reproduces the first one instead of picking up whatever
 //! upstream or wrapdb happens to have moved on to.
 //!
-//! Resolved once per distinct `(repo, rev)` or `(wrap, version)` pin and then
+//! Resolved once per distinct `(repo, branch|tag|rev)` or `(wrap, version)` pin and then
 //! written back; deleting `decay.lock`, or changing what it was resolved
 //! from, is what makes it re-resolve, the same relationship `Cargo.lock` has
 //! to a version requirement in `Cargo.toml`.
@@ -12,6 +12,7 @@
 use {
     crate::{
         config::{
+            GitReference,
             Project,
             Repo,
             Source,
@@ -42,10 +43,41 @@ struct LockFile {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct LockedGit {
     repo: String,
-    /// The `decay.toml` `rev` this pin was resolved from, so a changed `rev`
-    /// re-resolves instead of reusing a pin that no longer applies.
-    rev: String,
+    /// The source selector is retained with its kind. A tag and a branch with
+    /// the same text must never share a lock entry.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    tag: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    rev: Option<String>,
     resolved: String,
+}
+
+impl LockedGit {
+    fn new(repo: String, reference: &GitReference, resolved: String) -> Self {
+        let (branch, tag, rev) = match reference {
+            GitReference::Branch(value) => (Some(value.clone()), None, None),
+            GitReference::Tag(value) => (None, Some(value.clone()), None),
+            GitReference::Rev(value) => (None, None, Some(value.clone())),
+        };
+        Self {
+            repo,
+            branch,
+            tag,
+            rev,
+            resolved,
+        }
+    }
+
+    fn matches(&self, repo: &str, reference: &GitReference) -> bool {
+        self.repo == repo
+            && match reference {
+                GitReference::Branch(value) => self.branch.as_deref() == Some(value),
+                GitReference::Tag(value) => self.tag.as_deref() == Some(value),
+                GitReference::Rev(value) => self.rev.as_deref() == Some(value),
+            }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -173,9 +205,11 @@ pub fn resolve(
 
     for project in projects {
         match &project.source {
-            Source::Git { repo, rev } => {
-                if is_full_sha(rev) {
-                    out.push(Resolved::Git { rev: rev.clone() });
+            Source::Git { repo, reference } => {
+                if matches!(reference, GitReference::Rev(rev) if is_full_sha(rev)) {
+                    out.push(Resolved::Git {
+                        rev: reference.value().to_owned(),
+                    });
                     continue;
                 }
 
@@ -183,20 +217,24 @@ pub fn resolve(
                 let resolved = match lock
                     .projects
                     .iter()
-                    .find(|p| p.repo == repo_url && p.rev == *rev)
+                    .find(|p| p.matches(&repo_url, reference))
                 {
                     Some(locked) => locked.resolved.clone(),
                     None => {
-                        let resolved = git_cache::resolve_rev(repo, rev).wrap_err_with(|| {
-                            format!("Failed to resolve `{rev}` for `{}`", repo.short_name())
-                        })?;
-                        info!(repo = %repo_url, rev, resolved, "locked");
+                        let remote_ref = reference.remote_ref();
+                        let resolved =
+                            git_cache::resolve_rev(repo, &remote_ref).wrap_err_with(|| {
+                                format!(
+                                    "Failed to resolve {} `{}` for `{}`",
+                                    reference.kind(),
+                                    reference.value(),
+                                    repo.short_name()
+                                )
+                            })?;
+                        info!(repo = %repo_url, kind = reference.kind(), reference = reference.value(), resolved, "locked");
                         lock.projects.retain(|p| p.repo != repo_url);
-                        lock.projects.push(LockedGit {
-                            repo: repo_url,
-                            rev: rev.clone(),
-                            resolved: resolved.clone(),
-                        });
+                        lock.projects
+                            .push(LockedGit::new(repo_url, reference, resolved.clone()));
                         dirty = true;
                         resolved
                     }
@@ -311,11 +349,11 @@ mod tests {
         GitCache::new(std::env::temp_dir().join(format!("decay-lock-test-cache-{}", process::id())))
     }
 
-    fn git_project(repo: &str, rev: &str) -> Project {
+    fn git_project(repo: &str, reference: GitReference) -> Project {
         Project {
             source: Source::Git {
                 repo: Repo(Url::parse(repo).unwrap()),
-                rev: rev.to_owned(),
+                reference,
             },
             options: Default::default(),
             host_machine: Machine::default(),
@@ -341,7 +379,10 @@ mod tests {
     fn a_full_sha_resolves_without_touching_the_lock_file() {
         let path = tmp_lock_path("full-sha");
         let sha = "a".repeat(40);
-        let projects = [git_project("https://example.test/x.git", &sha)];
+        let projects = [git_project(
+            "https://example.test/x.git",
+            GitReference::Rev(sha.clone()),
+        )];
 
         let resolved = resolve(&path, &projects, &tmp_git_cache()).unwrap();
 
@@ -359,7 +400,9 @@ mod tests {
             &LockFile {
                 projects: vec![LockedGit {
                     repo: repo.to_owned(),
-                    rev: "main".to_owned(),
+                    branch: Some("main".to_owned()),
+                    tag: None,
+                    rev: None,
                     resolved: resolved_sha.clone(),
                 }],
                 wraps: vec![],
@@ -370,9 +413,45 @@ mod tests {
         // No real `main` branch exists at this URL, so if this reached the
         // network path it would fail rather than quietly resolve to
         // something else.
-        let resolved = resolve(&path, &[git_project(repo, "main")], &tmp_git_cache()).unwrap();
+        let resolved = resolve(
+            &path,
+            &[git_project(repo, GitReference::Branch("main".to_owned()))],
+            &tmp_git_cache(),
+        )
+        .unwrap();
 
         assert!(matches!(&resolved[0], Resolved::Git { rev } if *rev == resolved_sha));
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn a_branch_and_tag_with_the_same_name_do_not_share_a_lock_entry() {
+        let path = tmp_lock_path("ref-kind");
+        let repo = "https://example.test/y.git";
+        let branch_sha = "b".repeat(40);
+        save(
+            &path,
+            &LockFile {
+                projects: vec![LockedGit {
+                    repo: repo.to_owned(),
+                    branch: Some("release".to_owned()),
+                    tag: None,
+                    rev: None,
+                    resolved: branch_sha,
+                }],
+                wraps: vec![],
+            },
+        )
+        .unwrap();
+
+        let err = resolve(
+            &path,
+            &[git_project(repo, GitReference::Tag("release".to_owned()))],
+            &tmp_git_cache(),
+        )
+        .err()
+        .expect("a tag must not reuse a branch lock entry");
+        assert!(format!("{err:#}").contains("tag `release`"));
         let _ = fs::remove_file(&path);
     }
 
