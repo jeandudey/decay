@@ -40,6 +40,69 @@ use {
     tracing::debug,
 };
 
+/// Function attribute names `cc.has_function_attribute()` recognizes —
+/// meson's own reference table
+/// (<https://mesonbuild.com/Reference-tables.html#function-attributes>),
+/// copied from the `C_FUNC_ATTRIBUTES` / `CXX_FUNC_ATTRIBUTES` dicts in
+/// meson's `mesonbuild/compilers/c_function_attributes.py` (checked against
+/// meson 1.10.1). Fixed compiler vocabulary, not project- or
+/// machine-specific data, so unlike `has_function`'s libc database this is
+/// reasonable to keep as a plain list; refresh by re-copying that file's
+/// keys if meson adds more.
+const FUNC_ATTRIBUTES: &[&str] = &[
+    "alias",
+    "aligned",
+    "alloc_size",
+    "always_inline",
+    "artificial",
+    "cold",
+    "const",
+    "constructor",
+    "constructor_priority",
+    "counted_by",
+    "deprecated",
+    "destructor",
+    "dllexport",
+    "dllimport",
+    "error",
+    "externally_visible",
+    "fallthrough",
+    "flatten",
+    "format",
+    "format_arg",
+    "force_align_arg_pointer",
+    "gnu_inline",
+    "hot",
+    "ifunc",
+    "leaf",
+    "malloc",
+    "noclone",
+    "noinline",
+    "nonnull",
+    "noreturn",
+    "nothrow",
+    "null_terminated_string_arg",
+    "optimize",
+    "packed",
+    "pure",
+    "returns_nonnull",
+    "section",
+    "sentinel",
+    "unused",
+    "used",
+    "vector_size",
+    "visibility",
+    "visibility:default",
+    "visibility:hidden",
+    "visibility:internal",
+    "visibility:protected",
+    "warning",
+    "warn_unused_result",
+    "weak",
+    "weakref",
+    "retain",
+];
+
 impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn method(
         &mut self,
@@ -769,6 +832,17 @@ impl<'a, S: Solver> Interp<'a, S> {
             "has_argument" | "has_link_argument" | "has_multi_arguments"
             | "has_multi_link_arguments" => Ok(self.bool_value(self.pc)),
 
+            // Which compiler is active decides the answer, so this does not
+            // fold into the generic `probe_cond` path above.
+            "has_function_attribute" => {
+                let attr = self.one_string(
+                    args.at(0)
+                        .ok_or_eyre("`has_function_attribute()` needs an attribute name")?,
+                )?;
+                let cond = self.function_attribute_cond(lang, &attr)?;
+                Ok(self.bool_value(cond))
+            }
+
             other => bail!("a compiler has no method `{other}`"),
         }
     }
@@ -801,6 +875,92 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
         out.normalize(&mut self.logic);
         Ok(out)
+    }
+
+    /// The condition for the active `lang` compiler being one of `ids` —
+    /// shares the `compiler:{lang}` variable [`Self::compiler_id`] itself
+    /// branches over, so both select on the same thing.
+    fn compiler_is(&mut self, lang: Lang, ids: &[&str]) -> eyre::Result<Pc> {
+        let choices = self.oracle.compilers();
+        if choices.is_empty() {
+            bail!("no compilers were configured");
+        }
+        if choices.len() == 1 {
+            return Ok(Pc::from_bool(ids.contains(&choices[0].as_str())));
+        }
+
+        let id = self.logic.declare(Var {
+            key: format!("compiler:{}", lang.as_str()),
+            description: Some(format!("the {} compiler in use", lang.as_str())),
+            kind: VarKind::Machine,
+            choices: choices.clone(),
+            default: 0,
+        });
+        let matches = choices
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| ids.contains(&c.as_str()))
+            .map(|(i, _)| i as u32);
+        Ok(self.logic.any_of(id, matches))
+    }
+
+    /// Whether the host could be Windows (or Cygwin) — used only for
+    /// `dllimport`/`dllexport`, the two attributes mingw gcc/clang
+    /// understand via `__attribute__` the same way MSVC does via
+    /// `__declspec`. Unlike [`Self::host_system_is`], a project whose
+    /// `[systems]` never mentions `windows` just answers "no" here rather
+    /// than erroring — nothing named it, so nothing asked for it explicitly.
+    fn is_windows_target(&mut self) -> eyre::Result<Pc> {
+        if let Some(pinned) = self.oracle.machine(Machine::Host, "system") {
+            return Ok(Pc::from_bool(pinned == "windows" || pinned == "cygwin"));
+        }
+        let known = self.oracle.systems();
+        let is_win = |s: &String| s == "windows" || s == "cygwin";
+        match known.iter().filter(|s| is_win(s)).count() {
+            0 => Ok(Pc::from_bool(false)),
+            n if n == known.len() => Ok(Pc::from_bool(true)),
+            _ => {
+                let id = self.machine_var(Machine::Host, "system", known.clone());
+                let choices = known
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, k)| is_win(k))
+                    .map(|(i, _)| i as u32);
+                Ok(self.logic.any_of(id, choices))
+            }
+        }
+    }
+
+    /// `cc.has_function_attribute()`: gcc and clang accept every attribute in
+    /// [`FUNC_ATTRIBUTES`]; msvc has no `__attribute__` syntax at all and
+    /// recognizes only `dllimport`/`dllexport`, via `__declspec` instead —
+    /// mirrors `clike.has_func_attribute` / `visualstudio.has_func_attribute`
+    /// in meson's own source, since the importer cannot compile anything to
+    /// check for real.
+    fn function_attribute_cond(&mut self, lang: Lang, name: &str) -> eyre::Result<Pc> {
+        if !FUNC_ATTRIBUTES.contains(&name) {
+            bail!(
+                "`{}.has_function_attribute('{name}')` names an attribute decay does not \
+                 know — see \
+                 <https://mesonbuild.com/Reference-tables.html#function-attributes>",
+                lang.as_str()
+            );
+        }
+
+        let windows_only = name == "dllimport" || name == "dllexport";
+        let gnu = self.compiler_is(lang, &["gcc", "clang"])?;
+        let gnu_holds = if windows_only {
+            let windows = self.is_windows_target()?;
+            self.logic.and(gnu, windows)
+        } else {
+            gnu
+        };
+        let msvc_holds = if windows_only {
+            self.compiler_is(lang, &["msvc"])?
+        } else {
+            Pc::from_bool(false)
+        };
+        Ok(self.logic.or(gnu_holds, msvc_holds))
     }
 
     // -- configuration data -----------------------------------------------

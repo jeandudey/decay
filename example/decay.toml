@@ -156,11 +156,18 @@ options.gtk_doc = false
 #   Caused by:
 #      0: Failed to execute `libglvnd`
 #      1: in /meson.build
-#      2: in `.has_function_attribute()` at /meson.build:199:6
-#      3: a compiler has no method `has_function_attribute`
+#      2: in `subdir()` at /meson.build:254:0
+#      3: in src/meson.build
+#      4: in `subdir()` at src/meson.build:27:0
+#      5: in src/OpenGL/meson.build
+#      6: in `test()` at src/OpenGL/meson.build:56:0
+#      7: expected a string, found a build_tgt
 #
 #   Location:
-#       crates/decay_meson_eval/src/methods.rs:772:22
+#       crates/decay_meson_eval/src/lib.rs:1026:32
+#
+# `.has_function_attribute()` is fixed; `test()` now needs to accept a
+# `build_tgt` (an executable() result) as its command, not just a string.
 #[[project]]
 #repo = "https://github.com/NVIDIA/libglvnd"
 #rev = "faa23f21fc677af5792825dc30cb1ccef4bf33a6" # Tag 1.7.0

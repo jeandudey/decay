@@ -155,10 +155,12 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     reading.
   - **pcre2 itself still doesn't fully import.** `wrap = "pcre2"` now
     resolves, fetches, and overlays correctly (`decay.lock` pins it, and
-    evaluation reaches pcre2's actual, wrapdb-authored `meson.build`), but
-    evaluation currently stops on `cc.has_function_attribute()`, an
-    evaluator method decay doesn't implement yet — an ordinary gap under
-    "Better diagnostics" below, not a wrapdb one.
+    evaluation reaches pcre2's actual, wrapdb-authored `meson.build`).
+    `cc.has_function_attribute()` is now implemented (see below), which got
+    evaluation past its former stopping point; it now stops on
+    `configure_file(configuration: {...})` taking a plain dict instead of a
+    `configuration_data()` object, an ordinary `builtins.rs` gap, not a
+    wrapdb one.
 
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be
