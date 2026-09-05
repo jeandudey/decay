@@ -24,11 +24,11 @@ use {
         Logic,
         Pc,
         Solver,
-        Variant,
-        Variational,
         Var,
         VarId,
         VarKind, //
+        Variant,
+        Variational,
     },
     eyre::Context,
     std::{
@@ -102,7 +102,10 @@ pub fn emit<S: Solver>(
     let used = Used::new(&rules);
     let constraints = constraints_file(graph, &local, &names, known, &used, package);
 
-    let build = format!("{}{rules}", file_header(graph, package, constraints.is_some()));
+    let build = format!(
+        "{}{rules}",
+        file_header(graph, package, constraints.is_some())
+    );
 
     // `None` means nothing in the build selects on a constraint of this
     // project's own, so there is nothing to declare — and, per `file_header`
@@ -137,7 +140,10 @@ fn file_header(graph: &Graph, package: &str, has_constraints: bool) -> String {
             .unwrap_or_default(),
     );
     if has_constraints {
-        let _ = write!(out, "#\n# Configuration lives in //{package}/{CONSTRAINTS}.\n");
+        let _ = write!(
+            out,
+            "#\n# Configuration lives in //{package}/{CONSTRAINTS}.\n"
+        );
     }
     out
 }
@@ -334,7 +340,10 @@ fn render_constraint(var: &Var, name: &str) -> String {
 /// a description can span several (a compiler probe's source snippet, say),
 /// and only the first line of an unprefixed one is actually a comment.
 fn comment(text: &str) -> String {
-    text.lines().map(|line| format!("# {line}")).collect::<Vec<_>>().join("\n")
+    text.lines()
+        .map(|line| format!("# {line}"))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn describe(var: &Var) -> String {
@@ -469,7 +478,10 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
             }
         }
 
-        if let Kind::External(External::Program { path: Some(path), .. }) = &target.kind {
+        if let Kind::External(External::Program {
+            path: Some(path), ..
+        }) = &target.kind
+        {
             out.insert(path.display().to_string());
         }
     }
@@ -538,14 +550,17 @@ fn render_target<S: Solver>(
         Kind::Custom => {
             // Inputs reach the command through `$(location ...)`, which already
             // makes them dependencies of the rule.
-            attrs.push(("out", format!("{:?}", a.outs.first().cloned().unwrap_or_default())));
             attrs.push((
-                "cmd",
-                command(graph, logic, selects, known, target),
+                "out",
+                format!("{:?}", a.outs.first().cloned().unwrap_or_default()),
             ));
+            attrs.push(("cmd", command(graph, logic, selects, known, target)));
         }
         Kind::ConfigHeader => {
-            attrs.push(("out", format!("{:?}", a.outs.first().cloned().unwrap_or_default())));
+            attrs.push((
+                "out",
+                format!("{:?}", a.outs.first().cloned().unwrap_or_default()),
+            ));
             attrs.push(("cmd", config_header_cmd(graph, logic, selects, target)));
         }
         _ => {
@@ -653,7 +668,11 @@ fn render_target<S: Solver>(
                 // `declare_dependency()` exists to pass usage requirements on,
                 // so its edges have to be exported; buck2 keeps plain `deps`
                 // private to the target that declares them.
-                let key = if is_interface { "exported_deps" } else { "deps" };
+                let key = if is_interface {
+                    "exported_deps"
+                } else {
+                    "deps"
+                };
                 attrs.push((
                     key,
                     selects.render_list(logic, &deps, cond, 1, |id| {
@@ -1037,11 +1056,7 @@ fn has_rule(target: &Target) -> bool {
 
 fn source(graph: &Graph, source: &Source) -> String {
     match source {
-        Source::File(path) => format!(
-            "\":{}[{}]\"",
-            repo_target(graph),
-            path.display()
-        ),
+        Source::File(path) => format!("\":{}[{}]\"", repo_target(graph), path.display()),
         Source::Generated(id) => format!("\":{}\"", graph.target(*id).name),
     }
 }
@@ -1087,7 +1102,9 @@ fn command<S: Solver>(
                     // fetch. A `.py` one is handed to an interpreter rather
                     // than executed, because a fetched file carries no promise
                     // about its execute bit.
-                    Kind::External(External::Program { path: Some(path), .. }) => {
+                    Kind::External(External::Program {
+                        path: Some(path), ..
+                    }) => {
                         let location = file_arg(graph, path);
                         match path.extension().and_then(|e| e.to_str()) {
                             Some("py") => format!("python3 {location}"),
@@ -1097,11 +1114,12 @@ fn command<S: Solver>(
                     // A tool is run, not linked or copied, so it is named as
                     // an executable rather than by its output path — and it
                     // never becomes a target of this build.
-                    Kind::External(External::Program { name, .. }) => match known.programs.get(name)
-                    {
-                        Some(label) => format!("$(exe {label})"),
-                        None => name.clone(),
-                    },
+                    Kind::External(External::Program { name, .. }) => {
+                        match known.programs.get(name) {
+                            Some(label) => format!("$(exe {label})"),
+                            None => name.clone(),
+                        }
+                    }
                     _ => format!("$(location :{})", dep.name),
                 }
             }
@@ -1178,10 +1196,16 @@ const OUT_DIR: &str = "${OUT%/*}";
 /// meson's own rule for a name nobody set is `/* #undef NAME */` — the same
 /// as this closes an open define set with, so a project that only ever
 /// `.set()`s a name inside an `if` still gets a valid header outside it.
-fn complete_defines<S: Solver>(logic: &mut Logic<S>, defines: &Variational<Define>, cond: Pc) -> Variational<Define> {
+fn complete_defines<S: Solver>(
+    logic: &mut Logic<S>,
+    defines: &Variational<Define>,
+    cond: Pc,
+) -> Variational<Define> {
     let mut covered: BTreeMap<String, Pc> = BTreeMap::new();
     for variant in defines.variants() {
-        let entry = covered.entry(variant.value.name.clone()).or_insert(Pc::FALSE);
+        let entry = covered
+            .entry(variant.value.name.clone())
+            .or_insert(Pc::FALSE);
         *entry = logic.or(*entry, variant.cond);
     }
 
@@ -1192,10 +1216,13 @@ fn complete_defines<S: Solver>(logic: &mut Logic<S>, defines: &Variational<Defin
         if gap.is_false() || !logic.is_sat(gap) {
             continue;
         }
-        out.push(Variant::new(gap, Define {
-            name,
-            value: DefineValue::Undef,
-        }));
+        out.push(Variant::new(
+            gap,
+            Define {
+                name,
+                value: DefineValue::Undef,
+            },
+        ));
     }
     out.normalize(logic);
     out
@@ -1221,34 +1248,43 @@ fn config_header_cmd<S: Solver>(
         // ever uses one of these for a given name, so this just tries both;
         // the one that names nothing in the template matches nothing and
         // does not change it.
-        let mut edits = selects.render_words(logic, &target.attrs.defines, target.cond, 1, " ", |define| {
-            let value = match &define.value {
-                DefineValue::Quoted(v) | DefineValue::Raw(v) => v.clone(),
-                DefineValue::Number(v) => v.to_string(),
-                DefineValue::Flag => "1".to_owned(),
-                DefineValue::Undef => String::new(),
-            };
-            // `|` is the delimiter, so a value containing one would end the
-            // expression early.
-            let value = value.replace('|', "\\|");
-            shell_quote(&format!("-es|@{}@|{value}|g", define.name))
-        });
+        let mut edits = selects.render_words(
+            logic,
+            &target.attrs.defines,
+            target.cond,
+            1,
+            " ",
+            |define| {
+                let value = match &define.value {
+                    DefineValue::Quoted(v) | DefineValue::Raw(v) => v.clone(),
+                    DefineValue::Number(v) => v.to_string(),
+                    DefineValue::Flag => "1".to_owned(),
+                    DefineValue::Undef => String::new(),
+                };
+                // `|` is the delimiter, so a value containing one would end the
+                // expression early.
+                let value = value.replace('|', "\\|");
+                shell_quote(&format!("-es|@{}@|{value}|g", define.name))
+            },
+        );
 
         let complete = complete_defines(logic, &target.attrs.defines, target.cond);
-        edits.extend(selects.render_words(logic, &complete, target.cond, 1, " ", |define| {
-            let line = match &define.value {
-                DefineValue::Quoted(v) => format!("#define {} \"{v}\"", define.name),
-                DefineValue::Raw(v) => format!("#define {} {v}", define.name),
-                DefineValue::Number(v) => format!("#define {} {v}", define.name),
-                DefineValue::Flag => format!("#define {}", define.name),
-                DefineValue::Undef => format!("/* #undef {} */", define.name),
-            }
-            .replace('|', "\\|");
-            shell_quote(&format!(
-                "-es|^#mesondefine[[:space:]]\\+{}\\>.*|{line}|",
-                define.name
-            ))
-        }));
+        edits.extend(
+            selects.render_words(logic, &complete, target.cond, 1, " ", |define| {
+                let line = match &define.value {
+                    DefineValue::Quoted(v) => format!("#define {} \"{v}\"", define.name),
+                    DefineValue::Raw(v) => format!("#define {} {v}", define.name),
+                    DefineValue::Number(v) => format!("#define {} {v}", define.name),
+                    DefineValue::Flag => format!("#define {}", define.name),
+                    DefineValue::Undef => format!("/* #undef {} */", define.name),
+                }
+                .replace('|', "\\|");
+                shell_quote(&format!(
+                    "-es|^#mesondefine[[:space:]]\\+{}\\>.*|{line}|",
+                    define.name
+                ))
+            }),
+        );
 
         let input = match template {
             Source::File(path) => file_arg(graph, path),
@@ -1266,16 +1302,23 @@ fn config_header_cmd<S: Solver>(
         return join(&parts);
     }
 
-    let lines = selects.render_words(logic, &target.attrs.defines, target.cond, 1, " ", |define| {
-        let text = match &define.value {
-            DefineValue::Quoted(v) => format!("#define {} \"{}\"", define.name, v),
-            DefineValue::Raw(v) => format!("#define {} {}", define.name, v),
-            DefineValue::Number(v) => format!("#define {} {}", define.name, v),
-            DefineValue::Flag => format!("#define {}", define.name),
-            DefineValue::Undef => format!("/* #undef {} */", define.name),
-        };
-        shell_quote(&text)
-    });
+    let lines = selects.render_words(
+        logic,
+        &target.attrs.defines,
+        target.cond,
+        1,
+        " ",
+        |define| {
+            let text = match &define.value {
+                DefineValue::Quoted(v) => format!("#define {} \"{}\"", define.name, v),
+                DefineValue::Raw(v) => format!("#define {} {}", define.name, v),
+                DefineValue::Number(v) => format!("#define {} {}", define.name, v),
+                DefineValue::Flag => format!("#define {}", define.name),
+                DefineValue::Undef => format!("/* #undef {} */", define.name),
+            };
+            shell_quote(&text)
+        },
+    );
 
     let mut parts = vec!["\"printf '%s\\\\n'\"".to_owned()];
     parts.extend(lines);

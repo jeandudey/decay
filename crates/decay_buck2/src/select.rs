@@ -119,7 +119,8 @@ impl Selects {
         // block out twice: where several values share an arm of any size, the
         // reader is better served by one `DEFAULT` than by hunting for the
         // difference between two copies.
-        let repeats = |arm: &String| lines(arm) > 1 && rendered.iter().filter(|a| *a == arm).count() > 1;
+        let repeats =
+            |arm: &String| lines(arm) > 1 && rendered.iter().filter(|a| *a == arm).count() > 1;
         if rendered.iter().any(repeats) || lines(&listed) > lines(&collapsed) + WORTH_COLLAPSING {
             return Some(collapsed);
         }
@@ -170,11 +171,7 @@ impl Selects {
         Some(Self::write(&keyed, Some(&fallback), depth))
     }
 
-    fn write<T: AsRef<str>>(
-        arms: &[(String, T)],
-        fallback: Option<&T>,
-        depth: Depth,
-    ) -> String {
+    fn write<T: AsRef<str>>(arms: &[(String, T)], fallback: Option<&T>, depth: Depth) -> String {
         let pad = indent(depth + 1);
         let mut out = String::from("select({\n");
         for (key, value) in arms {
@@ -294,9 +291,14 @@ impl Selects {
                     let no = |depth: Depth| list(otherwise, depth);
                     parts.push(self.render(logic, *cond, context, &yes, &no, depth));
                 }
-                None => {
-                    parts.push(self.render(logic, *cond, context, &yes, &|_| "[]".to_owned(), depth))
-                }
+                None => parts.push(self.render(
+                    logic,
+                    *cond,
+                    context,
+                    &yes,
+                    &|_| "[]".to_owned(),
+                    depth,
+                )),
             }
         }
 
@@ -376,7 +378,11 @@ impl Selects {
             entries
                 .iter()
                 .map(|(cond, key, value)| {
-                    (logic.restrict(*cond, var, choice), key.clone(), value.clone())
+                    (
+                        logic.restrict(*cond, var, choice),
+                        key.clone(),
+                        value.clone(),
+                    )
                 })
                 .filter(|(cond, _, _)| !cond.is_false())
                 .collect()
@@ -552,12 +558,7 @@ impl Selects {
     /// — so whatever the condition demands outright is written as a plain list.
     /// Only what is left, a value ruled out or a choice between alternatives,
     /// needs a `select()`, and it is usually one level deep instead of four.
-    pub fn render_compat<S: Solver>(
-        &self,
-        logic: &mut Logic<S>,
-        cond: Pc,
-        depth: Depth,
-    ) -> String {
+    pub fn render_compat<S: Solver>(&self, logic: &mut Logic<S>, cond: Pc, depth: Depth) -> String {
         let mut required = Vec::new();
         let mut rest = cond;
         while let Some((label, var, choice)) = self.forced(logic, rest) {
@@ -693,4 +694,3 @@ mod tests {
         assert_eq!(list(&items, 0), "[\n    line1\nline2,\n]");
     }
 }
-

@@ -1,9 +1,9 @@
 use {
+    decay_build_ir::TargetId,
     decay_meson_logic::{
         Pc,
         Variational, //
     },
-    decay_build_ir::TargetId,
     eyre::bail,
     std::{
         cell::RefCell,
@@ -221,7 +221,10 @@ pub struct ConfigData {
 
 impl ConfigData {
     pub fn get(&self, name: &str) -> Option<&Variational<Entry>> {
-        self.entries.iter().find(|(k, _)| &**k == name).map(|(_, v)| v)
+        self.entries
+            .iter()
+            .find(|(k, _)| &**k == name)
+            .map(|(_, v)| v)
     }
 
     pub fn slot(&mut self, name: &Rc<str>) -> &mut Variational<Entry> {

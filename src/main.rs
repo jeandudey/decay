@@ -151,7 +151,10 @@ pub(crate) fn execute(
     let (dir, origin) = match (&project.source, resolved) {
         (Source::Git { repo, .. }, Resolved::Git { rev }) => {
             let dir = git_cache.checkout(repo, rev)?;
-            let origin = Origin::Git { repo: repo.0.to_string(), rev: rev.clone() };
+            let origin = Origin::Git {
+                repo: repo.0.to_string(),
+                rev: rev.clone(),
+            };
             (dir, origin)
         }
         (Source::Wrap { .. }, Resolved::Wrap { version, file }) => match &file.source {
@@ -172,12 +175,18 @@ pub(crate) fn execute(
                     .as_deref()
                     .map(|dir| wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir))
                     .transpose()?;
-                let dir = wrap_cache.materialize_git(&name, version, &checkout, overlay.as_deref())?;
-                let origin = Origin::Git { repo: url.clone(), rev: revision.clone() };
+                let dir =
+                    wrap_cache.materialize_git(&name, version, &checkout, overlay.as_deref())?;
+                let origin = Origin::Git {
+                    repo: url.clone(),
+                    rev: revision.clone(),
+                };
                 (dir, origin)
             }
         },
-        _ => unreachable!("`lock::resolve` produces one `Resolved` per `Source`, in the same order"),
+        _ => {
+            unreachable!("`lock::resolve` produces one `Resolved` per `Source`, in the same order")
+        }
     };
     let checkout_ms = checkout_start.elapsed().as_millis();
 

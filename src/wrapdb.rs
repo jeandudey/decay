@@ -44,8 +44,9 @@ use {
 };
 
 /// Where wrapdb itself lives, checked out like any other `[[project]]`.
-pub static REPO: LazyLock<Repo> =
-    LazyLock::new(|| Repo(Url::parse("https://github.com/mesonbuild/wrapdb.git").expect("static URL")));
+pub static REPO: LazyLock<Repo> = LazyLock::new(|| {
+    Repo(Url::parse("https://github.com/mesonbuild/wrapdb.git").expect("static URL"))
+});
 
 /// What one `.wrap` file promises, once parsed.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -194,9 +195,9 @@ fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
         });
     }
 
-    let file = sections
-        .get("wrap-file")
-        .ok_or_else(|| eyre!("this `.wrap` has neither a `[wrap-file]` nor a `[wrap-git]` section"))?;
+    let file = sections.get("wrap-file").ok_or_else(|| {
+        eyre!("this `.wrap` has neither a `[wrap-file]` nor a `[wrap-git]` section")
+    })?;
     let get = |key: &str| {
         file.get(key)
             .cloned()
@@ -262,11 +263,14 @@ mod tests {
              [provide]\n\
              dependency_names = zlib\n";
         let wrap = parse_wrap(text).unwrap();
-        assert_eq!(wrap.source, WrapSource::Archive {
-            url: "https://example.com/zlib-1.3.1.tar.gz".to_owned(),
-            filename: "zlib-1.3.1.tar.gz".to_owned(),
-            hash: "deadbeef".to_owned(),
-        });
+        assert_eq!(
+            wrap.source,
+            WrapSource::Archive {
+                url: "https://example.com/zlib-1.3.1.tar.gz".to_owned(),
+                filename: "zlib-1.3.1.tar.gz".to_owned(),
+                hash: "deadbeef".to_owned(),
+            }
+        );
         assert_eq!(wrap.patch_directory, None);
     }
 
@@ -277,7 +281,10 @@ mod tests {
              source_filename = x.tar.gz\n\
              source_hash = deadbeef\n\
              patch_directory = x\n";
-        assert_eq!(parse_wrap(text).unwrap().patch_directory.as_deref(), Some("x"));
+        assert_eq!(
+            parse_wrap(text).unwrap().patch_directory.as_deref(),
+            Some("x")
+        );
     }
 
     #[test]
@@ -299,10 +306,13 @@ mod tests {
              url = https://example.com/x.git\n\
              revision = main\n";
         let wrap = parse_wrap(text).unwrap();
-        assert_eq!(wrap.source, WrapSource::Git {
-            url: "https://example.com/x.git".to_owned(),
-            revision: "main".to_owned(),
-        });
+        assert_eq!(
+            wrap.source,
+            WrapSource::Git {
+                url: "https://example.com/x.git".to_owned(),
+                revision: "main".to_owned(),
+            }
+        );
         assert_eq!(wrap.patch_directory, None);
     }
 
@@ -315,13 +325,19 @@ mod tests {
              url = https://example.com/x.git\n\
              revision = v1.0\n\
              patch_directory = x\n";
-        assert_eq!(parse_wrap(text).unwrap().patch_directory.as_deref(), Some("x"));
+        assert_eq!(
+            parse_wrap(text).unwrap().patch_directory.as_deref(),
+            Some("x")
+        );
     }
 
     #[test]
     fn a_wrap_with_neither_section_is_an_error() {
         let text = "[provide]\ndependency_names = x\n";
         let err = parse_wrap(text).unwrap_err().to_string();
-        assert!(err.contains("wrap-file") && err.contains("wrap-git"), "{err}");
+        assert!(
+            err.contains("wrap-file") && err.contains("wrap-git"),
+            "{err}"
+        );
     }
 }

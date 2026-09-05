@@ -82,10 +82,20 @@ struct LockedWrap {
 impl LockedWrap {
     fn new(name: &str, pin: Option<&str>, version: &str, file: &WrapFile) -> Self {
         let (source_url, source_filename, source_hash, git_url, git_rev) = match &file.source {
-            WrapSource::Archive { url, filename, hash } => {
-                (Some(url.clone()), Some(filename.clone()), Some(hash.clone()), None, None)
+            WrapSource::Archive {
+                url,
+                filename,
+                hash,
+            } => (
+                Some(url.clone()),
+                Some(filename.clone()),
+                Some(hash.clone()),
+                None,
+                None,
+            ),
+            WrapSource::Git { url, revision } => {
+                (None, None, None, Some(url.clone()), Some(revision.clone()))
             }
-            WrapSource::Git { url, revision } => (None, None, None, Some(url.clone()), Some(revision.clone())),
         };
         LockedWrap {
             name: name.to_owned(),
@@ -105,21 +115,27 @@ impl LockedWrap {
         let source = match (&self.source_url, &self.git_url) {
             (Some(url), None) => WrapSource::Archive {
                 url: url.clone(),
-                filename: self
-                    .source_filename
-                    .clone()
-                    .ok_or_else(|| eyre!("locked wrap `{}` has a `source_url` but no `source_filename`", self.name))?,
-                hash: self
-                    .source_hash
-                    .clone()
-                    .ok_or_else(|| eyre!("locked wrap `{}` has a `source_url` but no `source_hash`", self.name))?,
+                filename: self.source_filename.clone().ok_or_else(|| {
+                    eyre!(
+                        "locked wrap `{}` has a `source_url` but no `source_filename`",
+                        self.name
+                    )
+                })?,
+                hash: self.source_hash.clone().ok_or_else(|| {
+                    eyre!(
+                        "locked wrap `{}` has a `source_url` but no `source_hash`",
+                        self.name
+                    )
+                })?,
             },
             (None, Some(url)) => WrapSource::Git {
                 url: url.clone(),
-                revision: self
-                    .git_rev
-                    .clone()
-                    .ok_or_else(|| eyre!("locked wrap `{}` has a `git_url` but no `git_rev`", self.name))?,
+                revision: self.git_rev.clone().ok_or_else(|| {
+                    eyre!(
+                        "locked wrap `{}` has a `git_url` but no `git_rev`",
+                        self.name
+                    )
+                })?,
             },
             _ => bail!(
                 "locked wrap `{}` has neither a `source_url` nor a `git_url` (or has both) — \
@@ -146,7 +162,11 @@ pub enum Resolved {
 /// Resolve every project in `projects`, consulting and then updating the lock
 /// file at `path`. One [`Resolved`] per entry of `projects`, in the same
 /// order.
-pub fn resolve(path: &Path, projects: &[Project], git_cache: &GitCache) -> eyre::Result<Vec<Resolved>> {
+pub fn resolve(
+    path: &Path,
+    projects: &[Project],
+    git_cache: &GitCache,
+) -> eyre::Result<Vec<Resolved>> {
     let mut lock = load(path)?;
     let mut dirty = false;
     let mut out = Vec::with_capacity(projects.len());
@@ -160,7 +180,11 @@ pub fn resolve(path: &Path, projects: &[Project], git_cache: &GitCache) -> eyre:
                 }
 
                 let repo_url = repo.0.to_string();
-                let resolved = match lock.projects.iter().find(|p| p.repo == repo_url && p.rev == *rev) {
+                let resolved = match lock
+                    .projects
+                    .iter()
+                    .find(|p| p.repo == repo_url && p.rev == *rev)
+                {
                     Some(locked) => locked.resolved.clone(),
                     None => {
                         let resolved = git_cache::resolve_rev(repo, rev).wrap_err_with(|| {
@@ -192,30 +216,45 @@ pub fn resolve(path: &Path, projects: &[Project], git_cache: &GitCache) -> eyre:
                             Some(v) => v.clone(),
                             None => wrapdb::latest_version(git_cache, name)?,
                         };
-                        let mut file = wrapdb::fetch(git_cache, name, &resolved_version).wrap_err_with(|| {
-                            format!("Failed to fetch the `{name}` wrap at `{resolved_version}`")
-                        })?;
+                        let mut file = wrapdb::fetch(git_cache, name, &resolved_version)
+                            .wrap_err_with(|| {
+                                format!("Failed to fetch the `{name}` wrap at `{resolved_version}`")
+                            })?;
                         // A `[wrap-git]` `revision` may name a branch or tag,
                         // same as a `[[project]]`'s own `rev` — pin it to the
                         // commit it currently names, once, right here.
                         if let WrapSource::Git { url, revision } = &mut file.source {
                             if !is_full_sha(revision) {
                                 let repo = Repo(Url::parse(url).wrap_err_with(|| {
-                                    format!("`{url}` (the `[wrap-git]` url for `{name}`) is not a URL")
+                                    format!(
+                                        "`{url}` (the `[wrap-git]` url for `{name}`) is not a URL"
+                                    )
                                 })?);
-                                *revision = git_cache::resolve_rev(&repo, revision).wrap_err_with(|| {
-                                    format!("Failed to resolve `{revision}` for the `{name}` wrap")
-                                })?;
+                                *revision = git_cache::resolve_rev(&repo, revision).wrap_err_with(
+                                    || {
+                                        format!(
+                                            "Failed to resolve `{revision}` for the `{name}` wrap"
+                                        )
+                                    },
+                                )?;
                             }
                         }
                         info!(name, version = resolved_version, "locked");
                         lock.wraps.retain(|w| &w.name != name);
-                        lock.wraps.push(LockedWrap::new(name, version.as_deref(), &resolved_version, &file));
+                        lock.wraps.push(LockedWrap::new(
+                            name,
+                            version.as_deref(),
+                            &resolved_version,
+                            &file,
+                        ));
                         dirty = true;
                         (resolved_version, file)
                     }
                 };
-                out.push(Resolved::Wrap { version: resolved_version, file });
+                out.push(Resolved::Wrap {
+                    version: resolved_version,
+                    file,
+                });
             }
         }
     }
@@ -274,7 +313,10 @@ mod tests {
 
     fn git_project(repo: &str, rev: &str) -> Project {
         Project {
-            source: Source::Git { repo: Repo(Url::parse(repo).unwrap()), rev: rev.to_owned() },
+            source: Source::Git {
+                repo: Repo(Url::parse(repo).unwrap()),
+                rev: rev.to_owned(),
+            },
             options: Default::default(),
             host_machine: Machine::default(),
             build_machine: Machine::default(),
@@ -284,7 +326,10 @@ mod tests {
 
     fn wrap_project(name: &str, version: Option<&str>) -> Project {
         Project {
-            source: Source::Wrap { name: name.to_owned(), version: version.map(str::to_owned) },
+            source: Source::Wrap {
+                name: name.to_owned(),
+                version: version.map(str::to_owned),
+            },
             options: Default::default(),
             host_machine: Machine::default(),
             build_machine: Machine::default(),
@@ -309,14 +354,17 @@ mod tests {
         let path = tmp_lock_path("reuse-git");
         let repo = "https://example.test/y.git";
         let resolved_sha = "b".repeat(40);
-        save(&path, &LockFile {
-            projects: vec![LockedGit {
-                repo: repo.to_owned(),
-                rev: "main".to_owned(),
-                resolved: resolved_sha.clone(),
-            }],
-            wraps: vec![],
-        })
+        save(
+            &path,
+            &LockFile {
+                projects: vec![LockedGit {
+                    repo: repo.to_owned(),
+                    rev: "main".to_owned(),
+                    resolved: resolved_sha.clone(),
+                }],
+                wraps: vec![],
+            },
+        )
         .unwrap();
 
         // No real `main` branch exists at this URL, so if this reached the
@@ -340,10 +388,13 @@ mod tests {
             patch_directory: None,
             wrapdb_rev: "f".repeat(40),
         };
-        save(&path, &LockFile {
-            projects: vec![],
-            wraps: vec![LockedWrap::new("zlib", None, "1.3.1-1", &file)],
-        })
+        save(
+            &path,
+            &LockFile {
+                projects: vec![],
+                wraps: vec![LockedWrap::new("zlib", None, "1.3.1-1", &file)],
+            },
+        )
         .unwrap();
 
         let resolved = resolve(&path, &[wrap_project("zlib", None)], &tmp_git_cache()).unwrap();
@@ -378,10 +429,13 @@ mod tests {
             patch_directory: None,
             wrapdb_rev: "f".repeat(40),
         };
-        save(&path, &LockFile {
-            projects: vec![],
-            wraps: vec![LockedWrap::new("x", None, "1.0-1", &file)],
-        })
+        save(
+            &path,
+            &LockFile {
+                projects: vec![],
+                wraps: vec![LockedWrap::new("x", None, "1.0-1", &file)],
+            },
+        )
         .unwrap();
 
         // No real `x.git` exists at this URL, so if this reached the network
@@ -390,10 +444,13 @@ mod tests {
         let resolved = resolve(&path, &[wrap_project("x", None)], &tmp_git_cache()).unwrap();
 
         match &resolved[0] {
-            Resolved::Wrap { file, .. } => assert_eq!(file.source, WrapSource::Git {
-                url: "https://example.test/x.git".to_owned(),
-                revision: resolved_sha,
-            }),
+            Resolved::Wrap { file, .. } => assert_eq!(
+                file.source,
+                WrapSource::Git {
+                    url: "https://example.test/x.git".to_owned(),
+                    revision: resolved_sha,
+                }
+            ),
             Resolved::Git { .. } => panic!("expected a wrap"),
         }
         let _ = fs::remove_file(&path);

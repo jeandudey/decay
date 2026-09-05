@@ -116,7 +116,10 @@ pub struct Var {
 
 impl Var {
     pub fn choice_index(&self, name: &str) -> Option<u32> {
-        self.choices.iter().position(|c| c == name).map(|i| i as u32)
+        self.choices
+            .iter()
+            .position(|c| c == name)
+            .map(|i| i as u32)
     }
 }
 

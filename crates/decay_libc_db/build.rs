@@ -42,7 +42,8 @@ use {
     cpu::Cpu,
     std::{
         collections::BTreeSet,
-        env, fs,
+        env,
+        fs,
         path::{Path, PathBuf},
         process::Command, //
     },
@@ -192,7 +193,12 @@ fn declared_functions(cpu: Cpu, headers: &[PathBuf]) -> BTreeSet<String> {
             // A `FunctionDecl` node's name is always the identifier right
             // before its quoted type, e.g. `...col:7 implicit memcpy 'void
             // *(void *, const void *, unsigned long)' extern`.
-            let name = line.split('\'').next()?.trim_end().rsplit(char::is_whitespace).next()?;
+            let name = line
+                .split('\'')
+                .next()?
+                .trim_end()
+                .rsplit(char::is_whitespace)
+                .next()?;
             (!name.is_empty()).then(|| name.to_owned())
         })
         .collect()
@@ -238,7 +244,10 @@ fn link_probe(cpu: Cpu, candidates: &BTreeSet<String>) -> BTreeSet<String> {
     let stderr = String::from_utf8_lossy(&output.stderr);
     let missing: BTreeSet<String> = stderr
         .lines()
-        .filter_map(|line| line.trim().strip_prefix("ld.lld: error: undefined symbol: "))
+        .filter_map(|line| {
+            line.trim()
+                .strip_prefix("ld.lld: error: undefined symbol: ")
+        })
         .map(str::to_owned)
         .collect();
     assert!(

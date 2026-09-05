@@ -88,10 +88,12 @@ impl Graph {
     fn unique_name(&mut self, label: &str) -> String {
         let base: String = label
             .chars()
-            .map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.' {
-                c
-            } else {
-                '_'
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.' {
+                    c
+                } else {
+                    '_'
+                }
             })
             .collect();
         let base = if base.is_empty() {

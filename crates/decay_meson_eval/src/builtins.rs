@@ -336,7 +336,9 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
             ProjectOptionKind::Bool { value } => Value::Bool(*value),
             ProjectOptionKind::Combo { value, .. } => Value::str(value),
-            ProjectOptionKind::Feature { value } => Value::Obj(Obj::Feature(Rc::from(value.as_str()))),
+            ProjectOptionKind::Feature { value } => {
+                Value::Obj(Obj::Feature(Rc::from(value.as_str())))
+            }
         })
     }
 
@@ -626,7 +628,11 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// by substituting `defines` into `template` and reading the result back
     /// as pkg-config itself would, rather than guessing at what a configure
     /// step would have produced.
-    fn pc_variables(&mut self, path: &Path, defines: &Variational<decay_build_ir::Define>) -> Vec<(String, String)> {
+    fn pc_variables(
+        &mut self,
+        path: &Path,
+        defines: &Variational<decay_build_ir::Define>,
+    ) -> Vec<(String, String)> {
         let Ok(mut text) = self.sources.read(&self.root.join(path)) else {
             return Vec::new();
         };
@@ -664,11 +670,19 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// Anything meson would only have found in the build directory has to
     /// reach the compiler through `dependencies:` instead, which this does
     /// not yet wire in.
-    pub(crate) fn fn_compile_resources(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+    pub(crate) fn fn_compile_resources(
+        &mut self,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
         let tool_target = self.tool("glib-compile-resources")?;
 
-        let id = self.one_string(args.at(0).ok_or_eyre("gnome.compile_resources() needs a name")?)?;
-        let input = args.at(1).ok_or_eyre("gnome.compile_resources() needs an input")?;
+        let id = self.one_string(
+            args.at(0)
+                .ok_or_eyre("gnome.compile_resources() needs a name")?,
+        )?;
+        let input = args
+            .at(1)
+            .ok_or_eyre("gnome.compile_resources() needs an input")?;
         let resolved = self.sources(input)?;
         let Some(first) = resolved.variants().first() else {
             bail!("gnome.compile_resources('{id}') has no input");
@@ -685,7 +699,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                     match &variant.value {
                         Value::Obj(Obj::File(p)) => source_dirs.push(p.to_string()),
                         Value::Str(s) => source_dirs.push(self.resolve(s)),
-                        other => bail!("`source_dir:` expects a string, found a {}", other.type_name()),
+                        other => bail!(
+                            "`source_dir:` expects a string, found a {}",
+                            other.type_name()
+                        ),
                     }
                 }
             }
@@ -720,13 +737,25 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         let mut cmd = Variational::empty();
         cmd.push(Variant::new(self.pc, CmdArg::Target(tool_target)));
-        cmd.push(Variant::new(self.pc, CmdArg::Literal("--generate-source".to_owned())));
+        cmd.push(Variant::new(
+            self.pc,
+            CmdArg::Literal("--generate-source".to_owned()),
+        ));
         for real_dir in real_dirs {
-            cmd.push(Variant::new(self.pc, CmdArg::Literal("--sourcedir".to_owned())));
+            cmd.push(Variant::new(
+                self.pc,
+                CmdArg::Literal("--sourcedir".to_owned()),
+            ));
             cmd.push(Variant::new(self.pc, CmdArg::File(real_dir)));
         }
-        cmd.push(Variant::new(self.pc, CmdArg::Literal(format!("--c-name={c_name}"))));
-        cmd.push(Variant::new(self.pc, CmdArg::Literal("--target".to_owned())));
+        cmd.push(Variant::new(
+            self.pc,
+            CmdArg::Literal(format!("--c-name={c_name}")),
+        ));
+        cmd.push(Variant::new(
+            self.pc,
+            CmdArg::Literal("--target".to_owned()),
+        ));
         cmd.push(Variant::new(self.pc, CmdArg::Outputs));
         if let Some(v) = args.get("extra_args") {
             for s in self.strings(v)?.into_variants() {
@@ -794,7 +823,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 CmdArg::Literal(">".to_owned()),
                 CmdArg::Outputs,
             ];
-            let target_id = self.custom_run(&format!("{id}.{ext}"), &dir, tool_target, &sources, &cmd);
+            let target_id =
+                self.custom_run(&format!("{id}.{ext}"), &dir, tool_target, &sources, &cmd);
             outputs.push(Variant::new(self.pc, Value::Obj(Obj::Target(target_id))));
         }
 
@@ -805,9 +835,15 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// templates, reproduced here faithfully rather than approximated —
     /// this is boilerplate glib itself expects, not something this project
     /// gets to phrase differently.
-    pub(crate) fn fn_mkenums_simple(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+    pub(crate) fn fn_mkenums_simple(
+        &mut self,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
         let tool_target = self.tool("glib-mkenums")?;
-        let id = self.one_string(args.at(0).ok_or_eyre("gnome.mkenums_simple() needs a name")?)?;
+        let id = self.one_string(
+            args.at(0)
+                .ok_or_eyre("gnome.mkenums_simple() needs a name")?,
+        )?;
 
         let mut sources = Variational::empty();
         if let Some(v) = args.get("sources") {
@@ -815,7 +851,10 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
 
         let opt = |this: &mut Self, name| -> eyre::Result<String> {
-            Ok(this.opt_string(args, name)?.map(|s| s.to_string()).unwrap_or_default())
+            Ok(this
+                .opt_string(args, name)?
+                .map(|s| s.to_string())
+                .unwrap_or_default())
         };
         let identifier_prefix = opt(self, "identifier_prefix")?;
         let symbol_prefix = opt(self, "symbol_prefix")?;
@@ -859,7 +898,9 @@ impl<'a, S: Solver> Interp<'a, S> {
         c_cmd.push(CmdArg::Literal("--fhead".to_owned()));
         c_cmd.push(CmdArg::Literal(fhead));
         c_cmd.push(CmdArg::Literal("--fprod".to_owned()));
-        c_cmd.push(CmdArg::Literal("\n/* enumerations from \"@basename@\" */\n".to_owned()));
+        c_cmd.push(CmdArg::Literal(
+            "\n/* enumerations from \"@basename@\" */\n".to_owned(),
+        ));
         c_cmd.push(CmdArg::Literal("--vhead".to_owned()));
         c_cmd.push(CmdArg::Literal(format!(
             "\nGType\n{function_prefix}@enum_name@_get_type (void)\n{{\n    static gsize gtype_id = 0;\n    \
@@ -893,7 +934,9 @@ impl<'a, S: Solver> Interp<'a, S> {
             "#pragma once\n\n#include <glib-object.h>\n{header_prefix_line}\nG_BEGIN_DECLS\n"
         )));
         h_cmd.push(CmdArg::Literal("--fprod".to_owned()));
-        h_cmd.push(CmdArg::Literal("\n/* enumerations from \"@basename@\" */\n".to_owned()));
+        h_cmd.push(CmdArg::Literal(
+            "\n/* enumerations from \"@basename@\" */\n".to_owned(),
+        ));
         h_cmd.push(CmdArg::Literal("--vhead".to_owned()));
         h_cmd.push(CmdArg::Literal(format!(
             "{extra_newline}{decorator}\nGType {function_prefix}@enum_name@_get_type (void);\n\
@@ -945,7 +988,13 @@ impl<'a, S: Solver> Interp<'a, S> {
                 common.push(CmdArg::Literal(s.value.to_string()));
             }
         }
-        for flag in ["internal", "nostdinc", "skip_source", "stdinc", "valist_marshallers"] {
+        for flag in [
+            "internal",
+            "nostdinc",
+            "skip_source",
+            "stdinc",
+            "valist_marshallers",
+        ] {
             if self.flag(args, flag, Pc::FALSE)?.is_true() {
                 common.push(CmdArg::Literal(format!("--{}", flag.replace('_', "-"))));
             }
@@ -1009,16 +1058,16 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// Meson also auto-fills `prefix`/`libdir`/`includedir`; only the
     /// `variables:` a project states explicitly are captured here, since
     /// those are what a project actually means to publish.
-    pub(crate) fn fn_pkgconfig_generate(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+    pub(crate) fn fn_pkgconfig_generate(
+        &mut self,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
         let library = args.get("libraries").or_else(|| args.at(0));
         let library_target = match library {
-            Some(v) => self
-                .flat(v)
-                .into_iter()
-                .find_map(|v| match v.value {
-                    Value::Obj(Obj::Target(id)) => Some(id),
-                    _ => None,
-                }),
+            Some(v) => self.flat(v).into_iter().find_map(|v| match v.value {
+                Value::Obj(Obj::Target(id)) => Some(id),
+                _ => None,
+            }),
             None => None,
         };
 
@@ -1028,7 +1077,9 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Some(n) => n.to_string(),
                 None => match library_target {
                     Some(id) => self.graph.target(id).label.clone(),
-                    None => bail!("pkgconfig.generate() needs a `filebase:`, `name:`, or a library"),
+                    None => {
+                        bail!("pkgconfig.generate() needs a `filebase:`, `name:`, or a library")
+                    }
                 },
             },
         };
@@ -1052,7 +1103,10 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// `configure_file(configuration: ...)`; a dict's values are substituted
     /// exactly like `conf.set()` would (raw string/int, defined-or-undefined
     /// bool) since meson has no `set_quoted()` equivalent for a dict literal.
-    fn defines(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<decay_build_ir::Define>> {
+    fn defines(
+        &mut self,
+        v: &Variational<Value>,
+    ) -> eyre::Result<Variational<decay_build_ir::Define>> {
         use decay_build_ir::{Define, DefineValue};
 
         let mut out = Variational::empty();
@@ -1074,10 +1128,13 @@ impl<'a, S: Solver> Interp<'a, S> {
                                 Entry::Flag(true) => DefineValue::Flag,
                                 Entry::Flag(false) => DefineValue::Undef,
                             };
-                            out.push(Variant::new(cond, Define {
-                                name: name.to_string(),
-                                value,
-                            }));
+                            out.push(Variant::new(
+                                cond,
+                                Define {
+                                    name: name.to_string(),
+                                    value,
+                                },
+                            ));
                         }
                     }
                 }
@@ -1098,10 +1155,13 @@ impl<'a, S: Solver> Interp<'a, S> {
                                 other.type_name()
                             ),
                         };
-                        out.push(Variant::new(cond, Define {
-                            name: name.to_string(),
-                            value,
-                        }));
+                        out.push(Variant::new(
+                            cond,
+                            Define {
+                                name: name.to_string(),
+                                value,
+                            },
+                        ));
                     }
                 }
                 other => bail!(
@@ -1215,7 +1275,10 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     /// A `variables:` argument, which meson accepts as either a dict or a list
     /// of `key=value` strings.
-    pub(crate) fn pairs(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<(String, String)>> {
+    pub(crate) fn pairs(
+        &mut self,
+        v: &Variational<Value>,
+    ) -> eyre::Result<Variational<(String, String)>> {
         let mut out = Variational::empty();
         for variant in v.variants() {
             if let Value::Dict(entries) = &variant.value {
@@ -1229,7 +1292,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                         .1
                         .as_str()
                         .ok_or_eyre("variable values should be strings")?;
-                    out.push(Variant::new(cond, (entry.value.0.to_string(), value.to_string())));
+                    out.push(Variant::new(
+                        cond,
+                        (entry.value.0.to_string(), value.to_string()),
+                    ));
                 }
                 continue;
             }
@@ -1342,7 +1408,10 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// build's Python tooling. It is looked up the same way any other program
     /// is (a `[programs]` entry, typically `python3`), and carries a fabricated
     /// language version, the way `meson.version()` and `cc.version()` are.
-    pub(crate) fn fn_find_installation(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+    pub(crate) fn fn_find_installation(
+        &mut self,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
         let name = match args.at(0) {
             Some(v) => self.one_string(v)?,
             None => Rc::from("python3"),
@@ -1364,10 +1433,14 @@ impl<'a, S: Solver> Interp<'a, S> {
         let path = in_tree.then(|| PathBuf::from(&candidate));
 
         let key = format!("prog:{name}");
-        let target = self.external(&key, name, External::Program {
-            name: name.to_string(),
-            path: path.clone(),
-        });
+        let target = self.external(
+            &key,
+            name,
+            External::Program {
+                name: name.to_string(),
+                path: path.clone(),
+            },
+        );
 
         let found = if in_tree || self.oracle.has_program(name) {
             Pc::TRUE
@@ -1484,7 +1557,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                     if cond.is_false() {
                         continue;
                     }
-                    next.push(Variant::new(cond, join_paths([base.value.as_str(), &part.value])));
+                    next.push(Variant::new(
+                        cond,
+                        join_paths([base.value.as_str(), &part.value]),
+                    ));
                 }
             }
             next.normalize(&mut self.logic);
@@ -1532,7 +1608,11 @@ impl<'a, S: Solver> Interp<'a, S> {
         Ok(self.pure(Value::Unset))
     }
 
-    fn fn_install(&mut self, args: &CallArgs, default_dir: &str) -> eyre::Result<Variational<Value>> {
+    fn fn_install(
+        &mut self,
+        args: &CallArgs,
+        default_dir: &str,
+    ) -> eyre::Result<Variational<Value>> {
         let mut files = Variational::empty();
         for arg in &args.pos {
             files.extend(self.sources(arg)?);
@@ -1601,7 +1681,11 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// filesystem access; buck2's sandbox is not, so a header sitting there
     /// has to actually be listed for a compile to find it, the same way an
     /// explicit one already is.
-    fn list_headers(&mut self, include_dirs: &Variational<PathBuf>, headers: &mut Variational<Source>) {
+    fn list_headers(
+        &mut self,
+        include_dirs: &Variational<PathBuf>,
+        headers: &mut Variational<Source>,
+    ) {
         for variant in include_dirs.variants().to_vec() {
             for rel in self.sources.list_dir(&self.root.join(&variant.value)) {
                 if !is_header_file(&rel) {
@@ -1643,12 +1727,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     /// A boolean keyword argument, as a condition.
-    pub(crate) fn flag(
-        &mut self,
-        args: &CallArgs,
-        name: &str,
-        absent: Pc,
-    ) -> eyre::Result<Pc> {
+    pub(crate) fn flag(&mut self, args: &CallArgs, name: &str, absent: Pc) -> eyre::Result<Pc> {
         let Some(v) = args.get(name) else {
             return Ok(absent);
         };
@@ -1786,16 +1865,31 @@ pub(crate) fn builtin_option(name: &str) -> Option<ProjectOption> {
 
         "default_library" => combo(&["shared", "static", "both"], "shared"),
         "buildtype" => combo(
-            &["plain", "debug", "debugoptimized", "release", "minsize", "custom"],
+            &[
+                "plain",
+                "debug",
+                "debugoptimized",
+                "release",
+                "minsize",
+                "custom",
+            ],
             "debug",
         ),
         "optimization" => combo(&["plain", "0", "g", "1", "2", "3", "s"], "0"),
         "warning_level" => combo(&["0", "1", "2", "3", "everything"], "1"),
         "b_ndebug" => combo(&["true", "false", "if-release"], "false"),
-        "b_vscrt" => combo(&["none", "md", "mdd", "mt", "mtd", "from_buildtype"], "from_buildtype"),
+        "b_vscrt" => combo(
+            &["none", "md", "mdd", "mt", "mtd", "from_buildtype"],
+            "from_buildtype",
+        ),
         "b_sanitize" => combo(
             &[
-                "none", "address", "thread", "undefined", "memory", "leak",
+                "none",
+                "address",
+                "thread",
+                "undefined",
+                "memory",
+                "leak",
                 "address,undefined",
             ],
             "none",
@@ -1804,15 +1898,21 @@ pub(crate) fn builtin_option(name: &str) -> Option<ProjectOption> {
         "b_colorout" => combo(&["auto", "always", "never"], "always"),
         "layout" => combo(&["mirror", "flat"], "mirror"),
         "wrap_mode" => combo(
-            &["default", "nofallback", "nodownload", "forcefallback", "nopromote"],
+            &[
+                "default",
+                "nofallback",
+                "nodownload",
+                "forcefallback",
+                "nopromote",
+            ],
             "default",
         ),
         "backend" => combo(&["ninja", "vs", "xcode", "none"], "ninja"),
         "c_std" | "cpp_std" | "objc_std" | "objcpp_std" => combo(
             &[
                 "none", "c89", "c99", "c11", "c17", "c18", "c2x", "gnu89", "gnu99", "gnu11",
-                "gnu17", "gnu18", "gnu2x", "c++98", "c++11", "c++14", "c++17", "c++20",
-                "gnu++11", "gnu++14", "gnu++17", "gnu++20",
+                "gnu17", "gnu18", "gnu2x", "c++98", "c++11", "c++14", "c++17", "c++20", "gnu++11",
+                "gnu++14", "gnu++17", "gnu++20",
             ],
             "none",
         ),

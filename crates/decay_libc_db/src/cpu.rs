@@ -24,7 +24,13 @@ pub enum Cpu {
 }
 
 impl Cpu {
-    pub const ALL: [Cpu; 5] = [Self::X86_64, Self::X86_32, Self::Arm64, Self::Arm32, Self::Riscv64];
+    pub const ALL: [Cpu; 5] = [
+        Self::X86_64,
+        Self::X86_32,
+        Self::Arm64,
+        Self::Arm32,
+        Self::Riscv64,
+    ];
 
     /// The `prelude//cpu/constraints:cpu` value buck2 uses for this arch.
     pub fn buck2_value(self) -> &'static str {

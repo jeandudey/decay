@@ -1,7 +1,4 @@
-use {
-    decay_build_ir::Graph,
-    std::collections::BTreeMap,
-};
+use {decay_build_ir::Graph, std::collections::BTreeMap};
 
 /// What earlier projects are known to provide, keyed by the name
 /// `dependency()` looks up.
@@ -48,10 +45,13 @@ impl Packages {
             let target = provide
                 .target
                 .map(|id| format!("//{package}:{}", graph.target(id).name));
-            self.by_name.insert(provide.name.clone(), Package {
-                target,
-                variables: provide.variables.clone(),
-            });
+            self.by_name.insert(
+                provide.name.clone(),
+                Package {
+                    target,
+                    variables: provide.variables.clone(),
+                },
+            );
         }
     }
 }

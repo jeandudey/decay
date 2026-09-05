@@ -10,8 +10,7 @@ use {
     },
     std::{
         collections::BTreeMap,
-        fmt,
-        fs,
+        fmt, fs,
         path::{
             Path,
             PathBuf, //
@@ -435,8 +434,14 @@ impl Project {
 /// (`wrap`, optionally pinned to a `version`).
 #[derive(Debug, Clone)]
 pub enum Source {
-    Git { repo: Repo, rev: String },
-    Wrap { name: String, version: Option<String> },
+    Git {
+        repo: Repo,
+        rev: String,
+    },
+    Wrap {
+        name: String,
+        version: Option<String>,
+    },
 }
 
 impl Source {
@@ -599,16 +604,34 @@ mod tests {
 
         // Project A inherits all global options
         let p_a = &cfg.projects[0];
-        assert_eq!(p_a.options.get("buildtype"), Some(&OptionValue::String("release".into())));
-        assert_eq!(p_a.options.get("optimization"), Some(&OptionValue::String("3".into())));
-        assert_eq!(p_a.options.get("default_library"), Some(&OptionValue::String("shared".into())));
+        assert_eq!(
+            p_a.options.get("buildtype"),
+            Some(&OptionValue::String("release".into()))
+        );
+        assert_eq!(
+            p_a.options.get("optimization"),
+            Some(&OptionValue::String("3".into()))
+        );
+        assert_eq!(
+            p_a.options.get("default_library"),
+            Some(&OptionValue::String("shared".into()))
+        );
         assert_eq!(p_a.options.get("tests"), None);
 
         // Project B inherits buildtype and default_library, overrides optimization, adds tests
         let p_b = &cfg.projects[1];
-        assert_eq!(p_b.options.get("buildtype"), Some(&OptionValue::String("release".into())));
-        assert_eq!(p_b.options.get("optimization"), Some(&OptionValue::String("2".into())));
-        assert_eq!(p_b.options.get("default_library"), Some(&OptionValue::String("shared".into())));
+        assert_eq!(
+            p_b.options.get("buildtype"),
+            Some(&OptionValue::String("release".into()))
+        );
+        assert_eq!(
+            p_b.options.get("optimization"),
+            Some(&OptionValue::String("2".into()))
+        );
+        assert_eq!(
+            p_b.options.get("default_library"),
+            Some(&OptionValue::String("shared".into()))
+        );
         assert_eq!(p_b.options.get("tests"), Some(&OptionValue::Bool(false)));
     }
 

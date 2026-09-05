@@ -38,10 +38,7 @@ pub struct Shared {
 
 impl Shared {
     /// Gather the shared constraints across every project being imported.
-    pub fn collect<'a>(
-        package: String,
-        graphs: impl IntoIterator<Item = &'a Graph>,
-    ) -> Self {
+    pub fn collect<'a>(package: String, graphs: impl IntoIterator<Item = &'a Graph>) -> Self {
         let mut vars: Vec<Var> = Vec::new();
         for graph in graphs {
             for var in &graph.options {
@@ -56,7 +53,11 @@ impl Shared {
             }
         }
 
-        let named: Vec<Var> = vars.iter().filter(|var| !is_foreign(var)).cloned().collect();
+        let named: Vec<Var> = vars
+            .iter()
+            .filter(|var| !is_foreign(var))
+            .cloned()
+            .collect();
         let names = names::assign_by_key(&named);
         Self {
             package,
@@ -84,8 +85,7 @@ impl Shared {
     }
 
     pub fn write(&self, known: &Labels, used: &Used, out: &Path) -> eyre::Result<()> {
-        fs::create_dir_all(out)
-            .wrap_err("Failed to create the shared constraints directory")?;
+        fs::create_dir_all(out).wrap_err("Failed to create the shared constraints directory")?;
         fs::write(out.join("BUCK"), self.render(known, used))
             .wrap_err("Failed to write the shared constraints build file")
     }

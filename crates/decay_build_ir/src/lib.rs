@@ -107,7 +107,9 @@ pub enum Kind {
     SharedLibrary,
     /// `library()`: linkage is whatever `default_library` resolves to, which is
     /// itself usually a configuration variable.
-    Library { linkage: Variational<Linkage> },
+    Library {
+        linkage: Variational<Linkage>,
+    },
     Executable,
     /// `custom_target()`: run a command to produce files.
     Custom,

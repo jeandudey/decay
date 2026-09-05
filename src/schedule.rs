@@ -209,7 +209,12 @@ mod tests {
     #[test]
     fn duplicate_name_is_an_error() {
         let projects = [project("dup", &[]), project("dup", &[])];
-        assert!(plan(&projects).unwrap_err().to_string().contains("both called"));
+        assert!(
+            plan(&projects)
+                .unwrap_err()
+                .to_string()
+                .contains("both called")
+        );
     }
 
     #[test]

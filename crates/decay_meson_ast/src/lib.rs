@@ -255,15 +255,29 @@ pub struct ProjectOption {
 
 #[derive(Debug, Clone)]
 pub enum ProjectOptionKind {
-    Bool { value: bool },
-    Combo { choices: Vec<String>, value: String },
+    Bool {
+        value: bool,
+    },
+    Combo {
+        choices: Vec<String>,
+        value: String,
+    },
     /// A free-form option: no finite domain, so it can only ever be executed
     /// with whatever value the importer was told to use.
-    String { value: String },
-    Integer { value: i64 },
-    Array { choices: Vec<String>, value: Vec<String> },
+    String {
+        value: String,
+    },
+    Integer {
+        value: i64,
+    },
+    Array {
+        choices: Vec<String>,
+        value: Vec<String>,
+    },
     /// `auto` / `enabled` / `disabled`.
-    Feature { value: String },
+    Feature {
+        value: String,
+    },
 }
 
 impl ProjectOptionKind {

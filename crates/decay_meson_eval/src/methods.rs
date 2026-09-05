@@ -119,7 +119,8 @@ impl<'a, S: Solver> Interp<'a, S> {
             if cond.is_false() {
                 continue;
             }
-            let result = self.with_pc(cond, |this| this.method1(&variant.value, name, args, loc))?;
+            let result =
+                self.with_pc(cond, |this| this.method1(&variant.value, name, args, loc))?;
             out.extend(result.restrict(&mut self.logic, cond));
         }
         out.normalize(&mut self.logic);
@@ -141,7 +142,10 @@ impl<'a, S: Solver> Interp<'a, S> {
             // has no single value to call a method on.
             Value::StrCat(pieces) => {
                 let pc = self.pc;
-                if pieces.iter().all(|p| p.cond.is_true() || self.logic.entails(pc, p.cond)) {
+                if pieces
+                    .iter()
+                    .all(|p| p.cond.is_true() || self.logic.entails(pc, p.cond))
+                {
                     let s: Rc<str> = pieces.iter().map(|p| &*p.value).collect::<String>().into();
                     self.str_method(&s, name, args)
                 } else {
@@ -290,8 +294,11 @@ impl<'a, S: Solver> Interp<'a, S> {
                     && let Some(probe) = self.oracle.dependency_variable(&dep.name, k)
                 {
                     let description = format!("`{k}` of `{}` is set", dep.name);
-                    let cond =
-                        self.resolve_probe(Some(probe), &format!("dep_var:{}:{k}", dep.name), description)?;
+                    let cond = self.resolve_probe(
+                        Some(probe),
+                        &format!("dep_var:{}:{k}", dep.name),
+                        description,
+                    )?;
                     return Ok(self.flag_value(cond));
                 }
 
@@ -312,10 +319,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             // -- programs --
             (Obj::Program(program), "found") => Ok(self.bool_value(program.found)),
             (Obj::Program(program), "path" | "full_path") => {
-                let v = program
-                    .path
-                    .clone()
-                    .unwrap_or_else(|| program.name.clone());
+                let v = program.path.clone().unwrap_or_else(|| program.name.clone());
                 Ok(self.pure(Value::from(v)))
             }
             (Obj::Program(program), "version") => {
@@ -400,18 +404,24 @@ impl<'a, S: Solver> Interp<'a, S> {
             (Obj::Module(m), _) => bail!("module `{m:?}` has no method `{name}`"),
 
             // -- features --
-            (Obj::Feature(f), "enabled") => {
-                Ok(self.bool_value(if &**f == "enabled" { self.pc } else { Pc::FALSE }))
-            }
-            (Obj::Feature(f), "disabled") => {
-                Ok(self.bool_value(if &**f == "disabled" { self.pc } else { Pc::FALSE }))
-            }
+            (Obj::Feature(f), "enabled") => Ok(self.bool_value(if &**f == "enabled" {
+                self.pc
+            } else {
+                Pc::FALSE
+            })),
+            (Obj::Feature(f), "disabled") => Ok(self.bool_value(if &**f == "disabled" {
+                self.pc
+            } else {
+                Pc::FALSE
+            })),
             (Obj::Feature(f), "auto") => {
                 Ok(self.bool_value(if &**f == "auto" { self.pc } else { Pc::FALSE }))
             }
-            (Obj::Feature(f), "allowed") => {
-                Ok(self.bool_value(if &**f == "disabled" { Pc::FALSE } else { self.pc }))
-            }
+            (Obj::Feature(f), "allowed") => Ok(self.bool_value(if &**f == "disabled" {
+                Pc::FALSE
+            } else {
+                self.pc
+            })),
             // `require(cond)` turns the feature off where `cond` does not hold;
             // `disable_auto_if` / `enable_auto_if` only move an `auto` feature.
             // The condition can itself be configuration-dependent, so the
@@ -424,8 +434,12 @@ impl<'a, S: Solver> Interp<'a, S> {
                 };
                 let (kept, flipped): (Pc, Rc<str>) = match name {
                     "require" => (cond, Rc::from("disabled")),
-                    "disable_auto_if" if &**f == "auto" => (self.logic.not(cond), Rc::from("disabled")),
-                    "enable_auto_if" if &**f == "auto" => (self.logic.not(cond), Rc::from("enabled")),
+                    "disable_auto_if" if &**f == "auto" => {
+                        (self.logic.not(cond), Rc::from("disabled"))
+                    }
+                    "enable_auto_if" if &**f == "auto" => {
+                        (self.logic.not(cond), Rc::from("enabled"))
+                    }
                     // Nothing to move on a feature that is already enabled or
                     // disabled.
                     _ => return Ok(self.pure(Value::Obj(Obj::Feature(f.clone())))),
@@ -453,9 +467,7 @@ impl<'a, S: Solver> Interp<'a, S> {
 
             // `environment()` shapes how tests and dev tooling run, not what
             // the build produces; there is nothing in the graph for it.
-            (Obj::Env, "set" | "append" | "prepend" | "unset") => {
-                Ok(self.pure(Value::Unset))
-            }
+            (Obj::Env, "set" | "append" | "prepend" | "unset") => Ok(self.pure(Value::Unset)),
 
             (obj, name) => bail!("a {} has no method `{name}`", obj.type_name()),
         }
@@ -478,7 +490,11 @@ impl<'a, S: Solver> Interp<'a, S> {
         // under `darwin`); nothing here models cross files at all, so the
         // two are answered as the very same variable, exactly like a
         // native build where nobody set one differently.
-        let property = if property == "subsystem" { "system" } else { property };
+        let property = if property == "subsystem" {
+            "system"
+        } else {
+            property
+        };
 
         if let Some(pinned) = self.oracle.machine(machine, property) {
             return Ok(self.pure(Value::from(pinned)));
@@ -511,8 +527,17 @@ impl<'a, S: Solver> Interp<'a, S> {
             "system" => self.oracle.systems(),
             "endian" => ["little", "big"].map(str::to_owned).to_vec(),
             "cpu_family" => [
-                "x86", "x86_64", "arm", "aarch64", "riscv32", "riscv64", "ppc64", "s390x",
-                "mips64", "loongarch64", "wasm32",
+                "x86",
+                "x86_64",
+                "arm",
+                "aarch64",
+                "riscv32",
+                "riscv64",
+                "ppc64",
+                "s390x",
+                "mips64",
+                "loongarch64",
+                "wasm32",
             ]
             .map(str::to_owned)
             .to_vec(),
@@ -689,7 +714,12 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// does, but for anything else the importer answers the same way — a
     /// dependency's `pkg-config` flag, say. `key`/`description` name the
     /// fresh variable declared when the importer says nothing at all.
-    fn resolve_probe(&mut self, answer: Option<Probe>, key: &str, description: String) -> eyre::Result<Pc> {
+    fn resolve_probe(
+        &mut self,
+        answer: Option<Probe>,
+        key: &str,
+        description: String,
+    ) -> eyre::Result<Pc> {
         match answer {
             Some(Probe::Fixed(answer)) => Ok(Pc::from_bool(answer)),
             Some(Probe::Systems(systems)) => self.host_system_is(&systems, key),
@@ -749,8 +779,13 @@ impl<'a, S: Solver> Interp<'a, S> {
 
             // Probes: the importer cannot compile anything, so each answer
             // becomes a configuration knob the build can be told about.
-            "has_header" | "check_header" | "has_function" | "has_type" | "has_member"
-            | "has_header_symbol" | "symbols_have_underscore_prefix" => {
+            "has_header"
+            | "check_header"
+            | "has_function"
+            | "has_type"
+            | "has_member"
+            | "has_header_symbol"
+            | "symbols_have_underscore_prefix" => {
                 let what = match args.at(0) {
                     Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
                     None => Rc::from("expr"),
@@ -782,7 +817,10 @@ impl<'a, S: Solver> Interp<'a, S> {
             // project that passes a guess has already said what to assume.
             "compute_int" => {
                 let expr = self
-                    .one_string(args.at(0).ok_or_eyre("`compute_int()` needs an expression")?)
+                    .one_string(
+                        args.at(0)
+                            .ok_or_eyre("`compute_int()` needs an expression")?,
+                    )
                     .unwrap_or_else(|_| Rc::from("expr"));
                 match args.get("guess") {
                     Some(g) => {
@@ -804,9 +842,13 @@ impl<'a, S: Solver> Interp<'a, S> {
                 // `dependency()` / `find_program()`.
                 let required = self.required(args)?;
                 let key = format!("lib:{libname}");
-                let target = self.external(&key, &libname, External::SystemLibrary {
-                    name: libname.to_string(),
-                });
+                let target = self.external(
+                    &key,
+                    &libname,
+                    External::SystemLibrary {
+                        name: libname.to_string(),
+                    },
+                );
                 let found = self.dependency_found(&key, &libname, required);
                 let value = self.dep_obj(Dep {
                     name: libname.to_string(),
@@ -847,7 +889,9 @@ impl<'a, S: Solver> Interp<'a, S> {
                 };
                 Ok(self.pure(Value::list(items)))
             }
-            "has_argument" | "has_link_argument" | "has_multi_arguments"
+            "has_argument"
+            | "has_link_argument"
+            | "has_multi_arguments"
             | "has_multi_link_arguments" => Ok(self.bool_value(self.pc)),
 
             // Which compiler is active decides the answer, so this does not
@@ -1084,7 +1128,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(self.pure(Value::list(keys)))
             }
             "merge_from" => {
-                let other = args.at(0).ok_or_eyre("expected configuration data")?.clone();
+                let other = args
+                    .at(0)
+                    .ok_or_eyre("expected configuration data")?
+                    .clone();
                 for variant in other.variants() {
                     let Value::Obj(Obj::ConfigData(src)) = &variant.value else {
                         bail!("merge_from() expects configuration_data()");

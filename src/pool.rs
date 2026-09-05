@@ -14,8 +14,7 @@
 
 use {
     crate::{
-        Imported,
-        SHARED_CONSTRAINTS,
+        Imported, SHARED_CONSTRAINTS,
         config::{
             Config,
             Project, //
@@ -138,7 +137,9 @@ pub(crate) fn import(
             inbox.push(job_tx);
             let done_tx = done_tx.clone();
             scope.spawn(move || {
-                worker(git_cache, wrap_cache, config, projects, resolved, job_rx, done_tx)
+                worker(
+                    git_cache, wrap_cache, config, projects, resolved, job_rx, done_tx,
+                )
             });
         }
         drop(done_tx);
@@ -184,10 +185,9 @@ pub(crate) fn import(
                 stop(&inbox);
                 failed.sort_by_key(|(idx, _)| *idx);
                 let (idx, err) = failed.into_iter().next().unwrap();
-                return Err(err.wrap_err(format!(
-                    "Failed to import `{}`",
-                    projects[idx].short_name()
-                )));
+                return Err(
+                    err.wrap_err(format!("Failed to import `{}`", projects[idx].short_name()))
+                );
             }
 
             // Fold results in project order so what `Packages` holds after a
@@ -214,7 +214,9 @@ pub(crate) fn import(
         let shared_dir = config.third_party_dir.join(SHARED_CONSTRAINTS);
         let shared = Arc::new(Shared::collect(
             package_path(&shared_dir)?,
-            graphs.iter().map(|g| g.as_ref().expect("every project evaluated")),
+            graphs
+                .iter()
+                .map(|g| g.as_ref().expect("every project evaluated")),
         ));
 
         // --- emit, each project back on the worker that evaluated it ---
@@ -295,7 +297,14 @@ fn worker(
 
             Job::Eval { idx, packages } => {
                 let outcome = catch_unwind(AssertUnwindSafe(|| {
-                    execute(git_cache, wrap_cache, config, &projects[idx], &resolved[idx], &packages)
+                    execute(
+                        git_cache,
+                        wrap_cache,
+                        config,
+                        &projects[idx],
+                        &resolved[idx],
+                        &packages,
+                    )
                 }));
                 match flatten(outcome) {
                     Ok(Imported {
@@ -304,11 +313,14 @@ fn worker(
                         graph,
                         logic,
                     }) => {
-                        pinned.insert(idx, Pinned {
-                            out,
-                            package: package.clone(),
-                            logic,
-                        });
+                        pinned.insert(
+                            idx,
+                            Pinned {
+                                out,
+                                package: package.clone(),
+                                logic,
+                            },
+                        );
                         Done::Evaled {
                             idx,
                             result: Box::new(Ok(Evaled {

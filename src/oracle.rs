@@ -36,7 +36,11 @@ pub struct ConfigOracle<'a> {
 
 impl<'a> ConfigOracle<'a> {
     pub fn new(config: &'a Config, project: &'a Project, packages: &'a Packages) -> Self {
-        Self { project, config, packages }
+        Self {
+            project,
+            config,
+            packages,
+        }
     }
 
     fn machine_config(&self, machine: obj::Machine) -> &'a Machine {
@@ -98,8 +102,10 @@ impl<'a> ConfigOracle<'a> {
         }
         const ABI_SETTING: &str = "prelude//abi/constraints:abi";
         const CPU_SETTING: &str = "prelude//cpu/constraints:cpu";
-        const LIBCS: [(decay_libc_db::Libc, &str); 2] =
-            [(decay_libc_db::Libc::Glibc, "gnu"), (decay_libc_db::Libc::Musl, "musl")];
+        const LIBCS: [(decay_libc_db::Libc, &str); 2] = [
+            (decay_libc_db::Libc::Glibc, "gnu"),
+            (decay_libc_db::Libc::Musl, "musl"),
+        ];
 
         // One row per (abi, cpu) pair the database actually confirms —
         // never every abi crossed with every cpu, since presence can (and,
@@ -180,9 +186,7 @@ impl Oracle for ConfigOracle<'_> {
             OptionValue::Bool(v) => Pinned::Bool(*v),
             OptionValue::Int(v) => Pinned::Int(*v),
             OptionValue::String(v) => Pinned::Str(Rc::from(v.as_str())),
-            OptionValue::List(v) => {
-                Pinned::List(v.iter().map(|s| Rc::from(s.as_str())).collect())
-            }
+            OptionValue::List(v) => Pinned::List(v.iter().map(|s| Rc::from(s.as_str())).collect()),
         })
     }
 

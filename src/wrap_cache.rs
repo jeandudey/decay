@@ -61,7 +61,12 @@ impl WrapCache {
         version: &str,
         file: &WrapFile,
     ) -> eyre::Result<Wrap> {
-        let WrapSource::Archive { url, filename, hash } = &file.source else {
+        let WrapSource::Archive {
+            url,
+            filename,
+            hash,
+        } = &file.source
+        else {
             bail!("`{name}` at `{version}` is a `[wrap-git]` wrap, not a `[wrap-file]` one");
         };
         let archive = self.download(url, filename, hash)?;
@@ -124,9 +129,8 @@ impl WrapCache {
         fs::create_dir_all(&dir).wrap_err("Failed to create the download cache directory")?;
         let tmp = dir.join(format!(".tmp-{}", process::id()));
         wrapdb::download(url, &tmp).wrap_err_with(|| format!("Failed to download {url}"))?;
-        verify(&tmp, hash).wrap_err_with(|| {
-            format!("{url} does not match the hash `decay.lock` pins for it")
-        })?;
+        verify(&tmp, hash)
+            .wrap_err_with(|| format!("{url} does not match the hash `decay.lock` pins for it"))?;
         fs::rename(&tmp, &dest).wrap_err("Failed to publish the downloaded archive")?;
         Ok(dest)
     }
@@ -137,7 +141,12 @@ impl WrapCache {
 /// `copy_tree` does), and publish the result at `dest`, the same
 /// rename-into-place pattern [`crate::git_cache`] uses so a partial
 /// extraction never gets mistaken for a complete one.
-fn extract(archive: &Path, filename: &str, dest: &Path, overlay: Option<&Path>) -> eyre::Result<()> {
+fn extract(
+    archive: &Path,
+    filename: &str,
+    dest: &Path,
+    overlay: Option<&Path>,
+) -> eyre::Result<()> {
     let parent = dest.parent().wrap_err("wrap destination has no parent")?;
     fs::create_dir_all(parent).wrap_err("Failed to create directory for wrap entry")?;
 
@@ -146,10 +155,20 @@ fn extract(archive: &Path, filename: &str, dest: &Path, overlay: Option<&Path>) 
     fs::create_dir_all(&tmp).wrap_err("Failed to create extraction directory")?;
 
     let status = if filename.ends_with(".zip") {
-        Command::new("unzip").args(["-q"]).arg(archive).args(["-d"]).arg(&tmp).status()
+        Command::new("unzip")
+            .args(["-q"])
+            .arg(archive)
+            .args(["-d"])
+            .arg(&tmp)
+            .status()
     } else {
         // GNU tar auto-detects gzip/xz/bzip2/zstd from the archive itself.
-        Command::new("tar").arg("xf").arg(archive).args(["-C"]).arg(&tmp).status()
+        Command::new("tar")
+            .arg("xf")
+            .arg(archive)
+            .args(["-C"])
+            .arg(&tmp)
+            .status()
     }
     .wrap_err("Failed to run the archive extractor")?;
     if !status.success() {
@@ -220,7 +239,9 @@ fn copy_tree(src: &Path, dst: &Path) -> eyre::Result<()> {
             continue;
         }
         let dst_path = dst.join(entry.file_name());
-        let file_type = entry.file_type().wrap_err("Failed to stat a directory entry")?;
+        let file_type = entry
+            .file_type()
+            .wrap_err("Failed to stat a directory entry")?;
         if file_type.is_dir() {
             copy_tree(&entry.path(), &dst_path)?;
         } else {
@@ -258,7 +279,9 @@ fn single_top_level_dir(dest: &Path) -> eyre::Result<Option<String>> {
         .filter(|e| e.file_name() != ".ok")
         .collect();
     if entries.len() == 1 && entries[0].path().is_dir() {
-        return Ok(Some(entries.remove(0).file_name().to_string_lossy().into_owned()));
+        return Ok(Some(
+            entries.remove(0).file_name().to_string_lossy().into_owned(),
+        ));
     }
     Ok(None)
 }
@@ -284,14 +307,19 @@ mod tests {
         let file = wrapdb::fetch(&git_cache, "pcre2", "10.48-1").unwrap();
         assert_eq!(file.patch_directory.as_deref(), Some("pcre2"));
 
-        let wrap = wrap_cache.materialize(&git_cache, "pcre2", "10.48-1", &file).unwrap();
+        let wrap = wrap_cache
+            .materialize(&git_cache, "pcre2", "10.48-1", &file)
+            .unwrap();
 
         let meson_build =
             fs::read_to_string(wrap.dir.join("meson.build")).expect("overlaid meson.build");
         // pcre2's upstream release tarball ships an autotools build, not a
         // meson one — this file only exists because the overlay put it
         // there.
-        assert!(meson_build.contains("'pcre2'"), "not wrapdb's meson.build:\n{meson_build}");
+        assert!(
+            meson_build.contains("'pcre2'"),
+            "not wrapdb's meson.build:\n{meson_build}"
+        );
     }
 
     /// No live wrapdb release is currently a `[wrap-git]` wrap to test
@@ -309,9 +337,21 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
 
         let upstream = root.join("upstream.git");
-        run(Command::new("git").args(["init", "--quiet", "-b", "main"]).arg(&upstream));
         run(Command::new("git")
-            .args(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "--quiet", "--allow-empty", "-m", "x"])
+            .args(["init", "--quiet", "-b", "main"])
+            .arg(&upstream));
+        run(Command::new("git")
+            .args([
+                "-c",
+                "user.email=t@t",
+                "-c",
+                "user.name=t",
+                "commit",
+                "--quiet",
+                "--allow-empty",
+                "-m",
+                "x",
+            ])
             .current_dir(&upstream));
 
         let git_cache = GitCache::new(root.join("cache"));
@@ -324,17 +364,24 @@ mod tests {
         fs::create_dir_all(&overlay).unwrap();
         fs::write(overlay.join("meson.build"), "project('x')\n").unwrap();
 
-        let dir = wrap_cache.materialize_git("x", "1.0-1", &checkout, Some(&overlay)).unwrap();
+        let dir = wrap_cache
+            .materialize_git("x", "1.0-1", &checkout, Some(&overlay))
+            .unwrap();
 
         // Must not be the shared `GitCache` checkout itself — mutating that
         // in place would corrupt it for every other consumer of that commit.
         assert_ne!(dir, checkout);
-        assert!(!checkout.join("meson.build").exists(), "the shared checkout was mutated");
+        assert!(
+            !checkout.join("meson.build").exists(),
+            "the shared checkout was mutated"
+        );
         let meson_build = fs::read_to_string(dir.join("meson.build")).unwrap();
         assert_eq!(meson_build, "project('x')\n");
 
         // No overlay at all reuses the shared checkout directly.
-        let dir = wrap_cache.materialize_git("x", "1.0-1", &checkout, None).unwrap();
+        let dir = wrap_cache
+            .materialize_git("x", "1.0-1", &checkout, None)
+            .unwrap();
         assert_eq!(dir, checkout);
 
         let _ = fs::remove_dir_all(&root);

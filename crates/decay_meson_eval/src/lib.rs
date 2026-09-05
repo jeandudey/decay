@@ -253,7 +253,10 @@ impl<'a, S: Solver> Interp<'a, S> {
             for target in &mut graph.targets {
                 if !matches!(
                     target.kind,
-                    Kind::StaticLibrary | Kind::SharedLibrary | Kind::Library { .. } | Kind::Executable
+                    Kind::StaticLibrary
+                        | Kind::SharedLibrary
+                        | Kind::Library { .. }
+                        | Kind::Executable
                 ) {
                     continue;
                 }
@@ -279,7 +282,10 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// The directory of the `meson.build` currently executing, relative to the
     /// project root.
     pub(crate) fn cur_dir(&self) -> &Path {
-        self.dirs.last().map(PathBuf::as_path).unwrap_or(Path::new(""))
+        self.dirs
+            .last()
+            .map(PathBuf::as_path)
+            .unwrap_or(Path::new(""))
     }
 
     /// Resolve a path written in the current `meson.build` against the project
@@ -517,9 +523,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
                 Ok(items
                     .iter()
-                    .map(|item| {
-                        (item.cond, vec![(names[0].clone(), item.value.clone())])
-                    })
+                    .map(|item| (item.cond, vec![(names[0].clone(), item.value.clone())]))
                     .collect())
             }
             Value::Dict(items) => {
@@ -529,10 +533,13 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(items
                     .iter()
                     .map(|item| {
-                        (item.cond, vec![
-                            (names[0].clone(), Value::Str(item.value.0.clone())),
-                            (names[1].clone(), item.value.1.clone()),
-                        ])
+                        (
+                            item.cond,
+                            vec![
+                                (names[0].clone(), Value::Str(item.value.0.clone())),
+                                (names[1].clone(), item.value.1.clone()),
+                            ],
+                        )
                     })
                     .collect())
             }
@@ -569,11 +576,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// instead would fork it once per append, and a handful of independent
     /// `if`s appending to one list would multiply out into a variant per
     /// combination.
-    pub(crate) fn plus_assign(
-        &mut self,
-        name: &str,
-        rhs: &Variational<Value>,
-    ) -> eyre::Result<()> {
+    pub(crate) fn plus_assign(&mut self, name: &str, rhs: &Variational<Value>) -> eyre::Result<()> {
         let old = self
             .vars
             .get(name)
@@ -798,7 +801,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                 // Falsy on its own, the same as `.found()` on it.
                 Value::Obj(Obj::Disabler) => {}
                 Value::Unset => bail!("a condition read a value that was never set"),
-                other => bail!("expected a bool in a condition, found a {}", other.type_name()),
+                other => bail!(
+                    "expected a bool in a condition, found a {}",
+                    other.type_name()
+                ),
             }
         }
         Ok(out)
@@ -923,9 +929,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             return *id;
         }
         let dir = self.cur_dir().to_path_buf();
-        let id = self
-            .graph
-            .add(label, &dir, Pc::TRUE, Kind::External(kind));
+        let id = self.graph.add(label, &dir, Pc::TRUE, Kind::External(kind));
         self.externals.insert(key.to_owned(), id);
         id
     }
@@ -939,14 +943,21 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     pub(crate) fn config_data(&mut self) -> Value {
-        Value::Obj(Obj::ConfigData(Rc::new(RefCell::new(ConfigData::default()))))
+        Value::Obj(Obj::ConfigData(Rc::new(
+            RefCell::new(ConfigData::default()),
+        )))
     }
 
     // -- coercions --------------------------------------------------------
 
     /// Flatten nested lists into conditional elements, the way meson flattens
     /// list arguments.
-    pub(crate) fn flatten(&mut self, v: &Variational<Value>, pc: Pc, out: &mut Vec<Variant<Value>>) {
+    pub(crate) fn flatten(
+        &mut self,
+        v: &Variational<Value>,
+        pc: Pc,
+        out: &mut Vec<Variant<Value>>,
+    ) {
         for variant in v.variants() {
             let cond = self.logic.and(pc, variant.cond);
             if cond.is_false() {
@@ -974,11 +985,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     /// [`Self::elements`], but under an explicit condition.
-    pub(crate) fn elements_under(
-        &mut self,
-        v: &Variational<Value>,
-        pc: Pc,
-    ) -> Vec<Variant<Value>> {
+    pub(crate) fn elements_under(&mut self, v: &Variational<Value>, pc: Pc) -> Vec<Variant<Value>> {
         let mut out = Vec::new();
         for variant in v.variants() {
             let cond = self.logic.and(pc, variant.cond);
@@ -1022,8 +1029,9 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
                 continue;
             }
-            let s = string_arg(&variant.value)
-                .ok_or_else(|| eyre::eyre!("expected a string, found a {}", variant.value.type_name()))?;
+            let s = string_arg(&variant.value).ok_or_else(|| {
+                eyre::eyre!("expected a string, found a {}", variant.value.type_name())
+            })?;
             out.push(Variant::new(variant.cond, s));
         }
         Ok(out)
@@ -1034,8 +1042,9 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn one_string(&mut self, v: &Variational<Value>) -> eyre::Result<Rc<str>> {
         let flat = self.flat(v);
         match flat.as_slice() {
-            [only] => string_arg(&only.value)
-                .ok_or_else(|| eyre::eyre!("expected a string, found a {}", only.value.type_name())),
+            [only] => string_arg(&only.value).ok_or_else(|| {
+                eyre::eyre!("expected a string, found a {}", only.value.type_name())
+            }),
             [] => bail!("expected a string, found nothing"),
             _ => bail!(
                 "expected a single string, but the value differs between configurations \
@@ -1049,10 +1058,9 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn one_int(&mut self, v: &Variational<Value>) -> eyre::Result<i64> {
         let flat = self.flat(v);
         match flat.as_slice() {
-            [only] => only
-                .value
-                .as_int()
-                .ok_or_else(|| eyre::eyre!("expected an integer, found a {}", only.value.type_name())),
+            [only] => only.value.as_int().ok_or_else(|| {
+                eyre::eyre!("expected an integer, found a {}", only.value.type_name())
+            }),
             [] => bail!("expected an integer, found nothing"),
             _ => bail!("expected a single integer, but the value differs between configurations"),
         }

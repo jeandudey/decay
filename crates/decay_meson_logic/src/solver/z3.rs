@@ -51,7 +51,8 @@ impl Solver for Z3Solver {
         stats::bump(&stats::Z3_DECLARE);
         let c = Int::new_const(format!("v{}", var.index()));
         self.solver.assert(c.ge(Int::from_i64(0)));
-        self.solver.assert(c.lt(Int::from_i64(i64::from(n_choices))));
+        self.solver
+            .assert(c.lt(Int::from_i64(i64::from(n_choices))));
         self.consts[var.index()] = Some(c);
     }
 

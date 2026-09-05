@@ -74,7 +74,9 @@ fn glibc_symbols() -> &'static HashMap<Cpu, HashSet<&'static str>> {
 /// not exist anywhere.
 pub fn has_function(libc: Libc, cpu: Cpu, name: &str) -> bool {
     match libc {
-        Libc::Glibc => glibc_symbols().get(&cpu).is_some_and(|set| set.contains(name)),
+        Libc::Glibc => glibc_symbols()
+            .get(&cpu)
+            .is_some_and(|set| set.contains(name)),
         Libc::Musl => musl_symbols(cpu).binary_search(&name).is_ok(),
     }
 }
@@ -218,7 +220,10 @@ mod tests {
     fn finds_plain_libc_on_every_arch() {
         for cpu in Cpu::ALL {
             for name in ["malloc", "strlen", "printf"] {
-                assert!(has_function(Libc::Glibc, cpu, name), "glibc {cpu:?}: {name}");
+                assert!(
+                    has_function(Libc::Glibc, cpu, name),
+                    "glibc {cpu:?}: {name}"
+                );
                 assert!(has_function(Libc::Musl, cpu, name), "musl {cpu:?}: {name}");
             }
         }
@@ -234,8 +239,16 @@ mod tests {
     #[test]
     fn does_not_find_nonsense() {
         for cpu in Cpu::ALL {
-            assert!(!has_function(Libc::Glibc, cpu, "this_is_not_a_real_libc_symbol"));
-            assert!(!has_function(Libc::Musl, cpu, "this_is_not_a_real_libc_symbol"));
+            assert!(!has_function(
+                Libc::Glibc,
+                cpu,
+                "this_is_not_a_real_libc_symbol"
+            ));
+            assert!(!has_function(
+                Libc::Musl,
+                cpu,
+                "this_is_not_a_real_libc_symbol"
+            ));
         }
     }
 
