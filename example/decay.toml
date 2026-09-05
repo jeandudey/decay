@@ -135,13 +135,7 @@ includedir = "include"
 repo = "https://github.com/ebassi/graphene"
 rev = "4e2578450809c2099400cf85caf18eafcd7100aa" # Tag 1.10.8
 depends = ["glib"]
-options.sse2 = true
-options.gcc_vector = true
-options.arm_neon = true
-options.debug = false
-options.gobject_types = true
-options.gtk_doc = false
-options.tests = false
+options = { sse2 = true, gcc_vector = true, arm_neon = true, debug = false, gobject_types = true, gtk_doc = false, tests = false }
 
 # TODO: Fails with:
 #   Error: Failed to import `shared-mime-info`
@@ -171,18 +165,16 @@ rev = "c84bc9459357a40e46e2fec0408d04fbdde2c973" # 1.5.10
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/gvdb.git"
 rev = "2b42fc75f09dbe1cd1057580b5782b08f2dcb400"
-# dependency cycle with glib-2.0
-options.tests = false
-options.default_library = "both"
+options = { tests = false, default_library = "both" }
 
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/glib.git"
 # Pinned to tag 2.88.3.
 rev = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
 depends = ["gvdb"]
-options.tests = false
+# TODO: force_posix_threads should be true for GNU/Windows toolchain, false for MSVC/Windows.
+options = { bsymbolic_functions = true, glib_assert = true, glib_checks = true, tests = false, multiarch = false, force_posix_threads = false }
 # options.glib_debug = "disabled" # TODO: This does not work, it should.
-options.multiarch = false
 
 # TODO: Fails with
 #   Error: Failed to import `glycin`

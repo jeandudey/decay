@@ -12,38 +12,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# build option `option:glib_assert`: Enable GLib assertion (see docs/macros.md)
-constraint(
-    name = "glib_assert",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:glib_checks`: Enable GLib checks such as API guards (see docs/macros.md)
-constraint(
-    name = "glib_checks",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:bsymbolic_functions`: link with -Bsymbolic-functions if supported
-constraint(
-    name = "bsymbolic_functions",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:force_posix_threads`: Also use posix threads in case the platform defaults to another implementation (on Windows for example)
-constraint(
-    name = "force_posix_threads",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # build option `option:xattr`: build with xattr support
 constraint(
     name = "xattr",

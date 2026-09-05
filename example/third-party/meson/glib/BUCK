@@ -1126,7 +1126,7 @@ _headers = {
     "gio/gnetworking.h": ":gnetworking.h",
     "config.h": ":config.h",
 }
-_cflags_compiler_glib_debug_glib_assert = select({
+_cflags_compiler_glib_debug = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -1142,12 +1142,6 @@ _cflags_compiler_glib_debug_glib_assert = select({
     "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
     "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_assert[true]": [],
-    "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_checks[true]": [],
-    "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
 }) + select({
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
@@ -1318,21 +1312,9 @@ _deps_os_compiler_run_C99_vsnprintf = [
 }) + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:winmm[true]": [":winmm"],
-        "//third-party/meson/constraints:winmm[false]": [],
+        "//third-party/meson/constraints:winmm[false]": [":threads"],
     }),
-    "DEFAULT": [],
-}) + select({
-    "prelude//os/constraints:os[windows]": select({
-        "//third-party/meson/glib/constraints:force_posix_threads[true]": select({
-            "//third-party/meson/constraints:threads[true]": [":threads"],
-            "//third-party/meson/constraints:threads[false]": [],
-        }),
-        "//third-party/meson/glib/constraints:force_posix_threads[false]": [],
-    }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:threads[true]": [":threads"],
-        "//third-party/meson/constraints:threads[false]": [],
-    }),
+    "DEFAULT": [":threads"],
 })
 _headers3 = {
     "glib/gversionmacros.h": ":custom_target",
@@ -2745,7 +2727,7 @@ _deps = [
     ":glib-dep-5",
     ":glib-dep",
 ]
-_cflags_compiler_glib_debug_glib_assert2 = select({
+_cflags_compiler_glib_debug2 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -2762,12 +2744,6 @@ _cflags_compiler_glib_debug_glib_assert2 = select({
     "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
     "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_assert[true]": [],
-    "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_checks[true]": [],
-    "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
 }) + select({
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
@@ -2852,15 +2828,11 @@ _needs_os_cpu_family = ["prelude//os/constraints:os[windows]"] + select({
     "//third-party/meson/constraints:cpu_family[wasm32]": [],
 })
 _exported_linker_flags = select({
-    "//third-party/meson/constraints:compiler[gcc]": ["-Wl,-z,nodelete"],
-    "//third-party/meson/constraints:compiler[clang]": ["-Wl,-z,nodelete"],
     "//third-party/meson/constraints:compiler[msvc]": [],
-}) + select({
-    "//third-party/meson/constraints:compiler[msvc]": [],
-    "DEFAULT": select({
-        "//third-party/meson/glib/constraints:bsymbolic_functions[true]": ["-Wl,-Bsymbolic-functions"],
-        "//third-party/meson/glib/constraints:bsymbolic_functions[false]": [],
-    }),
+    "DEFAULT": [
+        "-Wl,-z,nodelete",
+        "-Wl,-Bsymbolic-functions",
+    ],
 })
 _cflags_compiler_os_glib_debug = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
@@ -2885,12 +2857,6 @@ _cflags_compiler_os_glib_debug = select({
     "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
     "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_assert[true]": [],
-    "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_checks[true]": [],
-    "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
 }) + select({
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
@@ -2985,12 +2951,6 @@ _cflags_compiler_os_glib_debug2 = select({
     "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
     "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_assert[true]": [],
-    "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_checks[true]": [],
-    "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
 }) + select({
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
@@ -3810,12 +3770,6 @@ _cflags_compiler_os_glib_debug3 = select({
     "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
     "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
 }) + select({
-    "//third-party/meson/glib/constraints:glib_assert[true]": [],
-    "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_checks[true]": [],
-    "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-}) + select({
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -3915,12 +3869,6 @@ _cflags_compiler_os_glib_debug4 = select({
     "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
     "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_assert[true]": [],
-    "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_checks[true]": [],
-    "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
 }) + select({
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
@@ -4751,12 +4699,6 @@ _cflags_compiler_os_glib_debug5 = select({
     "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
     "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
     "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_assert[true]": [],
-    "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-}) + select({
-    "//third-party/meson/glib/constraints:glib_checks[true]": [],
-    "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
 }) + select({
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
@@ -5597,7 +5539,7 @@ cxx_library(
     },
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_glib_assert,
+    compiler_flags = _cflags_compiler_glib_debug,
     preferred_linkage = "static",
     target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
@@ -5652,8 +5594,8 @@ genrule(
     name = "glibconfig.h",
     out = "glibconfig.h",
     cmd = "sed" + " -e ''" + " '-es|@LT_CURRENT_MINUS_AGE@|0|g' '-es|@gint16@|short|g' '-es|@gint16_modifier@|h|g' '-es|@gint16_format@|hi|g' '-es|@guint16_format@|hu|g' '-es|@gint32@|int|g' '-es|@gint32_modifier@||g' '-es|@gint32_format@|i|g' '-es|@guint32_format@|u|g' '-es|@gintbits@|32|g' '-es|@GLIB_MAJOR_VERSION@|2|g' '-es|@GLIB_MINOR_VERSION@|88|g' '-es|@GLIB_MICRO_VERSION@|3|g' '-es|@GLIB_VERSION@|2.88.3|g' '-es|@g_pollin@|1|g' '-es|@g_pollout@|4|g' '-es|@g_pollpri@|2|g' '-es|@g_pollerr@|8|g' '-es|@g_pollhup@|16|g' '-es|@g_pollnval@|32|g' '-es|@g_af_unix@|1|g' '-es|@g_af_inet@|2|g' '-es|@g_af_inet6@|30|g' '-es|@g_msg_oob@|1|g' '-es|@g_msg_peek@|2|g' '-es|@g_msg_dontroute@|4|g'" + select({
-        "prelude//os/constraints:os[windows]": " '-es|@glib_os@|#define G_OS_WIN32\n#define G_PLATFORM_WIN32|g' '-es|@g_pid_type@|void*|g' '-es|@g_pid_format@|p|g' '-es|@g_dir_separator@|\\\\|g' '-es|@g_searchpath_separator@|;|g' '-es|@g_module_suffix@|dll|g'",
-        "DEFAULT": " '-es|@glib_os@|#define G_OS_UNIX|g' '-es|@g_pid_type@|int|g' '-es|@g_pid_format@|i|g' '-es|@g_pollfd_format@|%d|g' '-es|@g_dir_separator@|/|g' '-es|@g_searchpath_separator@|:|g' '-es|@g_module_suffix@|so|g'",
+        "prelude//os/constraints:os[windows]": " '-es|@glib_os@|#define G_OS_WIN32\n#define G_PLATFORM_WIN32|g' '-es|@g_pid_type@|void*|g' '-es|@g_pid_format@|p|g' '-es|@g_dir_separator@|\\\\|g' '-es|@g_searchpath_separator@|;|g' '-es|@g_module_suffix@|dll|g' '-es|@g_threads_impl_def@|WIN32|g'",
+        "DEFAULT": " '-es|@glib_os@|#define G_OS_UNIX|g' '-es|@g_pid_type@|int|g' '-es|@g_pid_format@|i|g' '-es|@g_pollfd_format@|%d|g' '-es|@g_dir_separator@|/|g' '-es|@g_searchpath_separator@|:|g' '-es|@g_module_suffix@|so|g' '-es|@g_threads_impl_def@|POSIX|g'",
     }) + select({
         "//third-party/meson/constraints:has_function_free_sized[true]": " '-es|@G_HAVE_FREE_SIZED@|1|g'",
         "//third-party/meson/constraints:has_function_free_sized[false]": " '-es|@G_HAVE_FREE_SIZED@||g'",
@@ -5771,17 +5713,11 @@ genrule(
             "//third-party/meson/constraints:links_atomic_ops[false]": " '-es|@G_ATOMIC_LOCK_FREE@||g'",
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": " '-es|@g_threads_impl_def@|POSIX|g'",
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": " '-es|@g_threads_impl_def@|WIN32|g'",
-        }),
-        "DEFAULT": " '-es|@g_threads_impl_def@|POSIX|g'",
-    }) + select({
         "//third-party/meson/constraints:run_stack_grows_check[true]": " '-es|@G_HAVE_GROWING_STACK@|1|g'",
         "//third-party/meson/constraints:run_stack_grows_check[false]": " '-es|@G_HAVE_GROWING_STACK@|0|g'",
     }) + " '-es|^#mesondefine[[:space:]]\\+LT_CURRENT_MINUS_AGE\\>.*|#define LT_CURRENT_MINUS_AGE 0|' '-es|^#mesondefine[[:space:]]\\+gint16\\>.*|#define gint16 short|' '-es|^#mesondefine[[:space:]]\\+gint16_modifier\\>.*|#define gint16_modifier \"h\"|' '-es|^#mesondefine[[:space:]]\\+gint16_format\\>.*|#define gint16_format \"hi\"|' '-es|^#mesondefine[[:space:]]\\+guint16_format\\>.*|#define guint16_format \"hu\"|' '-es|^#mesondefine[[:space:]]\\+gint32\\>.*|#define gint32 int|' '-es|^#mesondefine[[:space:]]\\+gint32_modifier\\>.*|#define gint32_modifier \"\"|' '-es|^#mesondefine[[:space:]]\\+gint32_format\\>.*|#define gint32_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+guint32_format\\>.*|#define guint32_format \"u\"|' '-es|^#mesondefine[[:space:]]\\+gintbits\\>.*|#define gintbits 32|' '-es|^#mesondefine[[:space:]]\\+GLIB_MAJOR_VERSION\\>.*|#define GLIB_MAJOR_VERSION 2|' '-es|^#mesondefine[[:space:]]\\+GLIB_MINOR_VERSION\\>.*|#define GLIB_MINOR_VERSION 88|' '-es|^#mesondefine[[:space:]]\\+GLIB_MICRO_VERSION\\>.*|#define GLIB_MICRO_VERSION 3|' '-es|^#mesondefine[[:space:]]\\+GLIB_VERSION\\>.*|#define GLIB_VERSION 2.88.3|' '-es|^#mesondefine[[:space:]]\\+g_pollin\\>.*|#define g_pollin 1|' '-es|^#mesondefine[[:space:]]\\+g_pollout\\>.*|#define g_pollout 4|' '-es|^#mesondefine[[:space:]]\\+g_pollpri\\>.*|#define g_pollpri 2|' '-es|^#mesondefine[[:space:]]\\+g_pollerr\\>.*|#define g_pollerr 8|' '-es|^#mesondefine[[:space:]]\\+g_pollhup\\>.*|#define g_pollhup 16|' '-es|^#mesondefine[[:space:]]\\+g_pollnval\\>.*|#define g_pollnval 32|' '-es|^#mesondefine[[:space:]]\\+g_af_unix\\>.*|#define g_af_unix 1|' '-es|^#mesondefine[[:space:]]\\+g_af_inet\\>.*|#define g_af_inet 2|' '-es|^#mesondefine[[:space:]]\\+g_af_inet6\\>.*|#define g_af_inet6 30|' '-es|^#mesondefine[[:space:]]\\+g_msg_oob\\>.*|#define g_msg_oob 1|' '-es|^#mesondefine[[:space:]]\\+g_msg_peek\\>.*|#define g_msg_peek 2|' '-es|^#mesondefine[[:space:]]\\+g_msg_dontroute\\>.*|#define g_msg_dontroute 4|'" + select({
-        "prelude//os/constraints:os[windows]": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_WIN32\n#define G_PLATFORM_WIN32|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type void*|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"p\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator \\\\|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator ;|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix dll|'",
-        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_UNIX|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type int|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+g_pollfd_format\\>.*|#define g_pollfd_format \"%d\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator /|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator :|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix so|'",
+        "prelude//os/constraints:os[windows]": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_WIN32\n#define G_PLATFORM_WIN32|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type void*|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"p\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator \\\\|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator ;|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix dll|' '-es|^#mesondefine[[:space:]]\\+g_threads_impl_def\\>.*|#define g_threads_impl_def WIN32|'",
+        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_UNIX|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type int|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+g_pollfd_format\\>.*|#define g_pollfd_format \"%d\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator /|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator :|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix so|' '-es|^#mesondefine[[:space:]]\\+g_threads_impl_def\\>.*|#define g_threads_impl_def POSIX|'",
     }) + select({
         "//third-party/meson/constraints:has_function_free_sized[true]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_FREE_SIZED\\>.*|#define G_HAVE_FREE_SIZED|'",
         "//third-party/meson/constraints:has_function_free_sized[false]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_FREE_SIZED\\>.*|/* #undef G_HAVE_FREE_SIZED */|'",
@@ -5898,12 +5834,6 @@ genrule(
             "//third-party/meson/constraints:links_atomic_ops[true]": " '-es|^#mesondefine[[:space:]]\\+G_ATOMIC_LOCK_FREE\\>.*|#define G_ATOMIC_LOCK_FREE|'",
             "//third-party/meson/constraints:links_atomic_ops[false]": " '-es|^#mesondefine[[:space:]]\\+G_ATOMIC_LOCK_FREE\\>.*|/* #undef G_ATOMIC_LOCK_FREE */|'",
         }),
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": " '-es|^#mesondefine[[:space:]]\\+g_threads_impl_def\\>.*|#define g_threads_impl_def POSIX|'",
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": " '-es|^#mesondefine[[:space:]]\\+g_threads_impl_def\\>.*|#define g_threads_impl_def WIN32|'",
-        }),
-        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+g_threads_impl_def\\>.*|#define g_threads_impl_def POSIX|'",
     }) + select({
         "//third-party/meson/constraints:run_stack_grows_check[true]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_GROWING_STACK\\>.*|#define G_HAVE_GROWING_STACK 1|'",
         "//third-party/meson/constraints:run_stack_grows_check[false]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_GROWING_STACK\\>.*|#define G_HAVE_GROWING_STACK 0|'",
@@ -6512,12 +6442,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -7523,12 +7447,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -8505,12 +8423,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -8593,15 +8505,11 @@ cxx_library(
         "DEFAULT": [],
     }),
     exported_linker_flags = select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-Wl,-z,nodelete"],
-        "//third-party/meson/constraints:compiler[clang]": ["-Wl,-z,nodelete"],
         "//third-party/meson/constraints:compiler[msvc]": ["/SAFESEH:NO"],
-    }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/glib/constraints:bsymbolic_functions[true]": ["-Wl,-Bsymbolic-functions"],
-            "//third-party/meson/glib/constraints:bsymbolic_functions[false]": [],
-        }),
+        "DEFAULT": [
+            "-Wl,-z,nodelete",
+            "-Wl,-Bsymbolic-functions",
+        ],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[msvc]": [],
@@ -8649,7 +8557,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_glib_assert,
+    compiler_flags = _cflags_compiler_glib_debug,
     deps = _deps,
     target_compatible_with = [
         "prelude//os/constraints:os[windows]",
@@ -8663,7 +8571,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_glib_assert2,
+    compiler_flags = _cflags_compiler_glib_debug2,
     deps = _deps,
     target_compatible_with = [
         "prelude//os/constraints:os[windows]",
@@ -8677,7 +8585,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_glib_assert,
+    compiler_flags = _cflags_compiler_glib_debug,
     deps = _deps,
     target_compatible_with = _needs_os_cpu_family,
     visibility = ["PUBLIC"],
@@ -8688,7 +8596,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_glib_debug_glib_assert2,
+    compiler_flags = _cflags_compiler_glib_debug2,
     deps = _deps,
     target_compatible_with = _needs_os_cpu_family,
     visibility = ["PUBLIC"],
@@ -8717,12 +8625,6 @@ cxx_binary(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -9491,12 +9393,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -9686,12 +9582,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -10571,12 +10461,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -11674,12 +11558,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -15722,12 +15600,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -15801,15 +15673,11 @@ cxx_library(
         "DEFAULT": [],
     }),
     exported_linker_flags = select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-Wl,-z,nodelete"],
-        "//third-party/meson/constraints:compiler[clang]": ["-Wl,-z,nodelete"],
         "//third-party/meson/constraints:compiler[msvc]": ["/SAFESEH:NO"],
-    }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/glib/constraints:bsymbolic_functions[true]": ["-Wl,-Bsymbolic-functions"],
-            "//third-party/meson/glib/constraints:bsymbolic_functions[false]": [],
-        }),
+        "DEFAULT": [
+            "-Wl,-z,nodelete",
+            "-Wl,-Bsymbolic-functions",
+        ],
     }),
     deps = select({
         "prelude//os/constraints:os[windows]": [],
@@ -16767,12 +16635,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -16971,12 +16833,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17123,12 +16979,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -17294,12 +17144,6 @@ cxx_library(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -17530,12 +17374,6 @@ cxx_binary(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17651,12 +17489,6 @@ cxx_binary(
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
     }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17771,12 +17603,6 @@ cxx_binary(
         "//third-party/meson/glib/constraints:glib_debug[enabled]": ["-DG_ENABLE_DEBUG"],
         "//third-party/meson/glib/constraints:glib_debug[disabled]": ["-DG_DISABLE_CAST_CHECKS"],
         "//third-party/meson/glib/constraints:glib_debug[auto]": ["-DG_DISABLE_CAST_CHECKS"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_assert[true]": [],
-        "//third-party/meson/glib/constraints:glib_assert[false]": ["-DG_DISABLE_ASSERT"],
-    }) + select({
-        "//third-party/meson/glib/constraints:glib_checks[true]": [],
-        "//third-party/meson/glib/constraints:glib_checks[false]": ["-DG_DISABLE_CHECKS"],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
@@ -22164,8 +21990,8 @@ genrule(
         }),
         "DEFAULT": "",
     }) + select({
-        "prelude//os/constraints:os[windows]": " '#define EXEEXT \".exe\"'",
-        "DEFAULT": " '#define EXEEXT '",
+        "prelude//os/constraints:os[windows]": " '#define EXEEXT \".exe\"' '#define THREADS_WIN32 1'",
+        "DEFAULT": " '#define EXEEXT ' '#define THREADS_POSIX 1'",
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[msvc]": " '/* #undef USE_SYSTEM_PRINTF */' '#define gl_unused \n/* Define as a marker that can be attached to declarations that might not\n    be used.  This helps to reduce warnings, such as from\n    GCC -Wunused-parameter.  */\n#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7)\n# define _GL_UNUSED __attribute__ ((__unused__))\n#else\n# define _GL_UNUSED\n#endif\n' '#define gl_extern_inline \n/* Please see the Gnulib manual for how to use these macros.\n\n   Suppress extern inline with HP-UX cc, as it appears to be broken; see\n   <https://lists.gnu.org/r/bug-texinfo/2013-02/msg00030.html>.\n\n   Suppress extern inline with Sun C in standards-conformance mode, as it\n   mishandles inline functions that call each other.  E.g., for '\\''inline void f\n   (void) { } inline void g (void) { f (); }'\\'', c99 incorrectly complains\n   '\\''reference to static identifier \"f\" in extern inline function'\\''.\n   This bug was observed with Sun C 5.12 SunOS_i386 2011/11/16.\n\n   Suppress extern inline (with or without __attribute__ ((__gnu_inline__)))\n   on configurations that mistakenly use '\\''static inline'\\'' to implement\n   functions or macros in standard C headers like <ctype.h>.  For example,\n   if isdigit is mistakenly implemented via a static inline function,\n   a program containing an extern inline function that calls isdigit\n   may not work since the C standard prohibits extern inline functions\n   from calling static functions.  This bug is known to occur on:\n\n     OS X 10.8 and earlier; see:\n     https://lists.gnu.org/r/bug-gnulib/2012-12/msg00023.html\n\n     DragonFly; see\n     http://muscles.dragonflybsd.org/bulk/bleeding-edge-potential/latest-per-pkg/ah-tty-0.3.12.log\n\n     FreeBSD; see:\n     https://lists.gnu.org/r/bug-gnulib/2014-07/msg00104.html\n\n   OS X 10.9 has a macro __header_inline indicating the bug is fixed for C and\n   for clang but remains for g++; see <https://trac.macports.org/ticket/41033>.\n   Assume DragonFly and FreeBSD will be similar.  */\n#if (((defined __APPLE__ && defined __MACH__) \\\n      || defined __DragonFly__ || defined __FreeBSD__) \\\n     && (defined __header_inline \\\n         ? (defined __cplusplus && defined __GNUC_STDC_INLINE__ \\\n            && ! defined __clang__) \\\n         : ((! defined _DONT_USE_CTYPE_INLINE_ \\\n             && (defined __GNUC__ || defined __cplusplus)) \\\n            || (defined _FORTIFY_SOURCE && 0 < _FORTIFY_SOURCE \\\n                && defined __GNUC__ && ! defined __cplusplus))))\n# define _GL_EXTERN_INLINE_STDHEADER_BUG\n#endif\n#if ((__GNUC__ \\\n      ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \\\n      : (199901L <= __STDC_VERSION__ \\\n         && !defined __HP_cc \\\n         && !defined __PGI \\\n         && !(defined __SUNPRO_C && __STDC__))) \\\n     && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)\n# define _GL_INLINE inline\n# define _GL_EXTERN_INLINE extern inline\n# define _GL_EXTERN_INLINE_IN_USE\n#elif (2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __STRICT_ANSI__ \\\n       && !defined _GL_EXTERN_INLINE_STDHEADER_BUG)\n# if defined __GNUC_GNU_INLINE__ && __GNUC_GNU_INLINE__\n   /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */\n#  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__)) __attribute__ ((always_inline))\n# else\n#  define _GL_INLINE extern inline\n# endif\n# define _GL_EXTERN_INLINE extern\n# define _GL_EXTERN_INLINE_IN_USE\n#else\n# define _GL_INLINE static _GL_UNUSED\n# define _GL_EXTERN_INLINE static _GL_UNUSED\n#endif\n\n/* In GCC 4.6 (inclusive) to 5.1 (exclusive),\n   suppress bogus \"no previous prototype for '\\''FOO'\\''\"\n   and \"no previous declaration for '\\''FOO'\\''\" diagnostics,\n   when FOO is an inline function in the header; see\n   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113> and\n   <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=63877>.  */\n#if __GNUC__ == 4 && 6 <= __GNUC_MINOR__\n# if defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__\n#  define _GL_INLINE_HEADER_CONST_PRAGMA\n# else\n#  define _GL_INLINE_HEADER_CONST_PRAGMA \\\n     _Pragma (\"GCC diagnostic ignored \\\"-Wsuggest-attribute=const\\\"\")\n# endif\n# define _GL_INLINE_HEADER_BEGIN \\\n    _Pragma (\"GCC diagnostic push\") \\\n    _Pragma (\"GCC diagnostic ignored \\\"-Wmissing-prototypes\\\"\") \\\n    _Pragma (\"GCC diagnostic ignored \\\"-Wmissing-declarations\\\"\") \\\n    _GL_INLINE_HEADER_CONST_PRAGMA\n# define _GL_INLINE_HEADER_END \\\n    _Pragma (\"GCC diagnostic pop\")\n#else\n# define _GL_INLINE_HEADER_BEGIN\n# define _GL_INLINE_HEADER_END\n#endif\n'",
@@ -22308,46 +22134,19 @@ genrule(
             "//third-party/meson/constraints:links_atomic_ops[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": " '#define THREADS_POSIX 1'",
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": " '#define THREADS_WIN32 1'",
-        }),
-        "DEFAULT": " '#define THREADS_POSIX 1'",
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": select({
-                "//third-party/meson/constraints:has_header_symbol_pthread_h[true]": " '#define HAVE_PTHREAD_ATTR_SETSTACKSIZE 1' '#define HAVE_PTHREAD_ATTR_SETINHERITSCHED 1' '#define HAVE_PTHREAD_CONDATTR_SETCLOCK 1' '#define HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP 1' '#define HAVE_PTHREAD_GETNAME_NP 1' '#define HAVE_PTHREAD_GETAFFINITY_NP 1'",
-                "//third-party/meson/constraints:has_header_symbol_pthread_h[false]": "",
-            }),
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": "",
-        }),
+        "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_header_symbol_pthread_h[true]": " '#define HAVE_PTHREAD_ATTR_SETSTACKSIZE 1' '#define HAVE_PTHREAD_ATTR_SETINHERITSCHED 1' '#define HAVE_PTHREAD_CONDATTR_SETCLOCK 1' '#define HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP 1' '#define HAVE_PTHREAD_GETNAME_NP 1' '#define HAVE_PTHREAD_GETAFFINITY_NP 1'",
             "//third-party/meson/constraints:has_header_symbol_pthread_h[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1'",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": "",
-            }),
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": "",
-        }),
+        "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1'",
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID 1'",
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": "",
-                }),
-            }),
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": "",
-        }),
+        "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
@@ -22356,19 +22155,7 @@ genrule(
             }),
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG 1'",
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[false]": "",
-                    }),
-                }),
-            }),
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": "",
-        }),
+        "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
@@ -22380,22 +22167,7 @@ genrule(
             }),
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/glib/constraints:force_posix_threads[true]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": "",
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[false]": select({
-                            "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SET_NAME_NP 1'",
-                            "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[false]": "",
-                        }),
-                    }),
-                }),
-            }),
-            "//third-party/meson/glib/constraints:force_posix_threads[false]": "",
-        }),
+        "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
             "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
