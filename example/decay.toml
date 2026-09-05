@@ -73,6 +73,7 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 [programs]
 python3 = "//third-party/tools:python3"
 nm = "//third-party/tools:nm"
+cargo = "//third-party/tools:cargo"
 "glib-compile-resources" = "//third-party/tools:glib-compile-resources"
 "glib-mkenums" = "//third-party/tools:glib-mkenums"
 "glib-genmarshal" = "//third-party/tools:glib-genmarshal"
@@ -166,6 +167,42 @@ options.datadir = "share"
 options.includedir = "include"
 # options.glib_debug = "disabled" # TODO: This does not work, it should.
 options.multiarch = false
+
+# TODO: Fails with
+#   Error: Failed to import `glycin`
+#
+#   Caused by:
+#      0: Failed to execute `glycin`
+#      1: in /meson.build
+#      2: in `run_command()` at /meson.build:47:28
+#      3: `run_command()` would have to run a program at import time, which would bake this machine's answer into the generated build
+#
+#   Location:
+#       crates/decay_meson_eval/src/builtins.rs:218:30
+#
+# This will also need:
+# - Support for run_command or providing answers for that.
+# - Rust based workflows of GNOME projects.
+#[[project]]
+#repo = "https://gitlab.gnome.org/GNOME/glycin"
+#rev = "62c5096eaac2c92dab84c2eb896936d8da3dd9c1" # Tag 2.1.5
+
+# TODO: Fails with:
+#
+#   Error: Failed to import `gdk-pixbuf`
+#
+#   Caused by:
+#      0: Failed to execute `gdk-pixbuf`
+#      1: in /meson.build
+#      2: in `.get_variable()` at /meson.build:244:30
+#      3: `gmodule-no-export-2.0` has no such variable
+#
+#   Location:
+#       crates/decay_meson_eval/src/methods.rs:245:29
+#[[project]]
+#repo = "https://gitlab.gnome.org/GNOME/gdk-pixbuf"
+#rev = "0bd66153abb6bd548febb82337db79cbefe694b0" # Tag 2.44.8
+#depends = ["glib"]
 
 # TODO: Fails with:
 #   Error: Failed to import `gtk`
