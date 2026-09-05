@@ -804,7 +804,8 @@ impl<'a, S: Solver> Interp<'a, S> {
         for row in rows {
             let mut row_holds = Pc::from_bool(true);
             for ((setting, domain), value) in axes.iter().zip(row) {
-                let holds = self.constraint_is(setting, domain.clone(), std::slice::from_ref(value));
+                let holds =
+                    self.constraint_is(setting, domain.clone(), std::slice::from_ref(value));
                 row_holds = self.logic.and(row_holds, holds);
             }
             any_row = self.logic.or(any_row, row_holds);

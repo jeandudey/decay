@@ -1,4 +1,8 @@
 use {
+    crate::probe::{
+        self,
+        ProbeCache, //
+    },
     crate::{
         config::{
             Config,
@@ -10,10 +14,6 @@ use {
             SizeValue, //
         },
         packages::Packages,
-    },
-    crate::probe::{
-        self,
-        ProbeCache, //
     },
     decay_meson_eval::{
         obj,
@@ -165,8 +165,14 @@ impl<'a> ConfigOracle<'a> {
             .map(|c| c.buck2_value())
             .collect();
         vec![
-            (probe::ABI_SETTING.to_owned(), union(probe::ABI_SETTING, &["gnu", "musl"])),
-            (probe::CPU_SETTING.to_owned(), union(probe::CPU_SETTING, &cpus)),
+            (
+                probe::ABI_SETTING.to_owned(),
+                union(probe::ABI_SETTING, &["gnu", "musl"]),
+            ),
+            (
+                probe::CPU_SETTING.to_owned(),
+                union(probe::CPU_SETTING, &cpus),
+            ),
         ]
     }
 

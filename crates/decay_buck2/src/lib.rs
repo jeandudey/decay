@@ -1026,7 +1026,15 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
 fn is_crt_provided_lib(name: &str) -> bool {
     matches!(
         name,
-        "m" | "dl" | "rt" | "pthread" | "resolv" | "nsl" | "socket" | "anl" | "crypt" | "util"
+        "m" | "dl"
+            | "rt"
+            | "pthread"
+            | "resolv"
+            | "nsl"
+            | "socket"
+            | "anl"
+            | "crypt"
+            | "util"
             | "execinfo"
     )
 }

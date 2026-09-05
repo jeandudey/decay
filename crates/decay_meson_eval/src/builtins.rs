@@ -17,6 +17,8 @@ use {
     },
     decay_build_ir::{
         CmdArg,
+        Define,
+        DefineValue,
         External,
         Install,
         Kind,
@@ -42,6 +44,7 @@ use {
         bail, //
     },
     std::{
+        collections::BTreeSet,
         path::{
             Path,
             PathBuf, //
@@ -666,10 +669,37 @@ impl<'a, S: Solver> Interp<'a, S> {
             None => None,
         };
 
-        let defines = match args.get("configuration") {
+        let mut defines = match args.get("configuration") {
             Some(v) => self.defines(v)?,
             None => Variational::empty(),
         };
+
+        // Meson substitutes every `#mesondefine` in a template, including a
+        // name which configuration_data() never set.  Such a name is an
+        // explicit `/* #undef NAME */`; without recording it here the backend
+        // has no sed edit to make and leaves an invalid directive in the
+        // generated header.  This especially matters when the only `.set()`
+        // was in a branch made unreachable by a pinned option.
+        if let Some(Source::File(path)) = &template
+            && let Ok(text) = self.sources.read(&self.root.join(path))
+        {
+            let known: BTreeSet<String> = defines
+                .variants()
+                .iter()
+                .map(|variant| variant.value.name.clone())
+                .collect();
+            for name in mesondefine_names(&text) {
+                if !known.contains(&name) {
+                    defines.push(Variant::new(
+                        self.pc,
+                        Define {
+                            name,
+                            value: DefineValue::Undef,
+                        },
+                    ));
+                }
+            }
+        }
 
         // A `.pc` file is how a project tells the outside world about itself;
         // resolve it the way a real configure step would, straight from the
@@ -1826,6 +1856,46 @@ impl<'a, S: Solver> Interp<'a, S> {
         };
         let t = self.truth(v)?;
         Ok(self.logic.and(self.pc, t))
+    }
+}
+
+/// The names in valid `#mesondefine NAME` template directives.
+///
+/// Meson permits indentation before the directive and trailing text after the
+/// name.  A directive name follows the C preprocessor identifier grammar;
+/// rejecting other lines avoids mistaking a comment or prose for a define.
+fn mesondefine_names(text: &str) -> BTreeSet<String> {
+    text.lines()
+        .filter_map(|line| {
+            let rest = line.trim_start().strip_prefix("#mesondefine")?;
+            rest.chars().next().filter(|c| c.is_whitespace())?;
+            let name = rest.split_whitespace().next()?;
+            let mut chars = name.chars();
+            let first = chars.next()?;
+            (first == '_' || first.is_ascii_alphabetic())
+                .then_some(())
+                .filter(|_| chars.all(|c| c == '_' || c.is_ascii_alphanumeric()))?;
+            Some(name.to_owned())
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mesondefine_names;
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn finds_only_valid_mesondefine_directives() {
+        let names = mesondefine_names(
+            "\n  #mesondefine ENABLE_FEATURE\n#mesondefine _PRIVATE 1\n\
+             #mesondefine 1INVALID\n#mesondefine ALSO-INVALID\n#mesondefineNOT_A_DIRECTIVE\n\
+             # mesondefine COMMENT\n",
+        );
+        assert_eq!(
+            names,
+            BTreeSet::from(["ENABLE_FEATURE".to_owned(), "_PRIVATE".to_owned()])
+        );
     }
 }
 
