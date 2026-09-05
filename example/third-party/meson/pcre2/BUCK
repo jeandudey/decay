@@ -142,17 +142,20 @@ _deps = select({
     "prelude//os/constraints:os[fuchsia]": [],
     "prelude//os/constraints:os[illumos]": [],
     "prelude//os/constraints:os[windows]": [],
-    "DEFAULT": select({
-        "//third-party/meson/constraints:threads[true]": [":threads"],
-        "//third-party/meson/constraints:threads[false]": [],
-    }),
+    "DEFAULT": [":threads"],
 })
 
-# meson: dependency("threads") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.threads = "//some:target"`
-# in decay.toml, or edit it here.
+# meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
+    exported_preprocessor_flags = select({
+        "prelude//abi/constraints:abi[msvc]": [],
+        "DEFAULT": ["-pthread"],
+    }),
+    exported_linker_flags = select({
+        "prelude//abi/constraints:abi[msvc]": [],
+        "DEFAULT": ["-pthread"],
+    }),
     visibility = ["PUBLIC"],
 )
 

@@ -932,6 +932,24 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
         // one up on `PATH`, so commands name that kind directly and rely on the
         // execution environment.
         External::Program { .. } => {}
+        // `dependency('threads')`: a real target, not a stub. `-pthread` is
+        // the portable spelling on every gcc/clang-driven toolchain
+        // (including mingw); MSVC and clang-cl put threads in the CRT and
+        // reject the flag, which `abi[msvc]` — a prelude constraint, always
+        // available — names exactly.
+        External::Threads => {
+            let sel = "select({\n\
+                \x20       \"prelude//abi/constraints:abi[msvc]\": [],\n\
+                \x20       \"DEFAULT\": [\"-pthread\"],\n\
+                \x20   })";
+            let _ = writeln!(out, "# meson: {}", describe_external(external));
+            let _ = writeln!(out, "cxx_library(");
+            let _ = writeln!(out, "    name = {:?},", target.name);
+            let _ = writeln!(out, "    exported_preprocessor_flags = {sel},");
+            let _ = writeln!(out, "    exported_linker_flags = {sel},");
+            let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
+            let _ = writeln!(out, ")");
+        }
         _ => {
             // `find_library` names the library itself, so `-l` is exactly
             // right. A pkg-config module name is not a library name and cannot
@@ -978,6 +996,7 @@ fn describe_external(external: &External) -> String {
             format!("dependency({module:?}) — resolved by pkg-config")
         }
         External::SystemLibrary { name } => format!("find_library({name:?})"),
+        External::Threads => "dependency('threads') — the platform's threading support".to_owned(),
         External::Framework { modules } => {
             format!("dependency('appleframeworks', modules: {modules:?})")
         }

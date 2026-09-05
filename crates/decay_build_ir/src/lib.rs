@@ -155,6 +155,10 @@ pub enum External {
     SystemLibrary { name: String },
     /// `dependency('appleframeworks', modules: [...])`.
     Framework { modules: Vec<String> },
+    /// `dependency('threads')` — meson's builtin threading dependency, always
+    /// found: `-pthread` on every toolchain except MSVC, where threads are in
+    /// the CRT and the flag is not understood.
+    Threads,
     /// `find_program('doxygen')`.
     Program { name: String, path: Option<PathBuf> },
 }

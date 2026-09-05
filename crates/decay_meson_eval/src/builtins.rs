@@ -1392,6 +1392,23 @@ impl<'a, S: Solver> Interp<'a, S> {
         let name = self.one_string(args.at(0).ok_or_eyre("dependency() needs a name")?)?;
         let required = self.required(args)?;
 
+        // `dependency('threads')` is not a pkg-config module: meson resolves
+        // it internally to the platform's threading support, and it is always
+        // available. Emit a builtin target for it rather than an empty stub,
+        // and never a "found" knob.
+        if &*name == "threads" && self.oracle.dependency_found(&name).is_none() {
+            let target = self.external("dep:threads", &name, External::Threads);
+            let value = self.dep_obj(Dep {
+                name: name.to_string(),
+                found: self.pc,
+                target,
+                type_name: "threads",
+                version: None,
+                variables: Vec::new(),
+            });
+            return Ok(self.pure(value));
+        }
+
         let (key, kind, type_name) = if &*name == "appleframeworks" {
             let modules: Vec<String> = match args.get("modules") {
                 Some(v) => self

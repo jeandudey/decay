@@ -429,6 +429,10 @@ constraint(
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
 
-- **dependency('threads').** This is a special case in meson, it should be
-  handled as a builtin dependency and not as a normal one, will likely involve
-  libc DB.
+- **dependency('threads') is a builtin.** `fn_dependency` special-cases it
+  (`External::Threads`): always found, never a `threads[true/false]` knob, and
+  `decay_buck2` renders it as a real `cxx_library` carrying `-pthread`
+  everywhere except `abi[msvc]` (MSVC / clang-cl put threads in the CRT and
+  reject the flag). Still overridable with `dependencies.threads = "//x"` in
+  `decay.toml`. It did not end up needing the libc DB — `-pthread` is a
+  compiler-driver convention, and `abi[msvc]` is the whole of the exception.

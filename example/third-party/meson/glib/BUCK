@@ -1312,16 +1312,10 @@ _deps_os_compiler_run_C99_vsnprintf = [
     "DEFAULT": [],
 }) + select({
     "prelude//os/constraints:os[windows]": select({
-        "prelude//abi/constraints:abi[gnu]": select({
-            "//third-party/meson/constraints:threads[true]": [":threads"],
-            "//third-party/meson/constraints:threads[false]": [],
-        }),
+        "prelude//abi/constraints:abi[gnu]": [":threads"],
         "DEFAULT": [],
     }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:threads[true]": [":threads"],
-        "//third-party/meson/constraints:threads[false]": [],
-    }),
+    "DEFAULT": [":threads"],
 })
 _headers3 = {
     "glib/gversionmacros.h": ":custom_target",
@@ -4101,11 +4095,17 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("threads") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.threads = "//some:target"`
-# in decay.toml, or edit it here.
+# meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
+    exported_preprocessor_flags = select({
+        "prelude//abi/constraints:abi[msvc]": [],
+        "DEFAULT": ["-pthread"],
+    }),
+    exported_linker_flags = select({
+        "prelude//abi/constraints:abi[msvc]": [],
+        "DEFAULT": ["-pthread"],
+    }),
     visibility = ["PUBLIC"],
 )
 
