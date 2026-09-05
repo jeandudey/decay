@@ -3,6 +3,7 @@ use {
         config::{
             Config,
             Project,
+            Repo,
             Source, //
         },
         git_cache::GitCache,
@@ -14,6 +15,7 @@ use {
             DiskSources, //
         },
         wrap_cache::WrapCache,
+        wrapdb::WrapSource,
     },
     clap::Parser,
     decay_build_ir::{
@@ -44,6 +46,7 @@ use {
         EnvFilter,
         fmt::format::FmtSpan, //
     },
+    url::Url,
 };
 
 mod config;
@@ -151,15 +154,29 @@ pub(crate) fn execute(
             let origin = Origin::Git { repo: repo.0.to_string(), rev: rev.clone() };
             (dir, origin)
         }
-        (Source::Wrap { .. }, Resolved::Wrap { version, file }) => {
-            let wrap = wrap_cache.materialize(git_cache, &name, version, file)?;
-            let origin = Origin::Archive(ArchiveFile {
-                url: wrap.url,
-                sha256: wrap.sha256,
-                strip_prefix: wrap.strip_prefix,
-            });
-            (wrap.dir, origin)
-        }
+        (Source::Wrap { .. }, Resolved::Wrap { version, file }) => match &file.source {
+            WrapSource::Archive { .. } => {
+                let wrap = wrap_cache.materialize(git_cache, &name, version, file)?;
+                let origin = Origin::Archive(ArchiveFile {
+                    url: wrap.url,
+                    sha256: wrap.sha256,
+                    strip_prefix: wrap.strip_prefix,
+                });
+                (wrap.dir, origin)
+            }
+            WrapSource::Git { url, revision } => {
+                let repo = Repo(Url::parse(url).wrap_err_with(|| format!("`{url}` is not a URL"))?);
+                let checkout = git_cache.checkout(&repo, revision)?;
+                let overlay = file
+                    .patch_directory
+                    .as_deref()
+                    .map(|dir| wrapdb::patch_dir(git_cache, &name, version, dir))
+                    .transpose()?;
+                let dir = wrap_cache.materialize_git(&name, version, &checkout, overlay.as_deref())?;
+                let origin = Origin::Git { repo: url.clone(), rev: revision.clone() };
+                (dir, origin)
+            }
+        },
         _ => unreachable!("`lock::resolve` produces one `Resolved` per `Source`, in the same order"),
     };
     let checkout_ms = checkout_start.elapsed().as_millis();

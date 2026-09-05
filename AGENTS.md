@@ -67,7 +67,7 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 ## Known gaps
 
-- **Wrap support covers `[wrap-file]` only.** A `[[project]]` entry can now be
+- **Wrap support covers both `[wrap-file]` and `[wrap-git]`.** A `[[project]]` entry can now be
   `wrap = "name"` (optionally `version = "..."`, wrapdb's own
   `version-revision` spelling) instead of `repo`/`rev`: `src/wrapdb.rs` and
   `src/wrap_cache.rs` resolve it, and the rest of the pipeline treats it
@@ -118,11 +118,26 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   the plain tarball would just fail loudly for it rather than silently
   produce a wrong build, but nothing does that fetch yet.
 
+  A `[wrap-git]` wrap (`url`/`revision`, plus an optional `patch_directory` —
+  wrapdb's `ff-nvcodec-headers_11.1.5.1-0` once carried both) resolves and
+  fetches exactly the way an ordinary `[[project]]` `repo`/`rev` does:
+  `wrapdb::parse_wrap` returns a `WrapSource::Git { url, revision }`,
+  `src/lock.rs` resolves `revision` to a full commit hash through
+  `git_cache::resolve_rev` and pins it in `decay.lock` (same as `[[project]]`'s
+  own `rev`), and `execute()` in `src/main.rs` checks it out through the same
+  shared `GitCache` every git project uses — `Origin::Git` in the emitted
+  build, not `Origin::Archive`. A `patch_directory` still applies afterward,
+  but never onto `GitCache`'s own checkout directory: that's a shared
+  worktree every other project pinned to the same commit trusts unmodified,
+  so `WrapCache::materialize_git` only copies it (skipping `.git`) into a
+  private directory when there's an overlay to apply, and hands back the
+  shared checkout untouched otherwise. No current wrapdb release is actually
+  `[wrap-git]` to test this against end-to-end — every one has migrated to
+  `[wrap-file]` — so `wrap_cache.rs`'s test for it runs entirely offline,
+  against a throwaway local git repo, rather than `#[ignore = "network"]`
+  like the `[wrap-file]` one.
+
   Still open:
-  - **`[wrap-git]` is refused**, with a message pointing at `[[project]]`
-    instead: it is already exactly `repo`/`rev`, so it gets the full pipeline
-    (branches, tags, sibling `dependency()` resolution) that way rather than a
-    second, narrower path to the same thing.
   - **The legacy `patch_filename` archive overlay is refused.** No current
     wrapdb release uses it (every one migrated to `patch_directory`), only a
     handful of old pinned versions might still need it, and it has the same

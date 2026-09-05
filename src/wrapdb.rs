@@ -1,5 +1,6 @@
 //! Discovering and fetching a [meson wrapdb](https://github.com/mesonbuild/wrapdb)
-//! `[wrap-file]`.
+//! `.wrap` file — both kinds, `[wrap-file]` (a tarball) and `[wrap-git]` (a
+//! git repository and revision).
 //!
 //! wrapdb publishes itself as a git repository, not a stable API: its old
 //! `v2` query endpoints answer with data that doesn't match what a current
@@ -13,10 +14,11 @@
 //! [`crate::git_cache::GitCache`], the same way it checks out any other
 //! project's history, rather than a second fetching path of its own.
 //!
-//! Only `[wrap-file]` is understood. Wrapdb's other kind, `[wrap-git]`, names
-//! a git repository and a revision — exactly what an ordinary `[[project]]`
-//! already is — so it belongs in `decay.toml` as one of those instead of a
-//! second, narrower path to the same thing.
+//! A `[wrap-git]` entry names a git repository and a revision — exactly what
+//! an ordinary `[[project]]` already is — so [`crate::lock`] and
+//! [`crate::wrap_cache`] resolve and fetch it exactly the way they would a
+//! `[[project]]` `repo`/`rev`, rather than a second, narrower path to the
+//! same thing.
 
 use {
     crate::{
@@ -45,17 +47,33 @@ use {
 pub static REPO: LazyLock<Repo> =
     LazyLock::new(|| Repo(Url::parse("https://github.com/mesonbuild/wrapdb.git").expect("static URL")));
 
-/// What one `[wrap-file]` promises, once parsed.
+/// What one `.wrap` file promises, once parsed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WrapFile {
-    pub source_url: String,
-    pub source_filename: String,
-    pub source_hash: String,
+    pub source: WrapSource,
     /// A directory in wrapdb's own tree
     /// (`subprojects/packagefiles/<patch_directory>`) to overlay onto the
-    /// extracted source, file by file, the way meson's own `copy_tree`
-    /// does. [`crate::wrap_cache::WrapCache::materialize`] is what applies it.
+    /// fetched source, file by file, the way meson's own `copy_tree` does —
+    /// applies after either kind of `source` is fetched.
+    /// [`crate::wrap_cache::WrapCache`] is what applies it.
     pub patch_directory: Option<String>,
+}
+
+/// Where a wrap's source actually comes from — one `.wrap` file has exactly
+/// one of these, named by which section it has.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WrapSource {
+    /// `[wrap-file]`: a tarball to download and extract.
+    Archive {
+        url: String,
+        filename: String,
+        hash: String,
+    },
+    /// `[wrap-git]`: a git repository and revision. `revision` is whatever
+    /// the wrap named — a branch, tag, or commit — not yet resolved to a
+    /// full hash; [`crate::lock`] is what does that, the same as it does for
+    /// an ordinary `[[project]]`'s own `rev`.
+    Git { url: String, revision: String },
 }
 
 /// The newest version wrapdb's `releases.json` lists for `name`.
@@ -141,12 +159,25 @@ fn checkout_rev(git_cache: &GitCache, rev: &str) -> eyre::Result<PathBuf> {
 
 fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
     let sections = parse_ini(text);
-    let file = sections.get("wrap-file").ok_or_else(|| {
-        eyre!(
-            "this is a `[wrap-git]` wrap, not a `[wrap-file]` one; import it as an ordinary \
-             `[[project]]` (`repo`/`rev`) instead"
-        )
-    })?;
+
+    if let Some(git) = sections.get("wrap-git") {
+        let get = |key: &str| {
+            git.get(key)
+                .cloned()
+                .ok_or_else(|| eyre!("`[wrap-git]` has no `{key}`"))
+        };
+        return Ok(WrapFile {
+            source: WrapSource::Git {
+                url: get("url")?,
+                revision: get("revision")?,
+            },
+            patch_directory: git.get("patch_directory").cloned(),
+        });
+    }
+
+    let file = sections
+        .get("wrap-file")
+        .ok_or_else(|| eyre!("this `.wrap` has neither a `[wrap-file]` nor a `[wrap-git]` section"))?;
     let get = |key: &str| {
         file.get(key)
             .cloned()
@@ -160,9 +191,11 @@ fn parse_wrap(text: &str) -> eyre::Result<WrapFile> {
         );
     }
     Ok(WrapFile {
-        source_url: get("source_url")?,
-        source_filename: get("source_filename")?,
-        source_hash: get("source_hash")?,
+        source: WrapSource::Archive {
+            url: get("source_url")?,
+            filename: get("source_filename")?,
+            hash: get("source_hash")?,
+        },
         patch_directory: file.get("patch_directory").cloned(),
     })
 }
@@ -208,9 +241,11 @@ mod tests {
              [provide]\n\
              dependency_names = zlib\n";
         let wrap = parse_wrap(text).unwrap();
-        assert_eq!(wrap.source_url, "https://example.com/zlib-1.3.1.tar.gz");
-        assert_eq!(wrap.source_filename, "zlib-1.3.1.tar.gz");
-        assert_eq!(wrap.source_hash, "deadbeef");
+        assert_eq!(wrap.source, WrapSource::Archive {
+            url: "https://example.com/zlib-1.3.1.tar.gz".to_owned(),
+            filename: "zlib-1.3.1.tar.gz".to_owned(),
+            hash: "deadbeef".to_owned(),
+        });
         assert_eq!(wrap.patch_directory, None);
     }
 
@@ -238,11 +273,34 @@ mod tests {
     }
 
     #[test]
-    fn a_wrap_git_entry_is_rejected() {
+    fn a_wrap_git_entry_is_parsed() {
         let text = "[wrap-git]\n\
              url = https://example.com/x.git\n\
              revision = main\n";
+        let wrap = parse_wrap(text).unwrap();
+        assert_eq!(wrap.source, WrapSource::Git {
+            url: "https://example.com/x.git".to_owned(),
+            revision: "main".to_owned(),
+        });
+        assert_eq!(wrap.patch_directory, None);
+    }
+
+    #[test]
+    fn a_wrap_git_entry_with_a_patch_directory_is_parsed() {
+        // A real wrapdb example (`ff-nvcodec-headers`): `[wrap-git]` can
+        // carry a `patch_directory` too, applied after the checkout the same
+        // way it would be after an archive extraction.
+        let text = "[wrap-git]\n\
+             url = https://example.com/x.git\n\
+             revision = v1.0\n\
+             patch_directory = x\n";
+        assert_eq!(parse_wrap(text).unwrap().patch_directory.as_deref(), Some("x"));
+    }
+
+    #[test]
+    fn a_wrap_with_neither_section_is_an_error() {
+        let text = "[provide]\ndependency_names = x\n";
         let err = parse_wrap(text).unwrap_err().to_string();
-        assert!(err.contains("wrap-git"), "{err}");
+        assert!(err.contains("wrap-file") && err.contains("wrap-git"), "{err}");
     }
 }
