@@ -278,14 +278,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# meson build option `option:b_vscrt`
-constraint(
-    name = "b_vscrt",
-    values = ["none", "md", "mdd", "mt", "mtd", "from_buildtype"],
-    default = "from_buildtype",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header:alloca.h`: `alloca.h` is available to the c compiler
 constraint(
     name = "has_header_alloca_h",
@@ -2102,30 +2094,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:libpcre2-8`: `libpcre2-8` is available
-constraint(
-    name = "libpcre2_8",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:pcre2d-8`: `pcre2d-8` is available
-constraint(
-    name = "pcre2d_8",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:pcre2-8`: `pcre2-8` is available
-constraint(
-    name = "pcre2_8",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:Windows system PCRE2 is a static build`: `Windows system PCRE2 is a static build` is available to the c compiler
 constraint(
     name = "links_Windows_system_PCRE2_is_a_static_build",
@@ -2937,6 +2905,86 @@ constraint(
 # toolchain probe `probe:c:has_header_symbol:crtdbg.h`: `crtdbg.h` is available to the c compiler
 constraint(
     name = "has_header_symbol_crtdbg_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:assert.h`: `assert.h` is available to the c compiler
+constraint(
+    name = "has_header_assert_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header:windows.h`: `windows.h` is available to the c compiler
+constraint(
+    name = "has_header_windows_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:memfd_create`: `memfd_create` is available to the c compiler
+constraint(
+    name = "has_function_memfd_create",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:realpath`: `realpath` is available to the c compiler
+constraint(
+    name = "has_function_realpath",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:secure_getenv`: `secure_getenv` is available to the c compiler
+constraint(
+    name = "has_function_secure_getenv",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:setrlimit`: `setrlimit` is available to the c compiler
+constraint(
+    name = "has_function_setrlimit",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:__builtin_unreachable`: `__builtin_unreachable` is available to the c compiler
+constraint(
+    name = "links_builtin_unreachable",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:__builtin_mul_overflow`: `__builtin_mul_overflow` is available to the c compiler
+constraint(
+    name = "links_builtin_mul_overflow",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:__assume`: `__assume` is available to the c compiler
+constraint(
+    name = "links_assume",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:__attribute__((uninitialized))`: `__attribute__((uninitialized))` is available to the c compiler
+constraint(
+    name = "compiles_attribute_uninitialized",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],

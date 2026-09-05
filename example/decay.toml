@@ -91,7 +91,6 @@ gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
 libffi = "//third-party/system:FFI"
 zlib = "//third-party/system:Z"
-"libpcre2-8" = "//third-party/system:PCRE2"
 
 # `cc.sizeof()` / `cc.alignment()` yield a concrete integer a generated
 # config header bakes in, so — unlike a probe — there is no knob to leave
@@ -262,3 +261,6 @@ options.multiarch = false
 # [[project]]
 # repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
 # rev = "badd9563b2ac3117ea2a99348bbe46298d6992ec" # Tag 1.29.2
+
+[[project]]
+wrap = "pcre2"

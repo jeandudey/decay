@@ -1257,6 +1257,7 @@ _headers2 = {
 _deps_os_compiler_run_C99_vsnprintf = [
     ":charset",
     ":intl",
+    ":libpcre2-8",
 ] + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:compiler[msvc]": [":gnulib"],
@@ -1308,43 +1309,6 @@ _deps_os_compiler_run_C99_vsnprintf = [
 }) + select({
     "//third-party/meson/constraints:sysprof_capture_4[true]": [":sysprof-capture-4"],
     "//third-party/meson/constraints:sysprof_capture_4[false]": [],
-}) + select({
-    "//third-party/meson/constraints:pcre2_8[true]": select({
-        "//third-party/meson/constraints:libpcre2_8[true]": [],
-        "//third-party/meson/constraints:libpcre2_8[false]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:b_vscrt[none]": [":pcre2-8"],
-                "//third-party/meson/constraints:b_vscrt[md]": [":pcre2-8"],
-                "//third-party/meson/constraints:b_vscrt[mdd]": [],
-                "//third-party/meson/constraints:b_vscrt[mt]": [":pcre2-8"],
-                "//third-party/meson/constraints:b_vscrt[mtd]": [],
-                "//third-party/meson/constraints:b_vscrt[from_buildtype]": [":pcre2-8"],
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:pcre2_8[false]": [],
-}) + select({
-    "//third-party/meson/constraints:pcre2d_8[true]": select({
-        "//third-party/meson/constraints:libpcre2_8[true]": [],
-        "//third-party/meson/constraints:libpcre2_8[false]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:b_vscrt[none]": [],
-                "//third-party/meson/constraints:b_vscrt[md]": [],
-                "//third-party/meson/constraints:b_vscrt[mdd]": [":pcre2d-8"],
-                "//third-party/meson/constraints:b_vscrt[mt]": [],
-                "//third-party/meson/constraints:b_vscrt[mtd]": [":pcre2d-8"],
-                "//third-party/meson/constraints:b_vscrt[from_buildtype]": [],
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:pcre2d_8[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpcre2_8[true]": [":libpcre2-8"],
-    "//third-party/meson/constraints:libpcre2_8[false]": [],
 }) + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:ws2_32[true]": [":ws2_32"],
@@ -4951,25 +4915,7 @@ cxx_library(
 # meson: dependency("libpcre2-8") — resolved by pkg-config
 alias(
     name = "libpcre2-8",
-    actual = "//third-party/system:PCRE2",
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pcre2d-8")
-cxx_library(
-    name = "pcre2d-8",
-    exported_linker_flags = [
-        "-lpcre2d-8",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pcre2-8")
-cxx_library(
-    name = "pcre2-8",
-    exported_linker_flags = [
-        "-lpcre2-8",
-    ],
+    actual = "//third-party/meson/pcre2:pcre2-8",
     visibility = ["PUBLIC"],
 )
 
@@ -8636,61 +8582,14 @@ cxx_library(
         }),
         "DEFAULT": [],
     }) + select({
-        "//third-party/meson/constraints:libpcre2_8[true]": select({
-            "prelude//os/constraints:os[windows]": select({
-                "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[true]": [
-                    "-DPCRE2_STATIC",
-                    "-DPCRE2_STATIC",
-                ],
-                "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[false]": [],
-            }),
-            "DEFAULT": [],
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[true]": [
+                "-DPCRE2_STATIC",
+                "-DPCRE2_STATIC",
+            ],
+            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[false]": [],
         }),
-        "//third-party/meson/constraints:libpcre2_8[false]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:b_vscrt[mdd]": select({
-                    "//third-party/meson/constraints:pcre2d_8[true]": select({
-                        "prelude//os/constraints:os[windows]": select({
-                            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[true]": [
-                                "-DPCRE2_STATIC",
-                                "-DPCRE2_STATIC",
-                            ],
-                            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[false]": [],
-                        }),
-                        "DEFAULT": [],
-                    }),
-                    "//third-party/meson/constraints:pcre2d_8[false]": [],
-                }),
-                "//third-party/meson/constraints:b_vscrt[mtd]": select({
-                    "//third-party/meson/constraints:pcre2d_8[true]": select({
-                        "prelude//os/constraints:os[windows]": select({
-                            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[true]": [
-                                "-DPCRE2_STATIC",
-                                "-DPCRE2_STATIC",
-                            ],
-                            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[false]": [],
-                        }),
-                        "DEFAULT": [],
-                    }),
-                    "//third-party/meson/constraints:pcre2d_8[false]": [],
-                }),
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:pcre2_8[true]": select({
-                        "prelude//os/constraints:os[windows]": select({
-                            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[true]": [
-                                "-DPCRE2_STATIC",
-                                "-DPCRE2_STATIC",
-                            ],
-                            "//third-party/meson/constraints:links_Windows_system_PCRE2_is_a_static_build[false]": [],
-                        }),
-                        "DEFAULT": [],
-                    }),
-                    "//third-party/meson/constraints:pcre2_8[false]": [],
-                }),
-            }),
-        }),
+        "DEFAULT": [],
     }),
     exported_linker_flags = select({
         "//third-party/meson/constraints:compiler[gcc]": ["-Wl,-z,nodelete"],

@@ -1047,38 +1047,67 @@ impl<'a, S: Solver> Interp<'a, S> {
         Ok(self.pure(Value::Unset))
     }
 
-    /// Read a `configuration_data()` object into header entries.
+    /// Read a `configuration_data()` object, or a plain dict of the same
+    /// shape, into header entries. Meson accepts either for
+    /// `configure_file(configuration: ...)`; a dict's values are substituted
+    /// exactly like `conf.set()` would (raw string/int, defined-or-undefined
+    /// bool) since meson has no `set_quoted()` equivalent for a dict literal.
     fn defines(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<decay_build_ir::Define>> {
         use decay_build_ir::{Define, DefineValue};
 
         let mut out = Variational::empty();
         for variant in v.variants() {
-            let Value::Obj(Obj::ConfigData(data)) = &variant.value else {
-                bail!(
-                    "`configuration:` expects configuration_data(), found a {}",
-                    variant.value.type_name()
-                );
-            };
-            let data: ConfigData = data.borrow().clone();
-            for (name, entries) in &data.entries {
-                for entry in entries.variants() {
-                    let cond = self.logic.and(variant.cond, entry.cond);
-                    if cond.is_false() {
-                        continue;
+            match &variant.value {
+                Value::Obj(Obj::ConfigData(data)) => {
+                    let data: ConfigData = data.borrow().clone();
+                    for (name, entries) in &data.entries {
+                        for entry in entries.variants() {
+                            let cond = self.logic.and(variant.cond, entry.cond);
+                            if cond.is_false() {
+                                continue;
+                            }
+                            let value = match &entry.value {
+                                Entry::Quoted(v) => DefineValue::Quoted(v.to_string()),
+                                Entry::Raw(v) => DefineValue::Raw(v.to_string()),
+                                Entry::Int(v) => DefineValue::Number(*v),
+                                Entry::Ten(v) => DefineValue::Number(i64::from(*v)),
+                                Entry::Flag(true) => DefineValue::Flag,
+                                Entry::Flag(false) => DefineValue::Undef,
+                            };
+                            out.push(Variant::new(cond, Define {
+                                name: name.to_string(),
+                                value,
+                            }));
+                        }
                     }
-                    let value = match &entry.value {
-                        Entry::Quoted(v) => DefineValue::Quoted(v.to_string()),
-                        Entry::Raw(v) => DefineValue::Raw(v.to_string()),
-                        Entry::Int(v) => DefineValue::Number(*v),
-                        Entry::Ten(v) => DefineValue::Number(i64::from(*v)),
-                        Entry::Flag(true) => DefineValue::Flag,
-                        Entry::Flag(false) => DefineValue::Undef,
-                    };
-                    out.push(Variant::new(cond, Define {
-                        name: name.to_string(),
-                        value,
-                    }));
                 }
+                Value::Dict(entries) => {
+                    for entry in entries.iter() {
+                        let cond = self.logic.and(variant.cond, entry.cond);
+                        if cond.is_false() {
+                            continue;
+                        }
+                        let (name, value) = &entry.value;
+                        let value = match value {
+                            Value::Str(s) => DefineValue::Raw(s.to_string()),
+                            Value::Int(n) => DefineValue::Number(*n),
+                            Value::Bool(true) => DefineValue::Flag,
+                            Value::Bool(false) => DefineValue::Undef,
+                            other => bail!(
+                                "`configuration:` dict values must be str, int, or bool, found a {}",
+                                other.type_name()
+                            ),
+                        };
+                        out.push(Variant::new(cond, Define {
+                            name: name.to_string(),
+                            value,
+                        }));
+                    }
+                }
+                other => bail!(
+                    "`configuration:` expects configuration_data() or a dict, found a {}",
+                    other.type_name()
+                ),
             }
         }
         out.normalize(&mut self.logic);
