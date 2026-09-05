@@ -484,6 +484,9 @@ constraint(
   `decay.toml`. It did not end up needing the libc DB — `-pthread` is a
   compiler-driver convention, and `abi[msvc]` is the whole of the exception.
 
+- **Pretty print errors.** Use annotate-snippets crate from rust-lang for this
+  current errors are crap.
+
 - **This should not be in each project.**
 
 ```
