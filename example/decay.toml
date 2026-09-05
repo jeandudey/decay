@@ -20,47 +20,10 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # `KHR/khrplatform.h`, for instance, ships with the Khronos headers rather than
 # with any libc or OS, so it stays a build-time choice.
 [probes]
-# A GNU extension: which libc is in use decides it, not which kernel.
-"has_function:dlvsym" = "prelude//abi/constraints:abi[gnu]"
-
 # `crt_externs.h` (`_NSGetEnviron`) ships with Apple's libSystem; no other
 # platform has it, macOS or not.
 "has_header:crt_externs.h" = "prelude//os/constraints:os[macos]"
 
-# Whether graphene's fast paths compile follows from the CPU and the
-# compiler, not from a knob a generated build should carry of its own —
-# `name:` in `cc.compiles(..., name: '...')` is the key, since the snippet
-# itself is no way to write one. This is what lets `sse2`/`gcc_vector`/
-# `arm_neon` stay real, open options instead of being pinned off: graphene's
-# own build selects on these directly, same as any other probe.
-"compiles:SSE intrinsics" = "prelude//cpu/constraints:cpu[x86_64]"
-"compiles:ARM NEON intrinsics" = [
-    "prelude//cpu/constraints:cpu[arm32]",
-    "prelude//cpu/constraints:cpu[arm64]",
-]
-# Really also excludes 32-bit x86/ARM, which the compiler constraint alone
-# cannot express; narrower than the real check, but MSVC (the case that
-# matters) is excluded correctly.
-"compiles:GCC vector intrinsics" = [
-    "//third-party/meson/constraints:compiler[gcc]",
-    "//third-party/meson/constraints:compiler[clang]",
-]
-
-# graphene publishes the same fast-path answers as `pkg-config` variables
-# (`graphene_has_sse2` and friends); gtk4 reads them back with
-# `dependency('graphene-gobject-1.0').get_variable(...)`. That is a
-# different variable, in a different project's configuration space, so it
-# needs its own answer here — tied to the same constraints as above, so the
-# two always agree.
-"dependency:graphene-gobject-1.0:graphene_has_sse2" = "prelude//cpu/constraints:cpu[x86_64]"
-"dependency:graphene-gobject-1.0:graphene_has_gcc" = [
-    "//third-party/meson/constraints:compiler[gcc]",
-    "//third-party/meson/constraints:compiler[clang]",
-]
-"dependency:graphene-gobject-1.0:graphene_has_neon" = [
-    "prelude//cpu/constraints:cpu[arm32]",
-    "prelude//cpu/constraints:cpu[arm64]",
-]
 
 # The tools a build runs. A build graph cannot reach outside itself for one, so
 # a program is found only when it is a script in the project — libepoxy's

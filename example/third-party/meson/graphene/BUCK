@@ -113,34 +113,38 @@ genrule(
     name = "graphene-config.h",
     out = "graphene-config.h",
     cmd = "sed" + " -e ''" + select({
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
-        "DEFAULT": "",
+        "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
+        "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": "",
     }) + select({
-        "//third-party/meson/constraints:compiler[clang]": " '-es|@GRAPHENE_HAS_GCC@|1|g'",
-        "//third-party/meson/constraints:compiler[gcc]": " '-es|@GRAPHENE_HAS_GCC@|1|g'",
-        "DEFAULT": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[true]": " '-es|@GRAPHENE_HAS_GCC@|1|g'",
+            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[false]": "",
+        }),
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-        "prelude//cpu/constraints:cpu[arm64]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-        "DEFAULT": "",
+        "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
+        "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": "",
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
-        "DEFAULT": "",
+        "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
+        "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": "",
     }) + select({
-        "//third-party/meson/constraints:compiler[clang]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|#define GRAPHENE_HAS_GCC 1|'",
-        "//third-party/meson/constraints:compiler[gcc]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|#define GRAPHENE_HAS_GCC 1|'",
-        "DEFAULT": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[true]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|#define GRAPHENE_HAS_GCC 1|'",
+            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[false]": "",
+        }),
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-        "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
+        "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+        "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
     }) + select({
-        "//third-party/meson/constraints:compiler[clang]": "",
-        "//third-party/meson/constraints:compiler[gcc]": "",
-        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|/* #undef GRAPHENE_HAS_GCC */|'",
+        "prelude//os/constraints:os[linux]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|/* #undef GRAPHENE_HAS_GCC */|'",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[true]": "",
+            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[false]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|/* #undef GRAPHENE_HAS_GCC */|'",
+        }),
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_32]": "",
-        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
+        "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": "",
+        "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
     }) + " $(location :graphene.git[include/graphene-config.h.meson]) > $OUT",
     visibility = ["PUBLIC"],
 )
@@ -659,25 +663,21 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_32]": [
+            "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": [
                 "-mfpmath=sse",
                 "-msse",
                 "-msse2",
             ],
-            "DEFAULT": [],
+            "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": [],
         }),
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
+            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": select({
                 "prelude//cpu/constraints:cpu[arm64]": [],
                 "DEFAULT": ["-mfpu=neon"],
             }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//cpu/constraints:cpu[arm64]": [],
-                "DEFAULT": ["-mfpu=neon"],
-            }),
-            "DEFAULT": [],
+            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": [],
         }),
     }) + select({
         "prelude//os/constraints:os[macos]": [],
@@ -688,9 +688,8 @@ cxx_library(
         "prelude//os/constraints:os[illumos]": [],
         "prelude//os/constraints:os[windows]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-mfloat-abi=softfp"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-mfloat-abi=softfp"],
-            "DEFAULT": [],
+            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": ["-mfloat-abi=softfp"],
+            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": [],
         }),
     }),
     exported_linker_flags = select({

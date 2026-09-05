@@ -142,6 +142,30 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
+# toolchain probe `probe:c:compiles:SSE intrinsics`: `SSE intrinsics` is available to the c compiler
+constraint(
+    name = "compiles_SSE_intrinsics",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:GCC vector intrinsics`: `GCC vector intrinsics` is available to the c compiler
+constraint(
+    name = "compiles_GCC_vector_intrinsics",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:compiles:ARM NEON intrinsics`: `ARM NEON intrinsics` is available to the c compiler
+constraint(
+    name = "compiles_ARM_NEON_intrinsics",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
 # external dependency `dep:`: `` is available
 constraint(
     name = "unnamed",
