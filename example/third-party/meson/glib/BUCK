@@ -16772,7 +16772,7 @@ cxx_library(
 genrule(
     name = "gconstructor_as_data.h",
     out = "gconstructor_as_data.h",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' '@INPUT1@' 'gconstructor_code' $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glib.git[gio/data-to-c.py]) $(location :glib.git[glib/gconstructor.h]) 'gconstructor_code' $OUT",
     visibility = ["PUBLIC"],
 )
 

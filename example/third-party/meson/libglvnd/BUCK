@@ -1131,49 +1131,49 @@ cxx_library(
 genrule(
     name = "glapi_mapi_tmp.h",
     out = "glapi_mapi_tmp.h",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' 'gldispatch' '@INPUT1@' '@INPUT2@'" + " > $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/generate/gen_gldispatch_mapi.py]) 'gldispatch' $(location :glvnd.git[src/generate/xml/gl.xml]) $(location :glvnd.git[src/generate/xml/gl_other.xml])" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "g_glapi_mapi_opengl_tmp.h",
     out = "g_glapi_mapi_opengl_tmp.h",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' 'opengl' '@INPUT1@' '@INPUT2@'" + " > $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/generate/gen_gldispatch_mapi.py]) 'opengl' $(location :glvnd.git[src/generate/xml/gl.xml]) $(location :glvnd.git[src/generate/xml/gl_other.xml])" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "g_glapi_mapi_glesv1_tmp.h",
     out = "g_glapi_mapi_glesv1_tmp.h",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' 'glesv1' '@INPUT1@' '@INPUT2@'" + " > $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/generate/gen_gldispatch_mapi.py]) 'glesv1' $(location :glvnd.git[src/generate/xml/gl.xml]) $(location :glvnd.git[src/generate/xml/gl_other.xml])" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "g_glapi_mapi_glesv2_tmp.h",
     out = "g_glapi_mapi_glesv2_tmp.h",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' 'glesv2' '@INPUT1@' '@INPUT2@'" + " > $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/generate/gen_gldispatch_mapi.py]) 'glesv2' $(location :glvnd.git[src/generate/xml/gl.xml]) $(location :glvnd.git[src/generate/xml/gl_other.xml])" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "g_glapi_mapi_gl_tmp.h",
     out = "g_glapi_mapi_gl_tmp.h",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' '@INPUT1@' '@INPUT2@' '@INPUT3@'" + " > $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/generate/gen_gldispatch_mapi.py]) $(location :glvnd.git[src/GL/gl.symbols]) $(location :glvnd.git[src/generate/xml/gl.xml]) $(location :glvnd.git[src/generate/xml/gl_other.xml])" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "g_egldispatchstubs.h",
     out = "g_egldispatchstubs.h",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' 'header' '@INPUT1@'" + " > $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/generate/gen_egl_dispatch.py]) 'header' $(location :glvnd.git[src/generate/xml/egl.xml])" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "g_egldispatchstubs.c",
     out = "g_egldispatchstubs.c",
-    cmd = " $(exe //third-party/tools:python3) '@INPUT0@' 'source' '@INPUT1@'" + " > $OUT",
+    cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/generate/gen_egl_dispatch.py]) 'source' $(location :glvnd.git[src/generate/xml/egl.xml])" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 

@@ -1277,7 +1277,6 @@ fn command<S: Solver>(
             Source::Generated(id) => format!("$(location :{})", graph.target(*id).name),
         })
         .collect();
-    let inputs = inputs.join(" ");
 
     let mut words = selects.render_words(logic, &target.attrs.cmd, target.cond, 1, " ", |arg| {
         match arg {
@@ -1317,7 +1316,7 @@ fn command<S: Solver>(
                 }
             }
             CmdArg::File(path) => file_arg(graph, path),
-            CmdArg::Inputs => inputs.clone(),
+            CmdArg::Inputs => inputs.join(" "),
             CmdArg::Outputs => "$OUT".to_owned(),
             CmdArg::OutDir => OUT_DIR.to_owned(),
         }
@@ -1348,34 +1347,60 @@ fn join(parts: &[String]) -> String {
 /// shell to act on, not become the literal characters quoting it would
 /// leave behind. The two are stitched back together the way a shell allows
 /// adjacent quoted and unquoted text to run together as one word.
-fn substitute(text: &str, inputs: &str) -> String {
-    let markers: [(&str, &str); 4] = [
-        ("@INPUT@", inputs),
-        ("@OUTPUT@", "$OUT"),
-        ("@OUTDIR@", OUT_DIR),
-        ("@BASENAME@", "${OUT##*/}"),
-    ];
-
+fn substitute(text: &str, inputs: &[String]) -> String {
     let mut out = String::new();
     let mut rest = text;
-    loop {
-        let next = markers
-            .iter()
-            .filter_map(|(marker, replacement)| Some((rest.find(marker)?, marker, replacement)))
-            .min_by_key(|(at, ..)| *at);
-        let Some((at, marker, replacement)) = next else {
-            break;
+    while let Some(at) = rest.find('@') {
+        // A marker is `@WORD@`; find the closing `@`.
+        let Some(end_rel) = rest[at + 1..].find('@') else {
+            break; // no closing `@` — the remainder is all literal
         };
-        if at > 0 {
-            out.push_str(&shell_quote(&rest[..at]));
+        let close = at + 1 + end_rel;
+        let token = &rest[at + 1..close];
+        match marker_value(token, inputs) {
+            Some(replacement) => {
+                if at > 0 {
+                    out.push_str(&shell_quote(&rest[..at]));
+                }
+                out.push_str(&replacement);
+                rest = &rest[close + 1..];
+            }
+            // Not a marker decay knows — keep `@token` verbatim, and leave the
+            // trailing `@` in place so it can open the next marker.
+            None => {
+                out.push_str(&shell_quote(&rest[..close]));
+                rest = &rest[close..];
+            }
         }
-        out.push_str(replacement);
-        rest = &rest[at + marker.len()..];
     }
     if !rest.is_empty() || out.is_empty() {
         out.push_str(&shell_quote(rest));
     }
     out
+}
+
+/// What a meson command placeholder (`@INPUT@`, `@INPUT0@`, `@OUTPUT@`,
+/// `@OUTDIR@`, `@BASENAME@`) expands to inside a genrule. `@INPUT<n>@` /
+/// `@OUTPUT<n>@` name the n-th input / output; decay's genrule model has one
+/// output, so every `@OUTPUT…@` is `$OUT`.
+fn marker_value(token: &str, inputs: &[String]) -> Option<String> {
+    match token {
+        "INPUT" => Some(inputs.join(" ")),
+        "OUTDIR" => Some(OUT_DIR.to_owned()),
+        "BASENAME" => Some("${OUT##*/}".to_owned()),
+        _ if token == "OUTPUT" || token.strip_prefix("OUTPUT").is_some_and(is_index) => {
+            Some("$OUT".to_owned())
+        }
+        _ => {
+            let n: usize = token.strip_prefix("INPUT")?.parse().ok()?;
+            inputs.get(n).cloned()
+        }
+    }
+}
+
+/// Whether `s` is a run of ASCII digits (the `0` in `@OUTPUT0@`).
+fn is_index(s: &str) -> bool {
+    !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit())
 }
 
 /// The directory holding a genrule's single output.
