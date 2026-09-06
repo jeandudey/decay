@@ -44,6 +44,8 @@ gperf = "//third-party/tools:gperf"
 # automatically against the project that actually answers it.
 [dependencies]
 x11 = "//third-party/system:X11"
+# TODO: Maybe this should be recognized by depends field.
+xext = "//third-party/meson/libxext:Xext"
 gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
 
@@ -128,7 +130,7 @@ options = { legacy = false }
 repo = "https://github.com/NVIDIA/libglvnd"
 tag = "v1.7.0"
 options = { asm = "auto", dispatch-tls = true, egl = true, entrypoint-patching = "auto", gles1 = true, gles2 = true, glx = "auto", headers = true, hgl = false, tls = true }
-depends = ["xorgproto"]
+depends = ["libxext", "xorgproto"]
 
 # TODO: This should find KHR/khrplatform.h from libglvnd.
 [[project]]
@@ -228,6 +230,9 @@ options = { solo = false, tests = "disabled" }
 [[project]]
 wrap = "pcre2"
 options = { grep = false, test = false, jit = "auto", jit_sealloc = "auto" }
+
+[[project]]
+wrap = "libxext"
 
 # TODO: Fails with:
 #   Error: Failed to import `libffi`

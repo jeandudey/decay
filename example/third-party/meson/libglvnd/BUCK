@@ -1295,14 +1295,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("xext") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.xext = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "xext",
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency("glproto") — resolved by pkg-config
 # Empty stub: map it to a real target with `dependencies.glproto = "//some:target"`
 # in decay.toml, or edit it here.
@@ -4719,7 +4711,7 @@ cxx_library(
         ":glvnd-dep-2",
         ":glvnd-dep-5",
     ] + select({
-        "//third-party/meson/constraints:xext[true]": [":xext"],
+        "//third-party/meson/constraints:xext[true]": ["//third-party/meson/libxext:Xext"],
         "//third-party/meson/constraints:xext[false]": [],
     }),
     preferred_linkage = "shared",
