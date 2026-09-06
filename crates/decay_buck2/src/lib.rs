@@ -1267,12 +1267,18 @@ fn header_aliases(
     out
 }
 
-/// Whether a `configure_file()` produced something a compiler will include.
+/// Whether a target generates a header the build tree puts on every compiled
+/// target's include path.
 ///
-/// Meson uses the same function to fill in templates that have nothing to do
-/// with C, and those must not be forced onto every compiled target.
+/// Meson mirrors the source layout into the build directory and adds it to
+/// the include path, so a generated header — whether from `configure_file()`
+/// or a `custom_target()` (glib's `*-visibility.h` / `gversionmacros.h` /
+/// `gioenumtypes.h`, each pulled in by nearly every public `<glib/*.h>` /
+/// `<gio/*.h>`) — is reachable from anywhere. A `configure_file()` filling a
+/// non-C template, or a `custom_target()` producing anything but a header,
+/// must not be forced onto every target.
 fn is_config_header(target: &Target) -> bool {
-    matches!(target.kind, Kind::ConfigHeader)
+    matches!(target.kind, Kind::ConfigHeader | Kind::Custom)
         && target
             .attrs
             .outs

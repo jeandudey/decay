@@ -742,25 +742,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:type "struct stat" has member "st_mtimensec"`: `type "struct stat" has member "st_mtimensec"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_stat_has_member_st_mtimensec",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:type "struct stat" has member "st_mtim.tv_nsec"`: `type "struct stat" has member "st_mtim.tv_nsec"` is available to the c compiler
 constraint(
     name = "compiles_type_struct_stat_has_member_st_mtim_tv_nsec",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:type "struct stat" has member "st_atimensec"`: `type "struct stat" has member "st_atimensec"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_stat_has_member_st_atimensec",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -774,49 +758,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:type "struct stat" has member "st_ctimensec"`: `type "struct stat" has member "st_ctimensec"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_stat_has_member_st_ctimensec",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:type "struct stat" has member "st_ctim.tv_nsec"`: `type "struct stat" has member "st_ctim.tv_nsec"` is available to the c compiler
 constraint(
     name = "compiles_type_struct_stat_has_member_st_ctim_tv_nsec",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:type "struct stat" has member "st_birthtime"`: `type "struct stat" has member "st_birthtime"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_stat_has_member_st_birthtime",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:type "struct stat" has member "st_birthtimensec"`: `type "struct stat" has member "st_birthtimensec"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_stat_has_member_st_birthtimensec",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:type "struct stat" has member "st_birthtim"`: `type "struct stat" has member "st_birthtim"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_stat_has_member_st_birthtim",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:type "struct stat" has member "st_birthtim.tv_nsec"`: `type "struct stat" has member "st_birthtim.tv_nsec"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_stat_has_member_st_birthtim_tv_nsec",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -838,14 +782,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:type "struct statfs" has member "f_fstypename"`: `type "struct statfs" has member "f_fstypename"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_statfs_has_member_f_fstypename",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:type "struct statfs" has member "f_bavail"`: `type "struct statfs" has member "f_bavail"` is available to the c compiler
 constraint(
     name = "compiles_type_struct_statfs_has_member_f_bavail",
@@ -862,22 +798,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:type "struct statvfs" has member "f_basetype"`: `type "struct statvfs" has member "f_basetype"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_statvfs_has_member_f_basetype",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:type "struct statvfs" has member "f_fstypename"`: `type "struct statvfs" has member "f_fstypename"` is available to the c compiler
-constraint(
-    name = "compiles_type_struct_statvfs_has_member_f_fstypename",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:type "struct statvfs" has member "f_type"`: `type "struct statvfs" has member "f_type"` is available to the c compiler
 constraint(
     name = "compiles_type_struct_statvfs_has_member_f_type",
@@ -889,14 +809,6 @@ constraint(
 # toolchain probe `probe:c:compiles:type "struct tm" has member "tm_gmtoff"`: `type "struct tm" has member "tm_gmtoff"` is available to the c compiler
 constraint(
     name = "compiles_type_struct_tm_has_member_tm_gmtoff",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:type "struct tm" has member "__tm_gmtoff"`: `type "struct tm" has member "__tm_gmtoff"` is available to the c compiler
-constraint(
-    name = "c_compiles_type_struct_tm_has_member_tm_gmtoff",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -2118,14 +2030,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:XATTR_NOFOLLOW`: `XATTR_NOFOLLOW` is available to the c compiler
-constraint(
-    name = "compiles_XATTR_NOFOLLOW",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_function:strlcpy`: `strlcpy` is available to the c compiler
 constraint(
     name = "has_function_strlcpy",
@@ -2633,14 +2537,6 @@ constraint(
 # toolchain probe `probe:c:links:res_nclose()`: `res_nclose()` is available to the c compiler
 constraint(
     name = "links_res_nclose",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:links:res_ndestroy()`: `res_ndestroy()` is available to the c compiler
-constraint(
-    name = "links_res_ndestroy",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],

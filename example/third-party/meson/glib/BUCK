@@ -1120,8 +1120,19 @@ git_fetch(
 # says what it is rather than how it was configured.
 _headers = {
     "glib/glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
     "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
     "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
     "config.h": ":config.h",
 }
 _cflags_compiler_cpp_compiler = select({
@@ -1256,8 +1267,21 @@ _needs_os_compiler_run_C99_vsnprintf = select({
 _headers2 = {
     "glib/glibconfig.h": ":glibconfig.h",
     "glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "glib-visibility.h": ":custom_target-2",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
     "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
     "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
     "config.h": ":config.h",
 }
 _headers3 = {
@@ -1966,8 +1990,21 @@ _headers3 = {
 _headers4 = {
     "glib/glibconfig.h": ":glibconfig.h",
     "glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "glib-visibility.h": ":custom_target-2",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
     "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
     "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
     "config.h": ":config.h",
     "gobject/gsignal.h": ":glib.git[gobject/gsignal.h]",
     "gobject/gvalue.h": ":glib.git[gobject/gvalue.h]",
@@ -2779,6 +2816,23 @@ _exported_linker_flags = select({
         "-Wl,-Bsymbolic-functions",
     ],
 })
+_headers5 = {
+    "glib/glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "gobject-visibility.h": ":custom_target-3",
+    "glib-enumtypes.h": ":glib_enumtypes_h",
+    "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
+    "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
+    "config.h": ":config.h",
+}
 _cflags_compiler_os_cpp_compiler = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
@@ -2889,6 +2943,23 @@ _cflags_compiler_os_cpp_compiler = select({
     }),
     "DEFAULT": [],
 })
+_headers6 = {
+    "glib/glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
+    "gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule-visibility.h": ":custom_target-4",
+    "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
+    "config.h": ":config.h",
+}
 _srcs = {
     "gio/gdbus-2.0/codegen/__init__.py": ":__init__.py",
     "gio/gdbus-2.0/codegen/codegen.py": ":codegen.py",
@@ -3008,10 +3079,21 @@ _ldflags = select({
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": ["/SAFESEH:NO"],
 })
-_headers5 = {
+_headers7 = {
     "glib/glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
     "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
     "gnetworking.h": ":gnetworking.h",
+    "xdp-dbus.h": ":xdp-dbus",
+    "gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio-visibility.h": ":custom_target-5",
+    "gioenumtypes.h": ":gioenumtypes_h",
+    "gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
     "config.h": ":config.h",
 }
 _cflags_compiler_os_cpp_compiler3 = select({
@@ -3262,7 +3344,7 @@ _deps_os2 = [
     "prelude//os/constraints:os[windows]": [":glib-dep"],
     "DEFAULT": [":glib-dep-3"],
 })
-_headers6 = {
+_headers8 = {
     "girepository/gi-visibility.h": ":custom_target-6",
     "gi-visibility.h": ":custom_target-6",
     "gobject/gsignal.h": ":glib.git[gobject/gsignal.h]",
@@ -3889,7 +3971,25 @@ _headers6 = {
     "gienuminfo.h": ":glib.git[girepository/gienuminfo.h]",
     "gthread/gthread.def": ":glib.git[gthread/gthread.def]",
 }
-_headers7 = {
+_headers9 = {
+    "glib/glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
+    "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
+    "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
+    "gi-visibility.h": ":custom_target-6",
+    "config.h": ":config.h",
+}
+_headers10 = {
     "giarginfo.h": ":glib.git[girepository/giarginfo.h]",
     "girffi.h": ":glib.git[girepository/girffi.h]",
     "giunioninfo.h": ":glib.git[girepository/giunioninfo.h]",
@@ -3967,6 +4067,23 @@ _headers7 = {
     "girnode-private.h": ":glib.git[girepository/girnode-private.h]",
     "giobjectinfo.h": ":glib.git[girepository/giobjectinfo.h]",
     "gienuminfo.h": ":glib.git[girepository/gienuminfo.h]",
+}
+_headers11 = {
+    "glib/glibconfig.h": ":glibconfig.h",
+    "glib/gversionmacros.h": ":custom_target",
+    "glib/glib-visibility.h": ":custom_target-2",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
+    "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
+    "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "gi-visibility.h": ":custom_target-6",
+    "config.h": ":config.h",
 }
 _deps_os3 = [
     ":glib-dep-16",
@@ -6915,11 +7032,24 @@ cxx_library(
     headers = {
         "glib/glibconfig.h": ":glibconfig.h",
         "glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "glib-visibility.h": ":custom_target-2",
         "glib/gnulib/gnulib_math.h": ":gnulib_math.h",
         "gnulib/gnulib_math.h": ":gnulib_math.h",
         "gnulib_math.h": ":gnulib_math.h",
+        "gobject/gobject-visibility.h": ":custom_target-3",
+        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
         "gio/gnetworking.h": ":gnetworking.h",
+        "gio/xdp-dbus.h": ":xdp-dbus",
+        "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio/gio-visibility.h": ":custom_target-5",
+        "gio/gioenumtypes.h": ":gioenumtypes_h",
+        "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
         "config.h": ":config.h",
     },
     header_namespace = "",
@@ -9097,7 +9227,25 @@ cxx_library(
         "girepository/gienuminfo.h": ":glib.git[girepository/gienuminfo.h]",
         "gthread/gthread.def": ":glib.git[gthread/gthread.def]",
     },
-    headers = _headers,
+    headers = {
+        "glib/glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "gobject/gobject-visibility.h": ":custom_target-3",
+        "gobject-visibility.h": ":custom_target-3",
+        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
+        "glib-enumtypes.h": ":glib_enumtypes_h",
+        "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
+        "gio/gnetworking.h": ":gnetworking.h",
+        "gio/xdp-dbus.h": ":xdp-dbus",
+        "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio/gio-visibility.h": ":custom_target-5",
+        "gio/gioenumtypes.h": ":gioenumtypes_h",
+        "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
+        "config.h": ":config.h",
+    },
     header_namespace = "",
     compiler_flags = select({
         "//third-party/meson/constraints:compiler[gcc]": [],
@@ -9268,7 +9416,7 @@ cxx_library(
         "gparamspecs.h": ":glib.git[gobject/gparamspecs.h]",
         "gbinding.h": ":glib.git[gobject/gbinding.h]",
     },
-    headers = _headers,
+    headers = _headers5,
     header_namespace = "",
     exported_deps = [
         ":gobject-2.0",
@@ -9280,7 +9428,7 @@ cxx_library(
 cxx_binary(
     name = "gobject-query",
     srcs = [":glib.git[gobject/gobject-query.c]"],
-    headers = _headers,
+    headers = _headers5,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler,
     deps = [
@@ -10199,9 +10347,21 @@ cxx_library(
     },
     headers = {
         "glib/glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "gobject/gobject-visibility.h": ":custom_target-3",
+        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "gmodule/gmoduleconf.h": ":gmoduleconf.h",
         "gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
+        "gmodule-visibility.h": ":custom_target-4",
         "gio/gnetworking.h": ":gnetworking.h",
+        "gio/xdp-dbus.h": ":xdp-dbus",
+        "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio/gio-visibility.h": ":custom_target-5",
+        "gio/gioenumtypes.h": ":gioenumtypes_h",
+        "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
         "config.h": ":config.h",
     },
     header_namespace = "",
@@ -10351,12 +10511,7 @@ cxx_library(
         "gmodule-visibility.h": ":custom_target-4",
         "gmodule.h": ":glib.git[gmodule/gmodule.h]",
     },
-    headers = {
-        "glib/glibconfig.h": ":glibconfig.h",
-        "gmoduleconf.h": ":gmoduleconf.h",
-        "gio/gnetworking.h": ":gnetworking.h",
-        "config.h": ":config.h",
-    },
+    headers = _headers6,
     header_namespace = "",
     visibility = ["PUBLIC"],
 )
@@ -10364,12 +10519,7 @@ cxx_library(
 # meson: glib-dep
 cxx_library(
     name = "glib-dep-10",
-    headers = {
-        "glib/glibconfig.h": ":glibconfig.h",
-        "gmoduleconf.h": ":gmoduleconf.h",
-        "gio/gnetworking.h": ":gnetworking.h",
-        "config.h": ":config.h",
-    },
+    headers = _headers6,
     header_namespace = "",
     exported_deps = [
         ":gmodule-2.0",
@@ -10592,8 +10742,19 @@ cxx_binary(
     }),
     headers = {
         "glibconfig.h": ":glibconfig.h",
+        "gversionmacros.h": ":custom_target",
+        "glib-visibility.h": ":custom_target-2",
+        "gobject/gobject-visibility.h": ":custom_target-3",
+        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
         "gnetworking.h": ":gnetworking.h",
+        "xdp-dbus.h": ":xdp-dbus",
+        "gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio-visibility.h": ":custom_target-5",
+        "gioenumtypes.h": ":gioenumtypes_h",
+        "gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
         "config.h": ":config.h",
         "gfileutils.h": ":glib.git[glib/gfileutils.h]",
         "gqsort.h": ":glib.git[glib/gqsort.h]",
@@ -11491,7 +11652,7 @@ cxx_library(
         "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "gio-visibility.h": ":custom_target-5",
     },
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     visibility = ["PUBLIC"],
 )
@@ -13992,9 +14153,27 @@ cxx_library(
     headers = {
         "glib/glibconfig.h": ":glibconfig.h",
         "glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "glib-visibility.h": ":custom_target-2",
+        "gobject/gobject-visibility.h": ":custom_target-3",
+        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
         "gio/gnetworking.h": ":gnetworking.h",
         "gnetworking.h": ":gnetworking.h",
+        "gio/xdp-dbus.h": ":xdp-dbus",
+        "xdp-dbus.h": ":xdp-dbus",
+        "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio/gio-visibility.h": ":custom_target-5",
+        "gio-visibility.h": ":custom_target-5",
+        "gio/gioenumtypes.h": ":gioenumtypes_h",
+        "gioenumtypes.h": ":gioenumtypes_h",
+        "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
         "config.h": ":config.h",
     },
     header_namespace = "",
@@ -16116,9 +16295,25 @@ cxx_library(
     }),
     headers = {
         "glib/glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "gobject/gobject-visibility.h": ":custom_target-3",
+        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
         "gio/gnetworking.h": ":gnetworking.h",
         "gnetworking.h": ":gnetworking.h",
+        "gio/xdp-dbus.h": ":xdp-dbus",
+        "xdp-dbus.h": ":xdp-dbus",
+        "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio/gio-visibility.h": ":custom_target-5",
+        "gio-visibility.h": ":custom_target-5",
+        "gio/gioenumtypes.h": ":gioenumtypes_h",
+        "gioenumtypes.h": ":gioenumtypes_h",
+        "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
         "config.h": ":config.h",
     },
     header_namespace = "",
@@ -16765,7 +16960,7 @@ cxx_library(
         "gdbusutils.h": ":glib.git[gio/gdbusutils.h]",
         "gdbusobject.h": ":glib.git[gio/gdbusobject.h]",
     },
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     exported_deps = [
         ":gio-2.0",
@@ -16824,8 +17019,19 @@ cxx_binary(
     ],
     headers = {
         "glib/glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "gobject/gobject-visibility.h": ":custom_target-3",
+        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
         "gnetworking.h": ":gnetworking.h",
+        "xdp-dbus.h": ":xdp-dbus",
+        "gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio-visibility.h": ":custom_target-5",
+        "gioenumtypes.h": ":gioenumtypes_h",
+        "gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
         "config.h": ":config.h",
         "gio-tool.h": ":glib.git[gio/gio-tool.h]",
     },
@@ -16839,7 +17045,7 @@ cxx_binary(
 cxx_binary(
     name = "gresource",
     srcs = [":glib.git[gio/gresource-tool.c]"],
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler,
     linker_flags = _ldflags,
@@ -16888,7 +17094,7 @@ cxx_binary(
         ":glib.git[gio/gio-querymodules.c]",
         ":glib.git[gio/giomodule-priv.c]",
     ],
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
@@ -16899,7 +17105,7 @@ cxx_binary(
 cxx_binary(
     name = "glib-compile-schemas",
     srcs = [":glib.git[gio/glib-compile-schemas.c]"] + ["//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-builder.c]", "//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-reader.c]"],
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler,
     linker_flags = _ldflags,
@@ -16910,13 +17116,7 @@ cxx_binary(
 cxx_binary(
     name = "glib-compile-resources",
     srcs = [":glib.git[gio/glib-compile-resources.c]"] + ["//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-builder.c]", "//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-reader.c]"],
-    headers = {
-        "glib/glibconfig.h": ":glibconfig.h",
-        "gmodule/gmoduleconf.h": ":gmoduleconf.h",
-        "gnetworking.h": ":gnetworking.h",
-        "config.h": ":config.h",
-        "gconstructor_as_data.h": ":gconstructor_as_data.h",
-    },
+    headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
@@ -16927,7 +17127,7 @@ cxx_binary(
 cxx_binary(
     name = "gsettings",
     srcs = [":glib.git[gio/gsettings-tool.c]"],
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
@@ -16938,7 +17138,7 @@ cxx_binary(
 cxx_binary(
     name = "gdbus",
     srcs = [":glib.git[gio/gdbus-tool.c]"],
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
@@ -16949,7 +17149,7 @@ cxx_binary(
 cxx_binary(
     name = "gapplication",
     srcs = [":glib.git[gio/gapplication-tool.c]"],
-    headers = _headers5,
+    headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler2,
     linker_flags = _ldflags,
@@ -17197,8 +17397,8 @@ genrule(
 cxx_library(
     name = "girepository-gthash",
     srcs = [":glib.git[girepository/gthash.c]"],
-    exported_headers = _headers6,
-    headers = _headers,
+    exported_headers = _headers8,
+    headers = _headers9,
     header_namespace = "",
     compiler_flags = select({
         "//third-party/meson/constraints:compiler[gcc]": [],
@@ -17337,8 +17537,8 @@ cxx_library(
 # meson: glib-dep
 cxx_library(
     name = "glib-dep-14",
-    exported_headers = _headers7,
-    headers = _headers,
+    exported_headers = _headers10,
+    headers = _headers11,
     header_namespace = "",
     exported_deps = [
         ":girepository-gthash",
@@ -17358,8 +17558,8 @@ cxx_library(
         ":glib.git[girepository/girparser.c]",
         ":glib.git[girepository/girwriter.c]",
     ],
-    exported_headers = _headers6,
-    headers = _headers,
+    exported_headers = _headers8,
+    headers = _headers9,
     header_namespace = "",
     compiler_flags = select({
         "//third-party/meson/constraints:compiler[gcc]": [],
@@ -17497,8 +17697,8 @@ cxx_library(
 # meson: glib-dep
 cxx_library(
     name = "glib-dep-15",
-    exported_headers = _headers7,
-    headers = _headers,
+    exported_headers = _headers10,
+    headers = _headers11,
     header_namespace = "",
     exported_deps = [
         ":girepository-internals",
@@ -17537,8 +17737,8 @@ cxx_library(
         ":glib.git[girepository/givfuncinfo.c]",
         ":glib.git[girepository/girffi.c]",
     ],
-    exported_headers = _headers6,
-    headers = _headers,
+    exported_headers = _headers8,
+    headers = _headers9,
     header_namespace = "",
     compiler_flags = select({
         "//third-party/meson/constraints:compiler[gcc]": [],
@@ -17753,7 +17953,7 @@ cxx_library(
         "giobjectinfo.h": ":glib.git[girepository/giobjectinfo.h]",
         "gienuminfo.h": ":glib.git[girepository/gienuminfo.h]",
     },
-    headers = _headers,
+    headers = _headers11,
     header_namespace = "",
     exported_deps = [
         ":girepository-2.0",
@@ -17768,7 +17968,7 @@ cxx_library(
 cxx_binary(
     name = "gi-dump-types",
     srcs = [":glib.git[girepository/gi-dump-types.c]"],
-    headers = _headers,
+    headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler,
     deps = [
@@ -19251,35 +19451,14 @@ genrule(
             "//third-party/meson/constraints:has_header_locale_h[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_mtimensec[true]": " '#define HAVE_STRUCT_STAT_ST_MTIMENSEC 1'",
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_mtimensec[false]": "",
-    }) + select({
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_mtim_tv_nsec[true]": " '#define HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC 1'",
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_mtim_tv_nsec[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_atimensec[true]": " '#define HAVE_STRUCT_STAT_ST_ATIMENSEC 1'",
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_atimensec[false]": "",
     }) + select({
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_atim_tv_nsec[true]": " '#define HAVE_STRUCT_STAT_ST_ATIM_TV_NSEC 1'",
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_atim_tv_nsec[false]": "",
     }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_ctimensec[true]": " '#define HAVE_STRUCT_STAT_ST_CTIMENSEC 1'",
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_ctimensec[false]": "",
-    }) + select({
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_ctim_tv_nsec[true]": " '#define HAVE_STRUCT_STAT_ST_CTIM_TV_NSEC 1'",
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_ctim_tv_nsec[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtime[true]": " '#define HAVE_STRUCT_STAT_ST_BIRTHTIME 1'",
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtime[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtimensec[true]": " '#define HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC 1'",
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtimensec[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtim[true]": " '#define HAVE_STRUCT_STAT_ST_BIRTHTIM 1'",
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtim[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtim_tv_nsec[true]": " '#define HAVE_STRUCT_STAT_ST_BIRTHTIM_TV_NSEC 1'",
-        "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_birthtim_tv_nsec[false]": "",
     }) + select({
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_blksize[true]": " '#define HAVE_STRUCT_STAT_ST_BLKSIZE 1'",
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_blksize[false]": "",
@@ -19287,29 +19466,17 @@ genrule(
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_blocks[true]": " '#define HAVE_STRUCT_STAT_ST_BLOCKS 1'",
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_blocks[false]": "",
     }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_fstypename[true]": " '#define HAVE_STRUCT_STATFS_F_FSTYPENAME 1'",
-        "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_fstypename[false]": "",
-    }) + select({
         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define HAVE_STRUCT_STATFS_F_BAVAIL 1'",
         "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
     }) + select({
         "//third-party/meson/constraints:compiles_type_struct_dirent_has_member_d_type[true]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
         "//third-party/meson/constraints:compiles_type_struct_dirent_has_member_d_type[false]": "",
     }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_statvfs_has_member_f_basetype[true]": " '#define HAVE_STRUCT_STATVFS_F_BASETYPE 1'",
-        "//third-party/meson/constraints:compiles_type_struct_statvfs_has_member_f_basetype[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:compiles_type_struct_statvfs_has_member_f_fstypename[true]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
-        "//third-party/meson/constraints:compiles_type_struct_statvfs_has_member_f_fstypename[false]": "",
-    }) + select({
         "//third-party/meson/constraints:compiles_type_struct_statvfs_has_member_f_type[true]": " '#define HAVE_STRUCT_STATVFS_F_TYPE 1'",
         "//third-party/meson/constraints:compiles_type_struct_statvfs_has_member_f_type[false]": "",
     }) + select({
         "//third-party/meson/constraints:compiles_type_struct_tm_has_member_tm_gmtoff[true]": " '#define HAVE_STRUCT_TM_TM_GMTOFF 1'",
         "//third-party/meson/constraints:compiles_type_struct_tm_has_member_tm_gmtoff[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:c_compiles_type_struct_tm_has_member_tm_gmtoff[true]": " '#define HAVE_STRUCT_TM___TM_GMTOFF 1'",
-        "//third-party/meson/constraints:c_compiles_type_struct_tm_has_member_tm_gmtoff[false]": "",
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiles_building_for_UWP[true]": " '#define G_WINAPI_ONLY_APP'",
@@ -21367,12 +21534,6 @@ genrule(
             }),
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": "",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_XATTR_NOFOLLOW[true]": " '#define HAVE_XATTR_NOFOLLOW 1'",
-            "//third-party/meson/constraints:compiles_XATTR_NOFOLLOW[false]": "",
-        }),
-    }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": select({
@@ -22062,12 +22223,6 @@ genrule(
         "DEFAULT": select({
             "//third-party/meson/constraints:links_res_nclose[true]": " '#define HAVE_RES_NCLOSE 1'",
             "//third-party/meson/constraints:links_res_nclose[false]": "",
-        }),
-    }) + select({
-        "prelude//os/constraints:os[windows]": "",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:links_res_ndestroy[true]": " '#define HAVE_RES_NDESTROY 1'",
-            "//third-party/meson/constraints:links_res_ndestroy[false]": "",
         }),
     }) + select({
         "prelude//os/constraints:os[windows]": "",

@@ -145,6 +145,15 @@ git_fetch(
 
 # Values shared by several of the rules below, named so that each rule
 # says what it is rather than how it was configured.
+_headers = {
+    "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+    "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+    "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+    "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+    "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+    "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+    "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
+}
 _cflags = select({
     "prelude//cpu/constraints:cpu[x86_64]": [],
     "prelude//cpu/constraints:cpu[arm32]": [],
@@ -484,7 +493,7 @@ _cflags = select({
     "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
     "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
 })
-_headers = {
+_headers2 = {
     "trace.h": ":glvnd.git[src/util/trace.h]",
     "winsys_dispatch.h": ":glvnd.git[src/util/winsys_dispatch.h]",
     "uthash/src/utlist.h": ":glvnd.git[src/util/uthash/src/utlist.h]",
@@ -504,7 +513,7 @@ _headers = {
     "app_error_check.h": ":glvnd.git[src/util/app_error_check.h]",
     "cJSON.h": ":glvnd.git[src/util/cJSON.h]",
 }
-_headers2 = {
+_headers3 = {
     "GL/glx.h": ":glvnd.git[include/GL/glx.h]",
     "GL/glxext.h": ":glvnd.git[include/GL/glxext.h]",
     "GL/glext.h": ":glvnd.git[include/GL/glext.h]",
@@ -872,7 +881,7 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
     "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_aarch64_tsd.c]"],
     "DEFAULT": [],
 })
-_headers3 = {
+_headers4 = {
     "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
     "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
     "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
@@ -882,6 +891,55 @@ _headers3 = {
     "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
     "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
     "u_compiler.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_compiler.h]",
+}
+_headers5 = {
+    "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+    "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+    "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+    "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+    "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+    "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+    "g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
+}
+_headers6 = {
+    "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+    "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+    "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+    "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+    "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+    "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+    "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
+    "GL/glx.h": ":glvnd.git[include/GL/glx.h]",
+    "GL/glxext.h": ":glvnd.git[include/GL/glxext.h]",
+    "GL/glext.h": ":glvnd.git[include/GL/glext.h]",
+    "GL/glcorearb.h": ":glvnd.git[include/GL/glcorearb.h]",
+    "GL/gl.h": ":glvnd.git[include/GL/gl.h]",
+    "glvnd/libglxabi.h": ":glvnd.git[include/glvnd/libglxabi.h]",
+    "glvnd/GLdispatchABI.h": ":glvnd.git[include/glvnd/GLdispatchABI.h]",
+    "glvnd/libeglabi.h": ":glvnd.git[include/glvnd/libeglabi.h]",
+    "glvnd_list.h": ":glvnd.git[include/glvnd_list.h]",
+    "GLES2/gl2.h": ":glvnd.git[include/GLES2/gl2.h]",
+    "GLES2/gl2platform.h": ":glvnd.git[include/GLES2/gl2platform.h]",
+    "GLES2/gl2ext.h": ":glvnd.git[include/GLES2/gl2ext.h]",
+    "GLES/glext.h": ":glvnd.git[include/GLES/glext.h]",
+    "GLES/egl.h": ":glvnd.git[include/GLES/egl.h]",
+    "GLES/gl.h": ":glvnd.git[include/GLES/gl.h]",
+    "GLES/glplatform.h": ":glvnd.git[include/GLES/glplatform.h]",
+    "glheader.h": ":glvnd.git[include/glheader.h]",
+    "HGL/OpenGLKit.h": ":glvnd.git[include/HGL/OpenGLKit.h]",
+    "HGL/opengl/GLView.h": ":glvnd.git[include/HGL/opengl/GLView.h]",
+    "KHR/khrplatform.h": ":glvnd.git[include/KHR/khrplatform.h]",
+    "GLES3/gl3ext.h": ":glvnd.git[include/GLES3/gl3ext.h]",
+    "GLES3/gl31.h": ":glvnd.git[include/GLES3/gl31.h]",
+    "GLES3/gl3platform.h": ":glvnd.git[include/GLES3/gl3platform.h]",
+    "GLES3/gl32.h": ":glvnd.git[include/GLES3/gl32.h]",
+    "GLES3/gl3.h": ":glvnd.git[include/GLES3/gl3.h]",
+    "compiler.h": ":glvnd.git[include/compiler.h]",
+    "c99_compat.h": ":glvnd.git[include/c99_compat.h]",
+    "lkdhash.h": ":glvnd.git[include/lkdhash.h]",
+    "EGL/eglext.h": ":glvnd.git[include/EGL/eglext.h]",
+    "EGL/eglplatform.h": ":glvnd.git[include/EGL/eglplatform.h]",
+    "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
 }
 _srcs = [
     ":glvnd.git[tests/testglxmakecurrent.c]",
@@ -948,6 +1006,7 @@ cxx_library(
 cxx_library(
     name = "glvnd_pthread",
     srcs = [":glvnd.git[src/util/glvnd_pthread.c]"],
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = select({
@@ -961,7 +1020,8 @@ cxx_library(
 
 cxx_library(
     name = "glvnd-dep",
-    exported_headers = _headers,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":glvnd_pthread"],
     visibility = ["PUBLIC"],
@@ -970,7 +1030,8 @@ cxx_library(
 cxx_library(
     name = "app_error_check",
     srcs = [":glvnd.git[src/util/app_error_check.c]"],
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     preferred_linkage = "static",
@@ -980,7 +1041,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-2",
-    exported_headers = _headers,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":app_error_check"],
     visibility = ["PUBLIC"],
@@ -989,6 +1051,7 @@ cxx_library(
 cxx_library(
     name = "utils_misc",
     srcs = [":glvnd.git[src/util/utils_misc.c]"],
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     preferred_linkage = "static",
@@ -998,7 +1061,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-3",
-    exported_headers = _headers,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":utils_misc"],
     visibility = ["PUBLIC"],
@@ -1007,6 +1071,7 @@ cxx_library(
 cxx_library(
     name = "trace",
     srcs = [":glvnd.git[src/util/trace.c]"],
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     preferred_linkage = "static",
@@ -1016,7 +1081,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-4",
-    exported_headers = _headers,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":trace"],
     visibility = ["PUBLIC"],
@@ -1070,6 +1136,7 @@ cxx_library(
         "uthash.h": ":glvnd.git[src/util/uthash/src/uthash.h]",
         "uthash/src/uthash.h": ":glvnd.git[src/util/uthash/src/uthash.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     preferred_linkage = "static",
@@ -1105,6 +1172,7 @@ cxx_library(
         "app_error_check.h": ":glvnd.git[src/util/app_error_check.h]",
         "cJSON.h": ":glvnd.git[src/util/cJSON.h]",
     },
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":winsys_dispatch"],
     visibility = ["PUBLIC"],
@@ -1113,6 +1181,7 @@ cxx_library(
 cxx_library(
     name = "cJSON",
     srcs = [":glvnd.git[src/util/cJSON.c]"],
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     preferred_linkage = "static",
@@ -1122,7 +1191,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-6",
-    exported_headers = _headers,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":cJSON"],
     visibility = ["PUBLIC"],
@@ -1583,6 +1653,7 @@ cxx_library(
         "EGL/eglplatform.h": ":glvnd.git[include/EGL/eglplatform.h]",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -1984,6 +2055,7 @@ cxx_library(
         "app_error_check.h": ":glvnd.git[src/util/app_error_check.h]",
         "cJSON.h": ":glvnd.git[src/util/cJSON.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -2333,7 +2405,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-7",
-    exported_headers = _headers3,
+    exported_headers = _headers4,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":glapi_gl"],
     visibility = ["PUBLIC"],
@@ -2394,6 +2467,7 @@ cxx_library(
         "app_error_check.h": ":glvnd.git[src/util/app_error_check.h]",
         "cJSON.h": ":glvnd.git[src/util/cJSON.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -2743,7 +2817,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-8",
-    exported_headers = _headers3,
+    exported_headers = _headers4,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":glapi_opengl"],
     visibility = ["PUBLIC"],
@@ -2804,6 +2879,7 @@ cxx_library(
         "app_error_check.h": ":glvnd.git[src/util/app_error_check.h]",
         "cJSON.h": ":glvnd.git[src/util/cJSON.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -3153,7 +3229,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-9",
-    exported_headers = _headers3,
+    exported_headers = _headers4,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":glapi_glesv1"],
     visibility = ["PUBLIC"],
@@ -3214,6 +3291,7 @@ cxx_library(
         "app_error_check.h": ":glvnd.git[src/util/app_error_check.h]",
         "cJSON.h": ":glvnd.git[src/util/cJSON.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -3563,7 +3641,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-10",
-    exported_headers = _headers3,
+    exported_headers = _headers4,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":glapi_glesv2"],
     visibility = ["PUBLIC"],
@@ -3623,6 +3702,7 @@ cxx_library(
         "EGL/eglplatform.h": ":glvnd.git[include/EGL/eglplatform.h]",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     exported_linker_flags = ["-Wl,--version-script"] + select({
@@ -3680,6 +3760,7 @@ cxx_library(
         "vnd-glapi/mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
         "vnd-glapi/u_compiler.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_compiler.h]",
     },
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":GLdispatch"],
     visibility = ["PUBLIC"],
@@ -3759,6 +3840,7 @@ cxx_library(
         "GLdispatchPrivate.h": ":glvnd.git[src/GLdispatch/GLdispatchPrivate.h]",
         "GLdispatch.h": ":glvnd.git[src/GLdispatch/GLdispatch.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     preferred_linkage = "static",
@@ -3768,6 +3850,7 @@ cxx_library(
 cxx_library(
     name = "OpenGL",
     srcs = [],
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -3783,7 +3866,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-12",
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":OpenGL"],
     visibility = ["PUBLIC"],
@@ -3829,6 +3913,7 @@ cxx_library(
         "EGL/eglplatform.h": ":glvnd.git[include/EGL/eglplatform.h]",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = ["//third-party/system:X11"],
@@ -3845,7 +3930,8 @@ cxx_library(
         ":glvnd.git[src/EGL/libeglvendor.c]",
         ":glvnd.git[src/EGL/libeglerror.c]",
     ],
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -4211,7 +4297,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-13",
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":EGL"],
     visibility = ["PUBLIC"],
@@ -4266,6 +4353,7 @@ cxx_library(
         "EGL/eglplatform.h": ":glvnd.git[include/EGL/eglplatform.h]",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
+    headers = _headers5,
     header_namespace = "",
     compiler_flags = _cflags,
     exported_linker_flags = ["-Wl,-Bsymbolic"],
@@ -4331,6 +4419,7 @@ cxx_library(
         "libglxabipriv.h": ":glvnd.git[src/GLX/libglxabipriv.h]",
         "libglxcurrent.h": ":glvnd.git[src/GLX/libglxcurrent.h]",
     },
+    headers = _headers5,
     header_namespace = "",
     exported_deps = [":GLX"],
     visibility = ["PUBLIC"],
@@ -4342,7 +4431,8 @@ cxx_library(
         ":glvnd.git[src/GL/libgl.c]",
         ":g_libglglxwrapper.c",
     ],
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     exported_linker_flags = ["-Wl,-Bsymbolic"],
@@ -4364,7 +4454,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-15",
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":GL"],
     visibility = ["PUBLIC"],
@@ -4373,6 +4464,7 @@ cxx_library(
 cxx_library(
     name = "GLESv1_CM",
     srcs = [],
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -4388,7 +4480,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-16",
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":GLESv1_CM"],
     visibility = ["PUBLIC"],
@@ -4397,6 +4490,7 @@ cxx_library(
 cxx_library(
     name = "GLESv2",
     srcs = [],
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -4412,7 +4506,8 @@ cxx_library(
 # meson: glvnd-dep
 cxx_library(
     name = "glvnd-dep-17",
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":GLESv2"],
     visibility = ["PUBLIC"],
@@ -4483,6 +4578,7 @@ cxx_library(
         "vnd-glapi/mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
         "vnd-glapi/u_compiler.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_compiler.h]",
     },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
     preferred_linkage = "static",
@@ -4543,6 +4639,7 @@ cxx_library(
         "EGL/eglplatform.h": ":glvnd.git[include/EGL/eglplatform.h]",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
+    headers = _headers5,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -4558,7 +4655,8 @@ cxx_library(
 cxx_library(
     name = "EGL_dummy0",
     srcs = [":glvnd.git[tests/dummy/EGL_dummy.c]"],
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -4911,7 +5009,8 @@ cxx_library(
 cxx_library(
     name = "EGL_dummy1",
     srcs = [":glvnd.git[tests/dummy/EGL_dummy.c]"],
-    exported_headers = _headers2,
+    exported_headers = _headers3,
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -5264,7 +5363,7 @@ cxx_library(
 cxx_binary(
     name = "testgldispatch",
     srcs = [":glvnd.git[tests/testgldispatch.c]"],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5280,7 +5379,7 @@ cxx_binary(
 cxx_binary(
     name = "testgldispatchthread",
     srcs = [":glvnd.git[tests/testgldispatchthread.c]"],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5296,7 +5395,7 @@ cxx_binary(
         ":glvnd.git[tests/testglxcreatecontext.c]",
         ":glvnd.git[tests/test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5310,7 +5409,7 @@ cxx_binary(
 cxx_binary(
     name = "glxmakecurrent",
     srcs = _srcs,
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5326,7 +5425,7 @@ cxx_binary(
 cxx_binary(
     name = "glxmakecurrent_mt",
     srcs = _srcs,
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -5682,7 +5781,7 @@ cxx_binary(
 cxx_binary(
     name = "glxmakecurrent_oldlink",
     srcs = _srcs,
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5697,7 +5796,7 @@ cxx_binary(
 cxx_binary(
     name = "glxgetprocaddress",
     srcs = [":glvnd.git[tests/testglxgetprocaddress.c]"],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5711,7 +5810,7 @@ cxx_binary(
 cxx_binary(
     name = "testglxgetprocaddress_genentry",
     srcs = [":glvnd.git[tests/testglxgetprocaddress_genentry.c]"],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5724,7 +5823,7 @@ cxx_binary(
 cxx_binary(
     name = "glxgetclientstr",
     srcs = [":glvnd.git[tests/testglxgetclientstr.c]"],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5740,7 +5839,7 @@ cxx_binary(
 cxx_binary(
     name = "glxqueryversion",
     srcs = [":glvnd.git[tests/testglxqueryversion.c]"],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5757,7 +5856,7 @@ cxx_binary(
         ":glvnd.git[tests/testegldisplay.c]",
         ":glvnd.git[tests/egl_test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = _deps,
@@ -5770,7 +5869,7 @@ cxx_binary(
         ":glvnd.git[tests/testegldevice.c]",
         ":glvnd.git[tests/egl_test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = _deps,
@@ -5783,7 +5882,7 @@ cxx_binary(
         ":glvnd.git[tests/testeglgetprocaddress.c]",
         ":glvnd.git[tests/egl_test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = _deps,
@@ -5796,7 +5895,7 @@ cxx_binary(
         ":glvnd.git[tests/testeglmakecurrent.c]",
         ":glvnd.git[tests/egl_test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5817,7 +5916,7 @@ cxx_binary(
         ":glvnd.git[tests/testeglerror.c]",
         ":glvnd.git[tests/egl_test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [
@@ -5837,7 +5936,7 @@ cxx_binary(
         ":glvnd.git[tests/testegldebug.c]",
         ":glvnd.git[tests/egl_test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = _deps,
@@ -5850,7 +5949,7 @@ cxx_binary(
         ":glvnd.git[tests/testegldeviceadd.c]",
         ":glvnd.git[tests/egl_test_utils.c]",
     ],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = _deps,
@@ -5860,7 +5959,7 @@ cxx_binary(
 cxx_binary(
     name = "eglcurrentcleanup",
     srcs = [":glvnd.git[tests/testeglcurrentcleanup.c]"],
-    headers = _headers2,
+    headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags,
     deps = [

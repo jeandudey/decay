@@ -33,6 +33,31 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # to compile on a host whose <sys/syscall.h> predates it. Settle it off; glib
 # falls back to the plain `__NR_futex` path.
 "compiles:futex_time64(2) system call" = false
+# `res_ndestroy()` is glibc >= 2.34; older <resolv.h> declares only
+# `res_nclose()`. Another libc-vintage question with no constraint to tie it
+# to — settle it off and glib uses the `res_nclose()` fallback (universally
+# available).
+"links:res_ndestroy()" = false
+# glib reimplements `has_member` as a `cc.compiles()` whose prefix is
+# configuration-dependent, so decay cannot zig-probe it and the knob defaults
+# present. Settle the BSD/macOS/Solaris-only struct members off for a glibc
+# target; Linux's own (`st_*tim.tv_nsec`, `st_blksize`/`st_blocks`,
+# `statfs.f_bavail`, `statvfs.f_type`, `dirent.d_type`, `tm.tm_gmtoff`) keep
+# the default.
+'compiles:type "struct statfs" has member "f_fstypename"' = false
+'compiles:type "struct statvfs" has member "f_fstypename"' = false
+'compiles:type "struct statvfs" has member "f_basetype"' = false
+'compiles:type "struct stat" has member "st_mtimensec"' = false
+'compiles:type "struct stat" has member "st_atimensec"' = false
+'compiles:type "struct stat" has member "st_ctimensec"' = false
+'compiles:type "struct stat" has member "st_birthtime"' = false
+'compiles:type "struct stat" has member "st_birthtimensec"' = false
+'compiles:type "struct stat" has member "st_birthtim"' = false
+'compiles:type "struct stat" has member "st_birthtim.tv_nsec"' = false
+'compiles:type "struct tm" has member "__tm_gmtoff"' = false
+# `XATTR_NOFOLLOW` and 6-arg `getxattr`/`setxattr` are the macOS xattr API;
+# Linux's <sys/xattr.h> has neither. Defaults present → macOS call shapes.
+"compiles:XATTR_NOFOLLOW" = false
 
 [programs]
 python3 = "//third-party/tools:python3"
