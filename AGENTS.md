@@ -399,7 +399,7 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 - **glib build status.** `buck2 build` of `glib-2.0`, `gobject-2.0`,
   `gmodule-2.0` and `gthread-2.0` from `example/` succeeds (target platform
   `//platforms:linux`, gcc). `gio-2.0` compiles its own sources and the
-  gvdb copylib now, but does not yet link — two genrule blockers:
+  gvdb copylib now, but does not yet link — one genrule blocker left:
   - **`gdbus-codegen` runs without its `codegen` Python package.** gio's
     `custom_target`s invoke the `gdbus-codegen` script (a `configure_file`
     output) directly; its `from codegen import codegen_main` needs the
@@ -407,9 +407,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     `config.py` staged as a `codegen/` dir next to it. decay emits all the
     pieces as separate genrules but stages none of them into the consuming
     genrule. Needs a program to carry its support-file group.
-  - **`gconstructor_as_data.h` genrule keeps a literal `@INPUT0@`.** A
-    `custom_target` whose `command:` uses `@INPUT0@` (not `@INPUT@`) is not
-    substituted, so `python3 … @INPUT0@` fails to open the file.
 
 - **`run_command()` is refused outright.** Some projects call it for
   harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`
