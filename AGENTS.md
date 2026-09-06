@@ -5,11 +5,10 @@
 without hand-porting its `meson.build` files or losing the configuration
 choices they expose.
 
-## Notes
+## Rules
 
-Binary files should use git-lfs and if build fails it is because the
-files have not been materialized, so on a fresh clone or worktree
-these need to be checked out.
+- Always materialize git lfs (`git lfs pull`) when working, no skip before doingo
+  anything, otherwise build error.
 
 ## How it works
 
@@ -170,9 +169,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be
   unsatisfiable or a custom generated one if we have the data to back it up.
-
-- **Fix glib_debug.** See the example/decay.toml file for context, it should work
-  to pin this option.
 
 - **has_function.** For common C standard library functions on most operating
   systems we could have this built-in in decay (altough with an option
