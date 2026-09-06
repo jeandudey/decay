@@ -136,10 +136,14 @@ impl<'a> ConfigOracle<'a> {
                     .map(move |(_, abi)| vec![abi.to_owned(), cpu.buck2_value().to_owned()])
             })
             .collect();
-        if rows.is_empty() {
-            return None;
-        }
 
+        // glibc's ABI list is a *complete* export list, so a symbol absent
+        // from it (and from the musl link probe) genuinely does not exist on
+        // `linux` — an empty `rows` here is "settled not-found on linux", not
+        // "unknown". `resolve_probe` reads it that way: false on `linux`, still
+        // an open knob everywhere the database cannot speak for (`_aligned_malloc`
+        // on Windows, say). Without a `linux` system to anchor it there is
+        // nothing to settle, so fall back to the open knob.
         self.config
             .systems
             .contains_key("linux")

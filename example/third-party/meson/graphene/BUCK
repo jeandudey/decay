@@ -261,74 +261,29 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMALIGN 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": "",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMALIGN 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMALIGN 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
-                "//third-party/meson/constraints:has_function_memalign[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
             "//third-party/meson/constraints:has_function_memalign[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": "",
-                    "prelude//cpu/constraints:cpu[arm64]": "",
-                    "prelude//cpu/constraints:cpu[riscv64]": "",
-                    "prelude//cpu/constraints:cpu[x86_32]": "",
-                    "prelude//cpu/constraints:cpu[x86_64]": "",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_aligned_malloc[true]": " '#define HAVE__ALIGNED_MALLOC 1'",
-                        "//third-party/meson/constraints:has_function_aligned_malloc[false]": "",
-                    }),
-                }),
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": "",
-                    "prelude//cpu/constraints:cpu[arm64]": "",
-                    "prelude//cpu/constraints:cpu[riscv64]": "",
-                    "prelude//cpu/constraints:cpu[x86_32]": "",
-                    "prelude//cpu/constraints:cpu[x86_64]": "",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_aligned_malloc[true]": " '#define HAVE__ALIGNED_MALLOC 1'",
-                        "//third-party/meson/constraints:has_function_aligned_malloc[false]": "",
-                    }),
-                }),
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "//third-party/meson/constraints:has_function_aligned_malloc[true]": " '#define HAVE__ALIGNED_MALLOC 1'",
-                    "//third-party/meson/constraints:has_function_aligned_malloc[false]": "",
-                }),
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memalign[true]": "",
             "//third-party/meson/constraints:has_function_memalign[false]": select({
@@ -337,52 +292,7 @@ genrule(
             }),
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": "",
-                    "prelude//cpu/constraints:cpu[arm64]": "",
-                    "prelude//cpu/constraints:cpu[riscv64]": "",
-                    "prelude//cpu/constraints:cpu[x86_32]": "",
-                    "prelude//cpu/constraints:cpu[x86_64]": "",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_aligned_malloc[true]": "",
-                        "//third-party/meson/constraints:has_function_aligned_malloc[false]": select({
-                            "//third-party/meson/constraints:has_function_aligned_alloc[true]": " '#define HAVE_ALIGNED_ALLOC 1'",
-                            "//third-party/meson/constraints:has_function_aligned_alloc[false]": "",
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": "",
-                    "prelude//cpu/constraints:cpu[arm64]": "",
-                    "prelude//cpu/constraints:cpu[riscv64]": "",
-                    "prelude//cpu/constraints:cpu[x86_32]": "",
-                    "prelude//cpu/constraints:cpu[x86_64]": "",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_aligned_malloc[true]": "",
-                        "//third-party/meson/constraints:has_function_aligned_malloc[false]": select({
-                            "//third-party/meson/constraints:has_function_aligned_alloc[true]": " '#define HAVE_ALIGNED_ALLOC 1'",
-                            "//third-party/meson/constraints:has_function_aligned_alloc[false]": "",
-                        }),
-                    }),
-                }),
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "//third-party/meson/constraints:has_function_aligned_malloc[true]": "",
-                    "//third-party/meson/constraints:has_function_aligned_malloc[false]": select({
-                        "//third-party/meson/constraints:has_function_aligned_alloc[true]": " '#define HAVE_ALIGNED_ALLOC 1'",
-                        "//third-party/meson/constraints:has_function_aligned_alloc[false]": "",
-                    }),
-                }),
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": "",
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memalign[true]": "",
@@ -395,61 +305,7 @@ genrule(
             }),
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": "",
-                    "prelude//cpu/constraints:cpu[arm64]": "",
-                    "prelude//cpu/constraints:cpu[riscv64]": "",
-                    "prelude//cpu/constraints:cpu[x86_32]": "",
-                    "prelude//cpu/constraints:cpu[x86_64]": "",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_aligned_malloc[true]": "",
-                        "//third-party/meson/constraints:has_function_aligned_malloc[false]": select({
-                            "//third-party/meson/constraints:has_function_aligned_alloc[true]": "",
-                            "//third-party/meson/constraints:has_function_aligned_alloc[false]": select({
-                                "//third-party/meson/constraints:has_function_posix_memalign[true]": " '#define HAVE_POSIX_MEMALIGN 1'",
-                                "//third-party/meson/constraints:has_function_posix_memalign[false]": "",
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": "",
-                    "prelude//cpu/constraints:cpu[arm64]": "",
-                    "prelude//cpu/constraints:cpu[riscv64]": "",
-                    "prelude//cpu/constraints:cpu[x86_32]": "",
-                    "prelude//cpu/constraints:cpu[x86_64]": "",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_aligned_malloc[true]": "",
-                        "//third-party/meson/constraints:has_function_aligned_malloc[false]": select({
-                            "//third-party/meson/constraints:has_function_aligned_alloc[true]": "",
-                            "//third-party/meson/constraints:has_function_aligned_alloc[false]": select({
-                                "//third-party/meson/constraints:has_function_posix_memalign[true]": " '#define HAVE_POSIX_MEMALIGN 1'",
-                                "//third-party/meson/constraints:has_function_posix_memalign[false]": "",
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": "",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                    "//third-party/meson/constraints:has_function_aligned_malloc[true]": "",
-                    "//third-party/meson/constraints:has_function_aligned_malloc[false]": select({
-                        "//third-party/meson/constraints:has_function_aligned_alloc[true]": "",
-                        "//third-party/meson/constraints:has_function_aligned_alloc[false]": select({
-                            "//third-party/meson/constraints:has_function_posix_memalign[true]": " '#define HAVE_POSIX_MEMALIGN 1'",
-                            "//third-party/meson/constraints:has_function_posix_memalign[false]": "",
-                        }),
-                    }),
-                }),
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": "",
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memalign[true]": "",
@@ -467,31 +323,22 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_sincosf[true]": " '#define HAVE_SINCOSF'",
-                "//third-party/meson/constraints:has_function_sincosf[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SINCOSF'",
-                    "DEFAULT": " '/* #undef HAVE_SINCOSF */'",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SINCOSF'",
+                "DEFAULT": " '/* #undef HAVE_SINCOSF */'",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_sincosf[true]": " '#define HAVE_SINCOSF'",
-                "//third-party/meson/constraints:has_function_sincosf[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SINCOSF'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SINCOSF'",
-                    "DEFAULT": " '/* #undef HAVE_SINCOSF */'",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SINCOSF'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SINCOSF'",
+                "DEFAULT": " '/* #undef HAVE_SINCOSF */'",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_sincosf[true]": " '#define HAVE_SINCOSF'",
-                "//third-party/meson/constraints:has_function_sincosf[false]": " '/* #undef HAVE_SINCOSF */'",
-            }),
+            "DEFAULT": " '/* #undef HAVE_SINCOSF */'",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_sincosf[true]": " '#define HAVE_SINCOSF'",
@@ -500,20 +347,14 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_isinff[true]": " '#define HAVE_ISINFF'",
-                "//third-party/meson/constraints:has_function_isinff[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ISINFF'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ISINFF'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ISINFF'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ISINFF'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ISINFF'",
-                    "DEFAULT": " '/* #undef HAVE_ISINFF */'",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ISINFF'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ISINFF'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ISINFF'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ISINFF'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ISINFF'",
+                "DEFAULT": " '/* #undef HAVE_ISINFF */'",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_isinff[true]": " '#define HAVE_ISINFF'",
-                "//third-party/meson/constraints:has_function_isinff[false]": " '/* #undef HAVE_ISINFF */'",
-            }),
+            "DEFAULT": " '/* #undef HAVE_ISINFF */'",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_isinff[true]": " '#define HAVE_ISINFF'",
@@ -522,20 +363,14 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_isnanf[true]": " '#define HAVE_ISNANF'",
-                "//third-party/meson/constraints:has_function_isnanf[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ISNANF'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ISNANF'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ISNANF'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ISNANF'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ISNANF'",
-                    "DEFAULT": " '/* #undef HAVE_ISNANF */'",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ISNANF'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ISNANF'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ISNANF'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ISNANF'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ISNANF'",
+                "DEFAULT": " '/* #undef HAVE_ISNANF */'",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_isnanf[true]": " '#define HAVE_ISNANF'",
-                "//third-party/meson/constraints:has_function_isnanf[false]": " '/* #undef HAVE_ISNANF */'",
-            }),
+            "DEFAULT": " '/* #undef HAVE_ISNANF */'",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_isnanf[true]": " '#define HAVE_ISNANF'",

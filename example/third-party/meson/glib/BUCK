@@ -4788,12 +4788,15 @@ cxx_library(
 genrule(
     name = "glibconfig.h",
     out = "glibconfig.h",
-    cmd = "sed" + " -e ''" + " '-es|@LT_CURRENT_MINUS_AGE@|0|g' '-es|@gint16@|short|g' '-es|@gint16_modifier@|h|g' '-es|@gint16_format@|hi|g' '-es|@guint16_format@|hu|g' '-es|@gint32@|int|g' '-es|@gint32_modifier@||g' '-es|@gint32_format@|i|g' '-es|@guint32_format@|u|g' '-es|@gintbits@|32|g' '-es|@GLIB_MAJOR_VERSION@|2|g' '-es|@GLIB_MINOR_VERSION@|88|g' '-es|@GLIB_MICRO_VERSION@|3|g' '-es|@GLIB_VERSION@|2.88.3|g' '-es|@g_pollin@|1|g' '-es|@g_pollout@|4|g' '-es|@g_pollpri@|2|g' '-es|@g_pollerr@|8|g' '-es|@g_pollhup@|16|g' '-es|@g_pollnval@|32|g' '-es|@g_af_unix@|1|g' '-es|@g_af_inet@|2|g' '-es|@g_af_inet6@|30|g' '-es|@g_msg_oob@|1|g' '-es|@g_msg_peek@|2|g' '-es|@g_msg_dontroute@|4|g' '-es|@FFI_STATIC_BUILD@||g' '-es|@GIO_STATIC_COMPILATION@||g' '-es|@GI_STATIC_COMPILATION@||g' '-es|@GLIB_STATIC_COMPILATION@||g' '-es|@GMODULE_STATIC_COMPILATION@||g' '-es|@GOBJECT_STATIC_COMPILATION@||g' '-es|@G_INTL_STATIC_COMPILATION@||g'" + select({
-        "prelude//os/constraints:os[windows]": " '-es|@glib_os@|#define G_OS_WIN32\n#define G_PLATFORM_WIN32|g' '-es|@g_pid_type@|void*|g' '-es|@g_pid_format@|p|g' '-es|@g_dir_separator@|\\\\|g' '-es|@g_searchpath_separator@|;|g' '-es|@g_module_suffix@|dll|g'",
-        "DEFAULT": " '-es|@glib_os@|#define G_OS_UNIX|g' '-es|@g_pid_type@|int|g' '-es|@g_pid_format@|i|g' '-es|@g_pollfd_format@|%d|g' '-es|@g_dir_separator@|/|g' '-es|@g_searchpath_separator@|:|g' '-es|@g_module_suffix@|so|g'",
+    cmd = "sed" + " -e ''" + " '-es|@LT_CURRENT_MINUS_AGE@|0|g' '-es|@gint16@|short|g' '-es|@gint16_modifier@|\"h\"|g' '-es|@gint16_format@|\"hi\"|g' '-es|@guint16_format@|\"hu\"|g' '-es|@gint32@|int|g' '-es|@gint32_modifier@|\"\"|g' '-es|@gint32_format@|\"i\"|g' '-es|@guint32_format@|\"u\"|g' '-es|@gintbits@|32|g' '-es|@GLIB_MAJOR_VERSION@|2|g' '-es|@GLIB_MINOR_VERSION@|88|g' '-es|@GLIB_MICRO_VERSION@|3|g' '-es|@GLIB_VERSION@|2.88.3|g' '-es|@g_pollin@|1|g' '-es|@g_pollout@|4|g' '-es|@g_pollpri@|2|g' '-es|@g_pollerr@|8|g' '-es|@g_pollhup@|16|g' '-es|@g_pollnval@|32|g' '-es|@g_af_unix@|1|g' '-es|@g_af_inet@|2|g' '-es|@g_af_inet6@|30|g' '-es|@g_msg_oob@|1|g' '-es|@g_msg_peek@|2|g' '-es|@g_msg_dontroute@|4|g' '-es|@FFI_STATIC_BUILD@||g' '-es|@GIO_STATIC_COMPILATION@||g' '-es|@GI_STATIC_COMPILATION@||g' '-es|@GLIB_STATIC_COMPILATION@||g' '-es|@GMODULE_STATIC_COMPILATION@||g' '-es|@GOBJECT_STATIC_COMPILATION@||g' '-es|@G_INTL_STATIC_COMPILATION@||g'" + select({
+        "prelude//os/constraints:os[windows]": " '-es|@glib_os@|#define G_OS_WIN32\n#define G_PLATFORM_WIN32|g' '-es|@g_pid_type@|void*|g' '-es|@g_pid_format@|\"p\"|g' '-es|@g_dir_separator@|\\\\|g' '-es|@g_searchpath_separator@|;|g' '-es|@g_module_suffix@|dll|g'",
+        "DEFAULT": " '-es|@glib_os@|#define G_OS_UNIX|g' '-es|@g_pid_type@|int|g' '-es|@g_pid_format@|\"i\"|g' '-es|@g_pollfd_format@|\"%d\"|g' '-es|@g_dir_separator@|/|g' '-es|@g_searchpath_separator@|:|g' '-es|@g_module_suffix@|so|g'",
     }) + select({
-        "//third-party/meson/constraints:has_function_free_sized[true]": " '-es|@G_HAVE_FREE_SIZED@|1|g'",
-        "//third-party/meson/constraints:has_function_free_sized[false]": " '-es|@G_HAVE_FREE_SIZED@||g'",
+        "prelude//os/constraints:os[linux]": " '-es|@G_HAVE_FREE_SIZED@||g'",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_free_sized[true]": " '-es|@G_HAVE_FREE_SIZED@|1|g'",
+            "//third-party/meson/constraints:has_function_free_sized[false]": " '-es|@G_HAVE_FREE_SIZED@||g'",
+        }),
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[msvc]": " '-es|@GLIB_USING_SYSTEM_PRINTF@||g'",
@@ -4821,99 +4824,99 @@ genrule(
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "prelude//abi/constraints:abi[musl]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "DEFAULT": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "prelude//abi/constraints:abi[gnu]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "prelude//abi/constraints:abi[musl]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "DEFAULT": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
         }),
         "prelude//cpu/constraints:cpu[arm64]": select({
-            "prelude//os/constraints:os[linux]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+            "prelude//os/constraints:os[linux]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             "DEFAULT": select({
                 "//third-party/meson/constraints:compiles_long_long[true]": select({
-                    "//third-party/meson/constraints:compiles_int64_t_is_long[true]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                    "//third-party/meson/constraints:compiles_int64_t_is_long[true]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
                     "//third-party/meson/constraints:compiles_int64_t_is_long[false]": select({
-                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
         }),
         "prelude//cpu/constraints:cpu[riscv64]": select({
             "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "prelude//abi/constraints:abi[musl]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "DEFAULT": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "prelude//abi/constraints:abi[gnu]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "prelude//abi/constraints:abi[musl]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "DEFAULT": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
         }),
         "prelude//cpu/constraints:cpu[x86_32]": select({
-            "prelude//os/constraints:os[linux]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "prelude//abi/constraints:abi[musl]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "DEFAULT": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+            }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_long_long[true]": select({
-                    "//third-party/meson/constraints:compiles_int64_t_is_long[true]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
-                    "//third-party/meson/constraints:compiles_int64_t_is_long[false]": select({
-                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
-                    }),
-                }),
-                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
         }),
         "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "prelude//abi/constraints:abi[musl]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "DEFAULT": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
-            }),
+            "prelude//os/constraints:os[linux]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "//third-party/meson/constraints:compiles_long_long[true]": select({
+                    "//third-party/meson/constraints:compiles_int64_t_is_long[true]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                    "//third-party/meson/constraints:compiles_int64_t_is_long[false]": select({
+                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                        "//third-party/meson/constraints:compiles_int64_t_is_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                    }),
+                }),
+                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[linux]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+            "prelude//os/constraints:os[linux]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|ll|g' '-es|@gint64_format@|lli|g' '-es|@guint64_format@|llu|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|l|g' '-es|@gint64_format@|li|g' '-es|@guint64_format@|lu|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
+                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
             }),
         }),
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "prelude//cpu/constraints:cpu[x86_64]": "",
             "prelude//cpu/constraints:cpu[arm64]": "",
-            "DEFAULT": " '-es|@g_pollfd_format@|%#x|g'",
+            "DEFAULT": " '-es|@g_pollfd_format@|\"%#x\"|g'",
         }),
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[windows]": select({
-            "prelude//cpu/constraints:cpu[x86_64]": " '-es|@g_pollfd_format@|%#llx|g'",
-            "prelude//cpu/constraints:cpu[arm64]": " '-es|@g_pollfd_format@|%#llx|g'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '-es|@g_pollfd_format@|\"%#llx\"|g'",
+            "prelude//cpu/constraints:cpu[arm64]": " '-es|@g_pollfd_format@|\"%#llx\"|g'",
             "DEFAULT": "",
         }),
         "DEFAULT": "",
     }) + select({
-        "prelude//cpu/constraints:cpu[arm64]": " '-es|@glib_size_type_define@|long|g' '-es|@gsize_modifier@|l|g' '-es|@gssize_modifier@|l|g' '-es|@gsize_format@|lu|g' '-es|@gssize_format@|li|g' '-es|@glib_msize_type@|LONG|g'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|@glib_size_type_define@|long|g' '-es|@gsize_modifier@|l|g' '-es|@gssize_modifier@|l|g' '-es|@gsize_format@|lu|g' '-es|@gssize_format@|li|g' '-es|@glib_msize_type@|LONG|g'",
-        "DEFAULT": " '-es|@glib_size_type_define@|int|g' '-es|@gsize_modifier@||g' '-es|@gssize_modifier@||g' '-es|@gsize_format@|u|g' '-es|@gssize_format@|i|g' '-es|@glib_msize_type@|INT|g'",
+        "prelude//cpu/constraints:cpu[arm64]": " '-es|@glib_size_type_define@|long|g' '-es|@gsize_modifier@|\"l\"|g' '-es|@gssize_modifier@|\"l\"|g' '-es|@gsize_format@|\"lu\"|g' '-es|@gssize_format@|\"li\"|g' '-es|@glib_msize_type@|LONG|g'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|@glib_size_type_define@|long|g' '-es|@gsize_modifier@|\"l\"|g' '-es|@gssize_modifier@|\"l\"|g' '-es|@gsize_format@|\"lu\"|g' '-es|@gssize_format@|\"li\"|g' '-es|@glib_msize_type@|LONG|g'",
+        "DEFAULT": " '-es|@glib_size_type_define@|int|g' '-es|@gsize_modifier@|\"\"|g' '-es|@gssize_modifier@|\"\"|g' '-es|@gsize_format@|\"u\"|g' '-es|@gssize_format@|\"i\"|g' '-es|@glib_msize_type@|INT|g'",
     }) + select({
-        "prelude//cpu/constraints:cpu[arm64]": " '-es|@glib_intptr_type_define@|long|g' '-es|@gintptr_modifier@|l|g' '-es|@gintptr_format@|li|g' '-es|@guintptr_format@|lu|g' '-es|@glib_gpi_cast@|(glong)|g' '-es|@glib_gpui_cast@|(gulong)|g'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|@glib_intptr_type_define@|long|g' '-es|@gintptr_modifier@|l|g' '-es|@gintptr_format@|li|g' '-es|@guintptr_format@|lu|g' '-es|@glib_gpi_cast@|(glong)|g' '-es|@glib_gpui_cast@|(gulong)|g'",
-        "DEFAULT": " '-es|@glib_intptr_type_define@|int|g' '-es|@gintptr_modifier@||g' '-es|@gintptr_format@|i|g' '-es|@guintptr_format@|u|g' '-es|@glib_gpi_cast@|(gint)|g' '-es|@glib_gpui_cast@|(guint)|g'",
+        "prelude//cpu/constraints:cpu[arm64]": " '-es|@glib_intptr_type_define@|long|g' '-es|@gintptr_modifier@|\"l\"|g' '-es|@gintptr_format@|\"li\"|g' '-es|@guintptr_format@|\"lu\"|g' '-es|@glib_gpi_cast@|(glong)|g' '-es|@glib_gpui_cast@|(gulong)|g'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|@glib_intptr_type_define@|long|g' '-es|@gintptr_modifier@|\"l\"|g' '-es|@gintptr_format@|\"li\"|g' '-es|@guintptr_format@|\"lu\"|g' '-es|@glib_gpi_cast@|(glong)|g' '-es|@glib_gpui_cast@|(gulong)|g'",
+        "DEFAULT": " '-es|@glib_intptr_type_define@|int|g' '-es|@gintptr_modifier@|\"\"|g' '-es|@gintptr_format@|\"i\"|g' '-es|@guintptr_format@|\"u\"|g' '-es|@glib_gpi_cast@|(gint)|g' '-es|@glib_gpui_cast@|(guint)|g'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '-es|@glongbits@|32|g' '-es|@gsizebits@|32|g' '-es|@glib_void_p@|4|g' '-es|@glib_long@|4|g' '-es|@glib_size_t@|4|g'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '-es|@glongbits@|32|g' '-es|@gsizebits@|32|g' '-es|@glib_void_p@|4|g' '-es|@glib_long@|4|g' '-es|@glib_size_t@|4|g'",
+        "prelude//cpu/constraints:cpu[x86_32]": " '-es|@glongbits@|32|g' '-es|@gsizebits@|32|g' '-es|@glib_void_p@|4|g' '-es|@glib_long@|4|g' '-es|@glib_size_t@|4|g'",
         "DEFAULT": " '-es|@glongbits@|64|g' '-es|@gsizebits@|64|g' '-es|@glib_void_p@|8|g' '-es|@glib_long@|8|g' '-es|@glib_size_t@|8|g'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '-es|@gssizebits@|32|g' '-es|@glib_ssize_t@|4|g'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '-es|@gssizebits@|32|g' '-es|@glib_ssize_t@|4|g'",
+        "prelude//cpu/constraints:cpu[x86_32]": " '-es|@gssizebits@|32|g' '-es|@glib_ssize_t@|4|g'",
         "DEFAULT": " '-es|@gssizebits@|64|g' '-es|@glib_ssize_t@|8|g'",
     }) + select({
         "//third-party/meson/constraints:endian[little]": " '-es|@g_byte_order@|G_LITTLE_ENDIAN|g' '-es|@g_bs_native@|LE|g' '-es|@g_bs_alien@|BE|g'",
@@ -4960,8 +4963,11 @@ genrule(
         "prelude//os/constraints:os[windows]": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_WIN32\n#define G_PLATFORM_WIN32|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type void*|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"p\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator \\\\|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator ;|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix dll|'",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_os\\>.*|#define glib_os #define G_OS_UNIX|' '-es|^#mesondefine[[:space:]]\\+g_pid_type\\>.*|#define g_pid_type int|' '-es|^#mesondefine[[:space:]]\\+g_pid_format\\>.*|#define g_pid_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+g_pollfd_format\\>.*|#define g_pollfd_format \"%d\"|' '-es|^#mesondefine[[:space:]]\\+g_dir_separator\\>.*|#define g_dir_separator /|' '-es|^#mesondefine[[:space:]]\\+g_searchpath_separator\\>.*|#define g_searchpath_separator :|' '-es|^#mesondefine[[:space:]]\\+g_module_suffix\\>.*|#define g_module_suffix so|'",
     }) + select({
-        "//third-party/meson/constraints:has_function_free_sized[true]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_FREE_SIZED\\>.*|#define G_HAVE_FREE_SIZED|'",
-        "//third-party/meson/constraints:has_function_free_sized[false]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_FREE_SIZED\\>.*|/* #undef G_HAVE_FREE_SIZED */|'",
+        "prelude//os/constraints:os[linux]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_FREE_SIZED\\>.*|/* #undef G_HAVE_FREE_SIZED */|'",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_free_sized[true]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_FREE_SIZED\\>.*|#define G_HAVE_FREE_SIZED|'",
+            "//third-party/meson/constraints:has_function_free_sized[false]": " '-es|^#mesondefine[[:space:]]\\+G_HAVE_FREE_SIZED\\>.*|/* #undef G_HAVE_FREE_SIZED */|'",
+        }),
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[msvc]": " '-es|^#mesondefine[[:space:]]\\+GLIB_USING_SYSTEM_PRINTF\\>.*|/* #undef GLIB_USING_SYSTEM_PRINTF */|'",
@@ -5023,6 +5029,17 @@ genrule(
             }),
         }),
         "prelude//cpu/constraints:cpu[x86_32]": select({
+            "prelude//os/constraints:os[linux]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
+                "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
+                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
+            }),
+            "DEFAULT": select({
+                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
+                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
+            }),
+        }),
+        "prelude//cpu/constraints:cpu[x86_64]": select({
             "prelude//os/constraints:os[linux]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
             "DEFAULT": select({
                 "//third-party/meson/constraints:compiles_long_long[true]": select({
@@ -5032,17 +5049,6 @@ genrule(
                         "//third-party/meson/constraints:compiles_int64_t_is_long_long[false]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_long_long[false]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
-            }),
-        }),
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
-                "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
-                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_long_long[true]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
                 "//third-party/meson/constraints:compiles_long_long[false]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
             }),
         }),
@@ -5069,19 +5075,19 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+glib_size_type_define\\>.*|#define glib_size_type_define long|' '-es|^#mesondefine[[:space:]]\\+gsize_modifier\\>.*|#define gsize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gssize_modifier\\>.*|#define gssize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gsize_format\\>.*|#define gsize_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gssize_format\\>.*|#define gssize_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+glib_msize_type\\>.*|#define glib_msize_type LONG|'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+glib_size_type_define\\>.*|#define glib_size_type_define long|' '-es|^#mesondefine[[:space:]]\\+gsize_modifier\\>.*|#define gsize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gssize_modifier\\>.*|#define gssize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gsize_format\\>.*|#define gsize_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gssize_format\\>.*|#define gssize_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+glib_msize_type\\>.*|#define glib_msize_type LONG|'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+glib_size_type_define\\>.*|#define glib_size_type_define long|' '-es|^#mesondefine[[:space:]]\\+gsize_modifier\\>.*|#define gsize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gssize_modifier\\>.*|#define gssize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gsize_format\\>.*|#define gsize_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gssize_format\\>.*|#define gssize_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+glib_msize_type\\>.*|#define glib_msize_type LONG|'",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_size_type_define\\>.*|#define glib_size_type_define int|' '-es|^#mesondefine[[:space:]]\\+gsize_modifier\\>.*|#define gsize_modifier \"\"|' '-es|^#mesondefine[[:space:]]\\+gssize_modifier\\>.*|#define gssize_modifier \"\"|' '-es|^#mesondefine[[:space:]]\\+gsize_format\\>.*|#define gsize_format \"u\"|' '-es|^#mesondefine[[:space:]]\\+gssize_format\\>.*|#define gssize_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+glib_msize_type\\>.*|#define glib_msize_type INT|'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+glib_intptr_type_define\\>.*|#define glib_intptr_type_define long|' '-es|^#mesondefine[[:space:]]\\+gintptr_modifier\\>.*|#define gintptr_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gintptr_format\\>.*|#define gintptr_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guintptr_format\\>.*|#define guintptr_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+glib_gpi_cast\\>.*|#define glib_gpi_cast (glong)|' '-es|^#mesondefine[[:space:]]\\+glib_gpui_cast\\>.*|#define glib_gpui_cast (gulong)|'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+glib_intptr_type_define\\>.*|#define glib_intptr_type_define long|' '-es|^#mesondefine[[:space:]]\\+gintptr_modifier\\>.*|#define gintptr_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gintptr_format\\>.*|#define gintptr_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guintptr_format\\>.*|#define guintptr_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+glib_gpi_cast\\>.*|#define glib_gpi_cast (glong)|' '-es|^#mesondefine[[:space:]]\\+glib_gpui_cast\\>.*|#define glib_gpui_cast (gulong)|'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+glib_intptr_type_define\\>.*|#define glib_intptr_type_define long|' '-es|^#mesondefine[[:space:]]\\+gintptr_modifier\\>.*|#define gintptr_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gintptr_format\\>.*|#define gintptr_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guintptr_format\\>.*|#define guintptr_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+glib_gpi_cast\\>.*|#define glib_gpi_cast (glong)|' '-es|^#mesondefine[[:space:]]\\+glib_gpui_cast\\>.*|#define glib_gpui_cast (gulong)|'",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_intptr_type_define\\>.*|#define glib_intptr_type_define int|' '-es|^#mesondefine[[:space:]]\\+gintptr_modifier\\>.*|#define gintptr_modifier \"\"|' '-es|^#mesondefine[[:space:]]\\+gintptr_format\\>.*|#define gintptr_format \"i\"|' '-es|^#mesondefine[[:space:]]\\+guintptr_format\\>.*|#define guintptr_format \"u\"|' '-es|^#mesondefine[[:space:]]\\+glib_gpi_cast\\>.*|#define glib_gpi_cast (gint)|' '-es|^#mesondefine[[:space:]]\\+glib_gpui_cast\\>.*|#define glib_gpui_cast (guint)|'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+glongbits\\>.*|#define glongbits 32|' '-es|^#mesondefine[[:space:]]\\+gsizebits\\>.*|#define gsizebits 32|' '-es|^#mesondefine[[:space:]]\\+glib_void_p\\>.*|#define glib_void_p 4|' '-es|^#mesondefine[[:space:]]\\+glib_long\\>.*|#define glib_long 4|' '-es|^#mesondefine[[:space:]]\\+glib_size_t\\>.*|#define glib_size_t 4|'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+glongbits\\>.*|#define glongbits 32|' '-es|^#mesondefine[[:space:]]\\+gsizebits\\>.*|#define gsizebits 32|' '-es|^#mesondefine[[:space:]]\\+glib_void_p\\>.*|#define glib_void_p 4|' '-es|^#mesondefine[[:space:]]\\+glib_long\\>.*|#define glib_long 4|' '-es|^#mesondefine[[:space:]]\\+glib_size_t\\>.*|#define glib_size_t 4|'",
+        "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+glongbits\\>.*|#define glongbits 32|' '-es|^#mesondefine[[:space:]]\\+gsizebits\\>.*|#define gsizebits 32|' '-es|^#mesondefine[[:space:]]\\+glib_void_p\\>.*|#define glib_void_p 4|' '-es|^#mesondefine[[:space:]]\\+glib_long\\>.*|#define glib_long 4|' '-es|^#mesondefine[[:space:]]\\+glib_size_t\\>.*|#define glib_size_t 4|'",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glongbits\\>.*|#define glongbits 64|' '-es|^#mesondefine[[:space:]]\\+gsizebits\\>.*|#define gsizebits 64|' '-es|^#mesondefine[[:space:]]\\+glib_void_p\\>.*|#define glib_void_p 8|' '-es|^#mesondefine[[:space:]]\\+glib_long\\>.*|#define glib_long 8|' '-es|^#mesondefine[[:space:]]\\+glib_size_t\\>.*|#define glib_size_t 8|'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+gssizebits\\>.*|#define gssizebits 32|' '-es|^#mesondefine[[:space:]]\\+glib_ssize_t\\>.*|#define glib_ssize_t 4|'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+gssizebits\\>.*|#define gssizebits 32|' '-es|^#mesondefine[[:space:]]\\+glib_ssize_t\\>.*|#define glib_ssize_t 4|'",
+        "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+gssizebits\\>.*|#define gssizebits 32|' '-es|^#mesondefine[[:space:]]\\+glib_ssize_t\\>.*|#define glib_ssize_t 4|'",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+gssizebits\\>.*|#define gssizebits 64|' '-es|^#mesondefine[[:space:]]\\+glib_ssize_t\\>.*|#define glib_ssize_t 8|'",
     }) + select({
         "//third-party/meson/constraints:endian[little]": " '-es|^#mesondefine[[:space:]]\\+g_byte_order\\>.*|#define g_byte_order G_LITTLE_ENDIAN|' '-es|^#mesondefine[[:space:]]\\+g_bs_native\\>.*|#define g_bs_native LE|' '-es|^#mesondefine[[:space:]]\\+g_bs_alien\\>.*|#define g_bs_alien BE|'",
@@ -9243,19 +9249,13 @@ genrule(
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
                 "prelude//abi/constraints:abi[gnu]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
                 "prelude//abi/constraints:abi[musl]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
-                    "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
-                }),
+                "DEFAULT": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
             }),
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
                 "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
                     "prelude//abi/constraints:abi[gnu]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
                     "prelude//abi/constraints:abi[musl]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
-                        "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
-                    }),
+                    "DEFAULT": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
                 }),
                 "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
             }),
@@ -9330,19 +9330,13 @@ genrule(
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
                 "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
                 "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
-                    "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
-                }),
+                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
             }),
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
                 "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
                     "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
                     "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
-                    "DEFAULT": select({
-                        "//third-party/meson/constraints:has_function_dlerror[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
-                        "//third-party/meson/constraints:has_function_dlerror[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
-                    }),
+                    "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
                 }),
                 "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
             }),
@@ -12693,11 +12687,7 @@ cxx_library(
         "//third-party/meson/constraints:has_function_kqueue[true]",
         "//third-party/meson/constraints:has_function_kevent[true]",
     ] + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            "prelude//abi/constraints:abi[musl]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            "DEFAULT": [],
-        }),
+        "prelude//os/constraints:os[linux]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
         "DEFAULT": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
                 "//third-party/meson/constraints:has_function_inotify_init1[true]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
@@ -14090,10 +14080,7 @@ cxx_library(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": [":glib.git[gio/gmemorymonitorpoll.c]"],
             "prelude//abi/constraints:abi[musl]": [":glib.git[gio/gmemorymonitorpoll.c]"],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_sysinfo[true]": [":glib.git[gio/gmemorymonitorpoll.c]"],
-                "//third-party/meson/constraints:has_function_sysinfo[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "prelude//os/constraints:os[illumos]": [],
         "prelude//os/constraints:os[windows]": [],
@@ -15960,17 +15947,7 @@ cxx_library(
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": [],
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": [],
-            "prelude//abi/constraints:abi[musl]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                    "//third-party/meson/constraints:has_function_kevent[true]": [":kqueue"],
-                    "//third-party/meson/constraints:has_function_kevent[false]": [],
-                }),
-                "//third-party/meson/constraints:has_function_kqueue[false]": [],
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": [],
         "DEFAULT": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
                 "//third-party/meson/constraints:has_function_inotify_init1[true]": [],
@@ -16551,23 +16528,23 @@ cxx_binary(
         "//third-party/meson/constraints:elf[true]": select({
             "//third-party/meson/constraints:libelf[true]": [],
             "//third-party/meson/constraints:libelf[false]": select({
-                "//third-party/meson/constraints:has_function_elf_begin[true]": select({
-                    "//third-party/meson/constraints:has_function_elf_getshdrstrndx[true]": select({
-                        "//third-party/meson/constraints:has_function_elf_getshdrnum[true]": select({
-                            "prelude//os/constraints:os[linux]": [],
-                            "DEFAULT": select({
+                "prelude//os/constraints:os[linux]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_elf_begin[true]": select({
+                        "//third-party/meson/constraints:has_function_elf_getshdrstrndx[true]": select({
+                            "//third-party/meson/constraints:has_function_elf_getshdrnum[true]": select({
                                 "//third-party/meson/constraints:has_header_libelf_h[true]": select({
                                     "//third-party/meson/constraints:compiles_libelf_h[true]": [":elf"],
                                     "//third-party/meson/constraints:compiles_libelf_h[false]": [],
                                 }),
                                 "//third-party/meson/constraints:has_header_libelf_h[false]": [],
                             }),
+                            "//third-party/meson/constraints:has_function_elf_getshdrnum[false]": [],
                         }),
-                        "//third-party/meson/constraints:has_function_elf_getshdrnum[false]": [],
+                        "//third-party/meson/constraints:has_function_elf_getshdrstrndx[false]": [],
                     }),
-                    "//third-party/meson/constraints:has_function_elf_getshdrstrndx[false]": [],
+                    "//third-party/meson/constraints:has_function_elf_begin[false]": [],
                 }),
-                "//third-party/meson/constraints:has_function_elf_begin[false]": [],
             }),
         }),
         "//third-party/meson/constraints:elf[false]": [],
@@ -18917,10 +18894,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_IF_NAMETOINDEX 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_IF_NAMETOINDEX 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_if_nametoindex[true]": " '#define HAVE_IF_NAMETOINDEX 1'",
-                "//third-party/meson/constraints:has_function_if_nametoindex[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_if_nametoindex[true]": " '#define HAVE_IF_NAMETOINDEX 1'",
@@ -18930,10 +18904,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_IF_INDEXTONAME 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_IF_INDEXTONAME 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_if_indextoname[true]": " '#define HAVE_IF_INDEXTONAME 1'",
-                "//third-party/meson/constraints:has_function_if_indextoname[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_if_indextoname[true]": " '#define HAVE_IF_INDEXTONAME 1'",
@@ -18943,10 +18914,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ACCEPT4 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_ACCEPT4 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_accept4[true]": " '#define HAVE_ACCEPT4 1'",
-                "//third-party/meson/constraints:has_function_accept4[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_accept4[true]": " '#define HAVE_ACCEPT4 1'",
@@ -18956,43 +18924,25 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
-                    "//third-party/meson/constraints:has_function_close_range[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
-                    "//third-party/meson/constraints:has_function_close_range[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[riscv64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
-                    "//third-party/meson/constraints:has_function_close_range[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
-                    "//third-party/meson/constraints:has_function_close_range[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
-                    "//third-party/meson/constraints:has_function_close_range[false]": "",
-                }),
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
-                "//third-party/meson/constraints:has_function_close_range[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_close_range[true]": " '#define HAVE_CLOSE_RANGE 1'",
@@ -19002,10 +18952,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_COPY_FILE_RANGE 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_COPY_FILE_RANGE 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_copy_file_range[true]": " '#define HAVE_COPY_FILE_RANGE 1'",
-                "//third-party/meson/constraints:has_function_copy_file_range[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_copy_file_range[true]": " '#define HAVE_COPY_FILE_RANGE 1'",
@@ -19015,10 +18962,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ENDMNTENT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_ENDMNTENT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_endmntent[true]": " '#define HAVE_ENDMNTENT 1'",
-                "//third-party/meson/constraints:has_function_endmntent[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_endmntent[true]": " '#define HAVE_ENDMNTENT 1'",
@@ -19028,10 +18972,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ENDSERVENT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_ENDSERVENT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_endservent[true]": " '#define HAVE_ENDSERVENT 1'",
-                "//third-party/meson/constraints:has_function_endservent[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_endservent[true]": " '#define HAVE_ENDSERVENT 1'",
@@ -19041,10 +18982,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_EPOLL_CREATE1 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_EPOLL_CREATE1 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_epoll_create1[true]": " '#define HAVE_EPOLL_CREATE1 1'",
-                "//third-party/meson/constraints:has_function_epoll_create1[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_epoll_create1[true]": " '#define HAVE_EPOLL_CREATE1 1'",
@@ -19054,10 +18992,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FACCESSAT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_FACCESSAT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_faccessat[true]": " '#define HAVE_FACCESSAT 1'",
-                "//third-party/meson/constraints:has_function_faccessat[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_faccessat[true]": " '#define HAVE_FACCESSAT 1'",
@@ -19067,10 +19002,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FALLOCATE 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_FALLOCATE 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_fallocate[true]": " '#define HAVE_FALLOCATE 1'",
-                "//third-party/meson/constraints:has_function_fallocate[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_fallocate[true]": " '#define HAVE_FALLOCATE 1'",
@@ -19080,10 +19012,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FCHMOD 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_FCHMOD 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_fchmod[true]": " '#define HAVE_FCHMOD 1'",
-                "//third-party/meson/constraints:has_function_fchmod[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_fchmod[true]": " '#define HAVE_FCHMOD 1'",
@@ -19093,32 +19022,35 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FCHOWN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_FCHOWN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_fchown[true]": " '#define HAVE_FCHOWN 1'",
-                "//third-party/meson/constraints:has_function_fchown[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_fchown[true]": " '#define HAVE_FCHOWN 1'",
             "//third-party/meson/constraints:has_function_fchown[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_fdwalk[true]": " '#define HAVE_FDWALK 1'",
-        "//third-party/meson/constraints:has_function_fdwalk[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_fdwalk[true]": " '#define HAVE_FDWALK 1'",
+            "//third-party/meson/constraints:has_function_fdwalk[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_free_aligned_sized[true]": " '#define HAVE_FREE_ALIGNED_SIZED 1'",
-        "//third-party/meson/constraints:has_function_free_aligned_sized[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_free_aligned_sized[true]": " '#define HAVE_FREE_ALIGNED_SIZED 1'",
+            "//third-party/meson/constraints:has_function_free_aligned_sized[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_free_sized[true]": " '#define HAVE_FREE_SIZED 1'",
-        "//third-party/meson/constraints:has_function_free_sized[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_free_sized[true]": " '#define HAVE_FREE_SIZED 1'",
+            "//third-party/meson/constraints:has_function_free_sized[false]": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSYNC 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSYNC 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_fsync[true]": " '#define HAVE_FSYNC 1'",
-                "//third-party/meson/constraints:has_function_fsync[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_fsync[true]": " '#define HAVE_FSYNC 1'",
@@ -19128,43 +19060,25 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
-                    "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
-                    "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[riscv64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
-                    "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
-                    "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
-                    "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
-                }),
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
-                "//third-party/meson/constraints:has_function_ftruncate64[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_ftruncate64[true]": " '#define HAVE_FTRUNCATE64 1'",
@@ -19174,10 +19088,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETAUXVAL 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETAUXVAL 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getauxval[true]": " '#define HAVE_GETAUXVAL 1'",
-                "//third-party/meson/constraints:has_function_getauxval[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getauxval[true]": " '#define HAVE_GETAUXVAL 1'",
@@ -19187,10 +19098,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETC_UNLOCKED 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETC_UNLOCKED 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getc_unlocked[true]": " '#define HAVE_GETC_UNLOCKED 1'",
-                "//third-party/meson/constraints:has_function_getc_unlocked[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getc_unlocked[true]": " '#define HAVE_GETC_UNLOCKED 1'",
@@ -19200,59 +19108,41 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
-                    "//third-party/meson/constraints:has_function_getfsent[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
-                    "//third-party/meson/constraints:has_function_getfsent[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[riscv64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
-                    "//third-party/meson/constraints:has_function_getfsent[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
-                    "//third-party/meson/constraints:has_function_getfsent[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
-                    "//third-party/meson/constraints:has_function_getfsent[false]": "",
-                }),
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
-                "//third-party/meson/constraints:has_function_getfsent[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getfsent[true]": " '#define HAVE_GETFSENT 1'",
             "//third-party/meson/constraints:has_function_getfsent[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getfsstat[true]": " '#define HAVE_GETFSSTAT 1'",
-        "//third-party/meson/constraints:has_function_getfsstat[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getfsstat[true]": " '#define HAVE_GETFSSTAT 1'",
+            "//third-party/meson/constraints:has_function_getfsstat[false]": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETGRGID_R 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETGRGID_R 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getgrgid_r[true]": " '#define HAVE_GETGRGID_R 1'",
-                "//third-party/meson/constraints:has_function_getgrgid_r[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getgrgid_r[true]": " '#define HAVE_GETGRGID_R 1'",
@@ -19262,10 +19152,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETIFADDRS 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETIFADDRS 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getifaddrs[true]": " '#define HAVE_GETIFADDRS 1'",
-                "//third-party/meson/constraints:has_function_getifaddrs[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getifaddrs[true]": " '#define HAVE_GETIFADDRS 1'",
@@ -19275,10 +19162,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETMNTENT_R 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETMNTENT_R 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getmntent_r[true]": " '#define HAVE_GETMNTENT_R 1'",
-                "//third-party/meson/constraints:has_function_getmntent_r[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getmntent_r[true]": " '#define HAVE_GETMNTENT_R 1'",
@@ -19288,10 +19172,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPWNAM_R 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPWNAM_R 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getpwnam_r[true]": " '#define HAVE_GETPWNAM_R 1'",
-                "//third-party/meson/constraints:has_function_getpwnam_r[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getpwnam_r[true]": " '#define HAVE_GETPWNAM_R 1'",
@@ -19301,10 +19182,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPWUID_R 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPWUID_R 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getpwuid_r[true]": " '#define HAVE_GETPWUID_R 1'",
-                "//third-party/meson/constraints:has_function_getpwuid_r[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getpwuid_r[true]": " '#define HAVE_GETPWUID_R 1'",
@@ -19314,26 +19192,23 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETRESUID 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETRESUID 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_getresuid[true]": " '#define HAVE_GETRESUID 1'",
-                "//third-party/meson/constraints:has_function_getresuid[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_getresuid[true]": " '#define HAVE_GETRESUID 1'",
             "//third-party/meson/constraints:has_function_getresuid[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_getvfsstat[true]": " '#define HAVE_GETVFSSTAT 1'",
-        "//third-party/meson/constraints:has_function_getvfsstat[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_getvfsstat[true]": " '#define HAVE_GETVFSSTAT 1'",
+            "//third-party/meson/constraints:has_function_getvfsstat[false]": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GMTIME_R 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_GMTIME_R 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_gmtime_r[true]": " '#define HAVE_GMTIME_R 1'",
-                "//third-party/meson/constraints:has_function_gmtime_r[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_gmtime_r[true]": " '#define HAVE_GMTIME_R 1'",
@@ -19343,10 +19218,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_HASMNTOPT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_HASMNTOPT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_hasmntopt[true]": " '#define HAVE_HASMNTOPT 1'",
-                "//third-party/meson/constraints:has_function_hasmntopt[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_hasmntopt[true]": " '#define HAVE_HASMNTOPT 1'",
@@ -19356,10 +19228,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_INOTIFY_INIT1 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_INOTIFY_INIT1 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define HAVE_INOTIFY_INIT1 1'",
-                "//third-party/meson/constraints:has_function_inotify_init1[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_inotify_init1[true]": " '#define HAVE_INOTIFY_INIT1 1'",
@@ -19368,29 +19237,29 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_ISSETUGID 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_issetugid[true]": " '#define HAVE_ISSETUGID 1'",
-                "//third-party/meson/constraints:has_function_issetugid[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_issetugid[true]": " '#define HAVE_ISSETUGID 1'",
             "//third-party/meson/constraints:has_function_issetugid[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_kevent[true]": " '#define HAVE_KEVENT 1'",
-        "//third-party/meson/constraints:has_function_kevent[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_kevent[true]": " '#define HAVE_KEVENT 1'",
+            "//third-party/meson/constraints:has_function_kevent[false]": "",
+        }),
     }) + select({
-        "//third-party/meson/constraints:has_function_kqueue[true]": " '#define HAVE_KQUEUE 1'",
-        "//third-party/meson/constraints:has_function_kqueue[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_kqueue[true]": " '#define HAVE_KQUEUE 1'",
+            "//third-party/meson/constraints:has_function_kqueue[false]": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LCHMOD 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_LCHMOD 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_lchmod[true]": " '#define HAVE_LCHMOD 1'",
-                "//third-party/meson/constraints:has_function_lchmod[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_lchmod[true]": " '#define HAVE_LCHMOD 1'",
@@ -19400,10 +19269,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LCHOWN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_LCHOWN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_lchown[true]": " '#define HAVE_LCHOWN 1'",
-                "//third-party/meson/constraints:has_function_lchown[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_lchown[true]": " '#define HAVE_LCHOWN 1'",
@@ -19413,10 +19279,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LINK 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_LINK 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_link[true]": " '#define HAVE_LINK 1'",
-                "//third-party/meson/constraints:has_function_link[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_link[true]": " '#define HAVE_LINK 1'",
@@ -19426,10 +19289,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOCALTIME_R 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_LOCALTIME_R 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_localtime_r[true]": " '#define HAVE_LOCALTIME_R 1'",
-                "//third-party/meson/constraints:has_function_localtime_r[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_localtime_r[true]": " '#define HAVE_LOCALTIME_R 1'",
@@ -19439,10 +19299,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LSTAT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_LSTAT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_lstat[true]": " '#define HAVE_LSTAT 1'",
-                "//third-party/meson/constraints:has_function_lstat[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_lstat[true]": " '#define HAVE_LSTAT 1'",
@@ -19452,10 +19309,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MBRTOWC 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_MBRTOWC 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mbrtowc[true]": " '#define HAVE_MBRTOWC 1'",
-                "//third-party/meson/constraints:has_function_mbrtowc[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mbrtowc[true]": " '#define HAVE_MBRTOWC 1'",
@@ -19465,10 +19319,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
-                "//third-party/meson/constraints:has_function_memalign[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
@@ -19478,10 +19329,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMMEM 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMMEM 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_memmem[true]": " '#define HAVE_MEMMEM 1'",
-                "//third-party/meson/constraints:has_function_memmem[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memmem[true]": " '#define HAVE_MEMMEM 1'",
@@ -19491,10 +19339,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mmap[true]": " '#define HAVE_MMAP 1'",
-                "//third-party/meson/constraints:has_function_mmap[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mmap[true]": " '#define HAVE_MMAP 1'",
@@ -19504,10 +19349,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_NEWLOCALE 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_NEWLOCALE 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_newlocale[true]": " '#define HAVE_NEWLOCALE 1'",
-                "//third-party/meson/constraints:has_function_newlocale[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_newlocale[true]": " '#define HAVE_NEWLOCALE 1'",
@@ -19517,10 +19359,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_PIPE2 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_PIPE2 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_pipe2[true]": " '#define HAVE_PIPE2 1'",
-                "//third-party/meson/constraints:has_function_pipe2[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_pipe2[true]": " '#define HAVE_PIPE2 1'",
@@ -19530,10 +19369,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POLL 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_POLL 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_poll[true]": " '#define HAVE_POLL 1'",
-                "//third-party/meson/constraints:has_function_poll[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_poll[true]": " '#define HAVE_POLL 1'",
@@ -19543,10 +19379,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_PRLIMIT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_PRLIMIT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_prlimit[true]": " '#define HAVE_PRLIMIT 1'",
-                "//third-party/meson/constraints:has_function_prlimit[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_prlimit[true]": " '#define HAVE_PRLIMIT 1'",
@@ -19556,10 +19389,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_READLINK 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_READLINK 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_readlink[true]": " '#define HAVE_READLINK 1'",
-                "//third-party/meson/constraints:has_function_readlink[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_readlink[true]": " '#define HAVE_READLINK 1'",
@@ -19569,10 +19399,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RECVMMSG 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_RECVMMSG 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_recvmmsg[true]": " '#define HAVE_RECVMMSG 1'",
-                "//third-party/meson/constraints:has_function_recvmmsg[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_recvmmsg[true]": " '#define HAVE_RECVMMSG 1'",
@@ -19582,10 +19409,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SENDMMSG 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_SENDMMSG 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_sendmmsg[true]": " '#define HAVE_SENDMMSG 1'",
-                "//third-party/meson/constraints:has_function_sendmmsg[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_sendmmsg[true]": " '#define HAVE_SENDMMSG 1'",
@@ -19595,10 +19419,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SETENV 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_SETENV 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_setenv[true]": " '#define HAVE_SETENV 1'",
-                "//third-party/meson/constraints:has_function_setenv[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_setenv[true]": " '#define HAVE_SETENV 1'",
@@ -19608,10 +19429,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SETMNTENT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_SETMNTENT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_setmntent[true]": " '#define HAVE_SETMNTENT 1'",
-                "//third-party/meson/constraints:has_function_setmntent[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_setmntent[true]": " '#define HAVE_SETMNTENT 1'",
@@ -19621,10 +19439,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR_R 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR_R 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strerror_r[true]": " '#define HAVE_STRERROR_R 1'",
-                "//third-party/meson/constraints:has_function_strerror_r[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strerror_r[true]": " '#define HAVE_STRERROR_R 1'",
@@ -19634,10 +19449,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRNLEN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRNLEN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strnlen[true]": " '#define HAVE_STRNLEN 1'",
-                "//third-party/meson/constraints:has_function_strnlen[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strnlen[true]": " '#define HAVE_STRNLEN 1'",
@@ -19647,10 +19459,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRSIGNAL 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRSIGNAL 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strsignal[true]": " '#define HAVE_STRSIGNAL 1'",
-                "//third-party/meson/constraints:has_function_strsignal[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strsignal[true]": " '#define HAVE_STRSIGNAL 1'",
@@ -19660,10 +19469,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOD_L 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRTOD_L 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strtod_l[true]": " '#define HAVE_STRTOD_L 1'",
-                "//third-party/meson/constraints:has_function_strtod_l[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strtod_l[true]": " '#define HAVE_STRTOD_L 1'",
@@ -19673,43 +19479,25 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[riscv64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
-                "//third-party/meson/constraints:has_function_strtoll_l[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strtoll_l[true]": " '#define HAVE_STRTOLL_L 1'",
@@ -19719,43 +19507,25 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[riscv64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_64]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
-                    "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
-                }),
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
-                "//third-party/meson/constraints:has_function_strtoull_l[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strtoull_l[true]": " '#define HAVE_STRTOULL_L 1'",
@@ -19765,10 +19535,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYMLINK 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_SYMLINK 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_symlink[true]": " '#define HAVE_SYMLINK 1'",
-                "//third-party/meson/constraints:has_function_symlink[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_symlink[true]": " '#define HAVE_SYMLINK 1'",
@@ -19778,10 +19545,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_TIMEGM 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_TIMEGM 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_timegm[true]": " '#define HAVE_TIMEGM 1'",
-                "//third-party/meson/constraints:has_function_timegm[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_timegm[true]": " '#define HAVE_TIMEGM 1'",
@@ -19791,10 +19555,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UNSETENV 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_UNSETENV 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_unsetenv[true]": " '#define HAVE_UNSETENV 1'",
-                "//third-party/meson/constraints:has_function_unsetenv[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_unsetenv[true]": " '#define HAVE_UNSETENV 1'",
@@ -19804,10 +19565,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_USELOCALE 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_USELOCALE 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_uselocale[true]": " '#define HAVE_USELOCALE 1'",
-                "//third-party/meson/constraints:has_function_uselocale[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_uselocale[true]": " '#define HAVE_USELOCALE 1'",
@@ -19817,10 +19575,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UTIMES 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_UTIMES 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_utimes[true]": " '#define HAVE_UTIMES 1'",
-                "//third-party/meson/constraints:has_function_utimes[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_utimes[true]": " '#define HAVE_UTIMES 1'",
@@ -19830,10 +19585,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UTIMENSAT 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_UTIMENSAT 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_utimensat[true]": " '#define HAVE_UTIMENSAT 1'",
-                "//third-party/meson/constraints:has_function_utimensat[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_utimensat[true]": " '#define HAVE_UTIMENSAT 1'",
@@ -19843,10 +19595,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VALLOC 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_VALLOC 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_valloc[true]": " '#define HAVE_VALLOC 1'",
-                "//third-party/meson/constraints:has_function_valloc[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_valloc[true]": " '#define HAVE_VALLOC 1'",
@@ -19859,10 +19608,7 @@ genrule(
                     "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": select({
                         "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VASPRINTF 1'",
                         "prelude//abi/constraints:abi[musl]": " '#define HAVE_VASPRINTF 1'",
-                        "DEFAULT": select({
-                            "//third-party/meson/constraints:has_function_vasprintf[true]": " '#define HAVE_VASPRINTF 1'",
-                            "//third-party/meson/constraints:has_function_vasprintf[false]": "",
-                        }),
+                        "DEFAULT": "",
                     }),
                     "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": " '#define HAVE_VASPRINTF 1'",
                 }),
@@ -19903,10 +19649,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSNPRINTF 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSNPRINTF 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_vsnprintf[true]": " '#define HAVE_VSNPRINTF 1'",
-                "//third-party/meson/constraints:has_function_vsnprintf[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_vsnprintf[true]": " '#define HAVE_VSNPRINTF 1'",
@@ -19916,10 +19659,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_WCRTOMB 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_WCRTOMB 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_wcrtomb[true]": " '#define HAVE_WCRTOMB 1'",
-                "//third-party/meson/constraints:has_function_wcrtomb[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_wcrtomb[true]": " '#define HAVE_WCRTOMB 1'",
@@ -19929,10 +19669,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_WCSLEN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_WCSLEN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_wcslen[true]": " '#define HAVE_WCSLEN 1'",
-                "//third-party/meson/constraints:has_function_wcslen[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_wcslen[true]": " '#define HAVE_WCSLEN 1'",
@@ -19942,18 +19679,18 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_WCSNLEN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_WCSNLEN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_wcsnlen[true]": " '#define HAVE_WCSNLEN 1'",
-                "//third-party/meson/constraints:has_function_wcsnlen[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_wcsnlen[true]": " '#define HAVE_WCSNLEN 1'",
             "//third-party/meson/constraints:has_function_wcsnlen[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_function_sysctlbyname[true]": " '#define HAVE_SYSCTLBYNAME 1'",
-        "//third-party/meson/constraints:has_function_sysctlbyname[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_sysctlbyname[true]": " '#define HAVE_SYSCTLBYNAME 1'",
+            "//third-party/meson/constraints:has_function_sysctlbyname[false]": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[macos]": select({
             "//third-party/meson/constraints:has_function_NSGetEnviron[true]": " '#define HAVE__NSGETENVIRON 1'",
@@ -20009,10 +19746,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SPLICE 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_SPLICE 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_splice[true]": " '#define HAVE_SPLICE 1'",
-                "//third-party/meson/constraints:has_function_splice[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_splice[true]": " '#define HAVE_SPLICE 1'",
@@ -20022,10 +19756,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYSINFO 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_SYSINFO 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_sysinfo[true]": " '#define HAVE_SYSINFO 1'",
-                "//third-party/meson/constraints:has_function_sysinfo[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "prelude//os/constraints:os[illumos]": "",
         "DEFAULT": select({
@@ -20036,10 +19767,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STPCPY 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_STPCPY 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_stpcpy[true]": " '#define HAVE_STPCPY 1'",
-                "//third-party/meson/constraints:has_function_stpcpy[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_stpcpy[true]": " '#define HAVE_STPCPY 1'",
@@ -20049,16 +19777,16 @@ genrule(
         "//third-party/meson/constraints:compiles_getservbyname_r[true]": " '#define HAVE_GETSERVBYNAME_R 1'",
         "//third-party/meson/constraints:compiles_getservbyname_r[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_function_aligned_malloc[true]": " '#define HAVE__ALIGNED_MALLOC 1'",
-        "//third-party/meson/constraints:has_function_aligned_malloc[false]": "",
+        "prelude//os/constraints:os[linux]": "",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:has_function_aligned_malloc[true]": " '#define HAVE__ALIGNED_MALLOC 1'",
+            "//third-party/meson/constraints:has_function_aligned_malloc[false]": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ALIGNED_ALLOC 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_ALIGNED_ALLOC 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_aligned_alloc[true]": " '#define HAVE_ALIGNED_ALLOC 1'",
-                "//third-party/meson/constraints:has_function_aligned_alloc[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
@@ -20069,10 +19797,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_MEMALIGN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_POSIX_MEMALIGN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_posix_memalign[true]": " '#define HAVE_POSIX_MEMALIGN 1'",
-                "//third-party/meson/constraints:has_function_posix_memalign[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
@@ -20083,10 +19808,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_SPAWN 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_POSIX_SPAWN 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_posix_spawn[true]": " '#define HAVE_POSIX_SPAWN 1'",
-                "//third-party/meson/constraints:has_function_posix_spawn[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_posix_spawn[true]": " '#define HAVE_POSIX_SPAWN 1'",
@@ -20105,20 +19827,7 @@ genrule(
             "//third-party/meson/constraints:has_function_strerror_r[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": "",
-            "prelude//abi/constraints:abi[musl]": "",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_snprintf[true]": "",
-                "//third-party/meson/constraints:has_function_snprintf[false]": select({
-                    "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": "",
-                    "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": select({
-                        "//third-party/meson/constraints:c_has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1\n#define snprintf _snprintf'",
-                        "//third-party/meson/constraints:c_has_function_snprintf[false]": "",
-                    }),
-                }),
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_snprintf[true]": "",
             "//third-party/meson/constraints:has_function_snprintf[false]": select({
@@ -20134,11 +19843,8 @@ genrule(
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SNPRINTF 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_SNPRINTF 1'",
             "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_snprintf[true]": " '#define HAVE_SNPRINTF 1'",
-                "//third-party/meson/constraints:has_function_snprintf[false]": select({
-                    "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": " '#define HAVE_SNPRINTF 1'",
-                    "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": "",
-                }),
+                "//third-party/meson/constraints:has_header_symbol_stdio_h[true]": " '#define HAVE_SNPRINTF 1'",
+                "//third-party/meson/constraints:has_header_symbol_stdio_h[false]": "",
             }),
         }),
         "DEFAULT": select({
@@ -20149,17 +19855,7 @@ genrule(
             }),
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": "",
-            "prelude//abi/constraints:abi[musl]": "",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strcasecmp[true]": "",
-                "//third-party/meson/constraints:has_function_strcasecmp[false]": select({
-                    "//third-party/meson/constraints:has_function_stricmp[true]": " '#define HAVE_STRCASECMP 1\n#define strcasecmp _stricmp'",
-                    "//third-party/meson/constraints:has_function_stricmp[false]": "",
-                }),
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strcasecmp[true]": "",
             "//third-party/meson/constraints:has_function_strcasecmp[false]": select({
@@ -20171,27 +19867,14 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRCASECMP 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRCASECMP 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strcasecmp[true]": " '#define HAVE_STRCASECMP 1'",
-                "//third-party/meson/constraints:has_function_strcasecmp[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strcasecmp[true]": " '#define HAVE_STRCASECMP 1'",
             "//third-party/meson/constraints:has_function_strcasecmp[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": "",
-            "prelude//abi/constraints:abi[musl]": "",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strncasecmp[true]": "",
-                "//third-party/meson/constraints:has_function_strncasecmp[false]": select({
-                    "//third-party/meson/constraints:has_function_strnicmp[true]": " '#define HAVE_STRNCASECMP 1\n#define strncasecmp _strnicmp'",
-                    "//third-party/meson/constraints:has_function_strnicmp[false]": "",
-                }),
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strncasecmp[true]": "",
             "//third-party/meson/constraints:has_function_strncasecmp[false]": select({
@@ -20203,10 +19886,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRNCASECMP 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRNCASECMP 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strncasecmp[true]": " '#define HAVE_STRNCASECMP 1'",
-                "//third-party/meson/constraints:has_function_strncasecmp[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strncasecmp[true]": " '#define HAVE_STRNCASECMP 1'",
@@ -20265,10 +19945,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_UNSHARE 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_UNSHARE 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_unshare[true]": " '#define HAVE_UNSHARE 1'",
-                "//third-party/meson/constraints:has_function_unshare[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_unshare[true]": " '#define HAVE_UNSHARE 1'",
@@ -20458,10 +20135,7 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKOSTEMP 1'",
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKOSTEMP 1'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mkostemp[true]": " '#define HAVE_MKOSTEMP 1'",
-                "//third-party/meson/constraints:has_function_mkostemp[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": "",
     }) + select({
@@ -21056,7 +20730,7 @@ genrule(
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4' '#define SIZEOF_VOID_P 4'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4' '#define SIZEOF_VOID_P 4'",
+        "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4' '#define SIZEOF_VOID_P 4'",
         "DEFAULT": " '#define SIZEOF_LONG 8' '#define SIZEOF_SIZE_T 8' '#define SIZEOF_VOID_P 8'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -21070,7 +20744,7 @@ genrule(
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_SSIZE_T 4'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_SSIZE_T 4'",
+        "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_SSIZE_T 4'",
         "DEFAULT": " '#define SIZEOF_SSIZE_T 8'",
     }) + select({
         "//third-party/meson/constraints:run_va_lists_can_be_copied_as_values[true]": "",
@@ -21225,17 +20899,7 @@ genrule(
         }),
     }) + select({
         "//third-party/meson/constraints:intl[true]": select({
-            "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
-                "prelude//abi/constraints:abi[musl]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:has_function_ngettext[true]": select({
-                        "//third-party/meson/constraints:has_function_bind_textdomain_codeset[true]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
-                        "//third-party/meson/constraints:has_function_bind_textdomain_codeset[false]": " '/* #undef HAVE_BIND_TEXTDOMAIN_CODESET */'",
-                    }),
-                    "//third-party/meson/constraints:has_function_ngettext[false]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
-                }),
-            }),
+            "prelude//os/constraints:os[linux]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
             "DEFAULT": select({
                 "//third-party/meson/constraints:has_function_ngettext[true]": select({
                     "//third-party/meson/constraints:has_function_bind_textdomain_codeset[true]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET'",
@@ -21255,15 +20919,6 @@ genrule(
         "prelude//os/constraints:os[linux]": select({
             "//third-party/meson/constraints:mount[true]": "",
             "//third-party/meson/constraints:mount[false]": " '/* #undef HAVE_LIBMOUNT */'",
-        }),
-        "DEFAULT": "",
-    }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "//third-party/meson/constraints:mount[true]": select({
-                "//third-party/meson/constraints:has_function_mnt_monitor_veil_kernel[true]": " '#define HAVE_MNT_MONITOR_VEIL_KERNEL 1'",
-                "//third-party/meson/constraints:has_function_mnt_monitor_veil_kernel[false]": "",
-            }),
-            "//third-party/meson/constraints:mount[false]": "",
         }),
         "DEFAULT": "",
     }) + select({
@@ -21324,70 +20979,52 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_strlcpy[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "//third-party/meson/constraints:has_function_strlcpy[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[arm64]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[riscv64]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[x86_32]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[x86_64]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "DEFAULT": "",
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "DEFAULT": "",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_strlcpy[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "//third-party/meson/constraints:has_function_strlcpy[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[arm64]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[riscv64]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[x86_32]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "prelude//cpu/constraints:cpu[x86_64]": select({
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                        "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                    }),
-                    "DEFAULT": "",
-                }),
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_strlcpy[true]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "//third-party/meson/constraints:has_function_strlcpy[false]": "",
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "DEFAULT": "",
             }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_strlcpy[true]": select({
@@ -22096,17 +21733,7 @@ genrule(
             "//third-party/meson/constraints:has_header_sys_inotify_h[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": "",
-            "prelude//abi/constraints:abi[musl]": "",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_kqueue[true]": select({
-                    "//third-party/meson/constraints:has_function_kevent[true]": " '#define FILE_MONITOR_BACKEND_KQUEUE 1'",
-                    "//third-party/meson/constraints:has_function_kevent[false]": "",
-                }),
-                "//third-party/meson/constraints:has_function_kqueue[false]": "",
-            }),
-        }),
+        "prelude//os/constraints:os[linux]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_header_sys_inotify_h[true]": select({
                 "//third-party/meson/constraints:has_function_inotify_init1[true]": "",
@@ -22151,23 +21778,23 @@ genrule(
         "//third-party/meson/constraints:libelf[true]": " '#define HAVE_LIBELF 1'",
         "//third-party/meson/constraints:libelf[false]": select({
             "//third-party/meson/constraints:elf[true]": select({
-                "//third-party/meson/constraints:has_function_elf_begin[true]": select({
-                    "//third-party/meson/constraints:has_function_elf_getshdrstrndx[true]": select({
-                        "//third-party/meson/constraints:has_function_elf_getshdrnum[true]": select({
-                            "prelude//os/constraints:os[linux]": "",
-                            "DEFAULT": select({
+                "prelude//os/constraints:os[linux]": "",
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:has_function_elf_begin[true]": select({
+                        "//third-party/meson/constraints:has_function_elf_getshdrstrndx[true]": select({
+                            "//third-party/meson/constraints:has_function_elf_getshdrnum[true]": select({
                                 "//third-party/meson/constraints:has_header_libelf_h[true]": select({
                                     "//third-party/meson/constraints:compiles_libelf_h[true]": " '#define HAVE_LIBELF 1'",
                                     "//third-party/meson/constraints:compiles_libelf_h[false]": "",
                                 }),
                                 "//third-party/meson/constraints:has_header_libelf_h[false]": "",
                             }),
+                            "//third-party/meson/constraints:has_function_elf_getshdrnum[false]": "",
                         }),
-                        "//third-party/meson/constraints:has_function_elf_getshdrnum[false]": "",
+                        "//third-party/meson/constraints:has_function_elf_getshdrstrndx[false]": "",
                     }),
-                    "//third-party/meson/constraints:has_function_elf_getshdrstrndx[false]": "",
+                    "//third-party/meson/constraints:has_function_elf_begin[false]": "",
                 }),
-                "//third-party/meson/constraints:has_function_elf_begin[false]": "",
             }),
             "//third-party/meson/constraints:elf[false]": "",
         }),

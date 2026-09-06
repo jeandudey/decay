@@ -2086,14 +2086,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_function:mnt_monitor_veil_kernel`: `mnt_monitor_veil_kernel` is available to the c compiler
-constraint(
-    name = "has_function_mnt_monitor_veil_kernel",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `dep:libselinux`: `libselinux` is available
 constraint(
     name = "libselinux",

@@ -314,31 +314,22 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_memfd_create[true]": " '#define HAVE_MEMFD_CREATE 1'",
-                "//third-party/meson/constraints:has_function_memfd_create[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMFD_CREATE 1'",
+                "DEFAULT": "",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_memfd_create[true]": " '#define HAVE_MEMFD_CREATE 1'",
-                "//third-party/meson/constraints:has_function_memfd_create[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMFD_CREATE 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMFD_CREATE 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMFD_CREATE 1'",
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_memfd_create[true]": " '#define HAVE_MEMFD_CREATE 1'",
-                "//third-party/meson/constraints:has_function_memfd_create[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memfd_create[true]": " '#define HAVE_MEMFD_CREATE 1'",
@@ -347,31 +338,22 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mkostemp[true]": " '#define HAVE_MKOSTEMP 1'",
-                "//third-party/meson/constraints:has_function_mkostemp[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKOSTEMP 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKOSTEMP 1'",
+                "DEFAULT": "",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mkostemp[true]": " '#define HAVE_MKOSTEMP 1'",
-                "//third-party/meson/constraints:has_function_mkostemp[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKOSTEMP 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKOSTEMP 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKOSTEMP 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKOSTEMP 1'",
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mkostemp[true]": " '#define HAVE_MKOSTEMP 1'",
-                "//third-party/meson/constraints:has_function_mkostemp[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mkostemp[true]": " '#define HAVE_MKOSTEMP 1'",
@@ -380,31 +362,22 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_realpath[true]": " '#define HAVE_REALPATH 1'",
-                "//third-party/meson/constraints:has_function_realpath[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_REALPATH 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_REALPATH 1'",
+                "DEFAULT": "",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_realpath[true]": " '#define HAVE_REALPATH 1'",
-                "//third-party/meson/constraints:has_function_realpath[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_REALPATH 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_REALPATH 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_REALPATH 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_REALPATH 1'",
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_realpath[true]": " '#define HAVE_REALPATH 1'",
-                "//third-party/meson/constraints:has_function_realpath[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_realpath[true]": " '#define HAVE_REALPATH 1'",
@@ -413,31 +386,22 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_secure_getenv[true]": " '#define HAVE_SECURE_GETENV 1'",
-                "//third-party/meson/constraints:has_function_secure_getenv[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SECURE_GETENV 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SECURE_GETENV 1'",
+                "DEFAULT": "",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_secure_getenv[true]": " '#define HAVE_SECURE_GETENV 1'",
-                "//third-party/meson/constraints:has_function_secure_getenv[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SECURE_GETENV 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SECURE_GETENV 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SECURE_GETENV 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SECURE_GETENV 1'",
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_secure_getenv[true]": " '#define HAVE_SECURE_GETENV 1'",
-                "//third-party/meson/constraints:has_function_secure_getenv[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_secure_getenv[true]": " '#define HAVE_SECURE_GETENV 1'",
@@ -446,31 +410,22 @@ genrule(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_setrlimit[true]": " '#define HAVE_SETRLIMIT 1'",
-                "//third-party/meson/constraints:has_function_setrlimit[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SETRLIMIT 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SETRLIMIT 1'",
+                "DEFAULT": "",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_setrlimit[true]": " '#define HAVE_SETRLIMIT 1'",
-                "//third-party/meson/constraints:has_function_setrlimit[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SETRLIMIT 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SETRLIMIT 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SETRLIMIT 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SETRLIMIT 1'",
+                "DEFAULT": "",
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_setrlimit[true]": " '#define HAVE_SETRLIMIT 1'",
-                "//third-party/meson/constraints:has_function_setrlimit[false]": "",
-            }),
+            "DEFAULT": "",
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_setrlimit[true]": " '#define HAVE_SETRLIMIT 1'",

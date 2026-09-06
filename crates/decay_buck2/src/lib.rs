@@ -1406,7 +1406,15 @@ fn config_header_cmd<S: Solver>(
             " ",
             |define| {
                 let value = match &define.value {
-                    DefineValue::Quoted(v) | DefineValue::Raw(v) => v.clone(),
+                    // `set_quoted()`: meson substitutes the value wrapped in C
+                    // string quotes (with `\` and `"` escaped), the same into
+                    // an `@NAME@` slot as into a `#mesondefine`. Dropping the
+                    // quotes here turns e.g. `#define G_GSIZE_FORMAT @gsize_format@`
+                    // into `#define G_GSIZE_FORMAT lu`, which does not compile.
+                    DefineValue::Quoted(v) => {
+                        format!("\"{}\"", v.replace('\\', "\\\\").replace('"', "\\\""))
+                    }
+                    DefineValue::Raw(v) => v.clone(),
                     DefineValue::Number(v) => v.to_string(),
                     DefineValue::Flag => "1".to_owned(),
                     DefineValue::Undef => String::new(),

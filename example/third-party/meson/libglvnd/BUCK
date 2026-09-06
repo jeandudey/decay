@@ -456,31 +456,22 @@ _cflags = select({
 }) + select({
     "prelude//os/constraints:os[linux]": select({
         "prelude//abi/constraints:abi[gnu]": select({
-            "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-            "//third-party/meson/constraints:has_function_mincore[false]": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+            "DEFAULT": [],
         }),
         "prelude//abi/constraints:abi[musl]": select({
-            "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-            "//third-party/meson/constraints:has_function_mincore[false]": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+            "DEFAULT": [],
         }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-            "//third-party/meson/constraints:has_function_mincore[false]": [],
-        }),
+        "DEFAULT": [],
     }),
     "DEFAULT": select({
         "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -1905,31 +1896,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -2316,31 +2298,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -2735,31 +2708,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -3154,31 +3118,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -3573,31 +3528,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -4213,31 +4159,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -4935,31 +4872,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -5297,31 +5225,22 @@ cxx_library(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
@@ -5721,31 +5640,22 @@ cxx_binary(
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                    "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
+                "DEFAULT": [],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-                "//third-party/meson/constraints:has_function_mincore[false]": [],
-            }),
+            "DEFAULT": [],
         }),
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],

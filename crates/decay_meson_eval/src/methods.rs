@@ -645,6 +645,14 @@ impl<'a, S: Solver> Interp<'a, S> {
             default: choices.len() - 1,
             choices: choices.clone(),
         });
+        // The variable is keyed by `setting`, so two callers with different
+        // ideas of its domain (`[sizeof]` names the CPUs decay.toml lists; a
+        // `zig cc` probe matrix names `decay_libc_db::Cpu::ALL`) resolve to the
+        // same variable — and `declare` keeps whichever ran first. A caller
+        // maps its values to literal indices by position in the choice list,
+        // so it has to use the *declared* var's list, not the one it passed,
+        // or the indices are off wherever the two disagree.
+        let choices = self.logic.var(id).choices.clone();
         (id, choices)
     }
 
@@ -766,14 +774,18 @@ impl<'a, S: Solver> Interp<'a, S> {
             }) => {
                 let on_systems = self.host_system_is(&systems, key)?;
                 let any_row = self.matrix_any_row(&axes, &rows);
-                let known = self.logic.and(on_systems, any_row);
-                // Outside the known region this is not a "no", just an
-                // unknown — the same open choice as if the oracle had
-                // declined to answer at all, so `known ∨ open` is `true`
-                // where the fact is settled and exactly as configurable as
-                // an ordinary probe everywhere else.
-                let open_elsewhere = self.probe(key, description);
-                Ok(self.logic.or(known, open_elsewhere))
+                // On the named systems the database is authoritative — a
+                // symbol matching no row genuinely is not there, so this is
+                // `any_row` with no knob (the whole point of the built-in
+                // `has_function` table: `_aligned_malloc` settles *false* on
+                // `linux` instead of defaulting an open probe to true). Off
+                // those systems the database cannot speak, so it stays exactly
+                // as configurable as an ordinary probe.
+                let on_named = self.logic.and(on_systems, any_row);
+                let elsewhere = self.logic.not(on_systems);
+                let open = self.probe(key, description);
+                let open_elsewhere = self.logic.and(elsewhere, open);
+                Ok(self.logic.or(on_named, open_elsewhere))
             }
             Some(Probe::PerSystem { abi, found }) => {
                 // Fully settled: OR of (system ∧ abi?) over the found rows,
