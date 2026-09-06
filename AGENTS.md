@@ -303,17 +303,22 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `example/decay.toml` pins `options.tests = false` for glib to avoid it
   for now.
 
-- **`declare_dependency(sources: [...])` with compilable sources.** decay
-  routes every `sources:` entry into the interface target's `headers`
-  (`fn_declare_dependency` in `decay_meson_eval/src/builtins.rs`), and
-  `decay_buck2` emits a `Kind::Interface` target with no `srcs` — so a
-  "copylib" like gvdb (`declare_dependency(sources: ['gvdb-builder.c',
-  'gvdb-reader.c'], ...)`) comes out as an empty `cxx_library` with the
-  `.c` files listed under `exported_headers`, and a consumer never compiles
-  them. The fix is to split `sources:` into real headers vs. compiled
-  sources and emit the latter as `srcs` on a compiled library (or fold
-  them into each consumer). Visible today in
-  `example/third-party/meson/gvdb/BUCK`.
+- **`declare_dependency(sources: [...])` with compilable sources — done.**
+  `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits
+  `sources:` into real headers vs. compilable translation units
+  (`is_compilable_source`); the latter land on the interface target's
+  `srcs`. A consumer that depends on the interface splices those source
+  refs straight into its own `srcs` (`copylib_source_groups` in
+  `decay_buck2`), so meson's "compile the copylib in each consumer, with the
+  consumer's flags and includes" is preserved — gvdb's `gvdb-builder.c` /
+  `gvdb-reader.c` need `<gio/gio.h>`, which only a consumer has.
+  Cross-project, the refs ride `Packages` → `Labels::dependency_sources` as
+  `//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-builder.c]`. Not a
+  `filegroup`: buck2's `cxx_library` rejects one in `srcs`
+  (`collect_extensions` chokes on the directory artifact). A same-project
+  copylib folds from the local interface target the same way; a
+  `declare_dependency(objects:)` (glib's `libglib_static_dep`) is still not
+  modelled.
 
 - **Configuration-dependent install paths and `.pc` variables.**
   `Attrs.install_dir` is `Option<String>` and `src/packages.rs`'s `Package.
@@ -393,18 +398,18 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 - **glib build status.** `buck2 build` of `glib-2.0`, `gobject-2.0`,
   `gmodule-2.0` and `gthread-2.0` from `example/` succeeds (target platform
-  `//platforms:linux`, gcc). `gio-2.0` does not yet:
+  `//platforms:linux`, gcc). `gio-2.0` compiles its own sources and the
+  gvdb copylib now, but does not yet link — two genrule blockers:
   - **`gdbus-codegen` runs without its `codegen` Python package.** gio's
     `custom_target`s invoke the `gdbus-codegen` script (a `configure_file`
     output) directly; its `from codegen import codegen_main` needs the
     sibling `codegen/*.py` (their own `fs.copyfile` outputs) plus generated
     `config.py` staged as a `codegen/` dir next to it. decay emits all the
     pieces as separate genrules but stages none of them into the consuming
-    genrule. Needs a program to carry its support-file group — the same
-    shape as `declare_dependency(sources:)` folding, one level up.
-  - the gvdb `declare_dependency(sources:)` copylib is still uncompiled (its
-    own gap below), so `gio-2.0` would miss `gvdb_table_*` at link even past
-    the codegen blocker.
+    genrule. Needs a program to carry its support-file group.
+  - **`gconstructor_as_data.h` genrule keeps a literal `@INPUT0@`.** A
+    `custom_target` whose `command:` uses `@INPUT0@` (not `@INPUT@`) is not
+    substituted, so `python3 … @INPUT0@` fails to open the file.
 
 - **`run_command()` is refused outright.** Some projects call it for
   harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`
