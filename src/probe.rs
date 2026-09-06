@@ -56,12 +56,12 @@ pub fn zig_present() -> bool {
 pub struct ProbeCache(HashMap<(String, String), bool>);
 
 impl ProbeCache {
-    fn compiles(&mut self, triple: &str, snippet: &str) -> bool {
-        let key = (triple.to_owned(), snippet.to_owned());
+    fn compiles(&mut self, triple: &str, snippet: &str, extra: &[&str]) -> bool {
+        let key = (triple.to_owned(), format!("{snippet}\u{0}{}", extra.join(" ")));
         if let Some(hit) = self.0.get(&key) {
             return *hit;
         }
-        let ok = syntax_check(triple, snippet);
+        let ok = syntax_check(triple, snippet, extra);
         self.0.insert(key, ok);
         ok
     }
@@ -86,7 +86,10 @@ impl ProbeCache {
 /// zig 0.15.2's own `-fsyntax-only` is broken (reports `FileNotFound` for
 /// any input), hence a real `.c` file and a discarded `.o`. Each call uses
 /// a unique stem so parallel project imports do not collide.
-fn syntax_check(triple: &str, snippet: &str) -> bool {
+///
+/// `extra` is the probe call's `args:` — plain compiler flags replayed on
+/// the `zig cc` line, already filtered to the ones valid for `triple`'s arch.
+fn syntax_check(triple: &str, snippet: &str, extra: &[&str]) -> bool {
     static SEQ: AtomicU64 = AtomicU64::new(0);
     let stem = format!(
         "decay-probe-{}-{}",
@@ -102,6 +105,7 @@ fn syntax_check(triple: &str, snippet: &str) -> bool {
 
     let status = Command::new("zig")
         .args(["cc", "-target", triple, "-w", "-c"])
+        .args(extra)
         .arg(&src)
         .arg("-o")
         .arg(&obj)
@@ -184,19 +188,52 @@ fn linux_targets(cpu: Cpu) -> [(&'static str, String); 2] {
     ]
 }
 
-/// Build `probe`'s snippet for every `linux` target in the matrix; return
-/// the `[abi, cpu]` rows (buck2 constraint values) it compiled for.
+/// Build `probe`'s snippet for every `linux` target in the matrix, replaying
+/// the probe's `args:` (already vetted as plain flags), and return the
+/// `[abi, cpu]` rows (buck2 constraint values) it compiled for.
 pub fn linux_rows(cache: &mut ProbeCache, probe: &CompileProbe) -> Vec<Vec<String>> {
     let snippet = probe.snippet();
     let mut rows = Vec::new();
     for cpu in Cpu::ALL {
+        let arch = match cpu.zig_arch() {
+            "x86_64" | "x86" => "x86",
+            other => other,
+        };
+        let flags = flags_for_arch(probe.args(), arch);
         for (abi, triple) in linux_targets(cpu) {
-            if cache.compiles(&triple, &snippet) {
+            if cache.compiles(&triple, &snippet, &flags) {
                 rows.push(vec![abi.to_owned(), cpu.buck2_value().to_owned()]);
             }
         }
     }
     rows
+}
+
+/// The subset of `flags` valid for `arch`: an ISA `-m…` option handed to a
+/// `-target` that lacks that ISA makes `zig cc` (clang) hard-error, so drop
+/// the two families that do — ARM `-mfpu=`/`-mfloat-abi=` off non-ARM, x86
+/// `-msse*`/`-mavx*`/`-mfpmath=sse` off non-x86. Everything else (`-D…`,
+/// `-std=…`, `-f…`, `-W…`) passes through untouched.
+///
+/// ponytail: two hard-coded ISA families; extend if a project brings a
+/// `-target`-incompatible `-m…` from another arch.
+fn flags_for_arch<'a>(flags: &'a [String], arch: &str) -> Vec<&'a str> {
+    flags
+        .iter()
+        .map(String::as_str)
+        .filter(|f| {
+            let arm_isa = f.starts_with("-mfpu=") || f.starts_with("-mfloat-abi=");
+            let x86_isa = f.starts_with("-msse")
+                || f.starts_with("-mavx")
+                || *f == "-mmmx"
+                || *f == "-mfpmath=sse";
+            match arch {
+                "arm" => !x86_isa,
+                "x86" => !arm_isa,
+                _ => !arm_isa && !x86_isa,
+            }
+        })
+        .collect()
 }
 
 /// Whether a `has_header` argument is a plain header path, safe to drop into
@@ -210,7 +247,14 @@ pub fn is_plain_header(header: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use {super::*, decay_meson_eval::oracle::CompileProbeKind};
+
+    fn probe(kind: CompileProbeKind) -> CompileProbe {
+        CompileProbe {
+            kind,
+            args: Vec::new(),
+        }
+    }
 
     #[test]
     fn header_rows_match_reality() {
@@ -222,9 +266,9 @@ mod tests {
 
         let present = linux_rows(
             &mut cache,
-            &CompileProbe::Header {
+            &probe(CompileProbeKind::Header {
                 header: "stdio.h".to_owned(),
-            },
+            }),
         );
         assert_eq!(
             present.len(),
@@ -234,11 +278,61 @@ mod tests {
 
         let absent = linux_rows(
             &mut cache,
-            &CompileProbe::Header {
+            &probe(CompileProbeKind::Header {
                 header: "decay_no_such_header_xyz.h".to_owned(),
-            },
+            }),
         );
         assert!(absent.is_empty(), "a bogus header compiles nowhere");
+    }
+
+    #[test]
+    fn arch_isa_flags_gate_by_target() {
+        // ARM `-mfpu=` only ever reaches an arm32 target.
+        let neon = vec!["-mfpu=neon".to_owned(), "-D_GNU_SOURCE".to_owned()];
+        assert_eq!(flags_for_arch(&neon, "arm"), ["-mfpu=neon", "-D_GNU_SOURCE"]);
+        assert_eq!(flags_for_arch(&neon, "x86"), ["-D_GNU_SOURCE"]);
+        assert_eq!(flags_for_arch(&neon, "aarch64"), ["-D_GNU_SOURCE"]);
+
+        // x86 `-msse*` only reaches an x86 target.
+        let sse = vec!["-mfpmath=sse".to_owned(), "-msse2".to_owned()];
+        assert_eq!(flags_for_arch(&sse, "x86"), ["-mfpmath=sse", "-msse2"]);
+        assert!(flags_for_arch(&sse, "arm").is_empty());
+        assert!(flags_for_arch(&sse, "riscv64").is_empty());
+    }
+
+    #[test]
+    fn args_replay_flips_a_row() {
+        if !zig_present() {
+            eprintln!("skipping: no zig on PATH");
+            return;
+        }
+        let mut cache = ProbeCache::default();
+
+        // graphene's NEON probe: #errors unless __ARM_NEON__ (set by
+        // -mfpu=neon on arm32) or __aarch64__. So: arm32 + arm64 only.
+        let neon_prog = "\
+#if !defined (__ARM_NEON__) && !defined (__aarch64__)
+# error no neon
+#endif
+#include <arm_neon.h>
+int main (void) { return 0; }
+";
+        let rows = linux_rows(
+            &mut cache,
+            &CompileProbe {
+                kind: CompileProbeKind::Compiles {
+                    prefix: String::new(),
+                    code: neon_prog.to_owned(),
+                },
+                args: vec!["-mfpu=neon".to_owned()],
+            },
+        );
+        let cpus: std::collections::BTreeSet<_> = rows.iter().map(|r| r[1].clone()).collect();
+        assert_eq!(
+            cpus,
+            ["arm32", "arm64"].map(str::to_owned).into_iter().collect(),
+            "NEON prog with -mfpu=neon compiles for arm only, not x86_64"
+        );
     }
 
     #[test]
@@ -279,20 +373,20 @@ mod tests {
         // No prefix: `struct iovec` is undeclared, compiles nowhere.
         let bare = linux_rows(
             &mut cache,
-            &CompileProbe::Type {
+            &probe(CompileProbeKind::Type {
                 name: "struct iovec".to_owned(),
                 prefix: String::new(),
-            },
+            }),
         );
         assert!(bare.is_empty());
 
         // With the header that declares it: compiles everywhere.
         let with_prefix = linux_rows(
             &mut cache,
-            &CompileProbe::Type {
+            &probe(CompileProbeKind::Type {
                 name: "struct iovec".to_owned(),
                 prefix: "#include <sys/uio.h>".to_owned(),
-            },
+            }),
         );
         assert_eq!(with_prefix.len(), Cpu::ALL.len() * 2);
     }

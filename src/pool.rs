@@ -399,7 +399,7 @@ fn build_labels(config: &Config, packages: &Packages) -> Labels {
                 config
                     .dependencies
                     .iter()
-                    .filter_map(|(name, dep)| Some((name.clone(), dep.target()?.to_owned()))),
+                    .filter_map(|(name, dep)| Some((name.clone(), vec![dep.target()?.to_owned()]))),
             )
             .collect(),
         dependency_sources: packages.source_groups().collect(),

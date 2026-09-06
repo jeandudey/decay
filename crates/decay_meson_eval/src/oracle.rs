@@ -237,28 +237,41 @@ pub enum Probe {
 
 /// A compiler probe the importer can answer by building it, once per target
 /// in its configured matrix. Carries everything needed to reconstruct the
-/// translation unit meson would have compiled.
+/// translation unit meson would have compiled, plus the call's `args:` when
+/// they are plain compiler flags the importer can replay (`Vec::new()`
+/// otherwise — a probe carrying anything it cannot replay never reaches here).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CompileProbe {
-    /// `cc.has_header('h')` with no `prefix:`/`args:`/`dependencies:`.
+pub struct CompileProbe {
+    pub kind: CompileProbeKind,
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompileProbeKind {
+    /// `cc.has_header('h')` with no `prefix:`/`dependencies:`.
     Header { header: String },
-    /// `cc.has_type('t', prefix: p)` with no `args:`/`dependencies:`.
+    /// `cc.has_type('t', prefix: p)` with no `dependencies:`.
     Type { name: String, prefix: String },
-    /// `cc.compiles(code, prefix: p)` with no `args:`/`dependencies:`.
+    /// `cc.compiles(code, prefix: p)` with no `dependencies:`.
     Compiles { prefix: String, code: String },
 }
 
 impl CompileProbe {
-    /// The C translation unit to compile (`-fsyntax-only`; presence is
-    /// "does it compile", never "does it link").
+    /// The C translation unit to compile (`zig cc -c`; presence is "does it
+    /// compile", never "does it link").
     pub fn snippet(&self) -> String {
-        match self {
-            Self::Header { header } => format!("#include <{header}>\n"),
-            Self::Type { name, prefix } => {
+        match &self.kind {
+            CompileProbeKind::Header { header } => format!("#include <{header}>\n"),
+            CompileProbeKind::Type { name, prefix } => {
                 format!("{prefix}\nvoid _decay_probe(void) {{ sizeof({name}); }}\n")
             }
-            Self::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
+            CompileProbeKind::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
         }
+    }
+
+    /// The call's `args:`, replayed on the `zig cc` line.
+    pub fn args(&self) -> &[String] {
+        &self.args
     }
 }
 

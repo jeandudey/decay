@@ -79,6 +79,18 @@ cxx_library(
         ":zlib.git[gzwrite.c]",
         ":zlib.git[uncompr.c]",
     ],
+    headers = {
+        "zutil.h": ":zlib.git[zutil.h]",
+        "crc32.h": ":zlib.git[crc32.h]",
+        "deflate.h": ":zlib.git[deflate.h]",
+        "inftrees.h": ":zlib.git[inftrees.h]",
+        "inflate.h": ":zlib.git[inflate.h]",
+        "inffast.h": ":zlib.git[inffast.h]",
+        "inffixed.h": ":zlib.git[inffixed.h]",
+        "trees.h": ":zlib.git[trees.h]",
+        "gzguts.h": ":zlib.git[gzguts.h]",
+        "zlib.h": ":zlib.git[zlib.h]",
+    },
     header_namespace = "",
     compiler_flags = select({
         "//third-party/meson/constraints:compiler[gcc]": [],

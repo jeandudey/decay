@@ -173,6 +173,10 @@ pub struct Attrs {
     pub srcs: Variational<Source>,
     /// Headers that belong to the target and are visible to its dependents.
     pub headers: Variational<Source>,
+    /// Headers a compiled source `#include "…"`s from its own directory,
+    /// which meson resolves through the implicit source-dir include path.
+    /// Private to the target and keyed by the exact spelling used.
+    pub sibling_headers: Variational<Source>,
     /// Include directories, relative to the project root.
     pub include_dirs: Variational<PathBuf>,
     pub compile_args: Variational<Flag>,
@@ -301,6 +305,10 @@ pub struct Package {
     /// The target carrying its usage requirements, when it is a linkable
     /// library and not just data.
     pub target: Option<TargetId>,
+    /// The `.pc` file's `Requires:` — other package names a consumer of this
+    /// one also needs on its include/link path, the way `pkg-config --cflags`
+    /// pulls a `Requires:` in transitively.
+    pub requires: Vec<String>,
     /// `pkg-config` variables resolved to their actual value, wherever the
     /// value does not itself depend on the configuration.
     pub variables: Vec<(String, String)>,

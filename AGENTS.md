@@ -228,9 +228,17 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   turns the whole mechanism off.
 
   **Landed (first slice).** `cc.has_header`, `cc.has_type`, and
-  `cc.compiles` — bare shapes only (no project `args:`/`dependencies:` the
-  importer cannot replay; `has_header` also skips anything but a plain
-  header path) — are answered by `src/probe.rs`: `zig cc -c` (compile to a
+  `cc.compiles` — no `dependencies:` (a `pkg-config` answer the importer
+  cannot reconstruct); a project `args:` *is* replayed when every element is
+  a plain compiler flag (`is_replayable_cflag` in `decay_meson_eval`:
+  `-`-prefixed, ASCII, no space / `/` / `@`), so graphene's
+  `cc.compiles(neon_prog, args: ['-mfpu=neon'])` / `sse_prog` resolve by
+  arch instead of leaving an open knob that defaults present. `src/probe.rs`'s
+  `flags_for_arch` gates the ISA `-m…` families (`-mfpu=`/`-mfloat-abi=` →
+  arm32 only; `-msse*`/`-mavx*`/`-mfpmath=sse` → x86) so a `-target` that
+  lacks the ISA is never handed the flag (clang hard-errors on that);
+  `has_header` still skips anything but a plain header path — are answered by
+  `src/probe.rs`: `zig cc -c` (compile to a
   discarded object; zig 0.15.2's own `-fsyntax-only` is broken) for each
   `(abi, cpu)` in `decay_libc_db::Cpu::ALL` × {gnu, musl}, on `linux` only.
   The result is `oracle::Probe::Matrix` — true on the rows that compiled,
@@ -396,6 +404,24 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   call's `guess:` and errors without one. Like `[sizeof]` / `[alignment]`,
   the no-guess case should be answerable from `decay.toml`.
 
+- **graphene build status.** `buck2 build` of `graphene-1.0` /
+  `graphene-dep` from `example/` succeeds (`//platforms:linux`, gcc). Took
+  three fixes, all in decay: (1) `cc.compiles(..., args:)` with plain flags
+  is now zig-probed (see the compile-probe note above) so the SSE/NEON
+  checks settle by arch instead of adding `-mfpu=neon` on x86_64; (2) a
+  source's own-directory `#include "x"` siblings (graphene's
+  `src/graphene-private.h` &c., named nowhere in its meson build) are
+  collected into `Attrs.sibling_headers` by a `#include` scan in
+  `build_target` and emitted as a private, basename-keyed `headers` dict;
+  (3) `pkg.generate(requires: [...])` is captured (`Package.requires`,
+  through `src/packages.rs`) so `dependency('gobject-2.0')` resolving to a
+  sibling project also pulls that `.pc`'s `Requires:` (`glib-2.0`) into the
+  consumer's `deps` — `<glib-object.h>` was otherwise unreachable. The
+  `pkg.generate` main-library pick now prefers the first positional over
+  `libraries:` (glib passes `libraries: [libintl_deps]` there, a
+  non-target). `gio-2.0` regenerates fine but was not re-verified — a
+  gitlab.gnome.org outage blocked the `gvdb` `git_fetch`.
+
 - **glib build status.** `buck2 build` of `glib-2.0`, `gobject-2.0`,
   `gmodule-2.0`, `gthread-2.0` **and `gio-2.0`** from `example/` succeeds
   (target platform `//platforms:linux`, gcc). Getting `gio-2.0` there took,
@@ -428,6 +454,15 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   looked-up name equals the project's `short_name`. A wrap whose
   `[provide] dependency_names` differs from the directory name, or a project
   with several root `declare_dependency()` calls, would not resolve.
+
+  What *does* now cross projects: a `pkg.generate(lib, requires: [...])`'s
+  `Requires:` is captured (`Package.requires` in `decay_build_ir` and
+  `src/packages.rs`) and `Packages::targets()` walks it transitively, so
+  resolving `dependency('gobject-2.0')` to glib's `gobject-2.0` target also
+  puts glib's `glib-2.0` target in the consumer's `deps`. `Labels::
+  dependencies` is now `name -> Vec<label>` for that. Only the plain-string
+  `requires:` entries are read (a dependency-object entry is skipped); a
+  `configure_file()`-produced `.pc` still records no `requires`.
 
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a

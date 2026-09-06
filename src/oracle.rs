@@ -19,6 +19,7 @@ use {
         obj,
         oracle::{
             CompileProbe,
+            CompileProbeKind,
             Oracle,
             Pinned,
             Probe,
@@ -298,7 +299,7 @@ impl<'a> ConfigOracle<'a> {
     /// the answer to. An explicit `[probes]` entry for the same check has
     /// already won by the time this is reached (see [`Oracle::probe`]).
     fn compile_probe_answer(&self, probe: &CompileProbe) -> Option<Probe> {
-        if let CompileProbe::Header { header } = probe
+        if let CompileProbeKind::Header { header } = &probe.kind
             && !probe::is_plain_header(header)
         {
             return None;

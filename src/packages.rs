@@ -23,6 +23,9 @@ pub struct Package {
     /// Build-file label of the target carrying its usage requirements, when
     /// it is a linkable library and not just data.
     pub target: Option<String>,
+    /// The `.pc` `Requires:` — other provided names a consumer of this one
+    /// also needs on its include/link path.
+    pub requires: Vec<String>,
     /// The `.c` sources a `declare_dependency(sources: …)` copylib
     /// contributes, as package-qualified Starlark source refs — a consumer
     /// splices these straight into its own `srcs` (see `decay_buck2`). Empty
@@ -36,11 +39,30 @@ impl Packages {
         self.by_name.get(name)
     }
 
-    /// Every provided name that names a linkable target, as `(name, label)`.
-    pub fn targets(&self) -> impl Iterator<Item = (String, String)> + '_ {
-        self.by_name
-            .iter()
-            .filter_map(|(name, pkg)| Some((name.clone(), pkg.target.clone()?)))
+    /// Every provided name that names a linkable target, as `(name, labels)`:
+    /// the target itself, followed by the targets of its `.pc` `Requires:`
+    /// (transitively), so a consumer resolving `dependency('name')` gets the
+    /// same include/link closure `pkg-config --cflags name` would give it.
+    pub fn targets(&self) -> impl Iterator<Item = (String, Vec<String>)> + '_ {
+        self.by_name.iter().filter_map(|(name, pkg)| {
+            let mut labels = vec![pkg.target.clone()?];
+            let mut queue = pkg.requires.clone();
+            let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+            while let Some(req) = queue.pop() {
+                if !seen.insert(req.clone()) {
+                    continue;
+                }
+                if let Some(dep) = self.by_name.get(&req) {
+                    if let Some(label) = &dep.target
+                        && !labels.contains(label)
+                    {
+                        labels.push(label.clone());
+                    }
+                    queue.extend(dep.requires.clone());
+                }
+            }
+            Some((name.clone(), labels))
+        })
     }
 
     /// Every provided name that contributes copylib `.c` sources, as
@@ -84,6 +106,7 @@ impl Packages {
                 provide.name.clone(),
                 Package {
                     target,
+                    requires: provide.requires.clone(),
                     sources,
                     variables: provide.variables.clone(),
                 },

@@ -521,6 +521,37 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         self.list_headers(&include_dirs, &mut headers);
 
+        // meson always puts a compiled source's own directory on the quote-
+        // include path, so a `#include "foo-private.h"` next to the source
+        // resolves without being named anywhere. Mirror that precisely: scan
+        // each source for a quoted include of a plain name that sits right
+        // beside it and is not already a known header, and carry just those —
+        // private to the target, keyed by the exact spelling used.
+        let mut sibling_headers = Variational::empty();
+        for variant in srcs.variants().to_vec() {
+            let Source::File(src_path) = &variant.value else {
+                continue;
+            };
+            let Ok(text) = self.sources.read(&self.root.join(src_path)) else {
+                continue;
+            };
+            let dir = src_path.parent().map(Path::to_path_buf).unwrap_or_default();
+            for inc in quoted_includes(&text) {
+                if inc.is_empty() || inc.contains(['/', '\\']) || inc.contains("..") {
+                    continue;
+                }
+                let rel = dir.join(inc);
+                let known = headers
+                    .variants()
+                    .iter()
+                    .chain(sibling_headers.variants())
+                    .any(|h| matches!(&h.value, Source::File(p) if *p == rel));
+                if !known && self.sources.exists(&self.root.join(&rel)) {
+                    sibling_headers.push(Variant::new(variant.cond, Source::File(rel)));
+                }
+            }
+        }
+
         let mut compile_args = Variational::empty();
         for key in ["c_args", "cpp_args", "objc_args", "objcpp_args", "args"] {
             if let Some(v) = args.get(key) {
@@ -539,6 +570,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         let target = self.graph.target_mut(id);
         target.attrs.srcs = srcs;
         target.attrs.headers = headers;
+        target.attrs.sibling_headers = sibling_headers;
         target.attrs.deps = deps;
         target.attrs.link_with = link_with;
         target.attrs.include_dirs = include_dirs;
@@ -729,6 +761,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             self.graph.provides.push(Package {
                 name: output.trim_end_matches(".pc").to_owned(),
                 target: None,
+                requires: Vec::new(),
                 variables,
             });
         }
@@ -1184,14 +1217,19 @@ impl<'a, S: Solver> Interp<'a, S> {
         &mut self,
         args: &CallArgs,
     ) -> eyre::Result<Variational<Value>> {
-        let library = args.get("libraries").or_else(|| args.at(0));
-        let library_target = match library {
-            Some(v) => self.flat(v).into_iter().find_map(|v| match v.value {
-                Value::Obj(Obj::Target(id)) => Some(id),
-                _ => None,
-            }),
-            None => None,
-        };
+        // The main library is the first positional; `libraries:` names extra
+        // ones (a `declare_dependency`, an ldflags holder — glib passes
+        // `libraries: [libintl_deps]` there). Take the positional when it is a
+        // real target, and only fall back to the first target in `libraries:`.
+        let library_target = [args.at(0), args.get("libraries")]
+            .into_iter()
+            .flatten()
+            .find_map(|v| {
+                self.flat(v).into_iter().find_map(|v| match v.value {
+                    Value::Obj(Obj::Target(id)) => Some(id),
+                    _ => None,
+                })
+            });
 
         let name = match self.opt_string(args, "filebase")? {
             Some(n) => n.to_string(),
@@ -1211,9 +1249,27 @@ impl<'a, S: Solver> Interp<'a, S> {
             None => Vec::new(),
         };
 
+        // `requires:` is the `.pc`'s `Requires:` — other module names a
+        // consumer also needs. Only the plain-string entries are kept (a
+        // dependency-object entry would need its own resolution); that covers
+        // what glib/gtk-style `pkg.generate(requires: ['glib-2.0', ...])` uses.
+        let requires = match args.get("requires") {
+            Some(v) => self
+                .strings(v)
+                .map(|ss| {
+                    ss.into_variants()
+                        .map(|v| v.value.to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default(),
+            None => Vec::new(),
+        };
+
         self.graph.provides.push(Package {
             name,
             target: library_target,
+            requires,
             variables,
         });
 
@@ -1420,6 +1476,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             self.graph.provides.push(Package {
                 name: provided,
                 target: Some(id),
+                requires: Vec::new(),
                 variables,
             });
         }
@@ -2109,6 +2166,23 @@ fn is_header_file(path: &Path) -> bool {
         path.extension().and_then(|e| e.to_str()),
         Some("h" | "hh" | "hpp" | "hxx" | "inc" | "def")
     )
+}
+
+/// The `X` in each `#include "X"` of `text`, in source order. A cheap line
+/// scan — enough to pull a source's own sibling headers, not a preprocessor
+/// (it does not skip `#if 0` blocks or comments, which only ever means a
+/// header that exists beside the source is fetched when it need not be).
+fn quoted_includes(text: &str) -> impl Iterator<Item = &str> {
+    text.lines().filter_map(|line| {
+        let rest = line
+            .trim_start()
+            .strip_prefix('#')?
+            .trim_start()
+            .strip_prefix("include")?
+            .trim_start()
+            .strip_prefix('"')?;
+        Some(&rest[..rest.find('"')?])
+    })
 }
 
 /// Whether a path is a Windows resource script, which buck2 compiles only in

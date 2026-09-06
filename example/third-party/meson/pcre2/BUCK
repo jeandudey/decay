@@ -531,7 +531,13 @@ cxx_library(
 cxx_library(
     name = "pcre2-posix",
     srcs = [":pcre2.git[src/pcre2posix.c]"],
-    headers = _headers2,
+    headers = {
+        "pcre2.h": ":pcre2.h",
+        "config.h": ":config.h",
+        "pcre2posix.h": ":pcre2.git[src/pcre2posix.h]",
+        "pcre2_util.h": ":pcre2.git[src/pcre2_util.h]",
+        "pcre2_tables.c": ":pcre2.git[src/pcre2_tables.c]",
+    },
     header_namespace = "",
     compiler_flags = [
         "-DHAVE_CONFIG_H",

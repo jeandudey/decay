@@ -204,8 +204,9 @@ pub struct Labels {
     pub systems: BTreeMap<String, String>,
     pub compilers: BTreeMap<String, String>,
     /// Targets that already provide a dependency the meson build looked up
-    /// outside itself, keyed by the name meson used.
-    pub dependencies: BTreeMap<String, String>,
+    /// outside itself, keyed by the name meson used. More than one label when
+    /// the resolved `.pc` names `Requires:` a consumer also needs.
+    pub dependencies: BTreeMap<String, Vec<String>>,
     /// The `.c` sources a sibling project's `declare_dependency(sources: …)`
     /// copylib contributes, as package-qualified Starlark source refs, keyed
     /// by the dependency name — spliced into the `srcs` of any target that
@@ -499,6 +500,7 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
             .srcs
             .iter()
             .chain(target.attrs.headers.iter())
+            .chain(target.attrs.sibling_headers.iter())
             .map(|entry| &entry.value)
             .chain(target.attrs.template.iter());
         for source in sources {
@@ -574,9 +576,19 @@ impl Rendered {
 fn render_dep_ref(graph: &Graph, known: &Labels, id: TargetId) -> String {
     let target = graph.target(id);
     // External dependencies with a known mapping use the full path directly.
+    // A resolved `.pc` with `Requires:` maps to several labels — its own plus
+    // what a consumer transitively needs — returned as one comma-joined list
+    // element. ponytail: two labels land on a single line rather than one
+    // each; valid Starlark, buildifier reflows it. Splitting them properly
+    // means threading the extra labels back as `TargetId`s, which `Labels`
+    // does not carry.
     if let Kind::External(_) = &target.kind {
         if let Some(actual) = known.dependencies.get(&target.label) {
-            return format!("{actual:?}");
+            return actual
+                .iter()
+                .map(|label| format!("{label:?}"))
+                .collect::<Vec<_>>()
+                .join(", ");
         }
     }
     // Everything else uses the short name.
@@ -783,16 +795,28 @@ fn render_target<S: Solver>(
                 private.extend(a.headers.iter().cloned());
             }
 
-            if !private.is_empty() {
+            // A source's own-directory `#include "x"` siblings are private and
+            // keyed by that exact spelling — the basename of the file — rather
+            // than by an include-root-relative path.
+            let mut private_aliased = header_aliases(graph, &private, &roots);
+            for entry in a.sibling_headers.iter() {
+                if let Some(name) = logical_path(graph, &entry.value)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                {
+                    private_aliased.push(Variant::new(
+                        entry.cond,
+                        (name.to_owned(), entry.value.clone()),
+                    ));
+                }
+            }
+
+            if !private_aliased.is_empty() {
                 attrs.push((
                     "headers",
-                    selects.render_dict(
-                        logic,
-                        &header_aliases(graph, &private, &roots),
-                        cond,
-                        1,
-                        |(key, s)| (key.clone(), source(graph, s)),
-                    ),
+                    selects.render_dict(logic, &private_aliased, cond, 1, |(key, s)| {
+                        (key.clone(), source(graph, s))
+                    }),
                 ));
             }
 

@@ -12,6 +12,7 @@ use {
         },
         oracle::{
             CompileProbe,
+            CompileProbeKind,
             Probe,
             SizeAnswer,
             SizeQuery, //
@@ -748,26 +749,47 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     /// Turn a `cc.has_header` / `cc.has_type` / `cc.compiles` call into a
-    /// [`CompileProbe`] and let the oracle answer it by compiling — but only
-    /// for the plain shapes it can reproduce faithfully: a project `args:`
-    /// or `dependencies:` adds flags and include paths the importer cannot
-    /// replay, so anything carrying one stays an open knob.
+    /// [`CompileProbe`] and let the oracle answer it by compiling — for the
+    /// shapes it can reproduce faithfully. `dependencies:` pulls in flags and
+    /// include paths from a `pkg-config` answer the importer cannot
+    /// reconstruct, so it always stays an open knob; `args:` is replayed on
+    /// the `zig cc` line only when every element is a plain compiler flag
+    /// ([`is_replayable_cflag`]) — an arch `-m…`, a `-D…`, a `-std=…`.
     fn compile_probe_answer(&mut self, name: &str, args: &CallArgs) -> Option<Probe> {
-        if args.get("args").is_some() || args.get("dependencies").is_some() {
+        if args.get("dependencies").is_some() {
             return None;
         }
+        let extra_args = match args.get("args") {
+            None => Vec::new(),
+            Some(v) => {
+                let mut flags: Vec<String> = Vec::new();
+                for variant in self.strings(v).ok()?.variants() {
+                    let flag = variant.value.to_string();
+                    if !is_replayable_cflag(&flag) {
+                        return None;
+                    }
+                    if !flags.contains(&flag) {
+                        flags.push(flag);
+                    }
+                }
+                flags
+            }
+        };
         let prefix = match self.opt_string(args, "prefix") {
             Ok(p) => p.map(|s| s.to_string()).unwrap_or_default(),
             Err(_) => return None,
         };
         let arg0 = self.one_string(args.at(0)?).ok()?.to_string();
-        let probe = match name {
-            "has_header" if prefix.is_empty() => CompileProbe::Header { header: arg0 },
-            "has_type" => CompileProbe::Type { name: arg0, prefix },
-            "compiles" => CompileProbe::Compiles { prefix, code: arg0 },
+        let kind = match name {
+            "has_header" if prefix.is_empty() => CompileProbeKind::Header { header: arg0 },
+            "has_type" => CompileProbeKind::Type { name: arg0, prefix },
+            "compiles" => CompileProbeKind::Compiles { prefix, code: arg0 },
             _ => return None,
         };
-        self.oracle.compile_probe(&probe)
+        self.oracle.compile_probe(&CompileProbe {
+            kind,
+            args: extra_args,
+        })
     }
 
     /// Turn an [`Oracle`] answer into a condition, the way [`Self::probe_cond`]
@@ -1641,6 +1663,15 @@ impl<'a, S: Solver> Interp<'a, S> {
         out.normalize(&mut self.logic);
         Ok(out)
     }
+}
+
+/// Whether `flag` is a plain compiler flag the importer can hand straight to
+/// a `zig cc` line: a `-`-prefixed ASCII token with no whitespace, path
+/// separator, or unexpanded `@…@` placeholder. Admits `-mfpu=neon`, `-msse2`,
+/// `-D_GNU_SOURCE`, `-std=c99`; rejects `-I@0@/gen`, `-I../include`,
+/// `/abs/path`, a bare `foo.c`.
+fn is_replayable_cflag(flag: &str) -> bool {
+    flag.starts_with('-') && flag.is_ascii() && !flag.contains([' ', '\t', '/', '@'])
 }
 
 /// Meson's `version_compare`: an operator followed by a dotted version.
