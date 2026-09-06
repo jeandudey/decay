@@ -5,11 +5,10 @@
 without hand-porting its `meson.build` files or losing the configuration
 choices they expose.
 
-## Notes
+## Rules
 
-Binary files should use git-lfs and if build fails it is because the
-files have not been materialized, so on a fresh clone or worktree
-these need to be checked out.
+- Always materialize git lfs (`git lfs pull`) when working, no skip before doingo
+  anything, otherwise build error.
 
 ## How it works
 
@@ -170,9 +169,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be
   unsatisfiable or a custom generated one if we have the data to back it up.
-
-- **Fix glib_debug.** See the example/decay.toml file for context, it should work
-  to pin this option.
 
 - **has_function.** For common C standard library functions on most operating
   systems we could have this built-in in decay (altough with an option
@@ -365,6 +361,18 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   command, which a Windows genrule does not have. Both matter for the
   Windows target that is a priority.
 
+  A `.rc` source itself is no longer left in a `cxx_library`, where buck2
+  never runs the resource compiler over it. `split_resources`
+  (`decay_meson_eval/src/builtins.rs`) peels every `.rc` — whether from
+  `library()`/`executable()` sources, `declare_dependency(sources:)`, or a
+  generated `configure_file()` output — out into its own
+  `Kind::WindowsResource` target (`decay_build_ir`), which `decay_buck2`
+  emits as a `windows_resource` rule wired back into the consumer through
+  `link_with` → `deps`/`exported_deps`; the `os[windows]` gating falls out of
+  the pulled entries' presence conditions. Still `srcs`-only: a `.rc` that
+  `#include`s a project header needs `include_directories`/`headers` emitted
+  on that rule too (the `include_directories:` gap above).
+
 - **The `python` module is a stub.** Only `import('python').
   find_installation()` (resolved like any `[programs]` entry) and
   `.language_version()` (fabricated `"3.12"`, the way `cc.version()` is).
@@ -463,64 +471,43 @@ constraint(
 )
 ```
 
-  **Requirement met for `cc.find_library()`:** there is no `m[true]`/`dl`/`rt`/…
-  knob. `cc.find_library('foo')` for a system/runtime library settles
-  found-or-not for *every* `[systems]` entry, as a `select()` over `os`/`abi`
-  decay already tracks — no `<lib>[true/false]` constraint, no open probe var.
+  **Done for `cc.find_library()`:** no `m[true]`/`dl`/`rt`/… knob. A
+  system/runtime library is settled found-or-not for every `[systems]`
+  entry, as a `select()` over `os`/`abi` decay already tracks.
 
-  How it works now:
-
-  - `decay_libc_db::has_library` keeps the vendored glibc `abilists` library
-    table `parse()` used to discard (`m pthread c dl rt ld util resolv`) and
-    `build.rs` adds a `musl_libraries` `zig cc -lNAME` link probe. This is
-    the fast, offline answer for `linux`.
-  - `src/probe.rs` gains `ProbeCache::links_library` — an import-time `zig cc
-    -target <triple> <empty.c> -lNAME` link, memoised in the same cache as
-    the compile probes — and `system_link_targets(system)`, the `zig`
-    triples per system: `linux` (gnu+musl), `darwin` (x86_64+aarch64),
-    `freebsd`, `netbsd`, `windows` (gnu only — zig has no MSVC libc). The
-    answers are *not* uniform (`-ldl`/`-lrt` fail on mingw, `-lrt`/`-lresolv`
-    on macOS, `-lresolv` on the BSDs), which is why it is a real probe.
-  - `ConfigOracle::builtin_system_library` (behind the `Oracle::system_library`
-    trait method, consulted by `cc.find_library` in `decay_meson_eval` before
-    the open-knob fallback; toggle `config.builtin_system_library`) walks
-    every configured system, collecting `(system, abi-filter)` rows: the libc
-    DB / link probe for the hostable ones, `decay.toml`'s new
-    `[system_libraries]` table for the ones `zig` cannot host (`sunos`,
-    `openbsd`, `android`, `fuchsia`). A name nothing confirms anywhere is not
-    a system library → `None`, still an open knob (`libselinux`, `libelf`,
-    `socket`, `elf`).
-  - It returns `Probe::PerSystem { abi, found }` (new variant); `resolve_probe`
-    turns it into `OR over found of (host_system_is(sys) ∧ abi?)` with
-    **nothing left open** — a configured system with no row is a settled
-    not-found. A `windows` hit for a C-runtime library (`m`, `pthread`,
+  - `decay_libc_db::has_library` keeps the glibc `abilists` library table
+    `parse()` used to discard (`m pthread c dl rt ld util resolv`) plus a
+    `musl_libraries` `zig cc -lNAME` link probe — the fast offline answer for
+    `linux`.
+  - `src/probe.rs`'s `ProbeCache::links_library` link-probes the rest at
+    import time (`zig cc -target <triple> <empty.c> -lNAME`, memoised beside
+    the compile probes), per `system_link_targets`: `linux` gnu+musl,
+    `darwin` x86_64+aarch64, `freebsd`, `netbsd`, `windows` gnu-only (zig has
+    no MSVC libc). Results are not uniform — `-ldl`/`-lrt` fail on mingw,
+    `-lrt`/`-lresolv` on macOS, `-lresolv` on the BSDs.
+  - Systems `zig` cannot host (`sunos`, `openbsd`, `android`, `fuchsia`) are
+    answered from `decay.toml`'s `[system_libraries]` table. A name nothing
+    confirms anywhere is not a system library → still an open knob
+    (`libselinux`, `libelf`, `socket`).
+  - `ConfigOracle::builtin_system_library` (behind `Oracle::system_library`,
+    toggle `config.builtin_system_library`) returns `Probe::PerSystem { abi,
+    found }`; `resolve_probe` turns it into `OR of (system ∧ abi?)` with
+    nothing left open. A `windows` hit for a C-runtime lib (`m`, `pthread`,
     `atomic`) is `abi[gnu]` only (MSVC has no standalone `.lib` — the fact
     `dependency('threads')` / `is_crt_provided_lib` already encode); any
-    other library confirmed on mingw is both abis (Windows SDK ⊇ mingw
-    import libs). `atomic` is the one name not in the libc DB that still
-    needs the MSVC exception — hardcoded, `ponytail:`-noted.
+    other mingw-confirmed lib is both abis (Windows SDK ⊇ mingw import libs).
+  - Pin one by hand instead: `find_library()` / `dependency()` consult
+    `ConfigOracle::dependency_found`, which answers from a `[dependencies]`
+    entry — `m = { found = "prelude//os/constraints:os[linux]" }` settles it
+    (found on `linux`, `false` elsewhere, no knob); a bare `x11 = "//sys:X11"`
+    is `found = true` everywhere.
 
-  `example/`: 13 knobs gone from `constraints/BUCK` (`m dl rt resolv atomic
-  opengl32 gdi32 shcore iphlpapi ws2_32 winmm shlwapi dnsapi`);
-  `example/decay.toml` gained a `[system_libraries]` block for
-  `sunos`/`fuchsia`/`android`.
-
-  Still to do:
-  - **Retire `is_crt_provided_lib`** (`decay_buck2`): `found` is now settled
-    per system, so the `-lNAME` flag can flow through the normal found-gated
-    select and be absent wherever `found` is false (incl. `abi[msvc]`). Not
-    done yet — the `decay_buck2` arm still renders these via `non_msvc_select`.
-  - **`runtimeobject`** stays a knob: mingw ships no `libruntimeobject.a`
-    (WinRT/UWP), so the link probe cannot confirm it. Needs Slice 2.
-  - **Slice 2** — a vendored mingw-w64 `.def`-name database in `decay_libc_db`
-    for Windows *OS* libs the link probe misses, and to drop the live probe
-    for the ones it does cover.
-  - **Slice 3** — `iconv` / `intl` as `threads`-style builtins (in libc on
-    glibc/musl, `-liconv` / `-lintl` on macOS/Windows). They still come
-    through `dependency()` as `dep:iconv` knobs.
-  - **`cc.compute_int` / non-hostable systems**: `builtin_system_library`
-    settles a non-hostable system to not-found when `[system_libraries]` is
-    silent, rather than erroring. Revisit if that proves too permissive.
+  Still open: retire `is_crt_provided_lib` in `decay_buck2` (the `-lNAME`
+  flag can now flow through the found-gated select and be absent wherever
+  `found` is false); `runtimeobject` stays a knob (mingw ships no import lib
+  for it — needs a vendored mingw `.def` database); `iconv` / `intl` still
+  come through `dependency()` as `dep:` knobs, wanting `threads`-style
+  builtins.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
 
@@ -554,3 +541,12 @@ cxx_library(
 
   The libraries generated by Meson that are common to all projects (only common
   in the sense of builtin ones like threads).
+
+- **This should not happen.** zlib.git name for an archive.
+
+```
+ http_archive(
+    name = "zlib.git",
+    urls = ["https://zlib.net/zlib-1.3.2.tar.xz"],
+    sha256 = "d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3",
+```

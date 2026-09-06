@@ -511,6 +511,14 @@ impl<'a, S: Solver> Interp<'a, S> {
             include_dirs.extend(self.include_dirs(v)?);
         }
 
+        // A `.rc` cannot be compiled inside the `cxx_library`/`cxx_binary`
+        // buck2 emits for this target; hoist it into its own rule and link
+        // the result back in.
+        let (srcs, rc) = self.split_resources(srcs, &name, &dir, &include_dirs);
+        if let Some(rc) = rc {
+            link_with.push(rc);
+        }
+
         self.list_headers(&include_dirs, &mut headers);
 
         let mut compile_args = Variational::empty();
@@ -1342,7 +1350,16 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         let mut headers = Variational::empty();
         if let Some(v) = args.get("sources") {
-            headers.extend(self.sources(v)?);
+            let raw = self.sources(v)?;
+            // A `.rc` handed straight to `declare_dependency(sources:)` would
+            // otherwise land in `exported_headers`, where buck2 never runs the
+            // resource compiler over it. Hoist it into its own rule and export
+            // it so consumers of the dependency link the compiled resource.
+            let (kept, rc) = self.split_resources(raw, &name, &dir, &include_dirs);
+            headers.extend(kept);
+            if let Some(rc) = rc {
+                link_with.push(rc);
+            }
         }
         self.list_headers(&include_dirs, &mut headers);
 
@@ -1472,7 +1489,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         };
 
         let target = self.external(&key, &name, kind);
-        let found = self.dependency_found(&key, &name, required);
+        let found = self.dependency_found(&key, &name, required)?;
         let variables = self.oracle.dependency_variables(&name);
 
         let value = self.dep_obj(Dep {
@@ -1488,19 +1505,30 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     /// The condition under which a looked-up dependency is available.
     ///
+    /// The importer answers it outright when it can — a sibling project it is
+    /// building anyway, or a `[dependencies]` entry, which may itself gate the
+    /// answer on a constraint (found on one OS, plain `false` elsewhere, never
+    /// a knob). Otherwise it is a fresh open knob.
+    ///
     /// Where it was `required:`, a build that does not have it fails to
     /// configure at all — so rather than tracking a "found" flag that can never
     /// be false there, the configuration space is narrowed to say so.
-    pub(crate) fn dependency_found(&mut self, key: &str, name: &str, required: Pc) -> Pc {
-        if let Some(pinned) = self.oracle.dependency_found(name) {
-            return Pc::from_bool(pinned);
-        }
-        let found = self.probe(key, format!("`{name}` is available"));
+    pub(crate) fn dependency_found(
+        &mut self,
+        key: &str,
+        name: &str,
+        required: Pc,
+    ) -> eyre::Result<Pc> {
+        let description = format!("`{name}` is available");
+        let found = match self.oracle.dependency_found(name) {
+            Some(answer) => self.resolve_probe(Some(answer), key, description)?,
+            None => self.probe(key, description),
+        };
         if !required.is_false() {
             let must = self.logic.implies(required, found);
             self.logic.assume(must);
         }
-        found
+        Ok(found)
     }
 
     /// The `required:` argument as a condition.
@@ -1857,6 +1885,56 @@ impl<'a, S: Solver> Interp<'a, S> {
         (compiled, headers)
     }
 
+    /// Peel `.rc` resource scripts out of `srcs` into their own
+    /// [`Kind::WindowsResource`] target.
+    ///
+    /// buck2 compiles a `.rc` only as a separate `windows_resource` rule,
+    /// linked into the consumer as a dependency; a `.rc` left in a
+    /// `cxx_library`'s `srcs` is not run through the resource compiler at all.
+    /// The new target carries the union of the pulled entries' presence
+    /// conditions, so its `os[windows]` gating falls out of the same machine
+    /// literal the `if host_machine.system() == 'windows'` branch already set.
+    fn split_resources(
+        &mut self,
+        srcs: Variational<Source>,
+        label: &str,
+        dir: &Path,
+        include_dirs: &Variational<PathBuf>,
+    ) -> (Variational<Source>, Option<Variant<TargetId>>) {
+        let mut kept = Variational::empty();
+        let mut rc = Variational::empty();
+        for variant in srcs {
+            let name = match &variant.value {
+                Source::File(path) => path.clone(),
+                Source::Generated(id) => {
+                    let target = self.graph.target(*id);
+                    PathBuf::from(target.attrs.outs.first().cloned().unwrap_or_default())
+                }
+            };
+            if is_resource_file(&name) {
+                rc.push(variant);
+            } else {
+                kept.push(variant);
+            }
+        }
+        if rc.variants().is_empty() {
+            return (kept, None);
+        }
+        let cond = rc
+            .variants()
+            .iter()
+            .map(|v| v.cond)
+            .reduce(|a, b| self.logic.or(a, b))
+            .unwrap_or(Pc::FALSE);
+        let id = self
+            .graph
+            .add(&format!("{label}-rc"), dir, cond, Kind::WindowsResource);
+        let target = self.graph.target_mut(id);
+        target.attrs.srcs = rc;
+        target.attrs.include_dirs = include_dirs.clone();
+        (kept, Some(Variant::new(cond, id)))
+    }
+
     /// A boolean keyword argument, as a condition.
     pub(crate) fn flag(&mut self, args: &CallArgs, name: &str, absent: Pc) -> eyre::Result<Pc> {
         let Some(v) = args.get(name) else {
@@ -1890,8 +1968,18 @@ fn mesondefine_names(text: &str) -> BTreeSet<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::mesondefine_names;
-    use std::collections::BTreeSet;
+    use super::{is_resource_file, mesondefine_names};
+    use std::{collections::BTreeSet, path::Path};
+
+    #[test]
+    fn only_dot_rc_is_a_resource_file() {
+        assert!(is_resource_file(Path::new("build-aux/win32/app.rc")));
+        assert!(is_resource_file(Path::new("glib.rc")));
+        assert!(!is_resource_file(Path::new("app.c")));
+        assert!(!is_resource_file(Path::new("resource.h")));
+        assert!(!is_resource_file(Path::new("lib.rc.in")));
+        assert!(!is_resource_file(Path::new("norc")));
+    }
 
     #[test]
     fn finds_only_valid_mesondefine_directives() {
@@ -1990,6 +2078,12 @@ fn is_header_file(path: &Path) -> bool {
         path.extension().and_then(|e| e.to_str()),
         Some("h" | "hh" | "hpp" | "hxx" | "inc" | "def")
     )
+}
+
+/// Whether a path is a Windows resource script, which buck2 compiles only in
+/// its own `windows_resource` rule rather than inside a `cxx_library`.
+fn is_resource_file(path: &Path) -> bool {
+    path.extension().and_then(|e| e.to_str()) == Some("rc")
 }
 
 fn pinned_value(pinned: &Pinned) -> Value {

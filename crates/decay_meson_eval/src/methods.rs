@@ -745,7 +745,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// does, but for anything else the importer answers the same way — a
     /// dependency's `pkg-config` flag, say. `key`/`description` name the
     /// fresh variable declared when the importer says nothing at all.
-    fn resolve_probe(
+    pub(crate) fn resolve_probe(
         &mut self,
         answer: Option<Probe>,
         key: &str,
@@ -923,8 +923,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 );
                 // A library the C runtime splits out or the OS itself ships
                 // is a fact about the target system, not a knob. Ask the
-                // oracle first; only fall back to an open "found" variable
-                // when it has nothing.
+                // oracle first; only fall back to `[dependencies]` / an open
+                // "found" variable when it has nothing.
                 let found = match self.oracle.system_library(&libname) {
                     Some(answer) => {
                         let desc = format!("`{libname}` is available");
@@ -935,7 +935,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                         }
                         found
                     }
-                    None => self.dependency_found(&key, &libname, required),
+                    None => self.dependency_found(&key, &libname, required)?,
                 };
                 let value = self.dep_obj(Dep {
                     name: libname.to_string(),

@@ -25,15 +25,6 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # platform has it, macOS or not.
 "has_header:crt_externs.h" = "prelude//os/constraints:os[macos]"
 
-
-# The tools a build runs. A build graph cannot reach outside itself for one, so
-# a program is found only when it is a script in the project — libepoxy's
-# `src/gen_dispatch.py` is — or is named here. Anything else is absent, and what
-# the build would have done with it is left out: nothing here means no doxygen,
-# so libepoxy's documentation targets are not generated at all.
-#
-# [programs]
-# doxygen = "//third-party/tools:doxygen"
 [programs]
 python3 = "//third-party/tools:python3"
 nm = "//third-party/tools:nm"
@@ -51,8 +42,17 @@ gperf = "//third-party/tools:gperf"
 # them provides (`pkg.generate()`'s `epoxy`, iso-codes' own generated `.pc`)
 # is exactly what a `dependency()` lookup elsewhere would ask for, resolved
 # automatically against the project that actually answers it.
+#
+# An entry here is "this is found" — no build-time knob. A dependency that
+# only exists on some targets takes a `found` constraint, written like a
+# `[probes]` answer; everywhere it does not hold the dependency is settled
+# absent, still with no knob:
+#
+#   sndio = { target = "//third-party/system:sndio", found = "prelude//os/constraints:os[openbsd]" }
 [dependencies]
 x11 = "//third-party/system:X11"
+# TODO: Maybe this should be recognized by depends field.
+xext = "//third-party/meson/libxext:Xext"
 gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
 
@@ -136,7 +136,7 @@ options = { sse2 = true, gcc_vector = true, arm_neon = true, debug = false, gobj
 #       crates/decay_meson_eval/src/methods.rs:337:36
 #[[project]]
 #repo = "https://gitlab.freedesktop.org/xdg/shared-mime-info"
-#rev = "fd8ab89c20093f1bfba8fa9e302ba584fffd0fd7" # Tag 2.5.1
+#tag = "2.5.1"
 
 [[project]]
 repo = "https://gitlab.freedesktop.org/xorg/proto/xorgproto"
@@ -147,8 +147,9 @@ options = { legacy = false }
 repo = "https://github.com/NVIDIA/libglvnd"
 tag = "v1.7.0"
 options = { asm = "auto", dispatch-tls = true, egl = true, entrypoint-patching = "auto", gles1 = true, gles2 = true, glx = "auto", headers = true, hgl = false, tls = true }
-depends = ["xorgproto"]
+depends = ["libxext", "xorgproto"]
 
+# TODO: This should find KHR/khrplatform.h from libglvnd.
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
 tag = "1.5.10"
@@ -230,9 +231,9 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 #
 #   Location:
 #       crates/decay_meson_parse/src/node.rs:140:18
-# [[project]]
-# repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
-# rev = "badd9563b2ac3117ea2a99348bbe46298d6992ec" # Tag 1.29.2
+#[[project]]
+#repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
+#rev = "1.29.2"
 
 # TODO: Needs run_command.
 # [[project]]
@@ -246,6 +247,9 @@ options = { solo = false, tests = "disabled" }
 [[project]]
 wrap = "pcre2"
 options = { grep = false, test = false, jit = "auto", jit_sealloc = "auto" }
+
+[[project]]
+wrap = "libxext"
 
 # TODO: Fails with:
 #   Error: Failed to import `libffi`

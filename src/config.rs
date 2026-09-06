@@ -257,7 +257,10 @@ impl Config {
 /// The plain string form (`x11 = "//third-party/system:X11"`) is what most
 /// entries need: a label to use once the dependency is found. A table form
 /// adds the `pkg-config` variables the build reads off it, for a dependency
-/// like `iso-codes` that a project queries rather than links.
+/// like `iso-codes` that a project queries rather than links, and/or a
+/// `found` constraint for a dependency that only exists on some targets
+/// (`found = "prelude//os/constraints:os[linux]"`) — everywhere the
+/// constraint does not hold it is settled *not found*, with no knob.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum DependencyValue {
@@ -266,6 +269,8 @@ pub enum DependencyValue {
         target: Option<String>,
         #[serde(default)]
         variables: BTreeMap<String, String>,
+        #[serde(default)]
+        found: Option<ProbeValue>,
     },
 }
 
@@ -289,6 +294,15 @@ impl DependencyValue {
             .into_iter()
             .flatten()
             .map(|(k, v)| (k.as_str(), v.as_str()))
+    }
+
+    /// The constraint gating whether this dependency is found, if any. Absent,
+    /// a `[dependencies]` entry means "always found".
+    pub fn found(&self) -> Option<&ProbeValue> {
+        match self {
+            DependencyValue::Target(_) => None,
+            DependencyValue::Full { found, .. } => found.as_ref(),
+        }
     }
 }
 
@@ -850,6 +864,34 @@ mod tests {
         assert_eq!(
             opts["force_posix_threads"].setting().unwrap(),
             Some("prelude//abi/constraints:abi")
+        );
+    }
+
+    #[test]
+    fn dependency_entry_parses_plain_variables_and_found_constraint() {
+        let cfg = config(
+            "[dependencies]\n\
+             x11 = \"//sys:X11\"\n\
+             iso-codes = { variables = { prefix = \"/usr\" } }\n\
+             va = { target = \"//sys:va\", found = \"prelude//os/constraints:os[linux]\" }\n",
+        )
+        .unwrap();
+        let deps = &cfg.dependencies;
+
+        assert_eq!(deps["x11"].target(), Some("//sys:X11"));
+        assert!(deps["x11"].found().is_none());
+
+        assert_eq!(
+            deps["iso-codes"].variables().collect::<Vec<_>>(),
+            [("prefix", "/usr")]
+        );
+        assert!(deps["iso-codes"].found().is_none());
+
+        assert_eq!(deps["va"].target(), Some("//sys:va"));
+        let found = deps["va"].found().expect("a found constraint");
+        assert_eq!(
+            found.setting().unwrap(),
+            Some("prelude//os/constraints:os")
         );
     }
 

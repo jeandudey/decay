@@ -374,10 +374,7 @@ cxx_library(
             ":gdi32",
         ],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + ["//third-party/system:X11"] + select({
         "prelude//os/constraints:os[macos]": [],
         "prelude//os/constraints:os[windows]": [],
         "DEFAULT": ["//third-party/system:EGL"],
@@ -466,7 +463,10 @@ cxx_library(
         "config.h": ":config.h",
     },
     header_namespace = "",
-    exported_deps = [":epoxy"] + select({
+    exported_deps = [
+        ":epoxy",
+        "//third-party/system:X11",
+    ] + select({
         "prelude//os/constraints:os[netbsd]": [],
         "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
@@ -476,9 +476,6 @@ cxx_library(
             ":gdi32",
         ],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
-        "//third-party/meson/constraints:x11[false]": [],
     }) + select({
         "prelude//os/constraints:os[macos]": [],
         "prelude//os/constraints:os[windows]": [],
