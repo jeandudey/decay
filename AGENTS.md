@@ -397,20 +397,20 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   the no-guess case should be answerable from `decay.toml`.
 
 - **glib build status.** `buck2 build` of `glib-2.0`, `gobject-2.0`,
-  `gmodule-2.0` and `gthread-2.0` from `example/` succeeds (target platform
-  `//platforms:linux`, gcc). `gio-2.0` compiles its own sources, the gvdb
-  copylib and the gdbus-codegen genrules now, but does not yet link:
-  - **`gio-visibility.h` does not reach the `inotify` helper library.**
-    `gio/gioenums.h` `#include <gio/gio-visibility.h>` (a
-    `gen-visibility-macros.py` `custom_target` output), and the small
-    `inotify` `cxx_library` that `gio-2.0` links does not carry that
-    generated header on its include path — same shape as the
-    "register a header under every root that reaches it" work, one
-    sub-library short.
+  `gmodule-2.0`, `gthread-2.0` **and `gio-2.0`** from `example/` succeeds
+  (target platform `//platforms:linux`, gcc). Getting `gio-2.0` there took,
+  on top of the gvdb / gdbus-codegen / `@INPUT0@` fixes: broadening
+  `is_config_header` so a `custom_target` header (`*-visibility.h`) reaches
+  every target's include path, and `example/decay.toml [probes]` answers for
+  a batch of glibc-vintage / non-Linux checks that default present (glib
+  reimplements `has_member` as a `cc.compiles()` decay can't zig-probe;
+  `cc.links()` with `args:` never was): `res_ndestroy()`, the BSD/macOS
+  `struct stat`/`statfs`/`statvfs` members, `XATTR_NOFOLLOW`.
   - **`gdbus-daemon-generated` / `xdp-dbus` declare two outputs**
-    (`.h` + `.c`); decay's single-`out` genrule model keeps only the `.h`,
-    so gio never compiles the generated `.c`. Needs multi-output genrule
-    support (`out` as a dir, or `outs`).
+    (`.h` + `.c`); decay's single-`out` genrule keeps only the `.h`. Did not
+    block `gio-2.0` (nothing in it compiles the generated `.c`), but
+    `girepository-2.0` and the gio tools may need `outs` support.
+  - `girepository-2.0` and `gio` (the module-loading variant) are untried.
 
 - **`run_command()` is refused outright.** Some projects call it for
   harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`
