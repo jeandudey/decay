@@ -255,10 +255,17 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   Deferred — out of scope, each its own follow-up:
   - **`cc.has_argument()` / `has_link_argument()` / `has_multi_arguments()`
     are compiler-specific.** `zig cc` *is* clang, so "does `-Wfoo` exist"
-    can diverge from a gcc toolchain. These stay open constraints (default
-    `true`, as today) or a `decay.toml [probes]` answer until decay
-    standardizes the cxx toolchain of its emitted builds on clang/zig — the
-    same direction as the hermetic-`python3`-in-`toolchains//` note below.
+    can diverge from a gcc toolchain. Mostly still passed through unfiltered,
+    but the handful of bare `-W…` flags gcc and clang reject outright
+    (`GCC_ONLY_WARNING_ARGS` / `CLANG_ONLY_WARNING_ARGS` in
+    `decay_meson_eval/src/methods.rs` — extend as projects turn up more) are
+    now gated on the `compiler` constraint by `arg_supported_cond`, so
+    `cc.get_supported_arguments()` no longer hands a clang-only flag to gcc
+    (glib's `-Wshorten-64-to-32` was a hard error). A `-Wno-…` needs no entry
+    — every compiler ignores an unknown one. The general case still wants a
+    real per-toolchain answer, or decay standardizing its emitted builds on
+    clang/zig — the same direction as the hermetic-`python3`-in-`toolchains//`
+    note below.
   - **`cc.run()` proper, `cc.alignment()`'s value, `cc.compute_int()`.**
     These need the probe *executed*, not just linked, and decay does not
     cross-run (no qemu). They stay on the `decay.toml` path — see
@@ -384,6 +391,21 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   call's `guess:` and errors without one. Like `[sizeof]` / `[alignment]`,
   the no-guess case should be answerable from `decay.toml`.
 
+- **glib build status.** `buck2 build` of `glib-2.0`, `gobject-2.0`,
+  `gmodule-2.0` and `gthread-2.0` from `example/` succeeds (target platform
+  `//platforms:linux`, gcc). `gio-2.0` does not yet:
+  - **`gdbus-codegen` runs without its `codegen` Python package.** gio's
+    `custom_target`s invoke the `gdbus-codegen` script (a `configure_file`
+    output) directly; its `from codegen import codegen_main` needs the
+    sibling `codegen/*.py` (their own `fs.copyfile` outputs) plus generated
+    `config.py` staged as a `codegen/` dir next to it. decay emits all the
+    pieces as separate genrules but stages none of them into the consuming
+    genrule. Needs a program to carry its support-file group — the same
+    shape as `declare_dependency(sources:)` folding, one level up.
+  - the gvdb `declare_dependency(sources:)` copylib is still uncompiled (its
+    own gap below), so `gio-2.0` would miss `gvdb_table_*` at link even past
+    the codegen blocker.
+
 - **`run_command()` is refused outright.** Some projects call it for
   harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`
   answer, would unblock them without baking in a machine-specific result.
@@ -427,30 +449,17 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   program to let the user know it hasn't been implemented, and also to keep a
   list here in known gaps.
 
-- **has_function compaction.** This still uses `has_function_memalign[true]` when it is not necessary,
-  either the function exists for glibc for the combinations _we_ check or not. Ideally
-  has_function_memalign should be gone completely from the generated constraints and
-  build file. That is the main reason for the libc database.
-
-```
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:has_function_memalign[true]": " '#define HAVE_MEMALIGN 1'",
-                "//third-party/meson/constraints:has_function_memalign[false]": select({
-                }),
-```
-  Ideally this should be
-
-```
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMALIGN 1'",
-                "DEFAULT": "",
-```
+- **has_function compaction.** Mostly done for `linux`: `builtin_has_function`
+  now returns a `SystemsAndConstraint` even when *no* libc row confirms the
+  symbol, and `resolve_probe` treats the named systems as authoritative — a
+  symbol absent from glibc's (complete) ABI list is settled *false* on
+  `linux`, with no knob, instead of an open probe var defaulting to true.
+  `has_function_*[true/false]` knobs are gone from `linux` in `example/`
+  (`_aligned_malloc` no longer reads as present there). Still a knob off
+  `linux`, where the database cannot speak; and a `has_function` whose rows
+  cover only gnu/musl still leaves the odd `linux`+other-abi corner settled
+  false rather than as a `cpu`-keyed positive — good enough, the abi domain
+  on `linux` is gnu/musl in practice.
 
 - **Adding meson specific buck2 rules.** We shall be able to take the .h.in files with `#mesondefine` et all
   and just substitute correctly instead of assuming the layout of the file with `.set` calls, output should
