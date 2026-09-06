@@ -1243,80 +1243,6 @@ _headers2 = {
     "gio/gnetworking.h": ":gnetworking.h",
     "config.h": ":config.h",
 }
-_deps_os_compiler_run_C99_vsnprintf = [
-    ":charset",
-    ":intl",
-    "//third-party/meson/pcre2:pcre2-8",
-] + select({
-    "prelude//os/constraints:os[windows]": select({
-        "//third-party/meson/constraints:compiler[msvc]": [":gnulib"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
-                "//third-party/meson/constraints:run_C99_snprintf[true]": select({
-                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": [],
-                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": [":gnulib"],
-                }),
-                "//third-party/meson/constraints:run_C99_snprintf[false]": [":gnulib"],
-            }),
-            "//third-party/meson/constraints:run_C99_vsnprintf[false]": [":gnulib"],
-        }),
-    }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
-            "//third-party/meson/constraints:run_C99_snprintf[true]": select({
-                "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": [],
-                "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": [":gnulib"],
-            }),
-            "//third-party/meson/constraints:run_C99_snprintf[false]": [":gnulib"],
-        }),
-        "//third-party/meson/constraints:run_C99_vsnprintf[false]": [":gnulib"],
-    }),
-}) + select({
-    "//third-party/meson/constraints:links_check_for_latomic[true]": select({
-        "//third-party/meson/constraints:atomic[true]": [":atomic"],
-        "//third-party/meson/constraints:atomic[false]": [],
-    }),
-    "//third-party/meson/constraints:links_check_for_latomic[false]": [],
-}) + select({
-    "//third-party/meson/constraints:m[true]": [":m"],
-    "//third-party/meson/constraints:m[false]": [],
-}) + select({
-    "prelude//os/constraints:os[windows]": [],
-    "DEFAULT": select({
-        "//third-party/meson/constraints:iconv[true]": [":iconv"],
-        "//third-party/meson/constraints:iconv[false]": [],
-    }),
-}) + select({
-    "//third-party/meson/constraints:links_clock_gettime[true]": [],
-    "//third-party/meson/constraints:links_clock_gettime[false]": select({
-        "//third-party/meson/constraints:links_clock_gettime_in_librt[true]": select({
-            "//third-party/meson/constraints:rt[true]": [":rt"],
-            "//third-party/meson/constraints:rt[false]": [],
-        }),
-        "//third-party/meson/constraints:links_clock_gettime_in_librt[false]": [],
-    }),
-}) + select({
-    "//third-party/meson/constraints:sysprof_capture_4[true]": [":sysprof-capture-4"],
-    "//third-party/meson/constraints:sysprof_capture_4[false]": [],
-}) + select({
-    "prelude//os/constraints:os[windows]": select({
-        "//third-party/meson/constraints:ws2_32[true]": [":ws2_32"],
-        "//third-party/meson/constraints:ws2_32[false]": [],
-    }),
-    "DEFAULT": [],
-}) + select({
-    "prelude//os/constraints:os[windows]": select({
-        "//third-party/meson/constraints:winmm[true]": [":winmm"],
-        "//third-party/meson/constraints:winmm[false]": [],
-    }),
-    "DEFAULT": [],
-}) + select({
-    "prelude//os/constraints:os[windows]": select({
-        "prelude//abi/constraints:abi[gnu]": [":threads"],
-        "DEFAULT": [],
-    }),
-    "DEFAULT": [":threads"],
-})
 _headers3 = {
     "glib/gversionmacros.h": ":custom_target",
     "gversionmacros.h": ":custom_target",
@@ -4798,12 +4724,21 @@ cxx_library(
 cxx_library(
     name = "glib-dep",
     exported_headers = {
-        "app.rc": ":glib.git[build-aux/win32/app.rc]",
         "app.manifest.xml": ":glib.git[build-aux/win32/app.manifest.xml]",
     },
     headers = _headers,
     header_namespace = "",
-    exported_deps = [":os-profile-app-static-lib"],
+    exported_deps = [
+        ":os-profile-app-static-lib",
+        ":glib-dep-rc",
+    ],
+    target_compatible_with = ["prelude//os/constraints:os[windows]"],
+    visibility = ["PUBLIC"],
+)
+
+windows_resource(
+    name = "glib-dep-rc",
+    srcs = [":glib.git[build-aux/win32/app.rc]"],
     target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
@@ -4812,12 +4747,22 @@ cxx_library(
 cxx_library(
     name = "glib-dep-2",
     exported_headers = {
-        "test.rc": ":glib.git[build-aux/win32/test.rc]",
         "test.manifest.xml": ":glib.git[build-aux/win32/test.manifest.xml]",
     },
     headers = _headers,
     header_namespace = "",
-    exported_deps = [":os-profile-app-static-lib"],
+    exported_deps = [
+        ":os-profile-app-static-lib",
+        ":glib-dep-rc-2",
+    ],
+    target_compatible_with = ["prelude//os/constraints:os[windows]"],
+    visibility = ["PUBLIC"],
+)
+
+# meson: glib-dep-rc
+windows_resource(
+    name = "glib-dep-rc-2",
+    srcs = [":glib.git[build-aux/win32/test.rc]"],
     target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
@@ -7068,7 +7013,6 @@ cxx_library(
         ":glib.git[glib/gprintf.c]",
     ] + select({
         "prelude//os/constraints:os[windows]": [
-            ":glib.rc",
             ":glib.git[glib/gwin32.c]",
             ":glib.git[glib/gspawn-win32.c]",
             ":glib.git[glib/giowin32.c]",
@@ -7924,8 +7868,91 @@ cxx_library(
         }),
         "DEFAULT": [],
     }),
-    deps = _deps_os_compiler_run_C99_vsnprintf,
+    deps = [
+        ":charset",
+        ":intl",
+        "//third-party/meson/pcre2:pcre2-8",
+    ] + select({
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [":gnulib"],
+            "DEFAULT": select({
+                "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
+                    "//third-party/meson/constraints:run_C99_snprintf[true]": select({
+                        "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": [],
+                        "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": [":gnulib"],
+                    }),
+                    "//third-party/meson/constraints:run_C99_snprintf[false]": [":gnulib"],
+                }),
+                "//third-party/meson/constraints:run_C99_vsnprintf[false]": [":gnulib"],
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
+                "//third-party/meson/constraints:run_C99_snprintf[true]": select({
+                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": [],
+                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": [":gnulib"],
+                }),
+                "//third-party/meson/constraints:run_C99_snprintf[false]": [":gnulib"],
+            }),
+            "//third-party/meson/constraints:run_C99_vsnprintf[false]": [":gnulib"],
+        }),
+    }) + select({
+        "prelude//os/constraints:os[windows]": [":glib-2.0-rc"],
+        "DEFAULT": [],
+    }) + select({
+        "//third-party/meson/constraints:links_check_for_latomic[true]": select({
+            "//third-party/meson/constraints:atomic[true]": [":atomic"],
+            "//third-party/meson/constraints:atomic[false]": [],
+        }),
+        "//third-party/meson/constraints:links_check_for_latomic[false]": [],
+    }) + select({
+        "//third-party/meson/constraints:m[true]": [":m"],
+        "//third-party/meson/constraints:m[false]": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:iconv[true]": [":iconv"],
+            "//third-party/meson/constraints:iconv[false]": [],
+        }),
+    }) + select({
+        "//third-party/meson/constraints:links_clock_gettime[true]": [],
+        "//third-party/meson/constraints:links_clock_gettime[false]": select({
+            "//third-party/meson/constraints:links_clock_gettime_in_librt[true]": select({
+                "//third-party/meson/constraints:rt[true]": [":rt"],
+                "//third-party/meson/constraints:rt[false]": [],
+            }),
+            "//third-party/meson/constraints:links_clock_gettime_in_librt[false]": [],
+        }),
+    }) + select({
+        "//third-party/meson/constraints:sysprof_capture_4[true]": [":sysprof-capture-4"],
+        "//third-party/meson/constraints:sysprof_capture_4[false]": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:ws2_32[true]": [":ws2_32"],
+            "//third-party/meson/constraints:ws2_32[false]": [],
+        }),
+        "DEFAULT": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:winmm[true]": [":winmm"],
+            "//third-party/meson/constraints:winmm[false]": [],
+        }),
+        "DEFAULT": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": [":threads"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": [":threads"],
+    }),
     preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+windows_resource(
+    name = "glib-2.0-rc",
+    srcs = [":glib.rc"],
+    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 
@@ -7949,7 +7976,80 @@ cxx_library(
     headers = _headers2,
     header_namespace = "",
     compiler_flags = ["-DGLIB_STATIC_COMPILATION"],
-    exported_deps = _deps_os_compiler_run_C99_vsnprintf,
+    exported_deps = [
+        ":charset",
+        ":intl",
+        "//third-party/meson/pcre2:pcre2-8",
+    ] + select({
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [":gnulib"],
+            "DEFAULT": select({
+                "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
+                    "//third-party/meson/constraints:run_C99_snprintf[true]": select({
+                        "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": [],
+                        "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": [":gnulib"],
+                    }),
+                    "//third-party/meson/constraints:run_C99_snprintf[false]": [":gnulib"],
+                }),
+                "//third-party/meson/constraints:run_C99_vsnprintf[false]": [":gnulib"],
+            }),
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
+                "//third-party/meson/constraints:run_C99_snprintf[true]": select({
+                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[true]": [],
+                    "//third-party/meson/constraints:run_Unix98_printf_positional_parameters[false]": [":gnulib"],
+                }),
+                "//third-party/meson/constraints:run_C99_snprintf[false]": [":gnulib"],
+            }),
+            "//third-party/meson/constraints:run_C99_vsnprintf[false]": [":gnulib"],
+        }),
+    }) + select({
+        "//third-party/meson/constraints:links_check_for_latomic[true]": select({
+            "//third-party/meson/constraints:atomic[true]": [":atomic"],
+            "//third-party/meson/constraints:atomic[false]": [],
+        }),
+        "//third-party/meson/constraints:links_check_for_latomic[false]": [],
+    }) + select({
+        "//third-party/meson/constraints:m[true]": [":m"],
+        "//third-party/meson/constraints:m[false]": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:iconv[true]": [":iconv"],
+            "//third-party/meson/constraints:iconv[false]": [],
+        }),
+    }) + select({
+        "//third-party/meson/constraints:links_clock_gettime[true]": [],
+        "//third-party/meson/constraints:links_clock_gettime[false]": select({
+            "//third-party/meson/constraints:links_clock_gettime_in_librt[true]": select({
+                "//third-party/meson/constraints:rt[true]": [":rt"],
+                "//third-party/meson/constraints:rt[false]": [],
+            }),
+            "//third-party/meson/constraints:links_clock_gettime_in_librt[false]": [],
+        }),
+    }) + select({
+        "//third-party/meson/constraints:sysprof_capture_4[true]": [":sysprof-capture-4"],
+        "//third-party/meson/constraints:sysprof_capture_4[false]": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:ws2_32[true]": [":ws2_32"],
+            "//third-party/meson/constraints:ws2_32[false]": [],
+        }),
+        "DEFAULT": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": select({
+            "//third-party/meson/constraints:winmm[true]": [":winmm"],
+            "//third-party/meson/constraints:winmm[false]": [],
+        }),
+        "DEFAULT": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": [":threads"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": [":threads"],
+    }),
     visibility = ["PUBLIC"],
 )
 
@@ -8191,10 +8291,7 @@ cxx_library(
         ":glib.git[gobject/gvaluearray.c]",
         ":glib.git[gobject/gvaluetransform.c]",
         ":glib.git[gobject/gvaluetypes.c]",
-    ] + select({
-        "prelude//os/constraints:os[windows]": [":gobject.rc"],
-        "DEFAULT": [],
-    }),
+    ],
     exported_headers = {
         "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
         "glib-enumtypes.h": ":glib_enumtypes_h",
@@ -8873,11 +8970,21 @@ cxx_library(
         "DEFAULT": [],
     }),
     exported_linker_flags = _exported_linker_flags,
-    deps = [
+    deps = select({
+        "prelude//os/constraints:os[windows]": [":gobject-2.0-rc"],
+        "DEFAULT": [],
+    }) + [
         ":libffi",
         ":glib-dep-5",
     ],
     preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+windows_resource(
+    name = "gobject-2.0-rc",
+    srcs = [":gobject.rc"],
+    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 
@@ -8956,10 +9063,7 @@ genrule(
 
 cxx_library(
     name = "gthread-2.0",
-    srcs = [":glib.git[gthread/gthread-impl.c]"] + select({
-        "prelude//os/constraints:os[windows]": [":gthread.rc"],
-        "DEFAULT": [],
-    }),
+    srcs = [":glib.git[gthread/gthread-impl.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = select({
@@ -9060,8 +9164,18 @@ cxx_library(
         "DEFAULT": [],
     }),
     exported_linker_flags = _exported_linker_flags,
-    deps = [":glib-dep-5"],
+    deps = select({
+        "prelude//os/constraints:os[windows]": [":gthread-2.0-rc"],
+        "DEFAULT": [],
+    }) + [":glib-dep-5"],
     preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+windows_resource(
+    name = "gthread-2.0-rc",
+    srcs = [":gthread.rc"],
+    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 
@@ -9276,10 +9390,7 @@ cxx_library(
     srcs = [
         ":glib.git[gmodule/gmodule.c]",
         ":glib.git[gmodule/gmodule-deprecated.c]",
-    ] + select({
-        "prelude//os/constraints:os[windows]": [":gmodule.rc"],
-        "DEFAULT": [],
-    }),
+    ],
     exported_headers = {
         "gmodule/gmodule-visibility.h": ":custom_target-4",
         "gmodule-visibility.h": ":custom_target-4",
@@ -9937,6 +10048,9 @@ cxx_library(
     }),
     exported_linker_flags = _exported_linker_flags,
     deps = select({
+        "prelude//os/constraints:os[windows]": [":gmodule-2.0-rc"],
+        "DEFAULT": [],
+    }) + select({
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
@@ -9947,6 +10061,13 @@ cxx_library(
         }),
     }) + [":glib-dep-5"],
     preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+windows_resource(
+    name = "gmodule-2.0-rc",
+    srcs = [":gmodule.rc"],
+    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 
@@ -13920,7 +14041,6 @@ cxx_library(
             ":glib.git[gio/gwin32networkmonitor.c]",
             ":glib.git[gio/gwin32notificationbackend.c]",
             ":glib.git[gio/gwin32sid.c]",
-            ":gio.rc",
         ],
         "DEFAULT": [
             ":glib.git[gio/gcontenttype-fdo.c]",
@@ -15873,6 +15993,9 @@ cxx_library(
             }),
         }),
         "DEFAULT": [],
+    }) + select({
+        "prelude//os/constraints:os[windows]": [":gio-2.0-rc"],
+        "DEFAULT": [],
     }) + [
         "//third-party/meson/zlib:z",
         ":glib-dep-5",
@@ -16043,6 +16166,13 @@ cxx_library(
         "//third-party/meson/constraints:sysprof_capture_4[false]": [],
     }),
     preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+windows_resource(
+    name = "gio-2.0-rc",
+    srcs = [":gio.rc"],
+    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 

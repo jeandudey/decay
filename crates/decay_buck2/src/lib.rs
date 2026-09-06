@@ -596,6 +596,7 @@ fn render_target<S: Solver>(
         Kind::Custom => "genrule",
         Kind::ConfigHeader => "genrule",
         Kind::Executable => "cxx_binary",
+        Kind::WindowsResource => "windows_resource",
         _ => "cxx_library",
     };
 
@@ -617,6 +618,16 @@ fn render_target<S: Solver>(
                 format!("{:?}", a.outs.first().cloned().unwrap_or_default()),
             ));
             attrs.push(("cmd", config_header_cmd(graph, logic, selects, target)));
+        }
+        Kind::WindowsResource => {
+            // ponytail: srcs only. A `.rc` that `#include`s a project header
+            // needs `include_directories`/`headers` emitted here too — same
+            // open gap as `windows.compile_resources` dropping
+            // `include_directories:` (AGENTS.md).
+            attrs.push((
+                "srcs",
+                selects.render_list(logic, &a.srcs, cond, 1, |s| source(graph, s)),
+            ));
         }
         _ => {
             let is_interface = matches!(target.kind, Kind::Interface);

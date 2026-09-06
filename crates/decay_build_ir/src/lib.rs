@@ -117,6 +117,10 @@ pub enum Kind {
     ConfigHeader,
     /// `declare_dependency()`: no build action, only usage requirements.
     Interface,
+    /// A `.rc` resource script. buck2 will not compile a `.rc` inside a
+    /// `cxx_library`; it needs its own `windows_resource` rule, consumed as a
+    /// `deps` entry of the target that links the resource.
+    WindowsResource,
     /// Something resolved outside the build.
     External(External),
 }

@@ -361,6 +361,18 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   command, which a Windows genrule does not have. Both matter for the
   Windows target that is a priority.
 
+  A `.rc` source itself is no longer left in a `cxx_library`, where buck2
+  never runs the resource compiler over it. `split_resources`
+  (`decay_meson_eval/src/builtins.rs`) peels every `.rc` — whether from
+  `library()`/`executable()` sources, `declare_dependency(sources:)`, or a
+  generated `configure_file()` output — out into its own
+  `Kind::WindowsResource` target (`decay_build_ir`), which `decay_buck2`
+  emits as a `windows_resource` rule wired back into the consumer through
+  `link_with` → `deps`/`exported_deps`; the `os[windows]` gating falls out of
+  the pulled entries' presence conditions. Still `srcs`-only: a `.rc` that
+  `#include`s a project header needs `include_directories`/`headers` emitted
+  on that rule too (the `include_directories:` gap above).
+
 - **The `python` module is a stub.** Only `import('python').
   find_installation()` (resolved like any `[programs]` entry) and
   `.language_version()` (fabricated `"3.12"`, the way `cc.version()` is).
