@@ -56,6 +56,16 @@ xext = "//third-party/meson/libxext:Xext"
 gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
 
+# `cc.find_library()` answers for the systems `zig cc` cannot link-probe (no
+# bundled libc). The database and the probes settle `linux`, `macos`, the
+# BSDs and `windows` on their own; these three need a plain statement of
+# which runtime libraries they carry, in place of an open `<lib>[true/false]`
+# knob. A name not listed for a system is settled not-found there.
+[system_libraries]
+sunos = ["m", "dl", "rt", "resolv", "socket", "nsl"]
+fuchsia = ["m", "dl", "rt"]
+android = ["m", "dl"]
+
 # `cc.sizeof()` / `cc.alignment()` yield a concrete integer a generated
 # config header bakes in, so — unlike a probe — there is no knob to leave
 # open. Each type a project asks about is answered here: a single integer

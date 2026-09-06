@@ -701,8 +701,11 @@ cxx_library(
         "DEFAULT": [],
     }),
     deps = select({
-        "//third-party/meson/constraints:m[true]": [":m"],
-        "//third-party/meson/constraints:m[false]": [],
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": [":m"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": [":m"],
     }) + [
         ":threads",
         "//third-party/meson/glib:gobject-2.0",
@@ -725,8 +728,11 @@ cxx_library(
         ":threads",
         "//third-party/meson/glib:gobject-2.0",
     ] + select({
-        "//third-party/meson/constraints:m[true]": [":m"],
-        "//third-party/meson/constraints:m[false]": [],
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": [":m"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": [":m"],
     }),
     visibility = ["PUBLIC"],
 )

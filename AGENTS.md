@@ -471,7 +471,10 @@ constraint(
 )
 ```
 
-  It should just be true for the systems that provide it, that's it, libc DB needs this.
+  **Requirement met for `cc.find_library()`:** there is no `m[true]`/`dl`/`rt`/…
+  knob. `cc.find_library('foo')` for a system/runtime library settles
+  found-or-not for *every* `[systems]` entry, as a `select()` over `os`/`abi`
+  decay already tracks — no `<lib>[true/false]` constraint, no open probe var.
 
   Partly done: `find_library()` for a libc-split library MSVC has no
   standalone `.lib` for (`m`, `dl`, `rt`, `pthread`, `resolv`, `nsl`,
@@ -487,6 +490,59 @@ constraint(
   knob (found on `linux`, plain `false` elsewhere, no constraint emitted).
   A bare `x11 = "//sys:X11"` entry is `found = true` everywhere; before, it
   still emitted an `x11[true/false]` knob nothing needed.
+  How it works now:
+
+  - `decay_libc_db::has_library` keeps the vendored glibc `abilists` library
+    table `parse()` used to discard (`m pthread c dl rt ld util resolv`) and
+    `build.rs` adds a `musl_libraries` `zig cc -lNAME` link probe. This is
+    the fast, offline answer for `linux`.
+  - `src/probe.rs` gains `ProbeCache::links_library` — an import-time `zig cc
+    -target <triple> <empty.c> -lNAME` link, memoised in the same cache as
+    the compile probes — and `system_link_targets(system)`, the `zig`
+    triples per system: `linux` (gnu+musl), `darwin` (x86_64+aarch64),
+    `freebsd`, `netbsd`, `windows` (gnu only — zig has no MSVC libc). The
+    answers are *not* uniform (`-ldl`/`-lrt` fail on mingw, `-lrt`/`-lresolv`
+    on macOS, `-lresolv` on the BSDs), which is why it is a real probe.
+  - `ConfigOracle::builtin_system_library` (behind the `Oracle::system_library`
+    trait method, consulted by `cc.find_library` in `decay_meson_eval` before
+    the open-knob fallback; toggle `config.builtin_system_library`) walks
+    every configured system, collecting `(system, abi-filter)` rows: the libc
+    DB / link probe for the hostable ones, `decay.toml`'s new
+    `[system_libraries]` table for the ones `zig` cannot host (`sunos`,
+    `openbsd`, `android`, `fuchsia`). A name nothing confirms anywhere is not
+    a system library → `None`, still an open knob (`libselinux`, `libelf`,
+    `socket`, `elf`).
+  - It returns `Probe::PerSystem { abi, found }` (new variant); `resolve_probe`
+    turns it into `OR over found of (host_system_is(sys) ∧ abi?)` with
+    **nothing left open** — a configured system with no row is a settled
+    not-found. A `windows` hit for a C-runtime library (`m`, `pthread`,
+    `atomic`) is `abi[gnu]` only (MSVC has no standalone `.lib` — the fact
+    `dependency('threads')` / `is_crt_provided_lib` already encode); any
+    other library confirmed on mingw is both abis (Windows SDK ⊇ mingw
+    import libs). `atomic` is the one name not in the libc DB that still
+    needs the MSVC exception — hardcoded, `ponytail:`-noted.
+
+  `example/`: 13 knobs gone from `constraints/BUCK` (`m dl rt resolv atomic
+  opengl32 gdi32 shcore iphlpapi ws2_32 winmm shlwapi dnsapi`);
+  `example/decay.toml` gained a `[system_libraries]` block for
+  `sunos`/`fuchsia`/`android`.
+
+  Still to do:
+  - **Retire `is_crt_provided_lib`** (`decay_buck2`): `found` is now settled
+    per system, so the `-lNAME` flag can flow through the normal found-gated
+    select and be absent wherever `found` is false (incl. `abi[msvc]`). Not
+    done yet — the `decay_buck2` arm still renders these via `non_msvc_select`.
+  - **`runtimeobject`** stays a knob: mingw ships no `libruntimeobject.a`
+    (WinRT/UWP), so the link probe cannot confirm it. Needs Slice 2.
+  - **Slice 2** — a vendored mingw-w64 `.def`-name database in `decay_libc_db`
+    for Windows *OS* libs the link probe misses, and to drop the live probe
+    for the ones it does cover.
+  - **Slice 3** — `iconv` / `intl` as `threads`-style builtins (in libc on
+    glibc/musl, `-liconv` / `-lintl` on macOS/Windows). They still come
+    through `dependency()` as `dep:iconv` knobs.
+  - **`cc.compute_int` / non-hostable systems**: `builtin_system_library`
+    settles a non-hostable system to not-found when `[system_libraries]` is
+    silent, rather than erroring. Revisit if that proves too permissive.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
 

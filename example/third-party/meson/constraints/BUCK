@@ -22,14 +22,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `lib:m`: `m` is available
-constraint(
-    name = "m",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header:stdlib.h`: `stdlib.h` is available to the c compiler
 constraint(
     name = "has_header_stdlib_h",
@@ -214,14 +206,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `lib:dl`: `dl` is available
-constraint(
-    name = "dl",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:typeof`: `typeof` is available to the c compiler
 constraint(
     name = "compiles_typeof",
@@ -299,22 +283,6 @@ constraint(
     name = "has_header_KHR_khrplatform_h",
     values = ["true", "false"],
     default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:opengl32`: `opengl32` is available
-constraint(
-    name = "opengl32",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:gdi32`: `gdi32` is available
-constraint(
-    name = "gdi32",
-    values = ["true", "false"],
-    default = "false",
     visibility = ["PUBLIC"],
 )
 
@@ -934,25 +902,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `lib:shcore`: `shcore` is available
-constraint(
-    name = "shcore",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `lib:runtimeobject`: `runtimeobject` is available
 constraint(
     name = "runtimeobject",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:iphlpapi`: `iphlpapi` is available
-constraint(
-    name = "iphlpapi",
     values = ["true", "false"],
     default = "false",
     visibility = ["PUBLIC"],
@@ -1766,14 +1718,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `lib:rt`: `rt` is available
-constraint(
-    name = "rt",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:dlopen() and dlsym() in system libraries`: `dlopen() and dlsym() in system libraries` is available to the c compiler
 constraint(
     name = "links_dlopen_and_dlsym_in_system_libraries",
@@ -2110,14 +2054,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `lib:atomic`: `atomic` is available
-constraint(
-    name = "atomic",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `dep:intl`: `intl` is available
 constraint(
     name = "intl",
@@ -2155,14 +2091,6 @@ constraint(
     name = "has_function_mnt_monitor_veil_kernel",
     values = ["true", "false"],
     default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:ws2_32`: `ws2_32` is available
-constraint(
-    name = "ws2_32",
-    values = ["true", "false"],
-    default = "false",
     visibility = ["PUBLIC"],
 )
 
@@ -2622,14 +2550,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `lib:winmm`: `winmm` is available
-constraint(
-    name = "winmm",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:run:dlsym() preceding underscores`: `dlsym() preceding underscores` is available to the c compiler
 constraint(
     name = "run_dlsym_preceding_underscores",
@@ -2678,14 +2598,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `lib:resolv`: `resolv` is available
-constraint(
-    name = "resolv",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:res_query() in -lbind`: `res_query() in -lbind` is available to the c compiler
 constraint(
     name = "links_res_query_in_lbind",
@@ -2707,14 +2619,6 @@ constraint(
     name = "links_res_query_in_lsocket",
     values = ["true", "false"],
     default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:socket`: `socket` is available
-constraint(
-    name = "socket",
-    values = ["true", "false"],
-    default = "false",
     visibility = ["PUBLIC"],
 )
 
@@ -2795,22 +2699,6 @@ constraint(
     name = "compiles_ip_mreq_source_imr_interface_has_s_addr_member",
     values = ["true", "false"],
     default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:shlwapi`: `shlwapi` is available
-constraint(
-    name = "shlwapi",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:dnsapi`: `dnsapi` is available
-constraint(
-    name = "dnsapi",
-    values = ["true", "false"],
-    default = "false",
     visibility = ["PUBLIC"],
 )
 

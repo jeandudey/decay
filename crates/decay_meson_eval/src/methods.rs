@@ -775,6 +775,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let open_elsewhere = self.probe(key, description);
                 Ok(self.logic.or(known, open_elsewhere))
             }
+            Some(Probe::PerSystem { abi, found }) => {
+                // Fully settled: OR of (system ∧ abi?) over the found rows,
+                // nothing left open. A configured system with no row here is
+                // a settled *not-found*, no knob.
+                let (abi_setting, abi_domain) = abi;
+                let mut cond = Pc::from_bool(false);
+                for (system, abis) in found {
+                    let mut holds = self.host_system_is(std::slice::from_ref(&system), key)?;
+                    if !abis.is_empty() {
+                        let on_abi = self.constraint_is(&abi_setting, abi_domain.clone(), &abis);
+                        holds = self.logic.and(holds, on_abi);
+                    }
+                    cond = self.logic.or(cond, holds);
+                }
+                Ok(cond)
+            }
             Some(Probe::Matrix {
                 systems,
                 axes,
@@ -905,7 +921,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                         name: libname.to_string(),
                     },
                 );
-                let found = self.dependency_found(&key, &libname, required)?;
+                // A library the C runtime splits out or the OS itself ships
+                // is a fact about the target system, not a knob. Ask the
+                // oracle first; only fall back to an open "found" variable
+                // when it has nothing.
+                let found = match self.oracle.system_library(&libname) {
+                    Some(answer) => {
+                        let desc = format!("`{libname}` is available");
+                        let found = self.resolve_probe(Some(answer), &key, desc)?;
+                        if !required.is_false() {
+                            let must = self.logic.implies(required, found);
+                            self.logic.assume(must);
+                        }
+                        found
+                    }
+                    None => self.dependency_found(&key, &libname, required)?,
+                };
                 let value = self.dep_obj(Dep {
                     name: libname.to_string(),
                     found,

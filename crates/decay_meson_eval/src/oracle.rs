@@ -105,6 +105,20 @@ pub trait Oracle {
         None
     }
 
+    /// Whether `cc.find_library('name')` resolves, when that follows from the
+    /// target system rather than from a knob a generated build should carry.
+    ///
+    /// A library the C runtime splits out (`m`, `dl`, `rt`, `pthread`,
+    /// `resolv`, ...) or that the OS itself ships (`ws2_32`, `iphlpapi`, ...)
+    /// is present as a fact about `os`/`abi`/`cpu`, not a `<lib>[true/false]`
+    /// question. Answered like [`Oracle::probe`] and turned into a presence
+    /// condition the same way. Left `None`, `find_library()` stays an open
+    /// knob.
+    fn system_library(&self, name: &str) -> Option<Probe> {
+        let _ = name;
+        None
+    }
+
     /// The answer to a dependency's `1`-or-`0` `pkg-config` variable (an
     /// availability flag, the way `graphene_has_sse2` is), when it follows
     /// from something the importer already knows — answered the same way as
@@ -182,6 +196,23 @@ pub enum Probe {
         /// Each confirmed combination, one value per entry of `axes`, in the
         /// same order.
         rows: Vec<Vec<String>>,
+    },
+    /// Found on exactly the listed `(system, abi?)` rows; settled *false* on
+    /// every other configured system, with no knob anywhere — the importer
+    /// determined the answer for the whole configured matrix (a `zig cc
+    /// -target` link probe per system, plus the libc database), so nothing is
+    /// left open.
+    ///
+    /// For `cc.find_library()` of a runtime/OS library: `m` resolves on
+    /// `linux`/`macos`/`freebsd` and on `windows` only under `abi[gnu]`
+    /// (mingw), never `abi[msvc]`; `dl` not on `windows` at all. Each `found`
+    /// entry is a system name (resolved like [`Probe::Systems`]) and the abi
+    /// values it holds for — empty meaning every abi.
+    PerSystem {
+        /// The abi constraint setting and its known domain, for entries that
+        /// name specific abis.
+        abi: (String, Vec<String>),
+        found: Vec<(String, Vec<String>)>,
     },
     /// True on exactly the `rows` that hold — and, on the named `systems`,
     /// *false* everywhere else, with no knob: the probe was compiled for
