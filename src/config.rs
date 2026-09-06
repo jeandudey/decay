@@ -81,6 +81,15 @@ pub struct Config {
     /// project that wants every `has_function` left open regardless.
     #[serde(default = "default_true")]
     pub builtin_has_function: bool,
+    /// Whether `cc.find_library()` falls back to decay's built-in database of
+    /// libraries the C runtime splits out (see `decay_libc_db`) when
+    /// `[dependencies]` has no entry for the name.
+    ///
+    /// An explicit `[dependencies]` mapping always wins; this only turns the
+    /// fallback off entirely, for a project that wants every `find_library()`
+    /// left open regardless.
+    #[serde(default = "default_true")]
+    pub builtin_system_library: bool,
     /// Whether `cc.has_header` / `cc.has_type` / `cc.compiles` are answered
     /// by building the probe with a live `zig cc` for every target in the
     /// configured matrix, instead of leaving each an open knob. Needs `zig`

@@ -1278,8 +1278,11 @@ _deps_os_compiler_run_C99_vsnprintf = [
     }),
     "//third-party/meson/constraints:links_check_for_latomic[false]": [],
 }) + select({
-    "//third-party/meson/constraints:m[true]": [":m"],
-    "//third-party/meson/constraints:m[false]": [],
+    "prelude//os/constraints:os[linux]": [":m"],
+    "DEFAULT": select({
+        "//third-party/meson/constraints:m[true]": [":m"],
+        "//third-party/meson/constraints:m[false]": [],
+    }),
 }) + select({
     "prelude//os/constraints:os[windows]": [],
     "DEFAULT": select({
@@ -1290,8 +1293,11 @@ _deps_os_compiler_run_C99_vsnprintf = [
     "//third-party/meson/constraints:links_clock_gettime[true]": [],
     "//third-party/meson/constraints:links_clock_gettime[false]": select({
         "//third-party/meson/constraints:links_clock_gettime_in_librt[true]": select({
-            "//third-party/meson/constraints:rt[true]": [":rt"],
-            "//third-party/meson/constraints:rt[false]": [],
+            "prelude//os/constraints:os[linux]": [":rt"],
+            "DEFAULT": select({
+                "//third-party/meson/constraints:rt[true]": [":rt"],
+                "//third-party/meson/constraints:rt[false]": [],
+            }),
         }),
         "//third-party/meson/constraints:links_clock_gettime_in_librt[false]": [],
     }),
@@ -6946,8 +6952,11 @@ cxx_library(
         "//third-party/meson/constraints:links_include_math_h_if_GNUC_4_undef_isnanl_define_isnanl_x_builtin_isnanl_long_double_x_else_undef_isnanl_define_isnanl_x_isnan_long_double_x_endif_double_x_int_main_return_isnanl_x[false]": [],
     }),
     deps = select({
-        "//third-party/meson/constraints:m[true]": [":m"],
-        "//third-party/meson/constraints:m[false]": [],
+        "prelude//os/constraints:os[linux]": [":m"],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:m[true]": [":m"],
+            "//third-party/meson/constraints:m[false]": [],
+        }),
     }),
     preferred_linkage = "static",
     target_compatible_with = _needs_os_compiler_run_C99_vsnprintf,
@@ -9940,8 +9949,11 @@ cxx_library(
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
-                "//third-party/meson/constraints:dl[true]": [":dl"],
-                "//third-party/meson/constraints:dl[false]": [],
+                "prelude//os/constraints:os[linux]": [":dl"],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:dl[true]": [":dl"],
+                    "//third-party/meson/constraints:dl[false]": [],
+                }),
             }),
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": [],
         }),
@@ -15884,8 +15896,11 @@ cxx_library(
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
-                "//third-party/meson/constraints:dl[true]": [":dl"],
-                "//third-party/meson/constraints:dl[false]": [],
+                "prelude//os/constraints:os[linux]": [":dl"],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:dl[true]": [":dl"],
+                    "//third-party/meson/constraints:dl[false]": [],
+                }),
             }),
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": [],
         }),
@@ -15973,6 +15988,13 @@ cxx_library(
         }),
         "//third-party/meson/constraints:runtimeobject[false]": [],
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "//third-party/meson/constraints:links_res_query[true]": [],
+            "//third-party/meson/constraints:links_res_query[false]": select({
+                "//third-party/meson/constraints:links_res_query_in_lresolv[true]": [":resolv"],
+                "//third-party/meson/constraints:links_res_query_in_lresolv[false]": [],
+            }),
+        }),
         "prelude//os/constraints:os[windows]": [],
         "DEFAULT": select({
             "//third-party/meson/constraints:resolv[true]": select({
@@ -16679,8 +16701,11 @@ cxx_library(
         ":glib-dep-5",
         ":glib-dep-7",
     ] + select({
-        "//third-party/meson/constraints:m[true]": [":m"],
-        "//third-party/meson/constraints:m[false]": [],
+        "prelude//os/constraints:os[linux]": [":m"],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:m[true]": [":m"],
+            "//third-party/meson/constraints:m[false]": [],
+        }),
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],

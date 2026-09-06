@@ -101,6 +101,20 @@ pub trait Oracle {
         None
     }
 
+    /// Whether `cc.find_library('name')` resolves, when that follows from the
+    /// target system rather than from a knob a generated build should carry.
+    ///
+    /// A library the C runtime splits out (`m`, `dl`, `rt`, `pthread`,
+    /// `resolv`, ...) or that the OS itself ships (`ws2_32`, `iphlpapi`, ...)
+    /// is present as a fact about `os`/`abi`/`cpu`, not a `<lib>[true/false]`
+    /// question. Answered like [`Oracle::probe`] and turned into a presence
+    /// condition the same way. Left `None`, `find_library()` stays an open
+    /// knob.
+    fn system_library(&self, name: &str) -> Option<Probe> {
+        let _ = name;
+        None
+    }
+
     /// The answer to a dependency's `1`-or-`0` `pkg-config` variable (an
     /// availability flag, the way `graphene_has_sse2` is), when it follows
     /// from something the importer already knows — answered the same way as

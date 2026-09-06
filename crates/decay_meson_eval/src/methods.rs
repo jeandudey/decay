@@ -905,7 +905,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                         name: libname.to_string(),
                     },
                 );
-                let found = self.dependency_found(&key, &libname, required);
+                // A library the C runtime splits out or the OS itself ships
+                // is a fact about the target system, not a knob. Ask the
+                // oracle first; only fall back to an open "found" variable
+                // when it has nothing.
+                let found = match self.oracle.system_library(&libname) {
+                    Some(answer) => {
+                        let desc = format!("`{libname}` is available");
+                        let found = self.resolve_probe(Some(answer), &key, desc)?;
+                        if !required.is_false() {
+                            let must = self.logic.implies(required, found);
+                            self.logic.assume(must);
+                        }
+                        found
+                    }
+                    None => self.dependency_found(&key, &libname, required),
+                };
                 let value = self.dep_obj(Dep {
                     name: libname.to_string(),
                     found,

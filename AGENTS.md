@@ -463,16 +463,62 @@ constraint(
 )
 ```
 
-  It should just be true for the systems that provide it, that's it, libc DB needs this.
+  **The requirement: there must be no `m[true]`/`m[false]` (or `dl`, `rt`, …)
+  knob at all.** `cc.find_library()` for a system/runtime library must settle
+  found-or-not-found for *every* system in `decay.toml`'s `[systems]`, as a
+  `select()` over `os`/`abi`/`cpu` decay already tracks — never a synthetic
+  `<lib>[true/false]` constraint, and never an open probe var.
 
-  Partly done: `find_library()` for a libc-split library MSVC has no
-  standalone `.lib` for (`m`, `dl`, `rt`, `pthread`, `resolv`, `nsl`,
-  `socket`, `anl`, `crypt`, `util`, `execinfo` — `is_crt_provided_lib` in
-  `decay_buck2`) now emits its `-l…` under `select({ abi[msvc]: [], DEFAULT:
-  … })`, so it contributes nothing on the MSVC ABI (matching meson's own
-  not-found there). The remaining half — settling the `m[true/false]` knob to
-  *true* on the systems that do provide it, instead of an open probe — still
-  wants the libc DB.
+  Slice 1 (`linux`) landed: `decay_libc_db::has_library` keeps the vendored
+  glibc `abilists` library table it used to discard (`m pthread c dl rt ld
+  util resolv` — exactly the `-lFOO` zig synthesises stubs for) and adds a
+  `musl_libraries` `zig cc -lNAME` link probe in `build.rs`. `src/oracle.rs`
+  `ConfigOracle::system_library` (new `Oracle::system_library` trait method,
+  consulted by `cc.find_library` in `decay_meson_eval` before the open-knob
+  fallback, toggled by `config.builtin_system_library`) turns a hit into
+  `Probe::SystemsAndConstraint { systems: ["linux"], axes: [], rows: [[]] }`
+  when the whole `Cpu::ALL × {gnu,musl}` matrix confirms it — so
+  `find_library('m')` etc. render as `select({ os[linux]: [":m"], DEFAULT:
+  <the old m[true/false] knob> })`. This is an intermediate state: `linux` is
+  settled, but the knob is *still there* for macOS / the BSDs / Windows,
+  which does not meet the requirement above.
+
+  Remaining work to kill the knob entirely:
+
+  - **Per-system answer for every configured system, no open complement.**
+    `system_library` should return `Probe::Matrix { systems: <all of
+    [systems]>, axes: [os, abi, cpu], rows: <every tuple where `-lNAME`
+    resolves> }` — `Matrix` settles the in-`systems` complement to *false*
+    with no knob, and with `systems` covering the whole configured set there
+    is no out-of-`systems` open branch either. Needs a new `resolve_probe`
+    path (or a `Probe::Not`) for the one hardcoded fact `abi[msvc]` →
+    not-found (same exception `is_crt_provided_lib` / `dependency('threads')`
+    already encode; not worth a database).
+  - **Rows sourced by an import-time `zig cc -target <triple> -lNAME` link
+    probe**, one per `(system, abi, cpu)` in the configured matrix, memoised
+    like `src/probe.rs`'s compile probes. Verified reachable for `linux-gnu`,
+    `linux-musl`, `x86_64/aarch64-macos`, `x86_64-windows-gnu`,
+    `x86_64-freebsd`, `x86_64-netbsd`, `wasm32-wasi`. The results are not
+    uniform — `-ldl` and `-lrt` fail on `windows-gnu`, `-lrt`/`-lresolv`
+    fail on macOS, `-lresolv` fails on the BSDs — so this genuinely needs
+    the probe, not a blanket "found except msvc".
+  - **Systems zig cannot self-host** (`android`, `illumos`/`sunos`,
+    `fuchsia`, `openbsd` — no bundled libc/sysroot): a `decay.toml`
+    `[system_libraries]` answer (escape hatch, like `[probes]`/`[sizeof]`),
+    and a hard error naming the `(system, library)` pair when neither the
+    probe nor `decay.toml` can answer — never a silent guess, never a knob.
+    `example/decay.toml` gains a `[system_libraries]` block for its
+    `android`/`sunos`/`fuchsia` entries.
+  - **Retire `is_crt_provided_lib`** once `found` is settled per system: the
+    `-lNAME` flag then flows through the normal found-gated select and is
+    simply absent wherever `found` is false (including `abi[msvc]`).
+
+  Slice 2 — a vendored mingw-w64 `.def`-name database in `decay_libc_db` for
+  the Windows *OS* libs (`ws2_32`, `iphlpapi`, `shcore`, `runtimeobject`,
+  `winmm`, `shlwapi`, `dnsapi`, …), settled found on `os[windows]` for both
+  abis (Windows SDK ⊇ mingw import libs). Slice 3 — `iconv` / `intl` as
+  `threads`-style builtins (in libc on glibc/musl, `-liconv` / `-lintl` on
+  macOS/Windows).
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
 

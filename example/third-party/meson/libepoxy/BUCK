@@ -365,8 +365,11 @@ cxx_library(
         "DEFAULT": [],
     }),
     deps = select({
-        "//third-party/meson/constraints:dl[true]": [":dl"],
-        "//third-party/meson/constraints:dl[false]": [],
+        "prelude//os/constraints:os[linux]": [":dl"],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:dl[true]": [":dl"],
+            "//third-party/meson/constraints:dl[false]": [],
+        }),
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:opengl32[true]": [":opengl32"],
@@ -472,8 +475,11 @@ cxx_library(
     },
     header_namespace = "",
     exported_deps = [":epoxy"] + select({
-        "//third-party/meson/constraints:dl[true]": [":dl"],
-        "//third-party/meson/constraints:dl[false]": [],
+        "prelude//os/constraints:os[linux]": [":dl"],
+        "DEFAULT": select({
+            "//third-party/meson/constraints:dl[true]": [":dl"],
+            "//third-party/meson/constraints:dl[false]": [],
+        }),
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:opengl32[true]": [":opengl32"],

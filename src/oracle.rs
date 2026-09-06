@@ -145,6 +145,62 @@ impl<'a> ConfigOracle<'a> {
             })
     }
 
+    /// Decay's built-in `find_library()` fallback, consulted only once a
+    /// project's own `[dependencies]` entry misses.
+    ///
+    /// Answers only the libraries `decay_libc_db` knows the C runtime splits
+    /// out on `linux` (`m`, `dl`, `rt`, `pthread`, `resolv`, `util`, ... —
+    /// glibc's own ABI list, and a real `zig cc -l` link for musl), and only
+    /// when the project has a `linux` system to ask. Everything else stays an
+    /// open knob, same as before.
+    fn builtin_system_library(&self, name: &str) -> Option<Probe> {
+        if !self.config.builtin_system_library {
+            return None;
+        }
+        // An explicit `[dependencies]` mapping still wins: leave it to the
+        // existing `dep:`-keyed resolution path untouched.
+        if self.config.dependencies.contains_key(name) {
+            return None;
+        }
+        if !self.config.systems.contains_key("linux") {
+            return None;
+        }
+        const LIBCS: [(decay_libc_db::Libc, &str); 2] = [
+            (decay_libc_db::Libc::Glibc, "gnu"),
+            (decay_libc_db::Libc::Musl, "musl"),
+        ];
+        let rows: Vec<Vec<String>> = decay_libc_db::Cpu::ALL
+            .into_iter()
+            .flat_map(|cpu| {
+                LIBCS
+                    .into_iter()
+                    .filter(move |(libc, _)| decay_libc_db::has_library(*libc, cpu, name))
+                    .map(move |(_, abi)| vec![abi.to_owned(), cpu.buck2_value().to_owned()])
+            })
+            .collect();
+        if rows.is_empty() {
+            return None;
+        }
+
+        // The library resolves on every `linux` target the database covers —
+        // don't fan the answer out over `abi`/`cpu` it does not actually
+        // depend on; a bare `os[linux]` presence condition (open elsewhere,
+        // where a macOS/Windows lib database would later say more) is enough.
+        // Anything less than the full matrix keeps the real rows.
+        let full_matrix = rows.len() == decay_libc_db::Cpu::ALL.len() * LIBCS.len();
+        let (axes, rows) = if full_matrix {
+            (Vec::new(), vec![Vec::new()])
+        } else {
+            (self.linux_abi_cpu_axes(), rows)
+        };
+
+        Some(Probe::SystemsAndConstraint {
+            systems: vec!["linux".to_owned()],
+            axes,
+            rows,
+        })
+    }
+
     /// The `(abi, cpu)` axes a `linux` matrix answer selects on: each buck2
     /// constraint setting paired with its known domain — what `decay.toml`
     /// already mentions, unioned with every value decay's own matrix can
@@ -303,6 +359,10 @@ impl Oracle for ConfigOracle<'_> {
         // Not a probe about the environment: decay is building this either
         // way, because it is another project it already imported.
         self.packages.get(name).map(|_| true)
+    }
+
+    fn system_library(&self, name: &str) -> Option<Probe> {
+        self.builtin_system_library(name)
     }
 
     fn dependency_variable(&self, dep: &str, variable: &str) -> Option<Probe> {

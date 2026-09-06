@@ -86,8 +86,62 @@ fn main() {
         code.push_str("        ],\n");
     }
     code.push_str("    }\n}\n");
+
+    code.push_str(
+        "\npub(crate) fn musl_libraries(cpu: Cpu) -> &'static [&'static str] {\n    match cpu {\n",
+    );
+    for cpu in Cpu::ALL {
+        let present = library_link_probe(cpu);
+        code.push_str(&format!("        Cpu::{cpu:?} => &[\n"));
+        for name in &present {
+            code.push_str(&format!("            {name:?},\n"));
+        }
+        code.push_str("        ],\n");
+    }
+    code.push_str("    }\n}\n");
+
     fs::write(Path::new(&out_dir).join("musl_symbols.rs"), code)
         .expect("writing generated musl_symbols.rs");
+}
+
+/// The `-lFOO` names a libc conventionally splits out (or keeps an empty
+/// compat archive for). Not the answer — just the question set handed to the
+/// linker below, the same way [`declared_functions`] feeds [`link_probe`].
+///
+/// ponytail: fixed candidate list; the authoritative part is the link probe.
+/// A name musl neither splits nor stubs simply fails to resolve and drops
+/// out. Extend this if a project asks `find_library()` for something else
+/// libc-provided.
+const SPLIT_LIB_CANDIDATES: &[&str] = &[
+    "m", "pthread", "dl", "rt", "util", "resolv", "crypt", "xnet", "nsl", "anl", "execinfo",
+];
+
+/// Which of [`SPLIT_LIB_CANDIDATES`] a real `zig cc -target <arch>-linux-musl`
+/// resolves `-lNAME` for, sorted.
+fn library_link_probe(cpu: Cpu) -> Vec<String> {
+    let out_dir = env::var("OUT_DIR").expect("OUT_DIR set by cargo");
+    let src_path = Path::new(&out_dir).join(format!("probe_lib_{}.c", cpu.zig_arch()));
+    fs::write(&src_path, "int main(void) { return 0; }\n").expect("writing probe_lib.c");
+    let target = cpu.musl_target();
+
+    let mut found: Vec<String> = SPLIT_LIB_CANDIDATES
+        .iter()
+        .filter(|name| {
+            let exe_path = Path::new(&out_dir).join(format!("probe_lib_{}_{name}", cpu.zig_arch()));
+            let output = Command::new("zig")
+                .args(["cc", "-target", &target, "-w"])
+                .arg(&src_path)
+                .arg(format!("-l{name}"))
+                .arg("-o")
+                .arg(&exe_path)
+                .output()
+                .expect("zig invocation failed (see check_zig_version's message above)");
+            output.status.success()
+        })
+        .map(|name| (*name).to_owned())
+        .collect();
+    found.sort();
+    found
 }
 
 fn zig(args: &[&str]) -> std::process::Output {
