@@ -4,6 +4,19 @@
 # its own options, the toolchain, and what the build environment provides — and
 # answer for every imported project at once. Each project's own options live
 # beside its build file.
+# The default target platform for a plain `buck2 build` here (wired up in
+# `.buckconfig`'s `target_platform_detector_spec`). `prelude//platforms:default`
+# detects the host OS and CPU but leaves `abi` unset, so a glibc host has to say
+# so — decay.toml's probes and the generated `select()`s key on
+# `prelude//abi/constraints:abi[gnu]` for "this is a GNU/glibc target".
+platform(
+    name = "linux",
+    constraint_values = [
+        "prelude//abi/constraints:abi[gnu]",
+    ],
+    deps = ["prelude//platforms:default"],
+)
+
 platform(
     name = "x11",
     constraint_values = [

@@ -18,7 +18,7 @@
   prelude = bundled
 
 [parser]
-  target_platform_detector_spec = target:root//...->prelude//platforms:default \
+  target_platform_detector_spec = target:root//...->root//platforms:linux \
     target:prelude//...->prelude//platforms:default \
     target:toolchains//...->prelude//platforms:default
 
