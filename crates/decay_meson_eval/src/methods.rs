@@ -104,6 +104,27 @@ const FUNC_ATTRIBUTES: &[&str] = &[
     "retain",
 ];
 
+/// Warning flags one of gcc / clang accepts and the other rejects outright
+/// (a bare `-W…`, not `-Wno-…` — every compiler quietly ignores an unknown
+/// `-Wno-…`). `cc.get_supported_arguments()` filters a list down to what the
+/// compiler takes; the importer cannot compile-test a flag, so it gates the
+/// few known-divergent ones on the `compiler` constraint and passes the rest
+/// through. Extend as real projects turn up more; a portable `-W…` needs no
+/// entry.
+const GCC_ONLY_WARNING_ARGS: &[&str] = &[
+    "-Wduplicated-branches",
+    "-Wduplicated-cond",
+    "-Wlogical-op",
+    "-Wmisleading-indentation",
+    "-Wtrampolines",
+];
+const CLANG_ONLY_WARNING_ARGS: &[&str] = &[
+    "-Wnewline-eof",
+    "-Wshadow-all",
+    "-Wshorten-64-to-32",
+    "-Wunreachable-code-aggressive",
+];
+
 impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn method(
         &mut self,
@@ -960,14 +981,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(self.pure(value))
             }
 
-            // Whether a warning flag is accepted is a toolchain detail the
-            // generated build's own toolchain already decides, so the flags are
-            // passed through rather than turned into dozens of knobs.
+            // Whether a warning flag is accepted is mostly a toolchain detail
+            // the generated build's own toolchain decides, so the flags are
+            // passed through rather than turned into dozens of knobs — except
+            // for the handful gcc and clang genuinely disagree on, where
+            // passing a clang-only `-W…` to gcc is a hard error. Those are
+            // gated on the `compiler` constraint so each lands only under the
+            // compiler that takes it.
             "get_supported_arguments" | "get_supported_link_arguments" => {
                 let mut items = Vec::new();
                 for arg in &args.pos {
                     for v in self.strings(arg)?.into_variants() {
-                        items.push(Variant::new(v.cond, Value::Str(v.value)));
+                        let cond = self.arg_supported_cond(lang, &v.value, v.cond)?;
+                        if cond.is_false() {
+                            continue;
+                        }
+                        items.push(Variant::new(cond, Value::Str(v.value)));
                     }
                 }
                 Ok(self.pure(Value::list(items)))
@@ -991,7 +1020,18 @@ impl<'a, S: Solver> Interp<'a, S> {
             "has_argument"
             | "has_link_argument"
             | "has_multi_arguments"
-            | "has_multi_link_arguments" => Ok(self.bool_value(self.pc)),
+            | "has_multi_link_arguments" => {
+                // True unless it is a flag gcc and clang disagree on, in which
+                // case it tracks the `compiler` constraint — same rule as
+                // `get_supported_arguments`.
+                let mut cond = self.pc;
+                for arg in &args.pos {
+                    for v in self.strings(arg)?.into_variants() {
+                        cond = self.arg_supported_cond(lang, &v.value, cond)?;
+                    }
+                }
+                Ok(self.bool_value(cond))
+            }
 
             // Which compiler is active decides the answer, so this does not
             // fold into the generic `probe_cond` path above.
@@ -1090,6 +1130,25 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(self.logic.any_of(id, choices))
             }
         }
+    }
+
+    /// The condition under which the active `lang` compiler accepts `flag`,
+    /// ANDed onto `base`. A flag gcc and clang disagree on is tied to the
+    /// `compiler` constraint; anything else (portable `-W…`, every `-Wno-…`,
+    /// `-f…`, msvc `/…`) is taken as accepted — the generated build's real
+    /// toolchain has the final say either way. See [`GCC_ONLY_WARNING_ARGS`].
+    fn arg_supported_cond(&mut self, lang: Lang, flag: &str, base: Pc) -> eyre::Result<Pc> {
+        let restrict = if GCC_ONLY_WARNING_ARGS.contains(&flag) {
+            Some(self.compiler_is(lang, &["gcc"])?)
+        } else if CLANG_ONLY_WARNING_ARGS.contains(&flag) {
+            Some(self.compiler_is(lang, &["clang"])?)
+        } else {
+            None
+        };
+        Ok(match restrict {
+            Some(c) => self.logic.and(base, c),
+            None => base,
+        })
     }
 
     /// `cc.has_function_attribute()`: gcc and clang accept every attribute in

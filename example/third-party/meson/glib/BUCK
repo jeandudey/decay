@@ -1124,7 +1124,7 @@ _headers = {
     "gio/gnetworking.h": ":gnetworking.h",
     "config.h": ":config.h",
 }
-_cflags_compiler = select({
+_cflags_compiler_cpp_compiler = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -1138,6 +1138,8 @@ _cflags_compiler = select({
     "-fno-strict-aliasing",
     "-DG_DISABLE_CAST_CHECKS",
 ] + select({
+    "//third-party/meson/constraints:compiler[gcc]": [],
+    "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -1157,11 +1159,18 @@ _cflags_compiler = select({
         "/wo4702",
         "/wd4706",
     ],
-    "DEFAULT": [
+}) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [
         "-Wduplicated-branches",
+        "-Wmisleading-indentation",
+    ],
+    "//third-party/meson/constraints:compiler[clang]": [],
+    "//third-party/meson/constraints:compiler[msvc]": [],
+}) + select({
+    "//third-party/meson/constraints:compiler[msvc]": [],
+    "DEFAULT": [
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -1183,10 +1192,8 @@ _cflags_compiler = select({
         "-Werror=pointer-sign",
         "-Wno-string-plus-int",
         "-Wno-typedef-redefinition",
-        "-Wduplicated-branches",
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -1202,6 +1209,16 @@ _cflags_compiler = select({
         "-Werror=pointer-arith",
         "-Werror=unused-result",
     ],
+}) + select({
+    "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
+            "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+    }),
+    "//third-party/meson/constraints:cpp_compiler[clang]": [],
+    "//third-party/meson/constraints:cpp_compiler[msvc]": [],
 }) + select({
     "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
     "//third-party/meson/constraints:compiler[clang]": ["-mms-bitfields"],
@@ -2654,7 +2671,7 @@ _deps = [
     ":glib-dep-5",
     ":glib-dep",
 ]
-_cflags_compiler2 = select({
+_cflags_compiler_cpp_compiler2 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -2669,6 +2686,8 @@ _cflags_compiler2 = select({
     "-DG_DISABLE_CAST_CHECKS",
     "-DHELPER_CONSOLE",
 ] + select({
+    "//third-party/meson/constraints:compiler[gcc]": [],
+    "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -2688,11 +2707,18 @@ _cflags_compiler2 = select({
         "/wo4702",
         "/wd4706",
     ],
-    "DEFAULT": [
+}) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [
         "-Wduplicated-branches",
+        "-Wmisleading-indentation",
+    ],
+    "//third-party/meson/constraints:compiler[clang]": [],
+    "//third-party/meson/constraints:compiler[msvc]": [],
+}) + select({
+    "//third-party/meson/constraints:compiler[msvc]": [],
+    "DEFAULT": [
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -2714,10 +2740,8 @@ _cflags_compiler2 = select({
         "-Werror=pointer-sign",
         "-Wno-string-plus-int",
         "-Wno-typedef-redefinition",
-        "-Wduplicated-branches",
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -2734,6 +2758,16 @@ _cflags_compiler2 = select({
         "-Werror=unused-result",
     ],
 }) + select({
+    "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
+            "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+    }),
+    "//third-party/meson/constraints:cpp_compiler[clang]": [],
+    "//third-party/meson/constraints:cpp_compiler[msvc]": [],
+}) + select({
     "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
     "//third-party/meson/constraints:compiler[clang]": ["-mms-bitfields"],
     "//third-party/meson/constraints:compiler[msvc]": [],
@@ -2745,7 +2779,7 @@ _exported_linker_flags = select({
         "-Wl,-Bsymbolic-functions",
     ],
 })
-_cflags_compiler_os = select({
+_cflags_compiler_os_cpp_compiler = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -2766,6 +2800,8 @@ _cflags_compiler_os = select({
     ],
     "DEFAULT": [],
 }) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [],
+    "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -2785,11 +2821,18 @@ _cflags_compiler_os = select({
         "/wo4702",
         "/wd4706",
     ],
-    "DEFAULT": [
+}) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [
         "-Wduplicated-branches",
+        "-Wmisleading-indentation",
+    ],
+    "//third-party/meson/constraints:compiler[clang]": [],
+    "//third-party/meson/constraints:compiler[msvc]": [],
+}) + select({
+    "//third-party/meson/constraints:compiler[msvc]": [],
+    "DEFAULT": [
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -2811,10 +2854,8 @@ _cflags_compiler_os = select({
         "-Werror=pointer-sign",
         "-Wno-string-plus-int",
         "-Wno-typedef-redefinition",
-        "-Wduplicated-branches",
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -2831,6 +2872,16 @@ _cflags_compiler_os = select({
         "-Werror=unused-result",
     ],
 }) + select({
+    "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
+            "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+    }),
+    "//third-party/meson/constraints:cpp_compiler[clang]": [],
+    "//third-party/meson/constraints:cpp_compiler[msvc]": [],
+}) + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
         "//third-party/meson/constraints:compiler[clang]": ["-mms-bitfields"],
@@ -2838,7 +2889,7 @@ _cflags_compiler_os = select({
     }),
     "DEFAULT": [],
 })
-_cflags_compiler_os2 = select({
+_cflags_compiler_os_cpp_compiler2 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -2857,6 +2908,8 @@ _cflags_compiler_os2 = select({
     "prelude//os/constraints:os[illumos]": ["-D__EXTENSIONS__"],
     "DEFAULT": [],
 }) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [],
+    "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -2876,11 +2929,18 @@ _cflags_compiler_os2 = select({
         "/wo4702",
         "/wd4706",
     ],
-    "DEFAULT": [
+}) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [
         "-Wduplicated-branches",
+        "-Wmisleading-indentation",
+    ],
+    "//third-party/meson/constraints:compiler[clang]": [],
+    "//third-party/meson/constraints:compiler[msvc]": [],
+}) + select({
+    "//third-party/meson/constraints:compiler[msvc]": [],
+    "DEFAULT": [
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -2902,10 +2962,8 @@ _cflags_compiler_os2 = select({
         "-Werror=pointer-sign",
         "-Wno-string-plus-int",
         "-Wno-typedef-redefinition",
-        "-Wduplicated-branches",
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -2921,6 +2979,16 @@ _cflags_compiler_os2 = select({
         "-Werror=pointer-arith",
         "-Werror=unused-result",
     ],
+}) + select({
+    "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
+            "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+    }),
+    "//third-party/meson/constraints:cpp_compiler[clang]": [],
+    "//third-party/meson/constraints:cpp_compiler[msvc]": [],
 })
 _ldflags = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
@@ -2933,7 +3001,7 @@ _headers5 = {
     "gnetworking.h": ":gnetworking.h",
     "config.h": ":config.h",
 }
-_cflags_compiler_os3 = select({
+_cflags_compiler_os_cpp_compiler3 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -2959,6 +3027,8 @@ _cflags_compiler_os3 = select({
     ],
     "DEFAULT": [],
 }) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [],
+    "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -2978,11 +3048,18 @@ _cflags_compiler_os3 = select({
         "/wo4702",
         "/wd4706",
     ],
-    "DEFAULT": [
+}) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [
         "-Wduplicated-branches",
+        "-Wmisleading-indentation",
+    ],
+    "//third-party/meson/constraints:compiler[clang]": [],
+    "//third-party/meson/constraints:compiler[msvc]": [],
+}) + select({
+    "//third-party/meson/constraints:compiler[msvc]": [],
+    "DEFAULT": [
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -3004,10 +3081,8 @@ _cflags_compiler_os3 = select({
         "-Werror=pointer-sign",
         "-Wno-string-plus-int",
         "-Wno-typedef-redefinition",
-        "-Wduplicated-branches",
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -3024,6 +3099,16 @@ _cflags_compiler_os3 = select({
         "-Werror=unused-result",
     ],
 }) + select({
+    "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
+            "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+    }),
+    "//third-party/meson/constraints:cpp_compiler[clang]": [],
+    "//third-party/meson/constraints:cpp_compiler[msvc]": [],
+}) + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
         "//third-party/meson/constraints:compiler[clang]": ["-mms-bitfields"],
@@ -3031,7 +3116,7 @@ _cflags_compiler_os3 = select({
     }),
     "DEFAULT": [],
 })
-_cflags_compiler_os4 = select({
+_cflags_compiler_os_cpp_compiler4 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -3056,6 +3141,8 @@ _cflags_compiler_os4 = select({
     ],
     "DEFAULT": [],
 }) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [],
+    "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -3075,11 +3162,18 @@ _cflags_compiler_os4 = select({
         "/wo4702",
         "/wd4706",
     ],
-    "DEFAULT": [
+}) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [
         "-Wduplicated-branches",
+        "-Wmisleading-indentation",
+    ],
+    "//third-party/meson/constraints:compiler[clang]": [],
+    "//third-party/meson/constraints:compiler[msvc]": [],
+}) + select({
+    "//third-party/meson/constraints:compiler[msvc]": [],
+    "DEFAULT": [
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -3101,10 +3195,8 @@ _cflags_compiler_os4 = select({
         "-Werror=pointer-sign",
         "-Wno-string-plus-int",
         "-Wno-typedef-redefinition",
-        "-Wduplicated-branches",
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -3120,6 +3212,16 @@ _cflags_compiler_os4 = select({
         "-Werror=pointer-arith",
         "-Werror=unused-result",
     ],
+}) + select({
+    "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
+            "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+    }),
+    "//third-party/meson/constraints:cpp_compiler[clang]": [],
+    "//third-party/meson/constraints:cpp_compiler[msvc]": [],
 }) + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -3861,7 +3963,7 @@ _deps_os3 = [
     "prelude//os/constraints:os[windows]": [":glib-dep"],
     "DEFAULT": [":glib-dep-3"],
 })
-_cflags_compiler_os5 = select({
+_cflags_compiler_os_cpp_compiler5 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
@@ -3883,6 +3985,8 @@ _cflags_compiler_os5 = select({
     ],
     "DEFAULT": [],
 }) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [],
+    "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": [
         "/wo4057",
         "/wd4068",
@@ -3902,11 +4006,18 @@ _cflags_compiler_os5 = select({
         "/wo4702",
         "/wd4706",
     ],
-    "DEFAULT": [
+}) + select({
+    "//third-party/meson/constraints:compiler[gcc]": [
         "-Wduplicated-branches",
+        "-Wmisleading-indentation",
+    ],
+    "//third-party/meson/constraints:compiler[clang]": [],
+    "//third-party/meson/constraints:compiler[msvc]": [],
+}) + select({
+    "//third-party/meson/constraints:compiler[msvc]": [],
+    "DEFAULT": [
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -3928,10 +4039,8 @@ _cflags_compiler_os5 = select({
         "-Werror=pointer-sign",
         "-Wno-string-plus-int",
         "-Wno-typedef-redefinition",
-        "-Wduplicated-branches",
         "-Wfloat-conversion",
         "-Wimplicit-fallthrough",
-        "-Wmisleading-indentation",
         "-Wmissing-field-initializers",
         "-Wnonnull",
         "-Wnull-dereference",
@@ -3947,6 +4056,16 @@ _cflags_compiler_os5 = select({
         "-Werror=pointer-arith",
         "-Werror=unused-result",
     ],
+}) + select({
+    "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
+            "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+    }),
+    "//third-party/meson/constraints:cpp_compiler[clang]": [],
+    "//third-party/meson/constraints:cpp_compiler[msvc]": [],
 }) + select({
     "prelude//os/constraints:os[windows]": select({
         "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -4715,7 +4834,7 @@ cxx_library(
     },
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags_compiler_cpp_compiler,
     preferred_linkage = "static",
     target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
@@ -5747,6 +5866,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -5766,11 +5887,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -5792,10 +5920,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -5811,6 +5937,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -6802,6 +6938,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -6821,11 +6959,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -6847,10 +6992,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -6866,6 +7009,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -7777,6 +7930,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -7796,11 +7951,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -7822,10 +7984,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -7841,6 +8001,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -8081,7 +8251,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags_compiler_cpp_compiler,
     deps = _deps,
     target_compatible_with = [
         "prelude//os/constraints:os[windows]",
@@ -8095,7 +8265,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler2,
+    compiler_flags = _cflags_compiler_cpp_compiler2,
     deps = _deps,
     target_compatible_with = [
         "prelude//os/constraints:os[windows]",
@@ -8109,7 +8279,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags_compiler_cpp_compiler,
     deps = _deps,
     target_compatible_with = ["prelude//os/constraints:os[windows]"] + select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -8126,7 +8296,7 @@ cxx_binary(
     srcs = [":glib.git[glib/gspawn-win32-helper.c]"],
     headers = _headers4,
     header_namespace = "",
-    compiler_flags = _cflags_compiler2,
+    compiler_flags = _cflags_compiler_cpp_compiler2,
     deps = _deps,
     target_compatible_with = ["prelude//os/constraints:os[windows]"] + select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -8159,6 +8329,8 @@ cxx_binary(
         "prelude//os/constraints:os[illumos]": ["-D__EXTENSIONS__"],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -8178,11 +8350,18 @@ cxx_binary(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -8204,10 +8383,8 @@ cxx_binary(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -8223,6 +8400,16 @@ cxx_binary(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
     deps = [
         ":glib-dep-5",
@@ -8909,7 +9096,6 @@ cxx_library(
         "-DG_LOG_DOMAIN=\"GLib-GObject\"",
         "-DGOBJECT_COMPILATION",
         "-Wsign-conversion",
-        "-Wshorten-64-to-32",
     ] + select({
         "prelude//os/constraints:os[illumos]": ["-D__EXTENSIONS__"],
         "DEFAULT": [],
@@ -8920,6 +9106,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -8939,11 +9127,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -8965,10 +9160,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -8985,12 +9178,26 @@ cxx_library(
             "-Werror=unused-result",
         ],
     }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
+    }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
             "//third-party/meson/constraints:compiler[clang]": ["-mms-bitfields"],
             "//third-party/meson/constraints:compiler[msvc]": [],
         }),
         "DEFAULT": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": ["-Wshorten-64-to-32"],
+        "//third-party/meson/constraints:compiler[msvc]": [],
     }),
     exported_linker_flags = _exported_linker_flags,
     deps = select({
@@ -9058,7 +9265,7 @@ cxx_binary(
     srcs = [":glib.git[gobject/gobject-query.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os,
+    compiler_flags = _cflags_compiler_os_cpp_compiler,
     deps = [
         ":glib-dep-5",
         ":glib-dep-7",
@@ -9103,7 +9310,6 @@ cxx_library(
         "-DG_LOG_DOMAIN=\"GThread\"",
         "-DGLIB_COMPILATION",
         "-Wsign-conversion",
-        "-Wshorten-64-to-32",
     ] + select({
         "prelude//os/constraints:os[illumos]": ["-D__EXTENSIONS__"],
         "DEFAULT": [],
@@ -9114,6 +9320,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -9133,11 +9341,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -9159,10 +9374,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -9179,12 +9392,26 @@ cxx_library(
             "-Werror=unused-result",
         ],
     }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
+    }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
             "//third-party/meson/constraints:compiler[clang]": ["-mms-bitfields"],
             "//third-party/meson/constraints:compiler[msvc]": [],
         }),
         "DEFAULT": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": ["-Wshorten-64-to-32"],
+        "//third-party/meson/constraints:compiler[msvc]": [],
     }),
     exported_linker_flags = _exported_linker_flags,
     deps = select({
@@ -9985,6 +10212,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -10004,11 +10233,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -10030,10 +10266,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -10049,6 +10283,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -10485,7 +10729,7 @@ cxx_binary(
         "gcharsetprivate.h": ":glib.git[glib/gcharsetprivate.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os2,
+    compiler_flags = _cflags_compiler_os_cpp_compiler2,
     linker_flags = _ldflags,
     deps = [":glib-dep-3"],
     target_compatible_with = _needs_os,
@@ -11080,6 +11324,8 @@ cxx_library(
         "prelude//os/constraints:os[illumos]": ["-D__EXTENSIONS__"],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -11099,11 +11345,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -11125,10 +11378,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -11144,6 +11395,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
     preferred_linkage = "static",
     target_compatible_with = _needs_os,
@@ -11936,7 +12197,7 @@ cxx_library(
     },
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os3,
+    compiler_flags = _cflags_compiler_os_cpp_compiler3,
     deps = [
         ":glib-dep-11",
         ":glib-dep-5",
@@ -12675,7 +12936,7 @@ cxx_library(
     },
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os3,
+    compiler_flags = _cflags_compiler_os_cpp_compiler3,
     deps = [
         ":glib-dep-11",
         ":glib-dep-5",
@@ -13732,6 +13993,8 @@ cxx_library(
         "-DLOCALSTATEDIR=\"/usr/local/var\"",
         "-DGIO_COMPILATION",
     ] + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -13751,11 +14014,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -13777,10 +14047,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -13796,6 +14064,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
         "//third-party/meson/constraints:compiler[clang]": ["-mms-bitfields"],
@@ -15851,6 +16129,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -15870,11 +16150,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -15896,10 +16183,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -15915,6 +16200,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -16511,7 +16806,7 @@ cxx_binary(
         "gio-tool.h": ":glib.git[gio/gio-tool.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os4,
+    compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
     deps = _deps_os,
     visibility = ["PUBLIC"],
@@ -16522,7 +16817,7 @@ cxx_binary(
     srcs = [":glib.git[gio/gresource-tool.c]"],
     headers = _headers5,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os,
+    compiler_flags = _cflags_compiler_os_cpp_compiler,
     linker_flags = _ldflags,
     deps = select({
         "//third-party/meson/constraints:elf[true]": select({
@@ -16571,7 +16866,7 @@ cxx_binary(
     ],
     headers = _headers5,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os4,
+    compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
     deps = _deps_os,
     visibility = ["PUBLIC"],
@@ -16582,7 +16877,7 @@ cxx_binary(
     srcs = [":glib.git[gio/glib-compile-schemas.c]"],
     headers = _headers5,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os,
+    compiler_flags = _cflags_compiler_os_cpp_compiler,
     linker_flags = _ldflags,
     deps = _deps_os2,
     visibility = ["PUBLIC"],
@@ -16599,7 +16894,7 @@ cxx_binary(
         "gconstructor_as_data.h": ":gconstructor_as_data.h",
     },
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os4,
+    compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
     deps = _deps_os2,
     visibility = ["PUBLIC"],
@@ -16610,7 +16905,7 @@ cxx_binary(
     srcs = [":glib.git[gio/gsettings-tool.c]"],
     headers = _headers5,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os4,
+    compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
     deps = _deps_os,
     visibility = ["PUBLIC"],
@@ -16621,7 +16916,7 @@ cxx_binary(
     srcs = [":glib.git[gio/gdbus-tool.c]"],
     headers = _headers5,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os4,
+    compiler_flags = _cflags_compiler_os_cpp_compiler4,
     linker_flags = _ldflags,
     deps = _deps_os,
     visibility = ["PUBLIC"],
@@ -16632,7 +16927,7 @@ cxx_binary(
     srcs = [":glib.git[gio/gapplication-tool.c]"],
     headers = _headers5,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os2,
+    compiler_flags = _cflags_compiler_os_cpp_compiler2,
     linker_flags = _ldflags,
     deps = [
         ":glib-dep-12",
@@ -16695,6 +16990,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -16714,11 +17011,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -16740,10 +17044,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -16759,6 +17061,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -16893,6 +17205,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -16912,11 +17226,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -16938,10 +17259,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -16957,6 +17276,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -17037,6 +17366,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17056,11 +17387,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17082,10 +17420,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17101,6 +17437,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -17199,6 +17545,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17218,11 +17566,18 @@ cxx_library(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17244,10 +17599,8 @@ cxx_library(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17263,6 +17616,16 @@ cxx_library(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -17383,7 +17746,7 @@ cxx_binary(
     srcs = [":glib.git[girepository/gi-dump-types.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os,
+    compiler_flags = _cflags_compiler_os_cpp_compiler,
     deps = [
         ":glib-dep-16",
         ":glib-dep-12",
@@ -17425,6 +17788,8 @@ cxx_binary(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17444,11 +17809,18 @@ cxx_binary(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17470,10 +17842,8 @@ cxx_binary(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17489,6 +17859,16 @@ cxx_binary(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -17537,6 +17917,8 @@ cxx_binary(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17556,11 +17938,18 @@ cxx_binary(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17582,10 +17971,8 @@ cxx_binary(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17601,6 +17988,16 @@ cxx_binary(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -17649,6 +18046,8 @@ cxx_binary(
         ],
         "DEFAULT": [],
     }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [],
+        "//third-party/meson/constraints:compiler[clang]": [],
         "//third-party/meson/constraints:compiler[msvc]": [
             "/wo4057",
             "/wd4068",
@@ -17668,11 +18067,18 @@ cxx_binary(
             "/wo4702",
             "/wd4706",
         ],
-        "DEFAULT": [
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": [
             "-Wduplicated-branches",
+            "-Wmisleading-indentation",
+        ],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
+    }) + select({
+        "//third-party/meson/constraints:compiler[msvc]": [],
+        "DEFAULT": [
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17694,10 +18100,8 @@ cxx_binary(
             "-Werror=pointer-sign",
             "-Wno-string-plus-int",
             "-Wno-typedef-redefinition",
-            "-Wduplicated-branches",
             "-Wfloat-conversion",
             "-Wimplicit-fallthrough",
-            "-Wmisleading-indentation",
             "-Wmissing-field-initializers",
             "-Wnonnull",
             "-Wnull-dereference",
@@ -17713,6 +18117,16 @@ cxx_binary(
             "-Werror=pointer-arith",
             "-Werror=unused-result",
         ],
+    }) + select({
+        "//third-party/meson/constraints:cpp_compiler[gcc]": select({
+            "//third-party/meson/constraints:compiler[msvc]": [],
+            "DEFAULT": [
+                "-Wduplicated-branches",
+                "-Wmisleading-indentation",
+            ],
+        }),
+        "//third-party/meson/constraints:cpp_compiler[clang]": [],
+        "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
             "//third-party/meson/constraints:compiler[gcc]": ["-mms-bitfields"],
@@ -17756,7 +18170,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_bookmark.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17769,7 +18183,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_canonicalize_filename.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17782,7 +18196,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_data_input_stream_read_line.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17795,7 +18209,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_data_input_stream_read_line_utf8.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17808,7 +18222,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_data_input_stream_read_upto.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17821,7 +18235,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_date_parse.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17834,7 +18248,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_date_time_new_from_iso8601.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17847,7 +18261,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_dbus_message.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17860,7 +18274,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_filename_from_uri.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17873,7 +18287,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_filename_to_uri.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17886,7 +18300,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_get_locale_variants.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17899,7 +18313,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_inet_address_mask_new_from_string.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17912,7 +18326,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_inet_address_new_from_string.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17925,7 +18339,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_inet_socket_address_new_from_string.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17938,7 +18352,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_key.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17951,7 +18365,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_network_address_parse.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17964,7 +18378,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_network_address_parse_uri.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17977,7 +18391,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_paths.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -17990,7 +18404,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_resolver.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18003,7 +18417,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_special_dirs.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18016,7 +18430,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_string.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18029,7 +18443,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_uri_escape.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18042,7 +18456,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_uri_parse.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18055,7 +18469,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_uri_parse_params.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18068,7 +18482,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_utf8_normalize.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18081,7 +18495,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_utf8_validate.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18094,7 +18508,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_uuid_string_is_valid.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18107,7 +18521,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_variant_binary.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18120,7 +18534,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_variant_binary_byteswap.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -18133,7 +18547,7 @@ cxx_binary(
     }) + [":glib.git[fuzzing/fuzz_variant_text.c]"],
     headers = _headers,
     header_namespace = "",
-    compiler_flags = _cflags_compiler_os5,
+    compiler_flags = _cflags_compiler_os_cpp_compiler5,
     deps = _deps_os_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -20149,24 +20563,6 @@ genrule(
             "//third-party/meson/constraints:compiles_futex_2_system_call[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FUTEX_TIME64 1'",
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FUTEX_TIME64 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FUTEX_TIME64 1'",
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FUTEX_TIME64 1'",
-                "DEFAULT": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_futex_time64_2_system_call[true]": " '#define HAVE_FUTEX_TIME64 1'",
-            "//third-party/meson/constraints:compiles_futex_time64_2_system_call[false]": "",
-        }),
-    }) + select({
         "//third-party/meson/constraints:links_eventfd_2_system_call[true]": " '#define HAVE_EVENTFD 1'",
         "//third-party/meson/constraints:links_eventfd_2_system_call[false]": "",
     }) + select({
@@ -20814,79 +21210,44 @@ genrule(
             "//third-party/meson/constraints:has_header_symbol_pthread_h[false]": "",
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1'",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1'",
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": "",
-        }),
+        "prelude//os/constraints:os[macos]": " '#define HAVE_PTHREAD_SETNAME_NP_WITHOUT_TID 1'",
+        "DEFAULT": "",
     }) + select({
+        "prelude//os/constraints:os[macos]": "",
         "prelude//os/constraints:os[windows]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID 1'",
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": "",
-                }),
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
                 "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID 1'",
                 "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": "",
             }),
-        }),
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG 1'",
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[false]": "",
-                    }),
-                }),
-            }),
             "DEFAULT": "",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
+            "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID 1'",
+            "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[macos]": "",
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
                 "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
                 "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
                     "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG 1'",
                     "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[false]": "",
                 }),
             }),
-        }),
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-                "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
-                    "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": "",
-                        "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[false]": select({
-                            "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SET_NAME_NP 1'",
-                            "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[false]": "",
-                        }),
-                    }),
-                }),
-            }),
             "DEFAULT": "",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[true]": "",
-            "//third-party/meson/constraints:links_pthread_setname_np_const_char[false]": select({
+            "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
+            "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
+                "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID_AND_ARG 1'",
+                "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[false]": "",
+            }),
+        }),
+    }) + select({
+        "prelude//os/constraints:os[macos]": "",
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
                 "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
                 "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
                     "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": "",
@@ -20894,6 +21255,17 @@ genrule(
                         "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SET_NAME_NP 1'",
                         "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[false]": "",
                     }),
+                }),
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": "",
+            "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": select({
+                "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[true]": "",
+                "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char_void[false]": select({
+                    "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SET_NAME_NP 1'",
+                    "//third-party/meson/constraints:links_pthread_set_name_np_pthread_t_const_char[false]": "",
                 }),
             }),
         }),

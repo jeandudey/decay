@@ -475,7 +475,6 @@ cxx_library(
             "-Wunused",
             "-Wmissing-noreturn",
             "-Wmissing-format-attribute",
-            "-Wlogical-op",
             "-Wcast-align",
             "-Wno-unused-local-typedefs",
             "-Werror=float-conversion",
@@ -495,6 +494,10 @@ cxx_library(
             "-Werror=write-strings",
             "-Werror=undef",
         ],
+    }) + select({
+        "//third-party/meson/constraints:compiler[gcc]": ["-Wlogical-op"],
+        "//third-party/meson/constraints:compiler[clang]": [],
+        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [],
         "DEFAULT": select({

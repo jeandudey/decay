@@ -286,6 +286,14 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
+# machine property `compiler:cpp`: the cpp compiler in use
+constraint(
+    name = "cpp_compiler",
+    values = ["gcc", "clang", "msvc"],
+    default = "gcc",
+    visibility = ["PUBLIC"],
+)
+
 # toolchain probe `probe:c:has_header:alloca.h`: `alloca.h` is available to the c compiler
 constraint(
     name = "has_header_alloca_h",
@@ -1662,14 +1670,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:futex_time64(2) system call`: `futex_time64(2) system call` is available to the c compiler
-constraint(
-    name = "compiles_futex_time64_2_system_call",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:eventfd(2) system call`: `eventfd(2) system call` is available to the c compiler
 constraint(
     name = "links_eventfd_2_system_call",
@@ -1985,14 +1985,6 @@ constraint(
 # toolchain probe `probe:c:has_header_symbol:pthread.h`: `pthread.h` is available to the c compiler
 constraint(
     name = "has_header_symbol_pthread_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:links:pthread_setname_np(const char*)`: `pthread_setname_np(const char*)` is available to the c compiler
-constraint(
-    name = "links_pthread_setname_np_const_char",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],

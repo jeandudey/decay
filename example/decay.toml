@@ -24,6 +24,15 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # `crt_externs.h` (`_NSGetEnviron`) ships with Apple's libSystem; no other
 # platform has it, macOS or not.
 "has_header:crt_externs.h" = "prelude//os/constraints:os[macos]"
+# The one-argument `pthread_setname_np(const char *)` is the macOS/iOS
+# spelling; every other platform takes a thread argument. Without this glib's
+# `cc.links()` probe for it defaults present and picks the Darwin code path.
+"links:pthread_setname_np(const char*)" = "prelude//os/constraints:os[macos]"
+# `__NR_futex_time64` is a libc/kernel-header vintage question with no
+# constraint decay tracks, and glib's probe for it defaults present then fails
+# to compile on a host whose <sys/syscall.h> predates it. Settle it off; glib
+# falls back to the plain `__NR_futex` path.
+"compiles:futex_time64(2) system call" = false
 
 [programs]
 python3 = "//third-party/tools:python3"
