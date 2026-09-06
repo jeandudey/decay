@@ -616,6 +616,49 @@ fn copylib_source_groups(graph: &Graph, known: &Labels, target: &Target) -> Vec<
     out
 }
 
+/// A generated file a `custom_target` names in `depends:` / `depend_files:`
+/// (or runs from the command) that has to be laid out in the build tree the
+/// way meson lays it out, because something reads it by a path relative to
+/// itself: gdbus-codegen is a script whose `from codegen import …` looks in
+/// `<script dir>/../codegen/`, so the script and its `codegen/*.py` package
+/// only work side by side under a directory named `codegen`.
+///
+/// Returns each such file as `stage path -> target`, where the stage path is
+/// its meson build-tree location (`{package}/{output}`). Empty unless the
+/// target actually has generated `depends:` — an ordinary `custom_target`
+/// keeps naming its inputs through `$(location …)`.
+fn staged_deps(graph: &Graph, target: &Target) -> BTreeMap<String, TargetId> {
+    fn stage_path(graph: &Graph, id: TargetId) -> Option<String> {
+        let t = graph.target(id);
+        if !matches!(t.kind, Kind::Custom | Kind::ConfigHeader) {
+            return None;
+        }
+        let out = t.attrs.outs.first()?;
+        Some(format!("{}/{out}", t.package.display()).trim_start_matches('/').to_owned())
+    }
+
+    let deps: BTreeMap<String, TargetId> = target
+        .attrs
+        .deps
+        .iter()
+        .filter_map(|d| Some((stage_path(graph, d.value)?, d.value)))
+        .collect();
+    if deps.is_empty() {
+        return BTreeMap::new();
+    }
+
+    // The script the command runs has to be staged too, next to its package.
+    let mut staged = deps;
+    for entry in target.attrs.cmd.iter() {
+        if let CmdArg::Target(id) = &entry.value {
+            if let Some(path) = stage_path(graph, *id) {
+                staged.insert(path, *id);
+            }
+        }
+    }
+    staged
+}
+
 fn render_target<S: Solver>(
     graph: &Graph,
     logic: &mut Logic<S>,
@@ -648,7 +691,22 @@ fn render_target<S: Solver>(
                 "out",
                 format!("{:?}", a.outs.first().cloned().unwrap_or_default()),
             ));
-            attrs.push(("cmd", command(graph, logic, selects, known, target)));
+            // Generated `depends:` files that have to sit at their meson
+            // build-tree paths (a script reading its own package by a relative
+            // path) are staged under `$SRCDIR` instead.
+            let staged = staged_deps(graph, target);
+            if !staged.is_empty() {
+                let mut dict = String::from("{\n");
+                for (path, id) in &staged {
+                    let _ = writeln!(dict, "        {path:?}: \":{}\",", graph.target(*id).name);
+                }
+                dict.push_str("    }");
+                attrs.push(("srcs", dict));
+            }
+            attrs.push((
+                "cmd",
+                command(graph, logic, selects, known, target, &staged),
+            ));
         }
         Kind::ConfigHeader => {
             attrs.push((
@@ -1267,14 +1325,26 @@ fn command<S: Solver>(
     selects: &Selects,
     known: &Labels,
     target: &Target,
+    staged: &BTreeMap<String, TargetId>,
 ) -> String {
+    // A file staged under `$SRCDIR` is named by that relative path, not by a
+    // `$(location …)` that would materialise it somewhere else.
+    let staged_path = |id: TargetId| {
+        staged
+            .iter()
+            .find(|(_, staged_id)| **staged_id == id)
+            .map(|(path, _)| format!("$SRCDIR/{path}"))
+    };
+
     let inputs: Vec<String> = target
         .attrs
         .srcs
         .iter()
         .map(|s| match &s.value {
             Source::File(path) => file_arg(graph, path),
-            Source::Generated(id) => format!("$(location :{})", graph.target(*id).name),
+            Source::Generated(id) => {
+                staged_path(*id).unwrap_or_else(|| format!("$(location :{})", graph.target(*id).name))
+            }
         })
         .collect();
 
@@ -1312,7 +1382,8 @@ fn command<S: Solver>(
                             None => name.clone(),
                         }
                     }
-                    _ => format!("$(location :{})", dep.name),
+                    _ => staged_path(*id)
+                        .unwrap_or_else(|| format!("$(location :{})", dep.name)),
                 }
             }
             CmdArg::File(path) => file_arg(graph, path),
