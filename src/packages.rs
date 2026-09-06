@@ -1,4 +1,7 @@
-use {decay_build_ir::Graph, std::collections::BTreeMap};
+use {
+    decay_build_ir::{Graph, Kind, Source},
+    std::collections::BTreeMap,
+};
 
 /// What earlier projects are known to provide, keyed by the name
 /// `dependency()` looks up.
@@ -20,6 +23,11 @@ pub struct Package {
     /// Build-file label of the target carrying its usage requirements, when
     /// it is a linkable library and not just data.
     pub target: Option<String>,
+    /// The `.c` sources a `declare_dependency(sources: …)` copylib
+    /// contributes, as package-qualified Starlark source refs — a consumer
+    /// splices these straight into its own `srcs` (see `decay_buck2`). Empty
+    /// for an ordinary library provider.
+    pub sources: Vec<String>,
     pub variables: Vec<(String, String)>,
 }
 
@@ -35,6 +43,14 @@ impl Packages {
             .filter_map(|(name, pkg)| Some((name.clone(), pkg.target.clone()?)))
     }
 
+    /// Every provided name that contributes copylib `.c` sources, as
+    /// `(name, refs)`.
+    pub fn source_groups(&self) -> impl Iterator<Item = (String, Vec<String>)> + '_ {
+        self.by_name.iter().filter_map(|(name, pkg)| {
+            (!pkg.sources.is_empty()).then(|| (name.clone(), pkg.sources.clone()))
+        })
+    }
+
     /// Record what one project provides, once it has finished executing.
     ///
     /// `package` is the build-file package it was written to, e.g.
@@ -42,13 +58,33 @@ impl Packages {
     /// anywhere else.
     pub fn register(&mut self, package: &str, graph: &Graph) {
         for provide in &graph.provides {
-            let target = provide
-                .target
-                .map(|id| format!("//{package}:{}", graph.target(id).name));
+            let iface = provide.target.map(|id| graph.target(id));
+            let target = iface.map(|t| format!("//{package}:{}", t.name));
+            // Only a `declare_dependency()` copylib (an interface target)
+            // contributes sources for a consumer to compile; a real library
+            // provider compiles its own `srcs` and a consumer just links it.
+            let sources = iface
+                .filter(|t| matches!(t.kind, Kind::Interface))
+                .map(|t| {
+                    t.attrs
+                        .srcs
+                        .iter()
+                        .map(|s| match &s.value {
+                            Source::File(path) => {
+                                format!("//{package}:{}.git[{}]", graph.project.name, path.display())
+                            }
+                            Source::Generated(id) => {
+                                format!("//{package}:{}", graph.target(*id).name)
+                            }
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
             self.by_name.insert(
                 provide.name.clone(),
                 Package {
                     target,
+                    sources,
                     variables: provide.variables.clone(),
                 },
             );

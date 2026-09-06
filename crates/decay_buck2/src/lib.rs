@@ -206,6 +206,11 @@ pub struct Labels {
     /// Targets that already provide a dependency the meson build looked up
     /// outside itself, keyed by the name meson used.
     pub dependencies: BTreeMap<String, String>,
+    /// The `.c` sources a sibling project's `declare_dependency(sources: …)`
+    /// copylib contributes, as package-qualified Starlark source refs, keyed
+    /// by the dependency name — spliced into the `srcs` of any target that
+    /// depends on it, since meson compiles those sources into each consumer.
+    pub dependency_sources: BTreeMap<String, Vec<String>>,
     /// Binary targets for the tools the build runs, keyed the same way.
     pub programs: BTreeMap<String, String>,
 }
@@ -578,6 +583,39 @@ fn render_dep_ref(graph: &Graph, known: &Labels, id: TargetId) -> String {
     format!("\":{}\"", target.name)
 }
 
+/// The copylib `.c` sources a target has to compile itself: one set per
+/// `declare_dependency(sources: …)` it depends on, whether that interface is
+/// in this project or a sibling one (resolved through
+/// [`Labels::dependency_sources`]). buck2's `cxx_library` will not take a
+/// `filegroup` in `srcs` (`collect_extensions` rejects the directory
+/// artifact), so the individual source refs are spliced in directly; a
+/// `git_fetch` sub-target keeps its file beside its siblings, so a
+/// `#include "sibling.h"` still resolves. Quoted Starlark string literals,
+/// sorted and de-duplicated.
+fn copylib_source_groups(graph: &Graph, known: &Labels, target: &Target) -> Vec<String> {
+    let a = &target.attrs;
+    let mut out: Vec<String> = Vec::new();
+    for d in a.link_with.iter().chain(a.deps.iter()) {
+        let dep = graph.target(d.value);
+        match &dep.kind {
+            Kind::Interface => {
+                for s in dep.attrs.srcs.iter() {
+                    out.push(source(graph, &s.value));
+                }
+            }
+            Kind::External(_) => {
+                if let Some(refs) = known.dependency_sources.get(&dep.label) {
+                    out.extend(refs.iter().map(|r| format!("{r:?}")));
+                }
+            }
+            _ => {}
+        }
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
 fn render_target<S: Solver>(
     graph: &Graph,
     logic: &mut Logic<S>,
@@ -634,10 +672,15 @@ fn render_target<S: Solver>(
             let library = !matches!(target.kind, Kind::Executable);
 
             if !is_interface {
-                attrs.push((
-                    "srcs",
-                    selects.render_list(logic, &a.srcs, cond, 1, |s| source(graph, s)),
-                ));
+                let mut srcs = selects.render_list(logic, &a.srcs, cond, 1, |s| source(graph, s));
+                // A `declare_dependency(sources: …)` copylib this target
+                // depends on contributes `.c` files meson compiles right here;
+                // splice in its `filegroup`.
+                let extra = copylib_source_groups(graph, known, target);
+                if !extra.is_empty() {
+                    srcs = format!("{srcs} + [{}]", extra.join(", "));
+                }
+                attrs.push(("srcs", srcs));
             }
 
             // Include paths decide how a header is spelled in an `#include`,

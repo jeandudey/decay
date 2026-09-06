@@ -1349,6 +1349,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
 
         let mut headers = Variational::empty();
+        let mut srcs = Variational::empty();
         if let Some(v) = args.get("sources") {
             let raw = self.sources(v)?;
             // A `.rc` handed straight to `declare_dependency(sources:)` would
@@ -1356,9 +1357,38 @@ impl<'a, S: Solver> Interp<'a, S> {
             // resource compiler over it. Hoist it into its own rule and export
             // it so consumers of the dependency link the compiled resource.
             let (kept, rc) = self.split_resources(raw, &name, &dir, &include_dirs);
-            headers.extend(kept);
             if let Some(rc) = rc {
                 link_with.push(rc);
+            }
+            // A "copylib" lists real `.c` sources here (gvdb's `gvdb-builder.c`
+            // / `gvdb-reader.c`): meson compiles them into every consumer, with
+            // the consumer's own flags and includes — the sources rely on it
+            // (`#include <glib.h>`), so a standalone library for them would not
+            // build. `decay_buck2` emits them as a `filegroup` and folds it
+            // into each consumer's `srcs`. Only genuinely compilable sources go
+            // there; a header — or a non-source `sources:` entry meson only
+            // wants for build ordering, like glib's `libglib_dep` passing its
+            // generated headers or a `.xml` manifest — stays with the headers.
+            let (compiled, hdrs) = self.split_headers(kept);
+            headers.extend(hdrs);
+            for variant in compiled {
+                let name = match &variant.value {
+                    Source::File(path) => path.clone(),
+                    Source::Generated(id) => PathBuf::from(
+                        self.graph
+                            .target(*id)
+                            .attrs
+                            .outs
+                            .first()
+                            .cloned()
+                            .unwrap_or_default(),
+                    ),
+                };
+                if is_compilable_source(&name) {
+                    srcs.push(variant);
+                } else {
+                    headers.push(variant);
+                }
             }
         }
         self.list_headers(&include_dirs, &mut headers);
@@ -1375,6 +1405,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.compile_args = compile_args;
         target.attrs.link_args = link_args;
         target.attrs.headers = headers;
+        target.attrs.srcs = srcs;
         target.attrs.variables = variables.clone();
 
         // A `declare_dependency()` in the project's own root `meson.build` is
@@ -2084,6 +2115,16 @@ fn is_header_file(path: &Path) -> bool {
 /// its own `windows_resource` rule rather than inside a `cxx_library`.
 fn is_resource_file(path: &Path) -> bool {
     path.extension().and_then(|e| e.to_str()) == Some("rc")
+}
+
+/// Whether a path is a translation unit a C/C++/ObjC toolchain compiles —
+/// used to decide what a `declare_dependency(sources: …)` copylib actually
+/// contributes to a consumer's `srcs`.
+fn is_compilable_source(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|e| e.to_str()),
+        Some("c" | "cc" | "cpp" | "cxx" | "c++" | "m" | "mm" | "s" | "S" | "asm")
+    )
 }
 
 fn pinned_value(pinned: &Pinned) -> Value {

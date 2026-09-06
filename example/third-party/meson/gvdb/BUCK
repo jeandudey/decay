@@ -18,8 +18,6 @@ git_fetch(
 cxx_library(
     name = "gvdb-dep",
     exported_headers = {
-        "gvdb/gvdb-builder.c": ":gvdb.git[gvdb/gvdb-builder.c]",
-        "gvdb/gvdb-reader.c": ":gvdb.git[gvdb/gvdb-reader.c]",
         "gvdb/gvdb-reader.h": ":gvdb.git[gvdb/gvdb-reader.h]",
         "gvdb/gvdb-builder.h": ":gvdb.git[gvdb/gvdb-builder.h]",
         "gvdb/gvdb-format.h": ":gvdb.git[gvdb/gvdb-format.h]",

@@ -14399,7 +14399,7 @@ cxx_library(
                 "//third-party/meson/constraints:has_header_netlink_netlink_h[false]": [],
             }),
         }),
-    }),
+    }) + ["//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-builder.c]", "//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-reader.c]"],
     exported_headers = select({
         "prelude//os/constraints:os[windows]": {
             "gio/gioenumtypes.h": ":gioenumtypes_h",
@@ -16874,7 +16874,7 @@ cxx_binary(
 
 cxx_binary(
     name = "glib-compile-schemas",
-    srcs = [":glib.git[gio/glib-compile-schemas.c]"],
+    srcs = [":glib.git[gio/glib-compile-schemas.c]"] + ["//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-builder.c]", "//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-reader.c]"],
     headers = _headers5,
     header_namespace = "",
     compiler_flags = _cflags_compiler_os_cpp_compiler,
@@ -16885,7 +16885,7 @@ cxx_binary(
 
 cxx_binary(
     name = "glib-compile-resources",
-    srcs = [":glib.git[gio/glib-compile-resources.c]"],
+    srcs = [":glib.git[gio/glib-compile-resources.c]"] + ["//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-builder.c]", "//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-reader.c]"],
     headers = {
         "glib/glibconfig.h": ":glibconfig.h",
         "gmodule/gmoduleconf.h": ":gmoduleconf.h",

@@ -402,6 +402,7 @@ fn build_labels(config: &Config, packages: &Packages) -> Labels {
                     .filter_map(|(name, dep)| Some((name.clone(), dep.target()?.to_owned()))),
             )
             .collect(),
+        dependency_sources: packages.source_groups().collect(),
         programs: config.programs.clone(),
     }
 }
