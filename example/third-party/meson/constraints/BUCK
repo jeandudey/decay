@@ -222,22 +222,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:x11`: `x11` is available
-constraint(
-    name = "x11",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:xext`: `xext` is available
-constraint(
-    name = "xext",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:typeof`: `typeof` is available to the c compiler
 constraint(
     name = "compiles_typeof",

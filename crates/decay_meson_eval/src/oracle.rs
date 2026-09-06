@@ -91,12 +91,16 @@ pub trait Oracle {
     }
 
     /// Whether a dependency is known to be found, when the importer already
-    /// knows for certain — e.g. it names another project the importer is
-    /// building anyway, not something that may or may not be on a machine.
+    /// knows — e.g. it names another project the importer is building anyway,
+    /// or the configuration supplied a target for it, not something that may
+    /// or may not be on a machine.
     ///
-    /// Left `None`, whether it is found stays a build-time choice, same as an
-    /// environment probe.
-    fn dependency_found(&self, name: &str) -> Option<bool> {
+    /// A `Probe::Fixed(true)` settles it found everywhere with no knob;
+    /// [`Probe::Systems`] / [`Probe::Constraint`] settle it found only where a
+    /// constraint holds and *false* (still no knob) everywhere else — a
+    /// library that exists only on one OS, say. Left `None`, whether it is
+    /// found stays a build-time choice, same as an environment probe.
+    fn dependency_found(&self, name: &str) -> Option<Probe> {
         let _ = name;
         None
     }

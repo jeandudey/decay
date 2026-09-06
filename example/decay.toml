@@ -42,6 +42,13 @@ gperf = "//third-party/tools:gperf"
 # them provides (`pkg.generate()`'s `epoxy`, iso-codes' own generated `.pc`)
 # is exactly what a `dependency()` lookup elsewhere would ask for, resolved
 # automatically against the project that actually answers it.
+#
+# An entry here is "this is found" — no build-time knob. A dependency that
+# only exists on some targets takes a `found` constraint, written like a
+# `[probes]` answer; everywhere it does not hold the dependency is settled
+# absent, still with no knob:
+#
+#   sndio = { target = "//third-party/system:sndio", found = "prelude//os/constraints:os[openbsd]" }
 [dependencies]
 x11 = "//third-party/system:X11"
 # TODO: Maybe this should be recognized by depends field.

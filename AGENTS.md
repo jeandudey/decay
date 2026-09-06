@@ -480,7 +480,13 @@ constraint(
   … })`, so it contributes nothing on the MSVC ABI (matching meson's own
   not-found there). The remaining half — settling the `m[true/false]` knob to
   *true* on the systems that do provide it, instead of an open probe — still
-  wants the libc DB.
+  wants the libc DB *for the automatic case*. A project can already pin it by
+  hand: `find_library()` and `dependency()` both consult
+  `ConfigOracle::dependency_found`, which now answers from a `[dependencies]`
+  entry — `m = { found = "prelude//os/constraints:os[linux]" }` settles the
+  knob (found on `linux`, plain `false` elsewhere, no constraint emitted).
+  A bare `x11 = "//sys:X11"` entry is `found = true` everywhere; before, it
+  still emitted an `x11[true/false]` knob nothing needed.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
 

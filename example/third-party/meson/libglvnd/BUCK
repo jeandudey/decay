@@ -145,7 +145,7 @@ git_fetch(
 
 # Values shared by several of the rules below, named so that each rule
 # says what it is rather than how it was configured.
-_cflags_cpu_os_compiler = select({
+_cflags = select({
     "prelude//cpu/constraints:cpu[x86_64]": [],
     "prelude//cpu/constraints:cpu[arm32]": [],
     "prelude//cpu/constraints:cpu[arm64]": [],
@@ -191,10 +191,11 @@ _cflags_cpu_os_compiler = select({
 }) + select({
     "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
     "DEFAULT": [],
-}) + select({
-    "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-    "//third-party/meson/constraints:x11[false]": [],
-}) + select({
+}) + [
+    "-DENABLE_EGL_X11",
+    "-DGLDISPATCH_ENABLE_PATCHING",
+    "-DEGL_NO_X11",
+] + select({
     "prelude//os/constraints:os[linux]": select({
         "prelude//abi/constraints:abi[gnu]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -491,10 +492,7 @@ _cflags_cpu_os_compiler = select({
 }) + select({
     "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
     "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-}) + [
-    "-DGLDISPATCH_ENABLE_PATCHING",
-    "-DEGL_NO_X11",
-]
+})
 _headers = {
     "trace.h": ":glvnd.git[src/util/trace.h]",
     "winsys_dispatch.h": ":glvnd.git[src/util/winsys_dispatch.h]",
@@ -894,354 +892,6 @@ _headers3 = {
     "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
     "u_compiler.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_compiler.h]",
 }
-_cflags_cpu_os_compiler2 = select({
-    "prelude//cpu/constraints:cpu[x86_64]": [],
-    "prelude//cpu/constraints:cpu[arm32]": [],
-    "prelude//cpu/constraints:cpu[arm64]": [],
-    "prelude//cpu/constraints:cpu[riscv64]": [],
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-        "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-        "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-        "DEFAULT": [],
-    }),
-}) + select({
-    "prelude//cpu/constraints:cpu[x86_64]": select({
-        "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-        "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-        "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-        "DEFAULT": [],
-    }),
-    "DEFAULT": [],
-}) + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                    "DEFAULT": [],
-                }),
-                "prelude//abi/constraints:abi[musl]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                    "DEFAULT": [],
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
-            }),
-        }),
-    }),
-    "DEFAULT": [],
-}) + select({
-    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
-    "DEFAULT": [],
-}) + [
-    "-DENABLE_EGL_X11",
-    "-DGLDISPATCH_ENABLE_PATCHING",
-    "-DEGL_NO_X11",
-] + select({
-    "prelude//os/constraints:os[linux]": select({
-        "prelude//abi/constraints:abi[gnu]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
-            "DEFAULT": [],
-        }),
-        "prelude//abi/constraints:abi[musl]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
-            "DEFAULT": [],
-        }),
-        "DEFAULT": [],
-    }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-        "//third-party/meson/constraints:compiles_typeof[false]": [],
-    }),
-}) + select({
-    "prelude//os/constraints:os[linux]": select({
-        "prelude//abi/constraints:abi[gnu]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
-            "DEFAULT": [],
-        }),
-        "prelude//abi/constraints:abi[musl]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
-            "DEFAULT": [],
-        }),
-        "DEFAULT": [],
-    }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-        "//third-party/meson/constraints:compiles_thread[false]": [],
-    }),
-}) + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                    "DEFAULT": [],
-                }),
-                "prelude//abi/constraints:abi[musl]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                    "DEFAULT": [],
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
-            }),
-        }),
-    }),
-    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-    "prelude//cpu/constraints:cpu[riscv64]": [],
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-        "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-        "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-        "DEFAULT": [],
-    }),
-}) + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-    }),
-    "prelude//cpu/constraints:cpu[arm64]": select({
-        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-    }),
-    "prelude//cpu/constraints:cpu[riscv64]": select({
-        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-    }),
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [],
-            "//third-party/meson/constraints:compiles_thread[false]": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-            }),
-        }),
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                    }),
-                }),
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-            }),
-        }),
-        "prelude//os/constraints:os[netbsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": select({
-                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
-                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
-            "//third-party/meson/constraints:compiles_thread[false]": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-            }),
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-        }),
-    }),
-}) + select({
-    "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-    "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-    "//third-party/meson/constraints:compiler[msvc]": [],
-}) + select({
-    "prelude//os/constraints:os[linux]": select({
-        "prelude//abi/constraints:abi[gnu]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "DEFAULT": [],
-        }),
-        "prelude//abi/constraints:abi[musl]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "DEFAULT": [],
-        }),
-        "DEFAULT": [],
-    }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-        "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
-    }),
-}) + select({
-    "prelude//os/constraints:os[linux]": select({
-        "prelude//abi/constraints:abi[gnu]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
-            "DEFAULT": [],
-        }),
-        "prelude//abi/constraints:abi[musl]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
-            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
-            "DEFAULT": [],
-        }),
-        "DEFAULT": [],
-    }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-        "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
-    }),
-}) + select({
-    "prelude//os/constraints:os[linux]": select({
-        "prelude//abi/constraints:abi[gnu]": select({
-            "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-            "//third-party/meson/constraints:has_function_mincore[false]": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                "DEFAULT": [],
-            }),
-        }),
-        "prelude//abi/constraints:abi[musl]": select({
-            "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-            "//third-party/meson/constraints:has_function_mincore[false]": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_MINCORE"],
-                "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_MINCORE"],
-                "DEFAULT": [],
-            }),
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-            "//third-party/meson/constraints:has_function_mincore[false]": [],
-        }),
-    }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:has_function_mincore[true]": ["-DHAVE_MINCORE"],
-        "//third-party/meson/constraints:has_function_mincore[false]": [],
-    }),
-}) + select({
-    "//third-party/meson/constraints:has_header_symbol_dlfcn_h[true]": ["-DHAVE_RTLD_NOLOAD"],
-    "//third-party/meson/constraints:has_header_symbol_dlfcn_h[false]": [],
-}) + select({
-    "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-    "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-})
 _srcs = [
     ":glvnd.git[tests/testglxmakecurrent.c]",
     ":glvnd.git[tests/test_utils.c]",
@@ -1307,7 +957,7 @@ cxx_library(
     name = "glvnd_pthread",
     srcs = [":glvnd.git[src/util/glvnd_pthread.c]"],
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = select({
         "//third-party/meson/constraints:dl[true]": [":dl"],
         "//third-party/meson/constraints:dl[false]": [],
@@ -1329,7 +979,7 @@ cxx_library(
     srcs = [":glvnd.git[src/util/app_error_check.c]"],
     exported_headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1347,7 +997,7 @@ cxx_library(
     name = "utils_misc",
     srcs = [":glvnd.git[src/util/utils_misc.c]"],
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1365,7 +1015,7 @@ cxx_library(
     name = "trace",
     srcs = [":glvnd.git[src/util/trace.c]"],
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1428,7 +1078,7 @@ cxx_library(
         "uthash/src/uthash.h": ":glvnd.git[src/util/uthash/src/uthash.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1471,7 +1121,7 @@ cxx_library(
     name = "cJSON",
     srcs = [":glvnd.git[src/util/cJSON.c]"],
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1987,10 +1637,12 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DMAPI_ABI_HEADER=\"glapi_mapi_tmp.h\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -2287,11 +1939,7 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DMAPI_ABI_HEADER=\"glapi_mapi_tmp.h\"",
-    ],
+    }),
     deps = [":glvnd-dep-3"],
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -2399,10 +2047,13 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DSTATIC_DISPATCH_ONLY",
+        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_gl_tmp.h\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -2699,12 +2350,7 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DSTATIC_DISPATCH_ONLY",
-        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_gl_tmp.h\"",
-    ],
+    }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -2820,10 +2466,13 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DSTATIC_DISPATCH_ONLY",
+        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_opengl_tmp.h\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -3120,12 +2769,7 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DSTATIC_DISPATCH_ONLY",
-        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_opengl_tmp.h\"",
-    ],
+    }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -3241,10 +2885,13 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DSTATIC_DISPATCH_ONLY",
+        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv1_tmp.h\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -3541,12 +3188,7 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DSTATIC_DISPATCH_ONLY",
-        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv1_tmp.h\"",
-    ],
+    }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -3662,10 +3304,13 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DSTATIC_DISPATCH_ONLY",
+        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv2_tmp.h\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -3962,12 +3607,7 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DSTATIC_DISPATCH_ONLY",
-        "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv2_tmp.h\"",
-    ],
+    }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -4036,7 +3676,7 @@ cxx_library(
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     exported_linker_flags = ["-Wl,--version-script"] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
@@ -4171,7 +3811,7 @@ cxx_library(
         "GLdispatch.h": ":glvnd.git[src/GLdispatch/GLdispatch.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -4180,7 +3820,7 @@ cxx_library(
     name = "OpenGL",
     srcs = [],
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":opengl_main",
         ":glvnd-dep-11",
@@ -4241,11 +3881,8 @@ cxx_library(
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
-    deps = select({
-        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }),
+    compiler_flags = _cflags,
+    deps = ["//third-party/system:X11"],
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -4307,10 +3944,12 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DDEFAULT_EGL_VENDOR_CONFIG_DIRS=\"/usr/local/etc/glvnd/egl_vendor.d:/usr/local/share/glvnd/egl_vendor.d\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -4607,15 +4246,12 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DDEFAULT_EGL_VENDOR_CONFIG_DIRS=\"/usr/local/etc/glvnd/egl_vendor.d:/usr/local/share/glvnd/egl_vendor.d\"",
-    ],
+    }),
     exported_linker_flags = ["-Wl,-Bsymbolic"],
     deps = [
         ":egl_dispatch_stubs",
         ":threads",
+        "//third-party/system:X11",
         ":glvnd-dep-4",
         ":glvnd-dep",
         ":glvnd-dep-3",
@@ -4628,9 +4264,6 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:m[true]": [":m"],
         "//third-party/meson/constraints:m[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
-        "//third-party/meson/constraints:x11[false]": [],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -4649,7 +4282,6 @@ genrule(
     name = "g_glx_dispatch_stub_list.h",
     out = "g_glx_dispatch_stub_list.h",
     cmd = " $(exe //third-party/tools:python3) $(location :glvnd.git[src/GLX/gen_glx_stubs.py])" + " > $OUT",
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4696,13 +4328,14 @@ cxx_library(
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     exported_linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "//third-party/meson/constraints:dl[true]": [":dl"],
         "//third-party/meson/constraints:dl[false]": [],
     }) + [
         "//third-party/system:X11",
+        "//third-party/meson/libxext:Xext",
         ":glproto",
         ":glvnd-dep-11",
         ":glvnd-dep-4",
@@ -4710,12 +4343,8 @@ cxx_library(
         ":glvnd-dep-3",
         ":glvnd-dep-2",
         ":glvnd-dep-5",
-    ] + select({
-        "//third-party/meson/constraints:xext[true]": ["//third-party/meson/libxext:Xext"],
-        "//third-party/meson/constraints:xext[false]": [],
-    }),
+    ],
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4764,7 +4393,6 @@ cxx_library(
     },
     header_namespace = "",
     exported_deps = [":GLX"],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4776,7 +4404,7 @@ cxx_library(
     ],
     exported_headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     exported_linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "//third-party/meson/constraints:dl[true]": [":dl"],
@@ -4789,7 +4417,6 @@ cxx_library(
         "//third-party/system:X11",
     ],
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4799,7 +4426,6 @@ cxx_library(
     exported_headers = _headers2,
     header_namespace = "",
     exported_deps = [":GL"],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -4807,7 +4433,7 @@ cxx_library(
     name = "GLESv1_CM",
     srcs = [],
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":opengl_main",
         ":glvnd-dep-11",
@@ -4831,7 +4457,7 @@ cxx_library(
     name = "GLESv2",
     srcs = [],
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":opengl_main",
         ":glvnd-dep-11",
@@ -4917,7 +4543,7 @@ cxx_library(
         "vnd-glapi/u_compiler.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_compiler.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -4977,7 +4603,7 @@ cxx_library(
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         ":patchentrypoints",
         ":glvnd-dep-4",
@@ -4985,7 +4611,6 @@ cxx_library(
         "//third-party/system:X11",
     ],
     preferred_linkage = "shared",
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -5040,10 +4665,12 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DDUMMY_VENDOR_NAME=\"dummy0\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -5340,11 +4967,7 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DDUMMY_VENDOR_NAME=\"dummy0\"",
-    ],
+    }),
     deps = [
         ":patchentrypoints",
         ":glvnd-dep",
@@ -5404,10 +5027,12 @@ cxx_library(
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
         "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:x11[true]": ["-DENABLE_EGL_X11"],
-        "//third-party/meson/constraints:x11[false]": [],
-    }) + select({
+    }) + [
+        "-DENABLE_EGL_X11",
+        "-DGLDISPATCH_ENABLE_PATCHING",
+        "-DEGL_NO_X11",
+        "-DDUMMY_VENDOR_NAME=\"dummy1\"",
+    ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
@@ -5704,11 +5329,7 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
-    }) + [
-        "-DGLDISPATCH_ENABLE_PATCHING",
-        "-DEGL_NO_X11",
-        "-DDUMMY_VENDOR_NAME=\"dummy1\"",
-    ],
+    }),
     deps = [
         ":patchentrypoints",
         ":glvnd-dep",
@@ -5722,7 +5343,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testgldispatch.c]"],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":OpenGL",
         ":patchentrypoints",
@@ -5738,7 +5359,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testgldispatchthread.c]"],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":glvnd-dep-11",
         ":threads",
@@ -5754,13 +5375,12 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         ":OpenGL",
         ":glvnd-dep-14",
         "//third-party/system:X11",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -5769,7 +5389,7 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         ":OpenGL",
         "//third-party/system:X11",
@@ -5777,7 +5397,6 @@ cxx_binary(
         ":glvnd-dep-3",
         ":glvnd-dep-14",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6143,7 +5762,6 @@ cxx_binary(
         ":glvnd-dep-14",
         ":threads",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6152,14 +5770,13 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         ":GL",
         "//third-party/system:X11",
         ":glvnd-dep-4",
         ":glvnd-dep-3",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6168,13 +5785,12 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxgetprocaddress.c]"],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         "//third-party/system:X11",
         ":glvnd-dep-14",
         ":glvnd-dep-11",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6183,12 +5799,11 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxgetprocaddress_genentry.c]"],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         "//third-party/system:X11",
         ":glvnd-dep-14",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6197,7 +5812,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxgetclientstr.c]"],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         ":OpenGL",
         "//third-party/system:X11",
@@ -6205,7 +5820,6 @@ cxx_binary(
         ":glvnd-dep-4",
         ":glvnd-dep-3",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6214,13 +5828,12 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxqueryversion.c]"],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler2,
+    compiler_flags = _cflags,
     deps = [
         ":OpenGL",
         "//third-party/system:X11",
         ":glvnd-dep-14",
     ],
-    target_compatible_with = ["//third-party/meson/constraints:x11[true]"],
     visibility = ["PUBLIC"],
 )
 
@@ -6232,7 +5845,7 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -6245,7 +5858,7 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -6258,7 +5871,7 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -6271,7 +5884,7 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":EGL",
         ":OpenGL",
@@ -6291,7 +5904,7 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":EGL",
         ":OpenGL",
@@ -6310,7 +5923,7 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -6323,7 +5936,7 @@ cxx_binary(
     ],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -6333,7 +5946,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testeglcurrentcleanup.c]"],
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_os_compiler,
+    compiler_flags = _cflags,
     deps = [
         ":EGL",
         ":threads",

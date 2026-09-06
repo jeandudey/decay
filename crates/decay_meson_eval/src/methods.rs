@@ -745,7 +745,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// does, but for anything else the importer answers the same way — a
     /// dependency's `pkg-config` flag, say. `key`/`description` name the
     /// fresh variable declared when the importer says nothing at all.
-    fn resolve_probe(
+    pub(crate) fn resolve_probe(
         &mut self,
         answer: Option<Probe>,
         key: &str,
@@ -905,7 +905,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                         name: libname.to_string(),
                     },
                 );
-                let found = self.dependency_found(&key, &libname, required);
+                let found = self.dependency_found(&key, &libname, required)?;
                 let value = self.dep_obj(Dep {
                     name: libname.to_string(),
                     found,

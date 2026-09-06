@@ -1489,7 +1489,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         };
 
         let target = self.external(&key, &name, kind);
-        let found = self.dependency_found(&key, &name, required);
+        let found = self.dependency_found(&key, &name, required)?;
         let variables = self.oracle.dependency_variables(&name);
 
         let value = self.dep_obj(Dep {
@@ -1505,19 +1505,30 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     /// The condition under which a looked-up dependency is available.
     ///
+    /// The importer answers it outright when it can — a sibling project it is
+    /// building anyway, or a `[dependencies]` entry, which may itself gate the
+    /// answer on a constraint (found on one OS, plain `false` elsewhere, never
+    /// a knob). Otherwise it is a fresh open knob.
+    ///
     /// Where it was `required:`, a build that does not have it fails to
     /// configure at all — so rather than tracking a "found" flag that can never
     /// be false there, the configuration space is narrowed to say so.
-    pub(crate) fn dependency_found(&mut self, key: &str, name: &str, required: Pc) -> Pc {
-        if let Some(pinned) = self.oracle.dependency_found(name) {
-            return Pc::from_bool(pinned);
-        }
-        let found = self.probe(key, format!("`{name}` is available"));
+    pub(crate) fn dependency_found(
+        &mut self,
+        key: &str,
+        name: &str,
+        required: Pc,
+    ) -> eyre::Result<Pc> {
+        let description = format!("`{name}` is available");
+        let found = match self.oracle.dependency_found(name) {
+            Some(answer) => self.resolve_probe(Some(answer), key, description)?,
+            None => self.probe(key, description),
+        };
         if !required.is_false() {
             let must = self.logic.implies(required, found);
             self.logic.assume(must);
         }
-        found
+        Ok(found)
     }
 
     /// The `required:` argument as a condition.

@@ -70,7 +70,12 @@ impl<'a> ConfigOracle<'a> {
     /// [`Oracle::dependency_variable`] (keyed `dependency:name:variable`):
     /// both are "answer this from a constraint instead of leaving it open."
     fn probe_answer(&self, key: &str) -> Option<Probe> {
-        let answer = self.config.probes.get(key)?;
+        self.probe_from_value(self.config.probes.get(key)?)
+    }
+
+    /// A [`ProbeValue`] from the configuration, turned into an [`Probe`] — the
+    /// grammar `[probes]` and a `[dependencies]` entry's `found` both use.
+    fn probe_from_value(&self, answer: &ProbeValue) -> Option<Probe> {
         if let ProbeValue::Fixed(settled) = answer {
             return Some(Probe::Fixed(*settled));
         }
@@ -299,10 +304,21 @@ impl Oracle for ConfigOracle<'_> {
             .unwrap_or_default()
     }
 
-    fn dependency_found(&self, name: &str) -> Option<bool> {
+    fn dependency_found(&self, name: &str) -> Option<Probe> {
         // Not a probe about the environment: decay is building this either
         // way, because it is another project it already imported.
-        self.packages.get(name).map(|_| true)
+        if self.packages.get(name).is_some() {
+            return Some(Probe::Fixed(true));
+        }
+        // A `[dependencies]` entry is the configuration asserting the
+        // dependency is satisfied — unconditionally, or only where a
+        // constraint holds (a library that exists on one OS). Either way it is
+        // settled, not a knob.
+        let dep = self.config.dependencies.get(name)?;
+        Some(match dep.found() {
+            Some(answer) => self.probe_from_value(answer)?,
+            None => Probe::Fixed(true),
+        })
     }
 
     fn dependency_variable(&self, dep: &str, variable: &str) -> Option<Probe> {
