@@ -775,6 +775,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let open_elsewhere = self.probe(key, description);
                 Ok(self.logic.or(known, open_elsewhere))
             }
+            Some(Probe::PerSystem { abi, found }) => {
+                // Fully settled: OR of (system ∧ abi?) over the found rows,
+                // nothing left open. A configured system with no row here is
+                // a settled *not-found*, no knob.
+                let (abi_setting, abi_domain) = abi;
+                let mut cond = Pc::from_bool(false);
+                for (system, abis) in found {
+                    let mut holds = self.host_system_is(std::slice::from_ref(&system), key)?;
+                    if !abis.is_empty() {
+                        let on_abi = self.constraint_is(&abi_setting, abi_domain.clone(), &abis);
+                        holds = self.logic.and(holds, on_abi);
+                    }
+                    cond = self.logic.or(cond, holds);
+                }
+                Ok(cond)
+            }
             Some(Probe::Matrix {
                 systems,
                 axes,

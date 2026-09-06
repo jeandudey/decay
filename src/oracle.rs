@@ -145,14 +145,17 @@ impl<'a> ConfigOracle<'a> {
             })
     }
 
-    /// Decay's built-in `find_library()` fallback, consulted only once a
-    /// project's own `[dependencies]` entry misses.
+    /// Decay's built-in `find_library()` fallback, consulted once a project's
+    /// own `[dependencies]` entry misses.
     ///
-    /// Answers only the libraries `decay_libc_db` knows the C runtime splits
-    /// out on `linux` (`m`, `dl`, `rt`, `pthread`, `resolv`, `util`, ... —
-    /// glibc's own ABI list, and a real `zig cc -l` link for musl), and only
-    /// when the project has a `linux` system to ask. Everything else stays an
-    /// open knob, same as before.
+    /// Settles found-or-not for *every* configured system — no
+    /// `<lib>[true/false]` knob, ever. `linux` is answered from
+    /// `decay_libc_db` (glibc's own ABI list + a real `zig cc -l` link for
+    /// musl); `macos` / `freebsd` / `netbsd` / `windows` from a live `zig cc
+    /// -target … -l<name>` link; the systems zig cannot host (`sunos`,
+    /// `openbsd`, `android`, `fuchsia`) from `decay.toml`'s
+    /// `[system_libraries]`. A name nothing confirms anywhere is not a system
+    /// library — `None`, and it stays an open knob (`libselinux`, `libelf`).
     fn builtin_system_library(&self, name: &str) -> Option<Probe> {
         if !self.config.builtin_system_library {
             return None;
@@ -162,42 +165,90 @@ impl<'a> ConfigOracle<'a> {
         if self.config.dependencies.contains_key(name) {
             return None;
         }
-        if !self.config.systems.contains_key("linux") {
+
+        // The database's own answer for `linux` (glibc's ABI list + the
+        // `zig cc -l` musl probe): a fast offline pre-check that saves a
+        // link.
+        let db_linux_ok = decay_libc_db::Cpu::ALL.into_iter().any(|cpu| {
+            decay_libc_db::has_library(decay_libc_db::Libc::Glibc, cpu, name)
+                || decay_libc_db::has_library(decay_libc_db::Libc::Musl, cpu, name)
+        });
+        // MSVC ships no standalone `.lib` for a C-runtime-split library (the
+        // fact `dependency('threads')` / `is_crt_provided_lib` already
+        // encode), nor for `atomic` (a compiler-runtime library it covers
+        // with intrinsics). A mingw hit for one of these must not also claim
+        // `abi[msvc]`. ponytail: `atomic` is the one name not derivable from
+        // the libc DB; revisit when a real Windows-SDK library list lands.
+        let msvc_lacks = db_linux_ok || name == "atomic";
+
+        let mut found: Vec<(String, Vec<String>)> = Vec::new();
+        let mut confirmed = false;
+
+        for system in self.config.systems.keys() {
+            match probe::system_link_targets(system) {
+                Some(targets) => {
+                    let mut hit = false;
+                    for (_abi, triple) in targets {
+                        if system == "linux" && triple.contains("-gnu") && db_linux_ok {
+                            hit = true; // database already confirmed it
+                            continue;
+                        }
+                        if probe::zig_present()
+                            && self.probe_cache.borrow_mut().links_library(triple, name)
+                        {
+                            hit = true;
+                        }
+                    }
+                    if !hit {
+                        continue;
+                    }
+                    confirmed = true;
+                    // `windows` was probed under `gnu` (mingw) only. A
+                    // C-runtime library there is a mingw stub MSVC has no
+                    // equivalent for → `gnu` only; any other library is a
+                    // real Win32 import lib the Windows SDK also ships →
+                    // both abis.
+                    if system == "windows" && msvc_lacks {
+                        found.push((system.clone(), vec!["gnu".to_owned()]));
+                    } else {
+                        found.push((system.clone(), Vec::new()));
+                    }
+                }
+                None => {
+                    // zig cannot host this system; only `decay.toml` can say.
+                    let listed = self
+                        .config
+                        .system_libraries
+                        .get(system)
+                        .is_some_and(|libs| libs.iter().any(|l| l == name));
+                    if listed {
+                        confirmed = true;
+                        found.push((system.clone(), Vec::new()));
+                    }
+                }
+            }
+        }
+
+        if !confirmed {
             return None;
         }
-        const LIBCS: [(decay_libc_db::Libc, &str); 2] = [
-            (decay_libc_db::Libc::Glibc, "gnu"),
-            (decay_libc_db::Libc::Musl, "musl"),
-        ];
-        let rows: Vec<Vec<String>> = decay_libc_db::Cpu::ALL
+
+        // Must match the `abi` axis domain `linux_abi_cpu_axes` builds — the
+        // `constraint:abi` variable is shared and its first declaration wins,
+        // so a different domain here would silently misindex the other
+        // caller's `select()` values. `windows` rows only ever name `gnu`;
+        // `msvc` never needs to be an explicit value (an abi that is not
+        // `gnu` simply falls through to not-found).
+        let abi_domain = self
+            .linux_abi_cpu_axes()
             .into_iter()
-            .flat_map(|cpu| {
-                LIBCS
-                    .into_iter()
-                    .filter(move |(libc, _)| decay_libc_db::has_library(*libc, cpu, name))
-                    .map(move |(_, abi)| vec![abi.to_owned(), cpu.buck2_value().to_owned()])
-            })
-            .collect();
-        if rows.is_empty() {
-            return None;
-        }
+            .find(|(setting, _)| setting == probe::ABI_SETTING)
+            .map(|(_, domain)| domain)
+            .unwrap_or_default();
 
-        // The library resolves on every `linux` target the database covers —
-        // don't fan the answer out over `abi`/`cpu` it does not actually
-        // depend on; a bare `os[linux]` presence condition (open elsewhere,
-        // where a macOS/Windows lib database would later say more) is enough.
-        // Anything less than the full matrix keeps the real rows.
-        let full_matrix = rows.len() == decay_libc_db::Cpu::ALL.len() * LIBCS.len();
-        let (axes, rows) = if full_matrix {
-            (Vec::new(), vec![Vec::new()])
-        } else {
-            (self.linux_abi_cpu_axes(), rows)
-        };
-
-        Some(Probe::SystemsAndConstraint {
-            systems: vec!["linux".to_owned()],
-            axes,
-            rows,
+        Some(Probe::PerSystem {
+            abi: (probe::ABI_SETTING.to_owned(), abi_domain),
+            found,
         })
     }
 

@@ -193,6 +193,23 @@ pub enum Probe {
         /// same order.
         rows: Vec<Vec<String>>,
     },
+    /// Found on exactly the listed `(system, abi?)` rows; settled *false* on
+    /// every other configured system, with no knob anywhere — the importer
+    /// determined the answer for the whole configured matrix (a `zig cc
+    /// -target` link probe per system, plus the libc database), so nothing is
+    /// left open.
+    ///
+    /// For `cc.find_library()` of a runtime/OS library: `m` resolves on
+    /// `linux`/`macos`/`freebsd` and on `windows` only under `abi[gnu]`
+    /// (mingw), never `abi[msvc]`; `dl` not on `windows` at all. Each `found`
+    /// entry is a system name (resolved like [`Probe::Systems`]) and the abi
+    /// values it holds for — empty meaning every abi.
+    PerSystem {
+        /// The abi constraint setting and its known domain, for entries that
+        /// name specific abis.
+        abi: (String, Vec<String>),
+        found: Vec<(String, Vec<String>)>,
+    },
     /// True on exactly the `rows` that hold — and, on the named `systems`,
     /// *false* everywhere else, with no knob: the probe was compiled for
     /// every `(cpu, abi, ...)` combination those systems have, so within

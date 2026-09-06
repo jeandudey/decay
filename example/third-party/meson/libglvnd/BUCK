@@ -1247,11 +1247,9 @@ _srcs = [
     ":glvnd.git[tests/test_utils.c]",
 ]
 _deps = [":EGL"] + select({
-    "prelude//os/constraints:os[linux]": [":dl"],
-    "DEFAULT": select({
-        "//third-party/meson/constraints:dl[true]": [":dl"],
-        "//third-party/meson/constraints:dl[false]": [],
-    }),
+    "prelude//os/constraints:os[netbsd]": [],
+    "prelude//os/constraints:os[windows]": [],
+    "DEFAULT": [":dl"],
 })
 
 # meson: dependency("") — resolved by pkg-config
@@ -1320,11 +1318,9 @@ cxx_library(
     header_namespace = "",
     compiler_flags = _cflags_cpu_os_compiler,
     deps = select({
-        "prelude//os/constraints:os[linux]": [":dl"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [":dl"],
-            "//third-party/meson/constraints:dl[false]": [],
-        }),
+        "prelude//os/constraints:os[netbsd]": [],
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [":dl"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -4082,11 +4078,9 @@ cxx_library(
         ":glvnd-dep",
         ":glvnd-dep-2",
     ] + select({
-        "prelude//os/constraints:os[linux]": [":dl"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [":dl"],
-            "//third-party/meson/constraints:dl[false]": [],
-        }),
+        "prelude//os/constraints:os[netbsd]": [],
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [":dl"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -4633,6 +4627,7 @@ cxx_library(
     deps = [
         ":egl_dispatch_stubs",
         ":threads",
+        ":m",
         ":glvnd-dep-4",
         ":glvnd-dep",
         ":glvnd-dep-3",
@@ -4640,17 +4635,9 @@ cxx_library(
         ":glvnd-dep-5",
         ":glvnd-dep-11",
     ] + select({
-        "prelude//os/constraints:os[linux]": [":dl"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [":dl"],
-            "//third-party/meson/constraints:dl[false]": [],
-        }),
-    }) + select({
-        "prelude//os/constraints:os[linux]": [":m"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:m[true]": [":m"],
-            "//third-party/meson/constraints:m[false]": [],
-        }),
+        "prelude//os/constraints:os[netbsd]": [],
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [":dl"],
     }) + select({
         "//third-party/meson/constraints:x11[true]": ["//third-party/system:X11"],
         "//third-party/meson/constraints:x11[false]": [],
@@ -4722,11 +4709,9 @@ cxx_library(
     compiler_flags = _cflags_cpu_os_compiler2,
     exported_linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
-        "prelude//os/constraints:os[linux]": [":dl"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [":dl"],
-            "//third-party/meson/constraints:dl[false]": [],
-        }),
+        "prelude//os/constraints:os[netbsd]": [],
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [":dl"],
     }) + [
         "//third-party/system:X11",
         ":glproto",
@@ -4805,11 +4790,9 @@ cxx_library(
     compiler_flags = _cflags_cpu_os_compiler2,
     exported_linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
-        "prelude//os/constraints:os[linux]": [":dl"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [":dl"],
-            "//third-party/meson/constraints:dl[false]": [],
-        }),
+        "prelude//os/constraints:os[netbsd]": [],
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [":dl"],
     }) + [
         ":glvnd-dep-11",
         ":glvnd-dep-7",
@@ -6306,11 +6289,9 @@ cxx_binary(
         ":OpenGL",
         ":glvnd-dep-3",
     ] + select({
-        "prelude//os/constraints:os[linux]": [":dl"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [":dl"],
-            "//third-party/meson/constraints:dl[false]": [],
-        }),
+        "prelude//os/constraints:os[netbsd]": [],
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [":dl"],
     }),
     visibility = ["PUBLIC"],
 )
@@ -6328,11 +6309,9 @@ cxx_binary(
         ":EGL",
         ":OpenGL",
     ] + select({
-        "prelude//os/constraints:os[linux]": [":dl"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [":dl"],
-            "//third-party/meson/constraints:dl[false]": [],
-        }),
+        "prelude//os/constraints:os[netbsd]": [],
+        "prelude//os/constraints:os[windows]": [],
+        "DEFAULT": [":dl"],
     }),
     visibility = ["PUBLIC"],
 )

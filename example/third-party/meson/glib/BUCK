@@ -1273,16 +1273,23 @@ _deps_os_compiler_run_C99_vsnprintf = [
     }),
 }) + select({
     "//third-party/meson/constraints:links_check_for_latomic[true]": select({
-        "//third-party/meson/constraints:atomic[true]": [":atomic"],
-        "//third-party/meson/constraints:atomic[false]": [],
+        "prelude//os/constraints:os[macos]": [":atomic"],
+        "prelude//os/constraints:os[freebsd]": [":atomic"],
+        "prelude//os/constraints:os[linux]": [":atomic"],
+        "prelude//os/constraints:os[netbsd]": [":atomic"],
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": [":atomic"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": [],
     }),
     "//third-party/meson/constraints:links_check_for_latomic[false]": [],
 }) + select({
-    "prelude//os/constraints:os[linux]": [":m"],
-    "DEFAULT": select({
-        "//third-party/meson/constraints:m[true]": [":m"],
-        "//third-party/meson/constraints:m[false]": [],
+    "prelude//os/constraints:os[windows]": select({
+        "prelude//abi/constraints:abi[gnu]": [":m"],
+        "DEFAULT": [],
     }),
+    "DEFAULT": [":m"],
 }) + select({
     "prelude//os/constraints:os[windows]": [],
     "DEFAULT": select({
@@ -1293,11 +1300,12 @@ _deps_os_compiler_run_C99_vsnprintf = [
     "//third-party/meson/constraints:links_clock_gettime[true]": [],
     "//third-party/meson/constraints:links_clock_gettime[false]": select({
         "//third-party/meson/constraints:links_clock_gettime_in_librt[true]": select({
+            "prelude//os/constraints:os[freebsd]": [":rt"],
+            "prelude//os/constraints:os[fuchsia]": [":rt"],
             "prelude//os/constraints:os[linux]": [":rt"],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:rt[true]": [":rt"],
-                "//third-party/meson/constraints:rt[false]": [],
-            }),
+            "prelude//os/constraints:os[netbsd]": [":rt"],
+            "prelude//os/constraints:os[illumos]": [":rt"],
+            "DEFAULT": [],
         }),
         "//third-party/meson/constraints:links_clock_gettime_in_librt[false]": [],
     }),
@@ -1305,16 +1313,10 @@ _deps_os_compiler_run_C99_vsnprintf = [
     "//third-party/meson/constraints:sysprof_capture_4[true]": [":sysprof-capture-4"],
     "//third-party/meson/constraints:sysprof_capture_4[false]": [],
 }) + select({
-    "prelude//os/constraints:os[windows]": select({
-        "//third-party/meson/constraints:ws2_32[true]": [":ws2_32"],
-        "//third-party/meson/constraints:ws2_32[false]": [],
-    }),
-    "DEFAULT": [],
-}) + select({
-    "prelude//os/constraints:os[windows]": select({
-        "//third-party/meson/constraints:winmm[true]": [":winmm"],
-        "//third-party/meson/constraints:winmm[false]": [],
-    }),
+    "prelude//os/constraints:os[windows]": [
+        ":ws2_32",
+        ":winmm",
+    ],
     "DEFAULT": [],
 }) + select({
     "prelude//os/constraints:os[windows]": select({
@@ -6952,11 +6954,11 @@ cxx_library(
         "//third-party/meson/constraints:links_include_math_h_if_GNUC_4_undef_isnanl_define_isnanl_x_builtin_isnanl_long_double_x_else_undef_isnanl_define_isnanl_x_isnan_long_double_x_endif_double_x_int_main_return_isnanl_x[false]": [],
     }),
     deps = select({
-        "prelude//os/constraints:os[linux]": [":m"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:m[true]": [":m"],
-            "//third-party/meson/constraints:m[false]": [],
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": [":m"],
+            "DEFAULT": [],
         }),
+        "DEFAULT": [":m"],
     }),
     preferred_linkage = "static",
     target_compatible_with = _needs_os_compiler_run_C99_vsnprintf,
@@ -9949,11 +9951,9 @@ cxx_library(
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
-                "prelude//os/constraints:os[linux]": [":dl"],
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:dl[true]": [":dl"],
-                    "//third-party/meson/constraints:dl[false]": [],
-                }),
+                "prelude//os/constraints:os[netbsd]": [],
+                "prelude//os/constraints:os[windows]": [],
+                "DEFAULT": [":dl"],
             }),
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": [],
         }),
@@ -15896,11 +15896,9 @@ cxx_library(
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
         "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
-                "prelude//os/constraints:os[linux]": [":dl"],
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:dl[true]": [":dl"],
-                    "//third-party/meson/constraints:dl[false]": [],
-                }),
+                "prelude//os/constraints:os[netbsd]": [],
+                "prelude//os/constraints:os[windows]": [],
+                "DEFAULT": [":dl"],
             }),
             "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": [],
         }),
@@ -15946,38 +15944,19 @@ cxx_library(
             "//third-party/meson/constraints:xattr[false]": [],
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:shlwapi[true]": [":shlwapi"],
-            "//third-party/meson/constraints:shlwapi[false]": [],
-        }),
+        "prelude//os/constraints:os[windows]": [
+            ":shlwapi",
+            ":dnsapi",
+            ":iphlpapi",
+            ":ws2_32",
+        ],
         "DEFAULT": [],
     }) + select({
         "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:dnsapi[true]": [":dnsapi"],
-            "//third-party/meson/constraints:dnsapi[false]": [],
+            "//third-party/meson/constraints:compiles_building_for_UWP[true]": [":shcore"],
+            "//third-party/meson/constraints:compiles_building_for_UWP[false]": [],
         }),
         "DEFAULT": [],
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:iphlpapi[true]": [":iphlpapi"],
-            "//third-party/meson/constraints:iphlpapi[false]": [],
-        }),
-        "DEFAULT": [],
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:ws2_32[true]": [":ws2_32"],
-            "//third-party/meson/constraints:ws2_32[false]": [],
-        }),
-        "DEFAULT": [],
-    }) + select({
-        "//third-party/meson/constraints:shcore[true]": select({
-            "prelude//os/constraints:os[windows]": select({
-                "//third-party/meson/constraints:compiles_building_for_UWP[true]": [":shcore"],
-                "//third-party/meson/constraints:compiles_building_for_UWP[false]": [],
-            }),
-            "DEFAULT": [],
-        }),
-        "//third-party/meson/constraints:shcore[false]": [],
     }) + select({
         "//third-party/meson/constraints:runtimeobject[true]": select({
             "prelude//os/constraints:os[windows]": select({
@@ -15995,17 +15974,14 @@ cxx_library(
                 "//third-party/meson/constraints:links_res_query_in_lresolv[false]": [],
             }),
         }),
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:resolv[true]": select({
-                "//third-party/meson/constraints:links_res_query[true]": [],
-                "//third-party/meson/constraints:links_res_query[false]": select({
-                    "//third-party/meson/constraints:links_res_query_in_lresolv[true]": [":resolv"],
-                    "//third-party/meson/constraints:links_res_query_in_lresolv[false]": [],
-                }),
+        "prelude//os/constraints:os[illumos]": select({
+            "//third-party/meson/constraints:links_res_query[true]": [],
+            "//third-party/meson/constraints:links_res_query[false]": select({
+                "//third-party/meson/constraints:links_res_query_in_lresolv[true]": [":resolv"],
+                "//third-party/meson/constraints:links_res_query_in_lresolv[false]": [],
             }),
-            "//third-party/meson/constraints:resolv[false]": [],
         }),
+        "DEFAULT": [],
     }) + select({
         "prelude//os/constraints:os[windows]": [],
         "DEFAULT": select({
@@ -16022,18 +15998,28 @@ cxx_library(
             "//third-party/meson/constraints:bind[false]": [],
         }),
     }) + select({
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:socket[true]": select({
-                "//third-party/meson/constraints:links_res_query[true]": select({
-                    "//third-party/meson/constraints:links_socket[true]": [],
-                    "//third-party/meson/constraints:links_socket[false]": select({
-                        "//third-party/meson/constraints:links_socket_in_lsocket[true]": [":socket"],
-                        "//third-party/meson/constraints:links_socket_in_lsocket[false]": [],
+        "prelude//os/constraints:os[illumos]": select({
+            "//third-party/meson/constraints:links_res_query[true]": select({
+                "//third-party/meson/constraints:links_socket[true]": [],
+                "//third-party/meson/constraints:links_socket[false]": select({
+                    "//third-party/meson/constraints:links_socket_in_lsocket[true]": [":socket"],
+                    "//third-party/meson/constraints:links_socket_in_lsocket[false]": [],
+                }),
+            }),
+            "//third-party/meson/constraints:links_res_query[false]": select({
+                "//third-party/meson/constraints:links_socket[true]": select({
+                    "//third-party/meson/constraints:links_res_query_in_lresolv[true]": [],
+                    "//third-party/meson/constraints:links_res_query_in_lresolv[false]": select({
+                        "//third-party/meson/constraints:links_res_query_in_lbind[true]": [],
+                        "//third-party/meson/constraints:links_res_query_in_lbind[false]": select({
+                            "//third-party/meson/constraints:links_res_query_in_lsocket[true]": [":socket"],
+                            "//third-party/meson/constraints:links_res_query_in_lsocket[false]": [],
+                        }),
                     }),
                 }),
-                "//third-party/meson/constraints:links_res_query[false]": select({
-                    "//third-party/meson/constraints:links_socket[true]": select({
+                "//third-party/meson/constraints:links_socket[false]": select({
+                    "//third-party/meson/constraints:links_socket_in_lsocket[true]": [":socket"],
+                    "//third-party/meson/constraints:links_socket_in_lsocket[false]": select({
                         "//third-party/meson/constraints:links_res_query_in_lresolv[true]": [],
                         "//third-party/meson/constraints:links_res_query_in_lresolv[false]": select({
                             "//third-party/meson/constraints:links_res_query_in_lbind[true]": [],
@@ -16043,23 +16029,10 @@ cxx_library(
                             }),
                         }),
                     }),
-                    "//third-party/meson/constraints:links_socket[false]": select({
-                        "//third-party/meson/constraints:links_socket_in_lsocket[true]": [":socket"],
-                        "//third-party/meson/constraints:links_socket_in_lsocket[false]": select({
-                            "//third-party/meson/constraints:links_res_query_in_lresolv[true]": [],
-                            "//third-party/meson/constraints:links_res_query_in_lresolv[false]": select({
-                                "//third-party/meson/constraints:links_res_query_in_lbind[true]": [],
-                                "//third-party/meson/constraints:links_res_query_in_lbind[false]": select({
-                                    "//third-party/meson/constraints:links_res_query_in_lsocket[true]": [":socket"],
-                                    "//third-party/meson/constraints:links_res_query_in_lsocket[false]": [],
-                                }),
-                            }),
-                        }),
-                    }),
                 }),
             }),
-            "//third-party/meson/constraints:socket[false]": [],
         }),
+        "DEFAULT": [],
     }) + select({
         "//third-party/meson/constraints:sysprof_capture_4[true]": [":sysprof-capture-4"],
         "//third-party/meson/constraints:sysprof_capture_4[false]": [],
@@ -16701,11 +16674,11 @@ cxx_library(
         ":glib-dep-5",
         ":glib-dep-7",
     ] + select({
-        "prelude//os/constraints:os[linux]": [":m"],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:m[true]": [":m"],
-            "//third-party/meson/constraints:m[false]": [],
+        "prelude//os/constraints:os[windows]": select({
+            "prelude//abi/constraints:abi[gnu]": [":m"],
+            "DEFAULT": [],
         }),
+        "DEFAULT": [":m"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
