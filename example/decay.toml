@@ -25,15 +25,6 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # platform has it, macOS or not.
 "has_header:crt_externs.h" = "prelude//os/constraints:os[macos]"
 
-
-# The tools a build runs. A build graph cannot reach outside itself for one, so
-# a program is found only when it is a script in the project — libepoxy's
-# `src/gen_dispatch.py` is — or is named here. Anything else is absent, and what
-# the build would have done with it is left out: nothing here means no doxygen,
-# so libepoxy's documentation targets are not generated at all.
-#
-# [programs]
-# doxygen = "//third-party/tools:doxygen"
 [programs]
 python3 = "//third-party/tools:python3"
 nm = "//third-party/tools:nm"
@@ -126,7 +117,7 @@ options = { sse2 = true, gcc_vector = true, arm_neon = true, debug = false, gobj
 #       crates/decay_meson_eval/src/methods.rs:337:36
 #[[project]]
 #repo = "https://gitlab.freedesktop.org/xdg/shared-mime-info"
-#rev = "fd8ab89c20093f1bfba8fa9e302ba584fffd0fd7" # Tag 2.5.1
+#tag = "2.5.1"
 
 [[project]]
 repo = "https://gitlab.freedesktop.org/xorg/proto/xorgproto"
@@ -220,9 +211,9 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 #
 #   Location:
 #       crates/decay_meson_parse/src/node.rs:140:18
-# [[project]]
-# repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
-# rev = "badd9563b2ac3117ea2a99348bbe46298d6992ec" # Tag 1.29.2
+#[[project]]
+#repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
+#rev = "1.29.2"
 
 # TODO: Needs run_command.
 # [[project]]
