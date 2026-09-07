@@ -1355,14 +1355,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("glproto") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.glproto = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "glproto",
-    visibility = ["PUBLIC"],
-)
-
 cxx_library(
     name = "glvnd_pthread",
     srcs = [":glvnd.git[src/util/glvnd_pthread.c]"],
@@ -5105,7 +5097,7 @@ cxx_library(
     }) + [
         "//third-party/system:X11",
         "//third-party/meson/libxext:Xext",
-        ":glproto",
+        "//third-party/meson/xorgproto:xorgproto-dep",
         ":glvnd-dep-11",
         ":glvnd-dep-4",
         ":glvnd-dep",

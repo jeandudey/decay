@@ -464,6 +464,14 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `requires:` entries are read (a dependency-object entry is skipped); a
   `configure_file()`-produced `.pc` still records no `requires`.
 
+  Also: a `.pc`-named provide with no target of its own (xorg's proto repos —
+  one root `declare_dependency()` umbrella, dozens of
+  `configure_file()`-produced `.pc` files) now falls back to that project's
+  root-`declare_dependency()` target in `Packages::register`, so
+  `dependency('glproto')` against xorgproto resolves to `xorgproto-dep`'s
+  include dirs instead of an empty stub. Only fires when the project
+  registered a root `declare_dependency()` under its own name.
+
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
   hardcoded `default = 0` ("true"), reasoning that "a compiler capability ...

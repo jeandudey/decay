@@ -79,9 +79,25 @@ impl Packages {
     /// `third-party/meson/libepoxy`, which is how its targets are named from
     /// anywhere else.
     pub fn register(&mut self, package: &str, graph: &Graph) {
+        // A project's root `declare_dependency()` is registered under the
+        // project's own name and carries the include dirs every `.pc` this
+        // project ships resolves to (xorg's proto repos: one `ext_*`
+        // interface, dozens of `configure_file()`-produced `.pc` files that
+        // have no target of their own). Use it as the target for any provide
+        // that lacks one, so `dependency('glproto')` against xorgproto lands
+        // on real usage requirements instead of an empty stub.
+        let umbrella = graph
+            .provides
+            .iter()
+            .find(|p| p.name == graph.project.name && p.target.is_some())
+            .and_then(|p| p.target)
+            .map(|id| format!("//{package}:{}", graph.target(id).name));
+
         for provide in &graph.provides {
             let iface = provide.target.map(|id| graph.target(id));
-            let target = iface.map(|t| format!("//{package}:{}", t.name));
+            let target = iface
+                .map(|t| format!("//{package}:{}", t.name))
+                .or_else(|| umbrella.clone());
             // Only a `declare_dependency()` copylib (an interface target)
             // contributes sources for a consumer to compile; a real library
             // provider compiles its own `srcs` and a consumer just links it.
