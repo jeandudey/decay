@@ -129,14 +129,8 @@ genrule(
             "DEFAULT": "",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
-            "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": "",
-        }),
-    }) + select({
-        "prelude//os/constraints:os[linux]": "",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[true]": " '-es|@GRAPHENE_HAS_GCC@|1|g'",
-            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[false]": "",
+            "prelude//cpu/constraints:cpu[x86_64]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
+            "DEFAULT": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -153,10 +147,11 @@ genrule(
             "DEFAULT": "",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": "",
+            "prelude//cpu/constraints:cpu[arm32]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
+            "prelude//cpu/constraints:cpu[arm64]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
+            "DEFAULT": "",
         }),
-    }) + select({
+    }) + " '-es|@GRAPHENE_HAS_GCC@||g'" + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
@@ -169,38 +164,46 @@ genrule(
             "DEFAULT": "",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
-            "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": "",
-        }),
-    }) + select({
-        "prelude//os/constraints:os[linux]": "",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[true]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|#define GRAPHENE_HAS_GCC 1|'",
-            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[false]": "",
+            "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
+            "DEFAULT": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
                 "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+                "DEFAULT": "",
+            }),
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+                "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+            "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+            "DEFAULT": "",
+        }),
+    }) + " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|/* #undef GRAPHENE_HAS_GCC */|'" + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": "",
+                "prelude//cpu/constraints:cpu[arm64]": "",
                 "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-                "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+                "prelude//cpu/constraints:cpu[arm32]": "",
+                "prelude//cpu/constraints:cpu[arm64]": "",
                 "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
             }),
             "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
-        }),
-    }) + select({
-        "prelude//os/constraints:os[linux]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|/* #undef GRAPHENE_HAS_GCC */|'",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[true]": "",
-            "//third-party/meson/constraints:compiles_GCC_vector_intrinsics[false]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|/* #undef GRAPHENE_HAS_GCC */|'",
+            "prelude//cpu/constraints:cpu[arm32]": "",
+            "prelude//cpu/constraints:cpu[arm64]": "",
+            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -215,8 +218,8 @@ genrule(
             "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": "",
-            "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
+            "prelude//cpu/constraints:cpu[x86_64]": "",
+            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
         }),
     }) + " $(location :graphene.git[include/graphene-config.h.meson]) > $OUT",
     visibility = ["PUBLIC"],
@@ -252,9 +255,20 @@ genrule(
             }),
             "DEFAULT": " '/* #undef HAVE_STDLIB_H */'",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDLIB_H'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDLIB_H'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDLIB_H'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDLIB_H'",
+            "DEFAULT": " '/* #undef HAVE_STDLIB_H */'",
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_stdlib_h[true]": " '#define HAVE_STDLIB_H'",
-            "//third-party/meson/constraints:has_header_stdlib_h[false]": " '/* #undef HAVE_STDLIB_H */'",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDLIB_H'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDLIB_H'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDLIB_H'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDLIB_H'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDLIB_H'",
+            "DEFAULT": " '/* #undef HAVE_STDLIB_H */'",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -277,8 +291,12 @@ genrule(
             "DEFAULT": " '/* #undef HAVE_STDINT_H */'",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_stdint_h[true]": " '#define HAVE_STDINT_H'",
-            "//third-party/meson/constraints:has_header_stdint_h[false]": " '/* #undef HAVE_STDINT_H */'",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDINT_H'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDINT_H'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDINT_H'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDINT_H'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDINT_H'",
+            "DEFAULT": " '/* #undef HAVE_STDINT_H */'",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -301,8 +319,12 @@ genrule(
             "DEFAULT": " '/* #undef HAVE_STDBOOL_H */'",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_stdbool_h[true]": " '#define HAVE_STDBOOL_H'",
-            "//third-party/meson/constraints:has_header_stdbool_h[false]": " '/* #undef HAVE_STDBOOL_H */'",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDBOOL_H'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDBOOL_H'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STDBOOL_H'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDBOOL_H'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDBOOL_H'",
+            "DEFAULT": " '/* #undef HAVE_STDBOOL_H */'",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -324,9 +346,20 @@ genrule(
             }),
             "DEFAULT": " '/* #undef HAVE_MEMORY_H */'",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMORY_H'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMORY_H'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMORY_H'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMORY_H'",
+            "DEFAULT": " '/* #undef HAVE_MEMORY_H */'",
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_memory_h[true]": " '#define HAVE_MEMORY_H'",
-            "//third-party/meson/constraints:has_header_memory_h[false]": " '/* #undef HAVE_MEMORY_H */'",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MEMORY_H'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MEMORY_H'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MEMORY_H'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MEMORY_H'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MEMORY_H'",
+            "DEFAULT": " '/* #undef HAVE_MEMORY_H */'",
         }),
     }) + select({
         "//third-party/meson/constraints:has_header_pthread_h[true]": " '#define HAVE_PTHREAD_H'",
@@ -366,7 +399,6 @@ genrule(
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": "",
-        "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memalign[true]": "",
             "//third-party/meson/constraints:has_function_memalign[false]": select({
@@ -379,7 +411,6 @@ genrule(
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": "",
-        "prelude//os/constraints:os[windows]": "",
         "DEFAULT": select({
             "//third-party/meson/constraints:has_function_memalign[true]": "",
             "//third-party/meson/constraints:has_function_memalign[false]": select({
@@ -449,22 +480,7 @@ genrule(
             "//third-party/meson/constraints:has_function_isnanf[true]": " '#define HAVE_ISNANF'",
             "//third-party/meson/constraints:has_function_isnanf[false]": " '/* #undef HAVE_ISNANF */'",
         }),
-    }) + select({
-        "prelude//os/constraints:os[windows]": " '#define DLL_EXPORT' '#define _GRAPHENE_PUBLIC __declspec(dllexport) extern'",
-        "DEFAULT": " '#define _GRAPHENE_PUBLIC __attribute__((visibility(\"default\"))) extern'",
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:compiles_InitOnceExecuteOnce[true]": " '#define HAVE_INIT_ONCE'",
-            "//third-party/meson/constraints:compiles_InitOnceExecuteOnce[false]": "",
-        }),
-        "DEFAULT": "",
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:compiles_InitOnceExecuteOnce[true]": "",
-            "//third-party/meson/constraints:compiles_InitOnceExecuteOnce[false]": " '/* #undef HAVE_INIT_ONCE */'",
-        }),
-        "DEFAULT": "",
-    }) + select({
+    }) + " '#define _GRAPHENE_PUBLIC __attribute__((visibility(\"default\"))) extern'" + select({
         "//third-party/meson/constraints:run_IEEE_754_floating_point_division[true]": " '#define HAVE_IEEE_754_FLOAT_DIVISION'",
         "//third-party/meson/constraints:run_IEEE_754_floating_point_division[false]": " '/* #undef HAVE_IEEE_754_FLOAT_DIVISION */'",
     }) + " > $OUT",
@@ -507,19 +523,10 @@ cxx_library(
     header_namespace = "",
     compiler_flags = [
         "-D_GNU_SOURCE",
+        "-fvisibility=hidden",
         "-DG_DISABLE_ASSERT",
         "-DGRAPHENE_COMPILATION",
     ] + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:compiler[gcc]": ["-fvisibility=hidden"],
-            "//third-party/meson/constraints:compiler[clang]": ["-fvisibility=hidden"],
-            "//third-party/meson/constraints:compiler[msvc]": [],
-        }),
-        "DEFAULT": [],
-    }) + select({
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": ["-fvisibility=hidden"],
-    }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [
             "/FImsvc_recommended_pragmas.h",
             "-we4002",
@@ -598,12 +605,12 @@ cxx_library(
                 "DEFAULT": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_SSE_intrinsics[true]": [
+                "prelude//cpu/constraints:cpu[x86_64]": [
                     "-mfpmath=sse",
                     "-msse",
                     "-msse2",
                 ],
-                "//third-party/meson/constraints:compiles_SSE_intrinsics[false]": [],
+                "DEFAULT": [],
             }),
         }),
     }) + select({
@@ -635,24 +642,16 @@ cxx_library(
                 "DEFAULT": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "prelude//cpu/constraints:cpu[arm64]": [],
                     "DEFAULT": ["-mfpu=neon"],
                 }),
-                "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": [],
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "prelude//cpu/constraints:cpu[arm64]": [],
+                    "DEFAULT": ["-mfpu=neon"],
+                }),
+                "DEFAULT": [],
             }),
-        }),
-    }) + select({
-        "prelude//os/constraints:os[macos]": [],
-        "prelude//os/constraints:os[freebsd]": [],
-        "prelude//os/constraints:os[fuchsia]": [],
-        "prelude//os/constraints:os[linux]": [],
-        "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[illumos]": [],
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[true]": ["-mfloat-abi=softfp"],
-            "//third-party/meson/constraints:compiles_ARM_NEON_intrinsics[false]": [],
         }),
     }),
     exported_linker_flags = select({
@@ -663,13 +662,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }),
-    deps = select({
-        "prelude//os/constraints:os[windows]": select({
-            "prelude//abi/constraints:abi[gnu]": [":m"],
-            "DEFAULT": [],
-        }),
-        "DEFAULT": [":m"],
-    }) + [
+    deps = [
+        ":m",
         ":threads",
         "//third-party/meson/glib:gobject-2.0", "//third-party/meson/glib:glib-2.0",
     ],
@@ -688,14 +682,9 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":graphene-1.0",
+        ":m",
         ":threads",
         "//third-party/meson/glib:gobject-2.0", "//third-party/meson/glib:glib-2.0",
-    ] + select({
-        "prelude//os/constraints:os[windows]": select({
-            "prelude//abi/constraints:abi[gnu]": [":m"],
-            "DEFAULT": [],
-        }),
-        "DEFAULT": [":m"],
-    }),
+    ],
     visibility = ["PUBLIC"],
 )

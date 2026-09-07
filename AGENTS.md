@@ -248,24 +248,49 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `has_header` still skips anything but a plain header path — are answered by
   `src/probe.rs` via `decay_zig::zig::compiles` (`zig cc -c` to a discarded
   object; zig 0.15.2's own `-fsyntax-only` is broken) for each `(abi, cpu)`
-  in `decay_zig::Cpu::ALL` × {gnu, musl}, on `linux` only.
-  The result is `oracle::Probe::Matrix` — true on the rows that compiled,
-  settled *false* (no knob) on every other `(abi, cpu)` under `linux`, and
-  left open only off `linux` where nothing was built. `decay_meson_eval`
-  gains `oracle::CompileProbe` (the reconstructed translation unit) and
-  `Oracle::compile_probe`; an explicit `[probes]` entry still wins first via
-  the existing `Oracle::probe` path.
+  in `decay_zig::Cpu::ALL`, on every system in `probe::PROBE_SYSTEMS` the
+  configuration uses — `linux` ({gnu, musl}), `freebsd` and `netbsd` (no abi
+  split), the three whose libc headers zig bundles in full. Every `zig cc`
+  probe line carries `-fgnuc-version=10.5.0` (`GNUC_VERSION`) so a check
+  gated on `__GNUC__ >= N` answers as the gcc the emitted build uses, not as
+  clang's spoofed `4.2.1` (which failed graphene's `>= 4.9` GCC-vector
+  check); `11`+ is unusable — glibc's `sys/cdefs.h` then wants the
+  two-argument `__malloc__` attribute zig's clang lacks, and every glibc
+  header stops parsing.
+  The result is `oracle::Probe::Matrix(Vec<MatrixSystem>)` — per probed
+  system, its own axes (`[abi, cpu]` for `linux`, `[cpu]` for the BSDs) and
+  the rows that compiled; true on those rows, settled *false* (no knob) on
+  every other combination within a probed system, left open only off every
+  probed system. `decay_meson_eval` gains `oracle::CompileProbe` (the
+  reconstructed translation unit) and `Oracle::compile_probe`; an explicit
+  `[probes]` entry still wins first via the existing `Oracle::probe` path.
+
+  Operating systems zig cannot probe end to end (partial SDK: `darwin`,
+  `windows`; no bundled libc at all: `illumos`, `android`, `fuchsia`) are
+  meant to be left out of `[systems]` entirely — a build for one would rest
+  on probe knobs defaulting present, so buck2 should simply not be able to
+  target it. `example/decay.toml` now lists only `linux`/`freebsd`/`netbsd`.
 
   Still in scope, not yet done:
   - **`cc.links`** — needs a real link (output file, `main` handling), not
-    just `-c`; `CompileProbe` has no `Links` variant yet.
+    just `-c`; `CompileProbe` has no `Links` variant yet. A `links:` probe
+    still defaults present and needs a `[probes]` answer (glib's
+    `pthread_setname_np(const char*)`, `res_ndestroy()`).
   - **compile-time `cc.sizeof` of a *type*** — the `static_assert` binary
     search meson falls back to when it cannot run. Goes through the
     `SizeAnswer` path (`Oracle::type_size`), not `compile_probe`.
-  - **Other systems / abis** — only `linux` + {gnu, musl} today, mirroring
-    `builtin_has_function`. Windows/mingw, macOS, and `x86`/`arm` beyond
-    `Cpu::ALL` are a later pass; `msvc` is unreachable (`zig` has no MSVC
-    headers).
+  - **gcc-only builtins.** `-fgnuc-version=` fixes the *version-guard* class
+    of probe, not a probe that uses a GCC extension clang never implemented:
+    graphene's `GCC vector intrinsics` check calls `__builtin_shuffle`
+    (clang has only `__builtin_shufflevector`), so it still settles *false*
+    where a real gcc build would set `GRAPHENE_HAS_GCC`. Harmless for
+    graphene (SSE path stays), but it is the same clang≠gcc divergence noted
+    below under `cc.has_argument` — the real fix is a `compiler` axis on
+    `Probe::Matrix`, or a `[probes]` override.
+  - **`has_function` past `linux`** — `builtin_has_function` is still glibc
+    abilists + the musl probe only; `freebsd`/`netbsd` `has_function` stays
+    an open knob (no BSD symbol source), and `x86`/`arm` beyond `Cpu::ALL`
+    are a later pass. `msvc` is unreachable (`zig` has no MSVC headers).
 
   Deferred — out of scope, each its own follow-up:
   - **`cc.has_argument()` / `has_link_argument()` / `has_multi_arguments()`
@@ -589,9 +614,13 @@ constraint(
     needs the MSVC exception — hardcoded, `ponytail:`-noted.
 
   `example/`: 13 knobs gone from `constraints/BUCK` (`m dl rt resolv atomic
-  opengl32 gdi32 shcore iphlpapi ws2_32 winmm shlwapi dnsapi`);
-  `example/decay.toml` gained a `[system_libraries]` block for
-  `sunos`/`fuchsia`/`android`.
+  opengl32 gdi32 shcore iphlpapi ws2_32 winmm shlwapi dnsapi`). The
+  `[system_libraries]` mechanism (and `config.rs`'s field) stays for
+  projects that need it, but `example/decay.toml` no longer carries one —
+  `sunos`/`fuchsia`/`android` were dropped from its `[systems]` (see the
+  compile-probe note: only systems zig can probe end to end are kept), so
+  nothing there consults it now. `builtin_system_library` still iterates
+  only the configured systems, so this is purely an example-config change.
 
   Still to do:
   - **Retire `is_crt_provided_lib`** (`decay_buck2`): `found` is now settled

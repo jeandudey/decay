@@ -22,38 +22,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:stdlib.h`: `stdlib.h` is available to the c compiler
-constraint(
-    name = "has_header_stdlib_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:stdint.h`: `stdint.h` is available to the c compiler
-constraint(
-    name = "has_header_stdint_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:stdbool.h`: `stdbool.h` is available to the c compiler
-constraint(
-    name = "has_header_stdbool_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:memory.h`: `memory.h` is available to the c compiler
-constraint(
-    name = "has_header_memory_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header:pthread.h`: `pthread.h` is available to the c compiler
 constraint(
     name = "has_header_pthread_h",
@@ -118,97 +86,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:InitOnceExecuteOnce`: `InitOnceExecuteOnce` is available to the c compiler
-constraint(
-    name = "compiles_InitOnceExecuteOnce",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:run:IEEE 754 floating-point division`: `IEEE 754 floating-point division` is available to the c compiler
 constraint(
     name = "run_IEEE_754_floating_point_division",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:SSE intrinsics`: `SSE intrinsics` is available to the c compiler
-constraint(
-    name = "compiles_SSE_intrinsics",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:GCC vector intrinsics`: `GCC vector intrinsics` is available to the c compiler
-constraint(
-    name = "compiles_GCC_vector_intrinsics",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:ARM NEON intrinsics`: `ARM NEON intrinsics` is available to the c compiler
-constraint(
-    name = "compiles_ARM_NEON_intrinsics",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/param.h`: `sys/param.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_param_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/types.h`: `sys/types.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_types_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/time.h`: `sys/time.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_time_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/select.h`: `sys/select.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_select_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:ARMv7 macros`: `ARMv7 macros` is available to the c compiler
-constraint(
-    name = "compiles_ARMv7_macros",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:typeof`: `typeof` is available to the c compiler
-constraint(
-    name = "compiles_typeof",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:__thread`: `__thread` is available to the c compiler
-constraint(
-    name = "compiles_thread",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -225,22 +105,6 @@ constraint(
 # toolchain probe `probe:c:run:-mtls-dialect=gnu2`: `-mtls-dialect=gnu2` is available to the c compiler
 constraint(
     name = "run_mtls_dialect_gnu2",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:pthread rwlock`: `pthread rwlock` is available to the c compiler
-constraint(
-    name = "compiles_pthread_rwlock",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:sync intrinsics`: `sync intrinsics` is available to the c compiler
-constraint(
-    name = "compiles_sync_intrinsics",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -270,14 +134,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:KHR/khrplatform.h`: `KHR/khrplatform.h` is available to the c compiler
-constraint(
-    name = "has_header_KHR_khrplatform_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # machine property `compiler:cpp`: the cpp compiler in use
 constraint(
     name = "cpp_compiler",
@@ -286,441 +142,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:alloca.h`: `alloca.h` is available to the c compiler
-constraint(
-    name = "has_header_alloca_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:afunix.h`: `afunix.h` is available to the c compiler
-constraint(
-    name = "has_header_afunix_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:dirent.h`: `dirent.h` is available to the c compiler
-constraint(
-    name = "has_header_dirent_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:float.h`: `float.h` is available to the c compiler
-constraint(
-    name = "has_header_float_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:fstab.h`: `fstab.h` is available to the c compiler
-constraint(
-    name = "has_header_fstab_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:ftw.h`: `ftw.h` is available to the c compiler
-constraint(
-    name = "has_header_ftw_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:grp.h`: `grp.h` is available to the c compiler
-constraint(
-    name = "has_header_grp_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:intsafe.h`: `intsafe.h` is available to the c compiler
-constraint(
-    name = "has_header_intsafe_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:inttypes.h`: `inttypes.h` is available to the c compiler
-constraint(
-    name = "has_header_inttypes_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:libproc.h`: `libproc.h` is available to the c compiler
-constraint(
-    name = "has_header_libproc_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:limits.h`: `limits.h` is available to the c compiler
-constraint(
-    name = "has_header_limits_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:linux/netlink.h`: `linux/netlink.h` is available to the c compiler
-constraint(
-    name = "has_header_linux_netlink_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:locale.h`: `locale.h` is available to the c compiler
-constraint(
-    name = "has_header_locale_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:mach/mach_time.h`: `mach/mach_time.h` is available to the c compiler
-constraint(
-    name = "has_header_mach_mach_time_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:mntent.h`: `mntent.h` is available to the c compiler
-constraint(
-    name = "has_header_mntent_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:netlink/netlink.h`: `netlink/netlink.h` is available to the c compiler
-constraint(
-    name = "has_header_netlink_netlink_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:netlink/netlink_route.h`: `netlink/netlink_route.h` is available to the c compiler
-constraint(
-    name = "has_header_netlink_netlink_route_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:poll.h`: `poll.h` is available to the c compiler
-constraint(
-    name = "has_header_poll_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:pwd.h`: `pwd.h` is available to the c compiler
-constraint(
-    name = "has_header_pwd_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sched.h`: `sched.h` is available to the c compiler
-constraint(
-    name = "has_header_sched_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:spawn.h`: `spawn.h` is available to the c compiler
-constraint(
-    name = "has_header_spawn_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:stdatomic.h`: `stdatomic.h` is available to the c compiler
-constraint(
-    name = "has_header_stdatomic_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:stdckdint.h`: `stdckdint.h` is available to the c compiler
-constraint(
-    name = "has_header_stdckdint_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:string.h`: `string.h` is available to the c compiler
-constraint(
-    name = "has_header_string_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:strings.h`: `strings.h` is available to the c compiler
-constraint(
-    name = "has_header_strings_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/auxv.h`: `sys/auxv.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_auxv_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/event.h`: `sys/event.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_event_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/uio.h`: `sys/uio.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_uio_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/filio.h`: `sys/filio.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_filio_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/inotify.h`: `sys/inotify.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_inotify_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/mkdev.h`: `sys/mkdev.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_mkdev_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/mntctl.h`: `sys/mntctl.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_mntctl_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/mnttab.h`: `sys/mnttab.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_mnttab_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/mount.h`: `sys/mount.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_mount_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/prctl.h`: `sys/prctl.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_prctl_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/resource.h`: `sys/resource.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_resource_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/statfs.h`: `sys/statfs.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_statfs_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/stat.h`: `sys/stat.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_stat_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/statvfs.h`: `sys/statvfs.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_statvfs_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/sysctl.h`: `sys/sysctl.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_sysctl_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/times.h`: `sys/times.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_times_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/ucred.h`: `sys/ucred.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_ucred_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/vfs.h`: `sys/vfs.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_vfs_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/vfstab.h`: `sys/vfstab.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_vfstab_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/vmount.h`: `sys/vmount.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_vmount_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:sys/wait.h`: `sys/wait.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_wait_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:syslog.h`: `syslog.h` is available to the c compiler
-constraint(
-    name = "has_header_syslog_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:termios.h`: `termios.h` is available to the c compiler
-constraint(
-    name = "has_header_termios_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:unistd.h`: `unistd.h` is available to the c compiler
-constraint(
-    name = "has_header_unistd_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:values.h`: `values.h` is available to the c compiler
-constraint(
-    name = "has_header_values_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:vcruntime.h`: `vcruntime.h` is available to the c compiler
-constraint(
-    name = "has_header_vcruntime_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:wchar.h`: `wchar.h` is available to the c compiler
-constraint(
-    name = "has_header_wchar_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:xlocale.h`: `xlocale.h` is available to the c compiler
-constraint(
-    name = "has_header_xlocale_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:check_header:malloc.h`: `malloc.h` is available to the c compiler
 constraint(
     name = "check_header_malloc_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:statx() test`: `statx() test` is available to the c compiler
-constraint(
-    name = "compiles_statx_test",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -801,38 +225,6 @@ constraint(
 # toolchain probe `probe:c:compiles:type "struct tm" has member "tm_gmtoff"`: `type "struct tm" has member "tm_gmtoff"` is available to the c compiler
 constraint(
     name = "compiles_type_struct_tm_has_member_tm_gmtoff",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:building for UWP`: `building for UWP` is available to the c compiler
-constraint(
-    name = "compiles_building_for_UWP",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `lib:runtimeobject`: `runtimeobject` is available
-constraint(
-    name = "runtimeobject",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_function:if_nametoindex`: `if_nametoindex` is available to the c compiler
-constraint(
-    name = "has_function_if_nametoindex",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_function:if_indextoname`: `if_indextoname` is available to the c compiler
-constraint(
-    name = "has_function_if_indextoname",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1382,14 +774,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_function:_NSGetEnviron`: `_NSGetEnviron` is available to the c compiler
-constraint(
-    name = "has_function_NSGetEnviron",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_function:statvfs`: `statvfs` is available to the c compiler
 constraint(
     name = "has_function_statvfs",
@@ -1406,9 +790,17 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_function:prctl`: `prctl` is available to the c compiler
+# toolchain probe `probe:c:has_function:if_indextoname`: `if_indextoname` is available to the c compiler
 constraint(
-    name = "has_function_prctl",
+    name = "has_function_if_indextoname",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_function:if_nametoindex`: `if_nametoindex` is available to the c compiler
+constraint(
+    name = "has_function_if_nametoindex",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1438,25 +830,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:getservbyname_r()`: `getservbyname_r()` is available to the c compiler
-constraint(
-    name = "compiles_getservbyname_r",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_function:posix_spawn`: `posix_spawn` is available to the c compiler
 constraint(
     name = "has_function_posix_spawn",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:strerror_r() returns char *`: `strerror_r() returns char *` is available to the c compiler
-constraint(
-    name = "compiles_strerror_r_returns_char",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1542,14 +918,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_type:loff_t`: `loff_t` is available to the c compiler
-constraint(
-    name = "has_type_loff_t",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_function:unshare`: `unshare` is available to the c compiler
 constraint(
     name = "has_function_unshare",
@@ -1561,14 +929,6 @@ constraint(
 # toolchain probe `probe:c:has_function:mkostemp`: `mkostemp` is available to the c compiler
 constraint(
     name = "has_function_mkostemp",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:futex(2) system call`: `futex(2) system call` is available to the c compiler
-constraint(
-    name = "compiles_futex_2_system_call",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1593,14 +953,6 @@ constraint(
 # toolchain probe `probe:c:links:pidfd_open(2) system call`: `pidfd_open(2) system call` is available to the c compiler
 constraint(
     name = "links_pidfd_open_2_system_call",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:__uint128_t available`: `__uint128_t available` is available to the c compiler
-constraint(
-    name = "compiles_uint128_t_available",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1649,22 +1001,6 @@ constraint(
 # toolchain probe `probe:c:compiles:number of arguments to statfs() (n=4)`: `number of arguments to statfs() (n=4)` is available to the c compiler
 constraint(
     name = "compiles_number_of_arguments_to_statfs_n_4",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:open() option O_DIRECTORY`: `open() option O_DIRECTORY` is available to the c compiler
-constraint(
-    name = "compiles_open_option_O_DIRECTORY",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:fcntl() option F_FULLFSYNC`: `fcntl() option F_FULLFSYNC` is available to the c compiler
-constraint(
-    name = "compiles_fcntl_option_F_FULLFSYNC",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1750,14 +1086,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:signed`: `signed` is available to the c compiler
-constraint(
-    name = "compiles_signed",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header_symbol:stddef.h`: `stddef.h` is available to the c compiler
 constraint(
     name = "has_header_symbol_stddef_h",
@@ -1774,57 +1102,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:long long`: `long long` is available to the c compiler
-constraint(
-    name = "compiles_long_long",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:long double`: `long double` is available to the c compiler
-constraint(
-    name = "compiles_long_double",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header_symbol:wchar.h`: `wchar.h` is available to the c compiler
 constraint(
     name = "has_header_symbol_wchar_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:uintmax_t in inttypes.h`: `uintmax_t in inttypes.h` is available to the c compiler
-constraint(
-    name = "compiles_uintmax_t_in_inttypes_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:uintmax_t in stdint.h`: `uintmax_t in stdint.h` is available to the c compiler
-constraint(
-    name = "compiles_uintmax_t_in_stdint_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:int64_t is long`: `int64_t is long` is available to the c compiler
-constraint(
-    name = "compiles_int64_t_is_long",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:int64_t is long long`: `int64_t is long long` is available to the c compiler
-constraint(
-    name = "compiles_int64_t_is_long_long",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1846,33 +1126,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:sys/poll.h`: `sys/poll.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_poll_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_type:struct in6_addr`: `struct in6_addr` is available to the c compiler
-constraint(
-    name = "has_type_struct_in6_addr",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:atomic ops`: `atomic ops` is available to the c compiler
 constraint(
     name = "links_atomic_ops",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:atomic ops define`: `atomic ops define` is available to the c compiler
-constraint(
-    name = "compiles_atomic_ops_define",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1921,22 +1177,6 @@ constraint(
 # toolchain probe `probe:c:run:stack grows check`: `stack grows check` is available to the c compiler
 constraint(
     name = "run_stack_grows_check",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:iconv`: `iconv` is available
-constraint(
-    name = "iconv",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:links:Windows system PCRE2 is a static build`: `Windows system PCRE2 is a static build` is available to the c compiler
-constraint(
-    name = "links_Windows_system_PCRE2_is_a_static_build",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -1998,14 +1238,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:sys/xattr.h`: `sys/xattr.h` is available to the c compiler
-constraint(
-    name = "has_header_sys_xattr_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header_symbol:attr/xattr.h`: `attr/xattr.h` is available to the c compiler
 constraint(
     name = "has_header_symbol_attr_xattr_h",
@@ -2046,30 +1278,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:building with _XOPEN_SOURCE=800`: `building with _XOPEN_SOURCE=800` is available to the c compiler
-constraint(
-    name = "compiles_building_with_XOPEN_SOURCE_800",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:building with _XOPEN_SOURCE=700`: `building with _XOPEN_SOURCE=700` is available to the c compiler
-constraint(
-    name = "compiles_building_with_XOPEN_SOURCE_700",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:building with _XOPEN_SOURCE=600`: `building with _XOPEN_SOURCE=600` is available to the c compiler
-constraint(
-    name = "compiles_building_with_XOPEN_SOURCE_600",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:has_header_symbol:sys/ptrace.h`: `sys/ptrace.h` is available to the c compiler
 constraint(
     name = "has_header_symbol_sys_ptrace_h",
@@ -2083,36 +1291,6 @@ constraint(
     name = "sysprof_capture_4",
     values = ["true", "false"],
     default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:
-# #include <float.h>
-# int main ()
-# {
-#   typedef int check[sizeof (long double) == sizeof (double)
-#                     && LDBL_MANT_DIG == DBL_MANT_DIG
-#                     && LDBL_MAX_EXP == DBL_MAX_EXP
-#                     && LDBL_MIN_EXP == DBL_MIN_EXP
-#                     ? 1 : -1];
-#   return check;
-# }
-# `: `
-# #include <float.h>
-# int main ()
-# {
-#   typedef int check[sizeof (long double) == sizeof (double)
-#                     && LDBL_MANT_DIG == DBL_MANT_DIG
-#                     && LDBL_MAX_EXP == DBL_MAX_EXP
-#                     && LDBL_MIN_EXP == DBL_MIN_EXP
-#                     ? 1 : -1];
-#   return check;
-# }
-# ` is available to the c compiler
-constraint(
-    name = "probe_c_compiles_include_float_h_int_main_typedef_int_check_sizeof_long_double_sizeof_double_LDBL_MANT_DIG_DBL_MANT_DIG_LDBL_MAX_EXP_DBL_MAX_EXP_LDBL_MIN_EXP_DBL_MIN_EXP_1_1_return_check",
-    values = ["true", "false"],
-    default = "true",
     visibility = ["PUBLIC"],
 )
 
@@ -2332,57 +1510,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:
-# #include <math.h>
-# /* Solaris 10 has a broken definition of NAN.  Other platforms
-#         fail to provide NAN, or provide it only in C99 mode; this
-#         test only needs to fail when NAN is provided but wrong.  */
-# int main () {
-#          float f = 1.0f;
-# #ifdef NAN
-#          f = NAN;
-# #endif
-#          return f == 0;
-# }
-# `: `
-# #include <math.h>
-# /* Solaris 10 has a broken definition of NAN.  Other platforms
-#         fail to provide NAN, or provide it only in C99 mode; this
-#         test only needs to fail when NAN is provided but wrong.  */
-# int main () {
-#          float f = 1.0f;
-# #ifdef NAN
-#          f = NAN;
-# #endif
-#          return f == 0;
-# }
-# ` is available to the c compiler
-constraint(
-    name = "compiles_include_math_h_Solaris_10_has_a_broken_definition_of_NAN_Other_platforms_fail_to_provide_NAN_or_provide_it_only_in_C99_mode_this_test_only_needs_to_fail_when_NAN_is_provided_but_wrong_int_main_float_f_1_0f_ifdef_NAN_f_NAN_endif_return_f_0",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:frexpl prototype can be re-listed`: `frexpl prototype can be re-listed` is available to the c compiler
-constraint(
-    name = "compiles_frexpl_prototype_can_be_re_listed",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:run:ldexpl works`: `ldexpl works` is available to the c compiler
 constraint(
     name = "run_ldexpl_works",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:ldexpl prototype can be re-listed`: `ldexpl prototype can be re-listed` is available to the c compiler
-constraint(
-    name = "compiles_ldexpl_prototype_can_be_re_listed",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -2446,22 +1576,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:compiles:C_IN in public headers (no arpa/nameser_compat.h needed)`: `C_IN in public headers (no arpa/nameser_compat.h needed)` is available to the c compiler
-constraint(
-    name = "compiles_C_IN_in_public_headers_no_arpa_nameser_compat_h_needed",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:arpa/nameser_compat.h needed for C_IN`: `arpa/nameser_compat.h needed for C_IN` is available to the c compiler
-constraint(
-    name = "compiles_arpa_nameser_compat_h_needed_for_C_IN",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:res_query()`: `res_query()` is available to the c compiler
 constraint(
     name = "links_res_query",
@@ -2499,6 +1613,14 @@ constraint(
     name = "links_res_query_in_lsocket",
     values = ["true", "false"],
     default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:socket`: `socket` is available
+constraint(
+    name = "socket",
+    values = ["true", "false"],
+    default = "false",
     visibility = ["PUBLIC"],
 )
 
@@ -2545,30 +1667,6 @@ constraint(
 # toolchain probe `probe:c:links:res_nquery()`: `res_nquery()` is available to the c compiler
 constraint(
     name = "links_res_nquery",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_type:struct ip_mreqn`: `struct ip_mreqn` is available to the c compiler
-constraint(
-    name = "has_type_struct_ip_mreqn",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:ioctl with request SIOCGIFADDR`: `ioctl with request SIOCGIFADDR` is available to the c compiler
-constraint(
-    name = "compiles_ioctl_with_request_SIOCGIFADDR",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:ip_mreq_source.imr_interface has s_addr member`: `ip_mreq_source.imr_interface has s_addr member` is available to the c compiler
-constraint(
-    name = "compiles_ip_mreq_source_imr_interface_has_s_addr_member",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -2622,67 +1720,11 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header:libelf.h`: `libelf.h` is available to the c compiler
-constraint(
-    name = "has_header_libelf_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:libelf.h`: `libelf.h` is available to the c compiler
-constraint(
-    name = "compiles_libelf_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `lib:FuzzingEngine`: `FuzzingEngine` is available
 constraint(
     name = "FuzzingEngine",
     values = ["true", "false"],
     default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_function:_set_thread_local_invalid_parameter_handler`: `_set_thread_local_invalid_parameter_handler` is available to the c compiler
-constraint(
-    name = "has_function_set_thread_local_invalid_parameter_handler",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_function:_set_invalid_parameter_handler`: `_set_invalid_parameter_handler` is available to the c compiler
-constraint(
-    name = "has_function_set_invalid_parameter_handler",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:crtdbg.h`: `crtdbg.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_crtdbg_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:assert.h`: `assert.h` is available to the c compiler
-constraint(
-    name = "has_header_assert_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header:windows.h`: `windows.h` is available to the c compiler
-constraint(
-    name = "has_header_windows_h",
-    values = ["true", "false"],
-    default = "true",
     visibility = ["PUBLIC"],
 )
 
@@ -2737,14 +1779,6 @@ constraint(
 # toolchain probe `probe:c:links:__assume`: `__assume` is available to the c compiler
 constraint(
     name = "links_assume",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:compiles:__attribute__((uninitialized))`: `__attribute__((uninitialized))` is available to the c compiler
-constraint(
-    name = "compiles_attribute_uninitialized",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],

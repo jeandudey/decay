@@ -214,10 +214,10 @@ pub enum Probe {
         abi: (String, Vec<String>),
         found: Vec<(String, Vec<String>)>,
     },
-    /// True on exactly the `rows` that hold — and, on the named `systems`,
-    /// *false* everywhere else, with no knob: the probe was compiled for
-    /// every `(cpu, abi, ...)` combination those systems have, so within
-    /// them the answer is complete. Only outside `systems` — a target the
+    /// True on exactly the `rows` that hold — and, within every probed
+    /// system, *false* everywhere else, with no knob: the probe was compiled
+    /// for every `(cpu[, abi])` combination that system has, so within it the
+    /// answer is complete. Only outside the probed systems — a target the
     /// importer did not build the probe for — does it stay open, the same
     /// as an unanswered probe.
     ///
@@ -225,14 +225,21 @@ pub enum Probe {
     /// complement open even inside its systems because its source (a
     /// partial symbol database) genuinely does not know it; here the
     /// compiler answered for the whole matrix.
-    Matrix {
-        systems: Vec<String>,
-        /// One constraint setting and its known domain per axis, as in
-        /// [`Probe::SystemsAndConstraint`].
-        axes: Vec<(String, Vec<String>)>,
-        /// Each combination the probe compiled for, one value per axis.
-        rows: Vec<Vec<String>>,
-    },
+    Matrix(Vec<MatrixSystem>),
+}
+
+/// One operating system's slice of a [`Probe::Matrix`] answer: the
+/// `(cpu[, abi])` combinations the probe compiled for on that system. `axes`
+/// varies by system — `linux` splits on `abi` (glibc vs musl), the BSDs do
+/// not — so each system carries its own.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MatrixSystem {
+    pub system: String,
+    /// One constraint setting and its known domain per axis, as in
+    /// [`Probe::SystemsAndConstraint`].
+    pub axes: Vec<(String, Vec<String>)>,
+    /// Each combination the probe compiled for, one value per axis.
+    pub rows: Vec<Vec<String>>,
 }
 
 /// A compiler probe the importer can answer by building it, once per target

@@ -161,19 +161,9 @@ _cflags = select({
     "prelude//cpu/constraints:cpu[arm32]": [],
     "prelude//cpu/constraints:cpu[arm64]": [],
     "prelude//cpu/constraints:cpu[riscv64]": [],
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-        "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-        "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-        "DEFAULT": [],
-    }),
+    "DEFAULT": ["-DUSE_X86_ASM"],
 }) + select({
-    "prelude//cpu/constraints:cpu[x86_64]": select({
-        "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-        "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-        "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-        "DEFAULT": [],
-    }),
+    "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -193,8 +183,9 @@ _cflags = select({
                 "DEFAULT": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                "DEFAULT": [],
             }),
         }),
     }),
@@ -227,8 +218,12 @@ _cflags = select({
         "DEFAULT": [],
     }),
     "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-        "//third-party/meson/constraints:compiles_typeof[false]": [],
+        "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+        "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+        "DEFAULT": [],
     }),
 }) + select({
     "prelude//os/constraints:os[linux]": select({
@@ -251,8 +246,12 @@ _cflags = select({
         "DEFAULT": [],
     }),
     "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-        "//third-party/meson/constraints:compiles_thread[false]": [],
+        "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+        "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+        "DEFAULT": [],
     }),
 }) + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -272,19 +271,14 @@ _cflags = select({
                 "DEFAULT": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                "DEFAULT": [],
             }),
         }),
     }),
-    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
     "prelude//cpu/constraints:cpu[riscv64]": [],
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-        "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-        "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-        "DEFAULT": [],
-    }),
+    "DEFAULT": ["-DUSE_DISPATCH_ASM"],
 }) + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -299,13 +293,6 @@ _cflags = select({
         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
     }),
     "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [],
-            "//third-party/meson/constraints:compiles_thread[false]": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-            }),
-        }),
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": select({
@@ -395,21 +382,56 @@ _cflags = select({
             }),
         }),
         "prelude//os/constraints:os[netbsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
                 "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                 "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
-            "//third-party/meson/constraints:compiles_thread[false]": select({
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
+            }),
+            "DEFAULT": select({
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                 "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
             }),
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-            "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": [],
+            "prelude//cpu/constraints:cpu[arm64]": [],
+            "prelude//cpu/constraints:cpu[riscv64]": [],
+            "prelude//cpu/constraints:cpu[x86_32]": [],
+            "prelude//cpu/constraints:cpu[x86_64]": [],
+            "DEFAULT": select({
+                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+            }),
         }),
     }),
 }) + select({
@@ -436,9 +458,20 @@ _cflags = select({
         }),
         "DEFAULT": [],
     }),
+    "prelude//os/constraints:os[netbsd]": select({
+        "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "DEFAULT": [],
+    }),
     "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-        "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+        "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+        "DEFAULT": [],
     }),
 }) + select({
     "prelude//os/constraints:os[linux]": select({
@@ -461,8 +494,12 @@ _cflags = select({
         "DEFAULT": [],
     }),
     "DEFAULT": select({
-        "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-        "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+        "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+        "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+        "DEFAULT": [],
     }),
 }) + select({
     "prelude//os/constraints:os[linux]": select({
@@ -575,39 +612,24 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
                 "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARMv7_macros[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-                "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
+                "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+                "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+                "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
             }),
         }),
     }),
-    "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
     "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-        "prelude//os/constraints:os[linux]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-        "prelude//os/constraints:os[netbsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-        "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-    }),
+    "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
 }) + select({
     "prelude//cpu/constraints:cpu[arm32]": [],
-    "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
     "prelude//cpu/constraints:cpu[riscv64]": [],
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
-        "prelude//os/constraints:os[linux]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
-        "prelude//os/constraints:os[netbsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
-        "DEFAULT": [],
-    }),
+    "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
 }) + select({
     "prelude//cpu/constraints:cpu[x86_64]": [],
     "prelude//cpu/constraints:cpu[arm32]": [],
     "prelude//cpu/constraints:cpu[arm64]": [],
     "prelude//cpu/constraints:cpu[riscv64]": [],
     "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": select({
@@ -658,13 +680,36 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
             "DEFAULT": [],
         }),
         "prelude//os/constraints:os[netbsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
                 "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
                 "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
             }),
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "DEFAULT": [],
         }),
-        "DEFAULT": [],
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+            "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+            "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+            "prelude//cpu/constraints:cpu[x86_32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+            "prelude//cpu/constraints:cpu[x86_64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+            "DEFAULT": [],
+        }),
     }),
 }) + select({
     "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -672,10 +717,6 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
     "prelude//cpu/constraints:cpu[arm64]": [],
     "prelude//cpu/constraints:cpu[riscv64]": [],
     "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [],
-            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-        }),
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": select({
@@ -726,20 +767,39 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
             "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
         }),
         "prelude//os/constraints:os[netbsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
                 "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                 "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
-            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            }),
+            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
         }),
-        "DEFAULT": [],
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": [],
+            "prelude//cpu/constraints:cpu[arm64]": [],
+            "prelude//cpu/constraints:cpu[riscv64]": [],
+            "prelude//cpu/constraints:cpu[x86_32]": [],
+            "prelude//cpu/constraints:cpu[x86_64]": [],
+            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+        }),
     }),
 }) + select({
     "prelude//cpu/constraints:cpu[x86_64]": select({
-        "prelude//os/constraints:os[freebsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
-        }),
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": select({
@@ -790,21 +850,40 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
             "DEFAULT": [],
         }),
         "prelude//os/constraints:os[netbsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
                 "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
                 "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
             }),
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+            }),
+            "DEFAULT": [],
         }),
-        "DEFAULT": [],
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+            "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+            "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+            "prelude//cpu/constraints:cpu[x86_32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+            "prelude//cpu/constraints:cpu[x86_64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+            "DEFAULT": [],
+        }),
     }),
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[x86_64]": select({
-        "prelude//os/constraints:os[freebsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [],
-            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-        }),
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": select({
@@ -855,13 +934,36 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
             "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
         }),
         "prelude//os/constraints:os[netbsd]": select({
-            "//third-party/meson/constraints:compiles_thread[true]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
                 "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                 "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
-            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            }),
+            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
         }),
-        "DEFAULT": [],
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": [],
+            "prelude//cpu/constraints:cpu[arm64]": [],
+            "prelude//cpu/constraints:cpu[riscv64]": [],
+            "prelude//cpu/constraints:cpu[x86_32]": [],
+            "prelude//cpu/constraints:cpu[x86_64]": [],
+            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+        }),
     }),
     "DEFAULT": [],
 }) + select({
@@ -882,8 +984,9 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
                 "DEFAULT": [],
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARMv7_macros[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-                "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+                "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+                "DEFAULT": [],
             }),
         }),
     }),
@@ -1027,7 +1130,7 @@ _headers_cpu_compiler_os = select({
                 },
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiles_ARMv7_macros[true]": {
+                "prelude//cpu/constraints:cpu[arm32]": {
                     "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
                     "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
                     "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
@@ -1043,7 +1146,23 @@ _headers_cpu_compiler_os = select({
                     "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
                     "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
                 },
-                "//third-party/meson/constraints:compiles_ARMv7_macros[false]": {
+                "prelude//cpu/constraints:cpu[arm64]": {
+                    "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+                    "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+                    "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+                    "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+                    "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+                    "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+                    "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
+                    "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+                    "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+                    "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+                    "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+                    "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+                    "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
+                    "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
+                },
+                "DEFAULT": {
                     "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
                     "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
                     "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
@@ -1061,22 +1180,6 @@ _headers_cpu_compiler_os = select({
             }),
         }),
     }),
-    "prelude//cpu/constraints:cpu[arm64]": {
-        "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-        "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-        "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-        "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-        "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-        "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-        "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-        "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-        "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-        "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-        "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-        "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-        "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-        "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-    },
     "prelude//cpu/constraints:cpu[riscv64]": {
         "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
         "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
@@ -1092,71 +1195,22 @@ _headers_cpu_compiler_os = select({
         "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
         "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
     },
-    "DEFAULT": select({
-        "prelude//os/constraints:os[freebsd]": {
-            "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-            "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-        },
-        "prelude//os/constraints:os[linux]": {
-            "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-            "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-        },
-        "prelude//os/constraints:os[netbsd]": {
-            "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-            "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-        },
-        "DEFAULT": {
-            "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-        },
-    }),
+    "DEFAULT": {
+        "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+        "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+        "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+        "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+        "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+        "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+        "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
+        "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+        "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+        "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+        "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+        "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+        "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
+        "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
+    },
 })
 _headers4 = {
     "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
@@ -1307,7 +1361,6 @@ _headers8 = {
 }
 _deps = [":EGL"] + select({
     "prelude//os/constraints:os[netbsd]": [],
-    "prelude//os/constraints:os[windows]": [],
     "DEFAULT": [":dl"],
 })
 
@@ -1365,7 +1418,6 @@ cxx_library(
     compiler_flags = _cflags,
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
     }),
     preferred_linkage = "static",
@@ -1682,8 +1734,12 @@ cxx_library(
             "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tsd.c]"],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
-            "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tsd.c]"],
+            "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
+            "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
+            "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
+            "prelude//cpu/constraints:cpu[x86_32]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
+            "prelude//cpu/constraints:cpu[x86_64]": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]"],
+            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tsd.c]"],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -1703,39 +1759,24 @@ cxx_library(
                     "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
+                    "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+                    "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+                    "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
         "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "prelude//os/constraints:os[linux]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "prelude//os/constraints:os[netbsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-        }),
+        "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": [],
-        "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
-            "prelude//os/constraints:os[linux]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
-            "prelude//os/constraints:os[netbsd]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_simple_asm.c]"],
     }) + select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
-                "//third-party/meson/constraints:compiles_thread[false]": [],
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -1786,13 +1827,36 @@ cxx_library(
                 "DEFAULT": [],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": [],
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "DEFAULT": [],
             }),
-            "DEFAULT": [],
+            "DEFAULT": select({
+                "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "prelude//cpu/constraints:cpu[x86_32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "prelude//cpu/constraints:cpu[x86_64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tls.c]"],
+                "DEFAULT": [],
+            }),
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -1800,10 +1864,6 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -1854,20 +1914,39 @@ cxx_library(
                 "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+                }),
+                "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
             }),
-            "DEFAULT": [],
+            "DEFAULT": select({
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_tsd.c]"],
+            }),
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
-                "//third-party/meson/constraints:compiles_thread[false]": [],
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -1918,21 +1997,40 @@ cxx_library(
                 "DEFAULT": [],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": [],
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [],
+                }),
+                "DEFAULT": [],
             }),
-            "DEFAULT": [],
+            "DEFAULT": select({
+                "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "prelude//cpu/constraints:cpu[x86_32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "prelude//cpu/constraints:cpu[x86_64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tls.c]"],
+                "DEFAULT": [],
+            }),
         }),
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -1983,13 +2081,36 @@ cxx_library(
                 "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+                }),
+                "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
             }),
-            "DEFAULT": [],
+            "DEFAULT": select({
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_x86_64_tsd.c]"],
+            }),
         }),
         "DEFAULT": [],
     }) + select({
@@ -2010,8 +2131,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+                    "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -2194,7 +2316,7 @@ cxx_library(
                     },
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": {
+                    "prelude//cpu/constraints:cpu[arm32]": {
                         "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
                         "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
                         "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
@@ -2211,7 +2333,24 @@ cxx_library(
                         "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
                         "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
                     },
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": {
+                    "prelude//cpu/constraints:cpu[arm64]": {
+                        "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+                        "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+                        "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+                        "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+                        "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+                        "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+                        "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
+                        "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
+                        "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+                        "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+                        "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+                        "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+                        "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+                        "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
+                        "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
+                    },
+                    "DEFAULT": {
                         "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
                         "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
                         "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
@@ -2229,7 +2368,22 @@ cxx_library(
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": {
+        "prelude//cpu/constraints:cpu[riscv64]": {
+            "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+            "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+            "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+            "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+            "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+            "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+            "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
+            "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
+            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+        },
+        "DEFAULT": {
             "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
             "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
             "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
@@ -2246,89 +2400,6 @@ cxx_library(
             "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
             "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
         },
-        "prelude//cpu/constraints:cpu[riscv64]": {
-            "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-            "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-        },
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": {
-                "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-                "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-                "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-            },
-            "prelude//os/constraints:os[linux]": {
-                "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-                "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-                "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-            },
-            "prelude//os/constraints:os[netbsd]": {
-                "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-                "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-                "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-            },
-            "DEFAULT": {
-                "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "src/generate/g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "src/generate/g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "src/generate/g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "src/generate/g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "src/generate/g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
-                "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            },
-        }),
     }),
     header_namespace = "",
     compiler_flags = select({
@@ -2336,19 +2407,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -2368,8 +2429,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -2403,8 +2465,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -2427,8 +2493,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -2448,19 +2518,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -2475,13 +2540,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -2571,21 +2629,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -2612,9 +2705,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -2637,8 +2741,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -2738,19 +2846,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -2770,8 +2868,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -2806,8 +2905,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -2830,8 +2933,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -2851,19 +2958,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -2878,13 +2980,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -2974,21 +3069,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -3015,9 +3145,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3040,8 +3181,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3150,19 +3295,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -3182,8 +3317,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -3218,8 +3354,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3242,8 +3382,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -3263,19 +3407,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -3290,13 +3429,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -3386,21 +3518,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -3427,9 +3594,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3452,8 +3630,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3562,19 +3744,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -3594,8 +3766,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -3630,8 +3803,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3654,8 +3831,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -3675,19 +3856,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -3702,13 +3878,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -3798,21 +3967,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -3839,9 +4043,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3864,8 +4079,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -3974,19 +4193,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -4006,8 +4215,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -4042,8 +4252,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -4066,8 +4280,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -4087,19 +4305,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -4114,13 +4327,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -4210,21 +4416,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -4251,9 +4492,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -4276,8 +4528,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -4412,8 +4668,12 @@ cxx_library(
             "DEFAULT": ["$(location :glvnd.git[src/GLdispatch/export_list_tsd.ver])"],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])"],
-            "//third-party/meson/constraints:compiles_thread[false]": ["$(location :glvnd.git[src/GLdispatch/export_list_tsd.ver])"],
+            "prelude//cpu/constraints:cpu[arm32]": ["$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])"],
+            "prelude//cpu/constraints:cpu[arm64]": ["$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])"],
+            "DEFAULT": ["$(location :glvnd.git[src/GLdispatch/export_list_tsd.ver])"],
         }),
     }),
     deps = [
@@ -4423,7 +4683,6 @@ cxx_library(
         ":glvnd-dep-2",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
     }),
     preferred_linkage = "shared",
@@ -4648,19 +4907,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -4680,8 +4929,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -4715,8 +4965,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -4739,8 +4993,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -4760,19 +5018,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -4787,13 +5040,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -4883,21 +5129,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -4924,9 +5205,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -4949,8 +5241,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -4997,7 +5293,6 @@ cxx_library(
         ":glvnd-dep-11",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
     }),
     preferred_linkage = "shared",
@@ -5084,7 +5379,6 @@ cxx_library(
     exported_linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
     }) + [
         "//third-party/system:X11",
@@ -5171,7 +5465,6 @@ cxx_library(
     exported_linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
     }) + [
         ":glvnd-dep-11",
@@ -5415,19 +5708,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -5447,8 +5730,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -5482,8 +5766,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -5506,8 +5794,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -5527,19 +5819,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -5554,13 +5841,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -5650,21 +5930,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -5691,9 +6006,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -5716,8 +6042,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -5769,19 +6099,9 @@ cxx_library(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -5801,8 +6121,9 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -5836,8 +6157,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -5860,8 +6185,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -5881,19 +6210,14 @@ cxx_library(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -5908,13 +6232,6 @@ cxx_library(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -6004,21 +6321,56 @@ cxx_library(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -6045,9 +6397,20 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -6070,8 +6433,12 @@ cxx_library(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -6184,19 +6551,9 @@ cxx_binary(
         "prelude//cpu/constraints:cpu[arm32]": [],
         "prelude//cpu/constraints:cpu[arm64]": [],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_X86_ASM"],
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_X86_64_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_X86_64_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -6216,8 +6573,9 @@ cxx_binary(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_ARMV7_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
@@ -6251,8 +6609,12 @@ cxx_binary(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_typeof[true]": ["-DHAVE_TYPEOF"],
-            "//third-party/meson/constraints:compiles_typeof[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_TYPEOF"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_TYPEOF"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -6275,8 +6637,12 @@ cxx_binary(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_thread[true]": ["-DGLDISPATCH_USE_TLS"],
-            "//third-party/meson/constraints:compiles_thread[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DGLDISPATCH_USE_TLS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DGLDISPATCH_USE_TLS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
@@ -6296,19 +6662,14 @@ cxx_binary(
                     "DEFAULT": [],
                 }),
                 "DEFAULT": select({
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[true]": ["-DUSE_DISPATCH_ASM"],
-                    "//third-party/meson/constraints:compiles_ARMv7_macros[false]": [],
+                    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+                    "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+                    "DEFAULT": [],
                 }),
             }),
         }),
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
         "prelude//cpu/constraints:cpu[riscv64]": [],
-        "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[linux]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//os/constraints:os[netbsd]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
@@ -6323,13 +6684,6 @@ cxx_binary(
             "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
         }),
         "DEFAULT": select({
-            "prelude//os/constraints:os[freebsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": [],
-                "//third-party/meson/constraints:compiles_thread[false]": select({
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
-                }),
-            }),
             "prelude//os/constraints:os[linux]": select({
                 "prelude//abi/constraints:abi[gnu]": select({
                     "prelude//cpu/constraints:cpu[arm32]": select({
@@ -6419,21 +6773,56 @@ cxx_binary(
                 }),
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "//third-party/meson/constraints:compiles_thread[true]": select({
+                "prelude//cpu/constraints:cpu[arm32]": select({
                     "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
                     "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                         "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                     }),
                 }),
-                "//third-party/meson/constraints:compiles_thread[false]": select({
+                "prelude//cpu/constraints:cpu[arm64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[riscv64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_32]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "prelude//cpu/constraints:cpu[x86_64]": select({
+                    "//third-party/meson/constraints:has_header_symbol_features_h[true]": [],
+                    "//third-party/meson/constraints:has_header_symbol_features_h[false]": select({
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                        "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                    }),
+                }),
+                "DEFAULT": select({
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
                     "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
                 }),
             }),
             "DEFAULT": select({
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
-                "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[riscv64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": select({
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[true]": ["-mtls-dialect=gnu2"],
+                    "//third-party/meson/constraints:run_mtls_dialect_gnu2[false]": [],
+                }),
             }),
         }),
     }) + select({
@@ -6460,9 +6849,20 @@ cxx_binary(
             }),
             "DEFAULT": [],
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_pthread_rwlock[true]": ["-DHAVE_PTHREAD_RWLOCK"],
-            "//third-party/meson/constraints:compiles_pthread_rwlock[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_PTHREAD_RWLOCK"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -6485,8 +6885,12 @@ cxx_binary(
             "DEFAULT": [],
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_sync_intrinsics[true]": ["-DHAVE_SYNC_INTRINSICS"],
-            "//third-party/meson/constraints:compiles_sync_intrinsics[false]": [],
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_SYNC_INTRINSICS"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_SYNC_INTRINSICS"],
+            "DEFAULT": [],
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -6656,7 +7060,6 @@ cxx_binary(
         ":glvnd-dep-3",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
     }),
     visibility = ["PUBLIC"],
@@ -6676,7 +7079,6 @@ cxx_binary(
         ":OpenGL",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
     }),
     visibility = ["PUBLIC"],

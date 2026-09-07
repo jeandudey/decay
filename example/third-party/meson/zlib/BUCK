@@ -50,7 +50,6 @@ http_archive(
         "trees.h",
         "uncompr.c",
         "win32/zlib.def",
-        "win32/zlib1.rc",
         "zconf.h",
         "zlib.h",
         "zlib.map",
@@ -101,18 +100,7 @@ cxx_library(
         ],
     }) + ["-D_LARGEFILE64_SOURCE"],
     exported_linker_flags = ["-Wl,--version-script,$(location :zlib.git[zlib.map])"],
-    deps = select({
-        "prelude//os/constraints:os[windows]": [":z-rc"],
-        "DEFAULT": [],
-    }),
     preferred_linkage = "shared",
-    visibility = ["PUBLIC"],
-)
-
-windows_resource(
-    name = "z-rc",
-    srcs = [":zlib.git[win32/zlib1.rc]"],
-    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 

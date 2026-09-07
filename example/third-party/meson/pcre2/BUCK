@@ -138,12 +138,6 @@ _headers2 = {
     "pcre2.h": ":pcre2.h",
     "config.h": ":config.h",
 }
-_deps = select({
-    "prelude//os/constraints:os[fuchsia]": [],
-    "prelude//os/constraints:os[illumos]": [],
-    "prelude//os/constraints:os[windows]": [],
-    "DEFAULT": [":threads"],
-})
 
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
@@ -176,16 +170,11 @@ genrule(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define LINK_SIZE 2' '#define HEAP_LIMIT 20000000' '#define MATCH_LIMIT 10000000' '#define MATCH_LIMIT_DEPTH MATCH_LIMIT' '#define NEWLINE_DEFAULT 2' '#define PARENS_NEST_LIMIT 250' '#define PCRE2GREP_BUFSIZE 20480' '#define PCRE2GREP_MAX_BUFSIZE 1048576' '#define MAX_NAME_SIZE 128' '#define MAX_NAME_COUNT 10000' '#define MAX_VARLOOKBEHIND 255' '#define SLJIT_PROT_EXECUTABLE_ALLOCATOR 1' '#define SUPPORT_PCRE2_8 1' '#define SUPPORT_PCRE2_16 1' '#define SUPPORT_PCRE2_32 1' '#define SUPPORT_UNICODE 1'" + select({
+    cmd = "printf '%s\\n'" + " '#define LINK_SIZE 2' '#define HEAP_LIMIT 20000000' '#define MATCH_LIMIT 10000000' '#define MATCH_LIMIT_DEPTH MATCH_LIMIT' '#define NEWLINE_DEFAULT 2' '#define PARENS_NEST_LIMIT 250' '#define PCRE2GREP_BUFSIZE 20480' '#define PCRE2GREP_MAX_BUFSIZE 1048576' '#define MAX_NAME_SIZE 128' '#define MAX_NAME_COUNT 10000' '#define MAX_VARLOOKBEHIND 255' '#define SUPPORT_JIT 1' '#define SLJIT_PROT_EXECUTABLE_ALLOCATOR 1' '#define SUPPORT_PCRE2_8 1' '#define SUPPORT_PCRE2_16 1' '#define SUPPORT_PCRE2_32 1' '#define SUPPORT_UNICODE 1'" + select({
         "//third-party/meson/constraints:compiler[gcc]": " '#define PCRE2_EXPORT __attribute__ ((visibility (\"default\")))'",
         "//third-party/meson/constraints:compiler[clang]": " '#define PCRE2_EXPORT __attribute__ ((visibility (\"default\")))'",
         "//third-party/meson/constraints:compiler[msvc]": " '#define PCRE2_EXPORT '",
     }) + select({
-        "prelude//os/constraints:os[fuchsia]": "",
-        "prelude//os/constraints:os[illumos]": "",
-        "prelude//os/constraints:os[windows]": "",
-        "DEFAULT": " '#define SUPPORT_JIT 1'",
-    }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STAT_H 1'",
@@ -205,9 +194,20 @@ genrule(
             }),
             "DEFAULT": "",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_STAT_H 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_sys_stat_h[true]": " '#define HAVE_SYS_STAT_H 1'",
-            "//third-party/meson/constraints:has_header_sys_stat_h[false]": "",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_STAT_H 1'",
+            "DEFAULT": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -229,9 +229,20 @@ genrule(
             }),
             "DEFAULT": "",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_TYPES_H 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_sys_types_h[true]": " '#define HAVE_SYS_TYPES_H 1'",
-            "//third-party/meson/constraints:has_header_sys_types_h[false]": "",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_TYPES_H 1'",
+            "DEFAULT": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -253,9 +264,20 @@ genrule(
             }),
             "DEFAULT": "",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ASSERT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ASSERT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ASSERT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ASSERT_H 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_assert_h[true]": " '#define HAVE_ASSERT_H 1'",
-            "//third-party/meson/constraints:has_header_assert_h[false]": "",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ASSERT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ASSERT_H 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ASSERT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ASSERT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ASSERT_H 1'",
+            "DEFAULT": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -277,15 +299,20 @@ genrule(
             }),
             "DEFAULT": "",
         }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_dirent_h[true]": " '#define HAVE_DIRENT_H 1'",
-            "//third-party/meson/constraints:has_header_dirent_h[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DIRENT_H 1'",
+            "DEFAULT": "",
         }),
-    }) + select({
-        "prelude//os/constraints:os[linux]": "",
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_windows_h[true]": " '#define HAVE_WINDOWS_H 1'",
-            "//third-party/meson/constraints:has_header_windows_h[false]": "",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DIRENT_H 1'",
+            "DEFAULT": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -307,9 +334,20 @@ genrule(
             }),
             "DEFAULT": "",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UNISTD_H 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_unistd_h[true]": " '#define HAVE_UNISTD_H 1'",
-            "//third-party/meson/constraints:has_header_unistd_h[false]": "",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UNISTD_H 1'",
+            "DEFAULT": "",
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
@@ -461,8 +499,12 @@ genrule(
             "DEFAULT": "",
         }),
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiles_attribute_uninitialized[true]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
-            "//third-party/meson/constraints:compiles_attribute_uninitialized[false]": "",
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ATTRIBUTE_UNINITIALIZED 1'",
+            "DEFAULT": "",
         }),
     }) + " > $OUT",
     visibility = ["PUBLIC"],
@@ -506,15 +548,9 @@ cxx_library(
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
         "-DPCRE2_CODE_UNIT_WIDTH=8",
-    ] + select({
-        "prelude//os/constraints:os[windows]": [
-            "-D_CRT_SECURE_NO_DEPRECATE",
-            "-D_CRT_SECURE_NO_WARNINGS",
-        ],
-        "DEFAULT": [],
-    }),
+    ],
     exported_linker_flags = ["-Wl,--version-script,$(location :libpcre2-8.sym)"],
-    deps = _deps,
+    deps = [":threads"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
@@ -544,13 +580,7 @@ cxx_library(
         "-D_GNU_SOURCE",
         "-DPCRE2_CODE_UNIT_WIDTH=8",
         "-DPCRE2POSIX_SHARED",
-    ] + select({
-        "prelude//os/constraints:os[windows]": [
-            "-D_CRT_SECURE_NO_DEPRECATE",
-            "-D_CRT_SECURE_NO_WARNINGS",
-        ],
-        "DEFAULT": [],
-    }),
+    ],
     exported_linker_flags = ["-Wl,--version-script,$(location :libpcre2-posix.sym)"],
     deps = [":pcre2-dep"],
     preferred_linkage = "shared",
@@ -578,15 +608,9 @@ cxx_library(
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
         "-DPCRE2_CODE_UNIT_WIDTH=16",
-    ] + select({
-        "prelude//os/constraints:os[windows]": [
-            "-D_CRT_SECURE_NO_DEPRECATE",
-            "-D_CRT_SECURE_NO_WARNINGS",
-        ],
-        "DEFAULT": [],
-    }),
+    ],
     exported_linker_flags = ["-Wl,--version-script,$(location :libpcre2-16.sym)"],
-    deps = _deps,
+    deps = [":threads"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
@@ -611,15 +635,9 @@ cxx_library(
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
         "-DPCRE2_CODE_UNIT_WIDTH=32",
-    ] + select({
-        "prelude//os/constraints:os[windows]": [
-            "-D_CRT_SECURE_NO_DEPRECATE",
-            "-D_CRT_SECURE_NO_WARNINGS",
-        ],
-        "DEFAULT": [],
-    }),
+    ],
     exported_linker_flags = ["-Wl,--version-script,$(location :libpcre2-32.sym)"],
-    deps = _deps,
+    deps = [":threads"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )

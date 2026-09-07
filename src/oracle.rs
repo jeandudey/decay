@@ -20,6 +20,7 @@ use {
         oracle::{
             CompileProbe,
             CompileProbeKind,
+            MatrixSystem,
             Oracle,
             Pinned,
             Probe,
@@ -254,11 +255,12 @@ impl<'a> ConfigOracle<'a> {
         })
     }
 
-    /// The `(abi, cpu)` axes a `linux` matrix answer selects on: each buck2
-    /// constraint setting paired with its known domain — what `decay.toml`
-    /// already mentions, unioned with every value decay's own matrix can
-    /// produce.
-    fn linux_abi_cpu_axes(&self) -> Vec<(String, Vec<String>)> {
+    /// The axes a compile-probe matrix answer selects on for `system`: each
+    /// buck2 constraint setting paired with its known domain — what
+    /// `decay.toml` already mentions, unioned with every value decay's own
+    /// matrix can produce. `linux` splits on `abi` (glibc vs musl); the BSDs
+    /// have only a `cpu` axis.
+    fn probe_axes(&self, system: &str) -> Vec<(String, Vec<String>)> {
         let union = |setting: &str, extra: &[&str]| {
             let mut domain = self.config.constraint_domain(setting);
             for value in extra {
@@ -273,39 +275,55 @@ impl<'a> ConfigOracle<'a> {
             .iter()
             .map(|c| c.buck2_value())
             .collect();
-        vec![
-            (
-                probe::ABI_SETTING.to_owned(),
-                union(probe::ABI_SETTING, &["gnu", "musl"]),
-            ),
-            (
-                probe::CPU_SETTING.to_owned(),
-                union(probe::CPU_SETTING, &cpus),
-            ),
-        ]
+        let cpu_axis = (
+            probe::CPU_SETTING.to_owned(),
+            union(probe::CPU_SETTING, &cpus),
+        );
+        match system {
+            "linux" => vec![
+                (
+                    probe::ABI_SETTING.to_owned(),
+                    union(probe::ABI_SETTING, &["gnu", "musl"]),
+                ),
+                cpu_axis,
+            ],
+            _ => vec![cpu_axis],
+        }
     }
 
-    /// Answer a [`CompileProbe`] by building it with `zig` for every `linux`
-    /// target in the matrix. Needs a `linux` system to attach the answer to;
-    /// off `linux` there is nothing to settle. An explicit `[probes]` entry
-    /// for the same check has already won by the time this is reached (see
-    /// [`Oracle::probe`]).
+    /// The `(abi, cpu)` axes a `linux` answer selects on — the abi-split
+    /// callers ([`Self::builtin_has_function`], [`Self::builtin_system_library`])
+    /// still want exactly this shape.
+    fn linux_abi_cpu_axes(&self) -> Vec<(String, Vec<String>)> {
+        self.probe_axes("linux")
+    }
+
+    /// Answer a [`CompileProbe`] by building it with `zig` for every target
+    /// in the matrix, on each system decay can probe fully
+    /// ([`probe::PROBE_SYSTEMS`]) that the configuration actually uses. An
+    /// explicit `[probes]` entry for the same check has already won by the
+    /// time this is reached (see [`Oracle::probe`]).
     fn compile_probe_answer(&self, probe: &CompileProbe) -> Option<Probe> {
         if let CompileProbeKind::Header { header } = &probe.kind
             && !probe::is_plain_header(header)
         {
             return None;
         }
-        if !self.config.systems.contains_key("linux") {
-            return None;
-        }
 
-        let rows = probe::linux_rows(&mut self.probe_cache.borrow_mut(), probe);
-        Some(Probe::Matrix {
-            systems: vec!["linux".to_owned()],
-            axes: self.linux_abi_cpu_axes(),
-            rows,
-        })
+        let mut systems = Vec::new();
+        for system in probe::PROBE_SYSTEMS {
+            if !self.config.systems.contains_key(system) {
+                continue;
+            }
+            let rows =
+                probe::probe_rows(&mut self.probe_cache.borrow_mut(), probe, system);
+            systems.push(MatrixSystem {
+                system: system.to_owned(),
+                axes: self.probe_axes(system),
+                rows,
+            });
+        }
+        (!systems.is_empty()).then_some(Probe::Matrix(systems))
     }
 
     /// The `[sizeof]` / `[alignment]` entry for `type_name`, turned into a

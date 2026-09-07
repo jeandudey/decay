@@ -14,27 +14,14 @@ git_fetch(
         "registry/egl.xml",
         "registry/gl.xml",
         "registry/glx.xml",
-        "registry/wgl.xml",
         "src/dispatch_common.c",
         "src/dispatch_common.h",
         "src/dispatch_egl.c",
         "src/dispatch_glx.c",
-        "src/dispatch_wgl.c",
         "src/gen_dispatch.py",
     ],
     visibility = ["PUBLIC"],
 )
-
-# Values shared by several of the rules below, named so that each rule
-# says what it is rather than how it was configured.
-_needs = select({
-    "prelude//os/constraints:os[freebsd]": [],
-    "prelude//os/constraints:os[fuchsia]": [],
-    "prelude//os/constraints:os[linux]": [],
-    "prelude//os/constraints:os[netbsd]": [],
-    "prelude//os/constraints:os[illumos]": [],
-    "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-})
 
 # meson: find_library("dl")
 # `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
@@ -44,24 +31,6 @@ cxx_library(
         "prelude//abi/constraints:abi[msvc]": [],
         "DEFAULT": ["-ldl"],
     }),
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("opengl32")
-cxx_library(
-    name = "opengl32",
-    exported_linker_flags = [
-        "-lopengl32",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("gdi32")
-cxx_library(
-    name = "gdi32",
-    exported_linker_flags = [
-        "-lgdi32",
-    ],
     visibility = ["PUBLIC"],
 )
 
@@ -76,11 +45,6 @@ genrule(
     name = "egl_generated.h",
     out = "egl_generated.h",
     cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/egl.xml])",
-    target_compatible_with = select({
-        "prelude//os/constraints:os[macos]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-        "prelude//os/constraints:os[windows]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-        "DEFAULT": [],
-    }),
     visibility = ["PUBLIC"],
 )
 
@@ -88,49 +52,13 @@ genrule(
     name = "glx_generated.h",
     out = "glx_generated.h",
     cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/glx.xml])",
-    target_compatible_with = _needs,
-    visibility = ["PUBLIC"],
-)
-
-genrule(
-    name = "wgl_generated.h",
-    out = "wgl_generated.h",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/wgl.xml])",
-    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define PACKAGE_NAME \"libepoxy\"' '#define PACKAGE_VERSION \"1.5.10\"' '#define PACKAGE_STRING \"libepoxy-1.5.10\"' '#define PACKAGE_DATADIR \"/usr/local/share\"' '#define PACKAGE_LIBDIR \"/usr/local/lib\"' '#define PACKAGE_LOCALEDIR \"/usr/local/share/locale\"' '#define PACKAGE_LIBEXECDIR \"/usr/local/libexec\"' '#define ENABLE_X11 1'" + select({
-        "prelude//os/constraints:os[linux]": " '/* #undef HAVE_KHRPLATFORM_H */'",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:has_header_KHR_khrplatform_h[true]": " '#define HAVE_KHRPLATFORM_H'",
-            "//third-party/meson/constraints:has_header_KHR_khrplatform_h[false]": " '/* #undef HAVE_KHRPLATFORM_H */'",
-        }),
-    }) + select({
-        "prelude//os/constraints:os[freebsd]": " '#define ENABLE_GLX 1'",
-        "prelude//os/constraints:os[fuchsia]": " '#define ENABLE_GLX 1'",
-        "prelude//os/constraints:os[linux]": " '#define ENABLE_GLX 1'",
-        "prelude//os/constraints:os[netbsd]": " '#define ENABLE_GLX 1'",
-        "prelude//os/constraints:os[illumos]": " '#define ENABLE_GLX 1'",
-        "DEFAULT": " '#define ENABLE_GLX 0'",
-    }) + select({
-        "prelude//os/constraints:os[macos]": " '#define ENABLE_EGL 0'",
-        "prelude//os/constraints:os[windows]": " '#define ENABLE_EGL 0'",
-        "DEFAULT": " '#define ENABLE_EGL 1'",
-    }) + select({
-        "prelude//os/constraints:os[windows]": " '#define DLL_EXPORT' '#define EPOXY_PUBLIC __declspec(dllexport) extern'",
-        "DEFAULT": " '#define EPOXY_PUBLIC __attribute__((visibility(\"default\"))) extern'",
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:compiler[gcc]": "",
-            "//third-party/meson/constraints:compiler[clang]": "",
-            "//third-party/meson/constraints:compiler[msvc]": " '#define inline __inline'",
-        }),
-        "DEFAULT": "",
-    }) + " > $OUT",
+    cmd = "printf '%s\\n'" + " '#define PACKAGE_NAME \"libepoxy\"' '#define PACKAGE_VERSION \"1.5.10\"' '#define PACKAGE_STRING \"libepoxy-1.5.10\"' '#define PACKAGE_DATADIR \"/usr/local/share\"' '#define PACKAGE_LIBDIR \"/usr/local/lib\"' '#define PACKAGE_LOCALEDIR \"/usr/local/share/locale\"' '#define PACKAGE_LIBEXECDIR \"/usr/local/libexec\"' '/* #undef HAVE_KHRPLATFORM_H */' '#define ENABLE_GLX 1' '#define ENABLE_EGL 1' '#define ENABLE_X11 1' '#define EPOXY_PUBLIC __attribute__((visibility(\"default\"))) extern'" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
@@ -145,11 +73,6 @@ genrule(
     name = "egl_generated_dispatch.c",
     out = "egl_generated_dispatch.c",
     cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/egl.xml])",
-    target_compatible_with = select({
-        "prelude//os/constraints:os[macos]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-        "prelude//os/constraints:os[windows]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-        "DEFAULT": [],
-    }),
     visibility = ["PUBLIC"],
 )
 
@@ -157,15 +80,6 @@ genrule(
     name = "glx_generated_dispatch.c",
     out = "glx_generated_dispatch.c",
     cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/glx.xml])",
-    target_compatible_with = _needs,
-    visibility = ["PUBLIC"],
-)
-
-genrule(
-    name = "wgl_generated_dispatch.c",
-    out = "wgl_generated_dispatch.c",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/wgl.xml])",
-    target_compatible_with = ["prelude//os/constraints:os[windows]"],
     visibility = ["PUBLIC"],
 )
 
@@ -173,119 +87,27 @@ cxx_library(
     name = "epoxy",
     srcs = [
         ":libepoxy.git[src/dispatch_common.c]",
+        ":libepoxy.git[src/dispatch_egl.c]",
+        ":libepoxy.git[src/dispatch_glx.c]",
         ":gl_generated_dispatch.c",
-    ] + select({
-        "prelude//os/constraints:os[macos]": [],
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": [
-            ":libepoxy.git[src/dispatch_egl.c]",
-            ":egl_generated_dispatch.c",
-        ],
-    }) + select({
-        "prelude//os/constraints:os[freebsd]": [
-            ":libepoxy.git[src/dispatch_glx.c]",
-            ":glx_generated_dispatch.c",
-        ],
-        "prelude//os/constraints:os[fuchsia]": [
-            ":libepoxy.git[src/dispatch_glx.c]",
-            ":glx_generated_dispatch.c",
-        ],
-        "prelude//os/constraints:os[linux]": [
-            ":libepoxy.git[src/dispatch_glx.c]",
-            ":glx_generated_dispatch.c",
-        ],
-        "prelude//os/constraints:os[netbsd]": [
-            ":libepoxy.git[src/dispatch_glx.c]",
-            ":glx_generated_dispatch.c",
-        ],
-        "prelude//os/constraints:os[illumos]": [
-            ":libepoxy.git[src/dispatch_glx.c]",
-            ":glx_generated_dispatch.c",
-        ],
-        "DEFAULT": [],
-    }) + select({
-        "prelude//os/constraints:os[windows]": [
-            ":libepoxy.git[src/dispatch_wgl.c]",
-            ":wgl_generated_dispatch.c",
-        ],
-        "DEFAULT": [],
-    }),
-    exported_headers = select({
-        "prelude//os/constraints:os[macos]": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-        },
-        "prelude//os/constraints:os[freebsd]": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-        },
-        "prelude//os/constraints:os[fuchsia]": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-        },
-        "prelude//os/constraints:os[linux]": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-        },
-        "prelude//os/constraints:os[netbsd]": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-        },
-        "prelude//os/constraints:os[illumos]": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-        },
-        "prelude//os/constraints:os[windows]": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/wgl_generated.h": ":wgl_generated.h",
-        },
-        "DEFAULT": {
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-        },
-    }),
+        ":egl_generated_dispatch.c",
+        ":glx_generated_dispatch.c",
+    ],
+    exported_headers = {
+        "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
+        "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
+        "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
+        "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
+        "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
+        "epoxy/gl_generated.h": ":gl_generated.h",
+        "epoxy/egl_generated.h": ":egl_generated.h",
+        "epoxy/glx_generated.h": ":glx_generated.h",
+        "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
+    },
     headers = {
         "epoxy/gl_generated.h": ":gl_generated.h",
+        "epoxy/egl_generated.h": ":egl_generated.h",
+        "epoxy/glx_generated.h": ":glx_generated.h",
         "config.h": ":config.h",
     },
     header_namespace = "",
@@ -350,17 +172,7 @@ cxx_library(
             "-we4819",
             "/utf-8",
         ],
-    }) + select({
-        "prelude//os/constraints:os[windows]": select({
-            "//third-party/meson/constraints:compiler[gcc]": ["-fvisibility=hidden"],
-            "//third-party/meson/constraints:compiler[clang]": ["-fvisibility=hidden"],
-            "//third-party/meson/constraints:compiler[msvc]": [],
-        }),
-        "DEFAULT": [],
-    }) + select({
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": ["-fvisibility=hidden"],
-    }),
+    }) + ["-fvisibility=hidden"],
     exported_linker_flags = select({
         "prelude//os/constraints:os[linux]": select({
             "//third-party/meson/constraints:compiler[gcc]": [
@@ -374,121 +186,42 @@ cxx_library(
     }),
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
-    }) + select({
-        "prelude//os/constraints:os[windows]": [
-            ":opengl32",
-            ":gdi32",
-        ],
-        "DEFAULT": [],
-    }) + ["//third-party/system:X11"] + select({
-        "prelude//os/constraints:os[macos]": [],
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": ["//third-party/system:EGL"],
-    }),
+    }) + [
+        "//third-party/system:X11",
+        "//third-party/system:EGL",
+    ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
 
 cxx_library(
     name = "libepoxy-dep",
-    exported_headers = select({
-        "prelude//os/constraints:os[macos]": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-        "prelude//os/constraints:os[freebsd]": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-        "prelude//os/constraints:os[fuchsia]": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-        "prelude//os/constraints:os[linux]": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-        "prelude//os/constraints:os[netbsd]": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-        "prelude//os/constraints:os[illumos]": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "epoxy/glx_generated.h": ":glx_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-        "prelude//os/constraints:os[windows]": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/wgl_generated.h": ":wgl_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-        "DEFAULT": {
-            "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-            "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-            "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-            "epoxy/gl_generated.h": ":gl_generated.h",
-            "epoxy/egl_generated.h": ":egl_generated.h",
-            "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        },
-    }),
+    exported_headers = {
+        "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
+        "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
+        "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
+        "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
+        "epoxy/gl_generated.h": ":gl_generated.h",
+        "epoxy/egl_generated.h": ":egl_generated.h",
+        "epoxy/glx_generated.h": ":glx_generated.h",
+        "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
+        "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
+    },
     headers = {
         "epoxy/gl_generated.h": ":gl_generated.h",
+        "epoxy/egl_generated.h": ":egl_generated.h",
+        "epoxy/glx_generated.h": ":glx_generated.h",
         "config.h": ":config.h",
     },
     header_namespace = "",
     exported_deps = [
         ":epoxy",
         "//third-party/system:X11",
+        "//third-party/system:EGL",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "prelude//os/constraints:os[windows]": [],
         "DEFAULT": [":dl"],
-    }) + select({
-        "prelude//os/constraints:os[windows]": [
-            ":opengl32",
-            ":gdi32",
-        ],
-        "DEFAULT": [],
-    }) + select({
-        "prelude//os/constraints:os[macos]": [],
-        "prelude//os/constraints:os[windows]": [],
-        "DEFAULT": ["//third-party/system:EGL"],
     }),
     visibility = ["PUBLIC"],
 )

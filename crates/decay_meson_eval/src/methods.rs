@@ -846,19 +846,26 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
                 Ok(cond)
             }
-            Some(Probe::Matrix {
-                systems,
-                axes,
-                rows,
-            }) => {
-                let on_systems = self.host_system_is(&systems, key)?;
-                let any_row = self.matrix_any_row(&axes, &rows);
-                let settled = self.logic.and(on_systems, any_row);
-                // Complete within the probed systems — a `(cpu, abi)` not in
-                // any row genuinely did not compile, so it is a settled `no`
-                // with no knob. Only off those systems, where nothing was
-                // built, does it stay open.
-                let elsewhere = self.logic.not(on_systems);
+            Some(Probe::Matrix(per_system)) => {
+                // Each probed system settles independently — its own axes, its
+                // own compiled rows. A `(cpu[, abi])` not in any row genuinely
+                // did not compile, so within a probed system it is a settled
+                // `no` with no knob.
+                let mut settled = Pc::from_bool(false);
+                let mut probed: Vec<String> = Vec::with_capacity(per_system.len());
+                for ms in &per_system {
+                    probed.push(ms.system.clone());
+                    let on = self.host_system_is(std::slice::from_ref(&ms.system), key)?;
+                    let any_row = self.matrix_any_row(&ms.axes, &ms.rows);
+                    let here = self.logic.and(on, any_row);
+                    settled = self.logic.or(settled, here);
+                }
+                // Only off every probed system, where nothing was built, does
+                // it stay open.
+                let elsewhere = {
+                    let any = self.host_system_is(&probed, key)?;
+                    self.logic.not(any)
+                };
                 let open = self.probe(key, description);
                 let open_elsewhere = self.logic.and(elsewhere, open);
                 Ok(self.logic.or(settled, open_elsewhere))

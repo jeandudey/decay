@@ -77,23 +77,47 @@ pub fn system_link_targets(system: &str) -> Option<Vec<(&'static str, &'static s
     Some(targets)
 }
 
+/// Operating systems decay compile-probes with `zig cc`: the ones whose
+/// libc headers zig bundles in full, so a header that does not `#include`
+/// there is reliably *absent* rather than just missing from a partial SDK.
+/// `darwin` / `windows` do not qualify (zig ships a macOS-SDK / mingw
+/// subset), so a compile probe there stays an open knob.
+pub const PROBE_SYSTEMS: [&str; 3] = ["linux", "freebsd", "netbsd"];
+
+/// GCC version `zig cc` (clang) is told to report through `__GNUC__` &c.
+/// decay's emitted builds compile with gcc, so a probe gated on
+/// `__GNUC__ >= N` should answer as gcc would, not as clang's default
+/// spoofed `4.2.1` (which fails graphene's `>= 4.9` vector check and its
+/// kind).
+///
+/// ponytail: ceiling is real — `11`+ makes glibc's `sys/cdefs.h` use the
+/// two-argument `__malloc__(dealloc, n)` attribute, which zig's clang does
+/// not implement, so every glibc header stops compiling. `10.x` is the
+/// highest that keeps glibc parsing. Make it configurable if a project must
+/// probe against a specific newer gcc.
+const GNUC_VERSION: &str = "-fgnuc-version=10.5.0";
+
 /// The `(abi buck2 value, zig `-target` triple)` pairs decay probes for a
-/// CPU on `linux` — glibc and musl. Mirrors `decay_zig`'s own arch/abi
-/// spelling (arm32 is hard-float EABI either way).
-fn linux_targets(cpu: Cpu) -> [(&'static str, String); 2] {
-    [
-        (
-            "gnu",
-            format!("{}-linux-{}", cpu.zig_arch(), cpu.glibc_abi()),
-        ),
-        ("musl", cpu.musl_target()),
-    ]
+/// CPU on `system`. `""` abi means the system has no glibc/musl-style split.
+/// Mirrors `decay_zig`'s own arch/abi spelling (arm32 is hard-float EABI
+/// either way).
+fn probe_targets(system: &str, cpu: Cpu) -> Vec<(&'static str, String)> {
+    match system {
+        "linux" => vec![
+            ("gnu", format!("{}-linux-{}", cpu.zig_arch(), cpu.glibc_abi())),
+            ("musl", cpu.musl_target()),
+        ],
+        "freebsd" => vec![("", format!("{}-freebsd", cpu.zig_arch()))],
+        "netbsd" => vec![("", format!("{}-netbsd", cpu.zig_arch()))],
+        _ => Vec::new(),
+    }
 }
 
-/// Build `probe`'s snippet for every `linux` target in the matrix, replaying
-/// the probe's `args:` (already vetted as plain flags), and return the
-/// `[abi, cpu]` rows (buck2 constraint values) it compiled for.
-pub fn linux_rows(cache: &mut ProbeCache, probe: &CompileProbe) -> Vec<Vec<String>> {
+/// Build `probe`'s snippet for every `system` target in the matrix, replaying
+/// the probe's `args:` (already vetted as plain flags), and return the rows
+/// (buck2 constraint values) it compiled for — `[abi, cpu]` on a system with
+/// an abi split, `[cpu]` otherwise.
+pub fn probe_rows(cache: &mut ProbeCache, probe: &CompileProbe, system: &str) -> Vec<Vec<String>> {
     let snippet = probe.snippet();
     let mut rows = Vec::new();
     for cpu in Cpu::ALL {
@@ -101,10 +125,14 @@ pub fn linux_rows(cache: &mut ProbeCache, probe: &CompileProbe) -> Vec<Vec<Strin
             "x86_64" | "x86" => "x86",
             other => other,
         };
-        let flags = flags_for_arch(probe.args(), arch);
-        for (abi, triple) in linux_targets(cpu) {
+        let mut flags = vec![GNUC_VERSION];
+        flags.extend(flags_for_arch(probe.args(), arch));
+        for (abi, triple) in probe_targets(system, cpu) {
             if cache.compiles(&triple, &snippet, &flags) {
-                rows.push(vec![abi.to_owned(), cpu.buck2_value().to_owned()]);
+                rows.push(match abi {
+                    "" => vec![cpu.buck2_value().to_owned()],
+                    _ => vec![abi.to_owned(), cpu.buck2_value().to_owned()],
+                });
             }
         }
     }
@@ -162,11 +190,12 @@ mod tests {
     fn header_rows_match_reality() {
         let mut cache = ProbeCache::default();
 
-        let present = linux_rows(
+        let present = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Header {
                 header: "stdio.h".to_owned(),
             }),
+            "linux",
         );
         assert_eq!(
             present.len(),
@@ -174,11 +203,12 @@ mod tests {
             "stdio.h should compile for every linux target"
         );
 
-        let absent = linux_rows(
+        let absent = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Header {
                 header: "decay_no_such_header_xyz.h".to_owned(),
             }),
+            "linux",
         );
         assert!(absent.is_empty(), "a bogus header compiles nowhere");
     }
@@ -211,7 +241,7 @@ mod tests {
 #include <arm_neon.h>
 int main (void) { return 0; }
 ";
-        let rows = linux_rows(
+        let rows = probe_rows(
             &mut cache,
             &CompileProbe {
                 kind: CompileProbeKind::Compiles {
@@ -220,6 +250,7 @@ int main (void) { return 0; }
                 },
                 args: vec!["-mfpu=neon".to_owned()],
             },
+            "linux",
         );
         let cpus: std::collections::BTreeSet<_> = rows.iter().map(|r| r[1].clone()).collect();
         assert_eq!(
@@ -257,23 +288,52 @@ int main (void) { return 0; }
         let mut cache = ProbeCache::default();
 
         // No prefix: `struct iovec` is undeclared, compiles nowhere.
-        let bare = linux_rows(
+        let bare = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Type {
                 name: "struct iovec".to_owned(),
                 prefix: String::new(),
             }),
+            "linux",
         );
         assert!(bare.is_empty());
 
         // With the header that declares it: compiles everywhere.
-        let with_prefix = linux_rows(
+        let with_prefix = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Type {
                 name: "struct iovec".to_owned(),
                 prefix: "#include <sys/uio.h>".to_owned(),
             }),
+            "linux",
         );
         assert_eq!(with_prefix.len(), Cpu::ALL.len() * 2);
+    }
+
+    #[test]
+    fn bsd_rows_have_no_abi_axis() {
+        let mut cache = ProbeCache::default();
+
+        // A BSD row is just `[cpu]` — no glibc/musl split.
+        let rows = probe_rows(
+            &mut cache,
+            &probe(CompileProbeKind::Header {
+                header: "stdio.h".to_owned(),
+            }),
+            "freebsd",
+        );
+        assert!(!rows.is_empty(), "stdio.h compiles on freebsd");
+        assert!(rows.iter().all(|r| r.len() == 1), "no abi axis on freebsd");
+        assert!(rows.iter().any(|r| r[0] == "x86_64"));
+
+        // `sys/epoll.h` is Linux-only — absent on the BSDs.
+        let absent = probe_rows(
+            &mut cache,
+            &probe(CompileProbeKind::Header {
+                header: "sys/epoll.h".to_owned(),
+            }),
+            "netbsd",
+        );
+        assert!(absent.is_empty(), "no epoll on netbsd");
     }
 }

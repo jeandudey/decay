@@ -1,15 +1,15 @@
 third_party_dir = "third-party/meson"
 wrap_dir = "subprojects"
 
+# Only the systems decay can probe end to end with `zig cc` — full bundled
+# libc headers, so a compile probe's "absent" is real. Others (darwin,
+# windows, illumos, android, fuchsia) are left out on purpose: until decay
+# supports them properly a build for one would rest on guessed probe knobs,
+# so buck2 simply cannot target them.
 [systems]
-android = "prelude//os/constraints:os[android]"
-darwin = "prelude//os/constraints:os[macos]"
 freebsd = "prelude//os/constraints:os[freebsd]"
 linux = "prelude//os/constraints:os[linux]"
 netbsd = "prelude//os/constraints:os[netbsd]"
-windows = "prelude//os/constraints:os[windows]"
-sunos = "prelude//os/constraints:os[illumos]"
-fuchsia = "prelude//os/constraints:os[fuchsia]"
 
 # Compiler probes the importer does not have to ask, keyed by the check and its
 # argument. An answer is a constraint value, or a list of values of one
@@ -21,13 +21,12 @@ fuchsia = "prelude//os/constraints:os[fuchsia]"
 # `KHR/khrplatform.h`, for instance, ships with the Khronos headers rather than
 # with any libc or OS, so it stays a build-time choice.
 [probes]
-# `crt_externs.h` (`_NSGetEnviron`) ships with Apple's libSystem; no other
-# platform has it, macOS or not.
-"has_header:crt_externs.h" = "prelude//os/constraints:os[macos]"
 # The one-argument `pthread_setname_np(const char *)` is the macOS/iOS
 # spelling; every other platform takes a thread argument. Without this glib's
 # `cc.links()` probe for it defaults present and picks the Darwin code path.
-"links:pthread_setname_np(const char*)" = "prelude//os/constraints:os[macos]"
+# (`crt_externs.h` needs no entry now — the compile probe settles it absent on
+# every configured system, since none is Apple.)
+"links:pthread_setname_np(const char*)" = false
 # `__NR_futex_time64` is a libc/kernel-header vintage question with no
 # constraint decay tracks, and glib's probe for it defaults present then fails
 # to compile on a host whose <sys/syscall.h> predates it. Settle it off; glib
@@ -89,16 +88,6 @@ x11 = "//third-party/system:X11"
 xext = "//third-party/meson/libxext:Xext"
 gl = "//third-party/system:GL"
 egl = "//third-party/system:EGL"
-
-# `cc.find_library()` answers for the systems `zig cc` cannot link-probe (no
-# bundled libc). The database and the probes settle `linux`, `macos`, the
-# BSDs and `windows` on their own; these three need a plain statement of
-# which runtime libraries they carry, in place of an open `<lib>[true/false]`
-# knob. A name not listed for a system is settled not-found there.
-[system_libraries]
-sunos = ["m", "dl", "rt", "resolv", "socket", "nsl"]
-fuchsia = ["m", "dl", "rt"]
-android = ["m", "dl"]
 
 # `cc.sizeof()` / `cc.alignment()` yield a concrete integer a generated
 # config header bakes in, so — unlike a probe — there is no knob to leave
