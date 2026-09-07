@@ -190,14 +190,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:`: `` is available
-constraint(
-    name = "unnamed",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:ARMv7 macros`: `ARMv7 macros` is available to the c compiler
 constraint(
     name = "compiles_ARMv7_macros",

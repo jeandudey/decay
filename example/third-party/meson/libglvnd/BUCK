@@ -1311,14 +1311,6 @@ _deps = [":EGL"] + select({
     "DEFAULT": [":dl"],
 })
 
-# meson: dependency("") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies. = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "unnamed",
-    visibility = ["PUBLIC"],
-)
-
 # meson: find_library("dl")
 # `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(

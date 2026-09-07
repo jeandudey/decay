@@ -1535,6 +1535,38 @@ impl<'a, S: Solver> Interp<'a, S> {
         let name = self.one_string(args.at(0).ok_or_eyre("dependency() needs a name")?)?;
         let required = self.required(args)?;
 
+        // `dependency('')` is meson's guaranteed-not-found sentinel — the
+        // `dep_null = dependency('', required: false)` idiom for a variable
+        // that may or may not be reassigned to a real dependency later. It is
+        // never found (so `required:` must resolve false, or the
+        // configuration is impossible, same as any unfindable required
+        // dependency), and it names no module, so emit no stub for it: a
+        // dead-conditioned target the backend skips.
+        if name.is_empty() {
+            if !required.is_false() {
+                let must = self.logic.implies(required, Pc::FALSE);
+                self.logic.assume(must);
+            }
+            let dir = self.cur_dir().to_path_buf();
+            let target = self.graph.add(
+                "",
+                &dir,
+                Pc::FALSE,
+                Kind::External(External::PkgConfig {
+                    module: String::new(),
+                }),
+            );
+            let value = self.dep_obj(Dep {
+                name: String::new(),
+                found: Pc::FALSE,
+                target,
+                type_name: "not-found",
+                version: None,
+                variables: Vec::new(),
+            });
+            return Ok(self.pure(value));
+        }
+
         // `dependency('threads')` is not a pkg-config module: meson resolves
         // it internally to the platform's threading support, and it is always
         // available. Emit a builtin target for it rather than an empty stub,

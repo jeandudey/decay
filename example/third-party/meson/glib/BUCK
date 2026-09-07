@@ -4248,14 +4248,6 @@ _deps_os_FuzzingEngine = [
     "//third-party/meson/constraints:FuzzingEngine[false]": [],
 })
 
-# meson: dependency("") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies. = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "unnamed",
-    visibility = ["PUBLIC"],
-)
-
 # meson: find_library("shcore")
 cxx_library(
     name = "shcore",
@@ -19035,9 +19027,6 @@ cxx_binary(
         ":glib-dep-16",
         ":glib-dep-12",
     ] + select({
-        "//third-party/meson/constraints:unnamed[true]": [":unnamed"],
-        "//third-party/meson/constraints:unnamed[false]": [],
-    }) + select({
         "prelude//os/constraints:os[windows]": [":glib-dep"],
         "DEFAULT": [":glib-dep-3"],
     }),
