@@ -810,26 +810,6 @@ impl<'a, S: Solver> Interp<'a, S> {
                 domain,
                 values,
             }) => Ok(self.constraint_is(&setting, domain, &values)),
-            Some(Probe::SystemsAndConstraint {
-                systems,
-                axes,
-                rows,
-            }) => {
-                let on_systems = self.host_system_is(&systems, key)?;
-                let any_row = self.matrix_any_row(&axes, &rows);
-                // On the named systems the database is authoritative — a
-                // symbol matching no row genuinely is not there, so this is
-                // `any_row` with no knob (the whole point of the built-in
-                // `has_function` table: `_aligned_malloc` settles *false* on
-                // `linux` instead of defaulting an open probe to true). Off
-                // those systems the database cannot speak, so it stays exactly
-                // as configurable as an ordinary probe.
-                let on_named = self.logic.and(on_systems, any_row);
-                let elsewhere = self.logic.not(on_systems);
-                let open = self.probe(key, description);
-                let open_elsewhere = self.logic.and(elsewhere, open);
-                Ok(self.logic.or(on_named, open_elsewhere))
-            }
             Some(Probe::PerSystem { abi, found }) => {
                 // Fully settled: OR of (system ∧ abi?) over the found rows,
                 // nothing left open. A configured system with no row here is
@@ -875,8 +855,8 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     /// The condition that one of `rows` holds — each row an AND across the
-    /// `axes` constraints, the rows OR'd together. Shared by
-    /// [`Probe::SystemsAndConstraint`] and [`Probe::Matrix`].
+    /// `axes` constraints, the rows OR'd together. Used per system by
+    /// [`Probe::Matrix`].
     fn matrix_any_row(&mut self, axes: &[(String, Vec<String>)], rows: &[Vec<String>]) -> Pc {
         let mut any_row = Pc::from_bool(false);
         for row in rows {

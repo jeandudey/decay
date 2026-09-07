@@ -169,34 +169,6 @@ pub enum Probe {
         /// The values this probe holds for, a subset of `domain`.
         values: Vec<String>,
     },
-    /// True on these systems when one of `rows` also holds — and, everywhere
-    /// else, left open, exactly as if the oracle had answered nothing at all.
-    ///
-    /// For a fact a *partial* database knows (glibc's or musl's symbols, say)
-    /// rather than an oracle that truly knows the whole answer:
-    /// [`Probe::Constraint`] alone would overreach, since a constraint can be
-    /// shared across operating systems the way buck2's `abi` is (`abi[gnu]`
-    /// also names mingw on Windows, not just glibc on Linux) — asserting
-    /// *false* wherever the system does not match would claim a symbol
-    /// absent on a libc the database simply has no answer for.
-    ///
-    /// `rows` names each *combination* the database actually confirmed,
-    /// rather than ranging every axis independently: a symbol musl exports on
-    /// `arm64` but glibc does not, say, must not turn into `abi ∈ {gnu,
-    /// musl}` ANDed with `cpu ∈ {arm64}` — that would round up to a
-    /// rectangle and also claim `gnu`+`arm64`, a combination nothing
-    /// confirmed. Only the exact rows are settled; the rest — including any
-    /// combination of individually-mentioned values that is not itself a
-    /// row — stays exactly as configurable as an unanswered probe.
-    SystemsAndConstraint {
-        systems: Vec<String>,
-        /// One constraint setting and its known domain per axis (e.g.
-        /// `abi`, `cpu`), shared across every row.
-        axes: Vec<(String, Vec<String>)>,
-        /// Each confirmed combination, one value per entry of `axes`, in the
-        /// same order.
-        rows: Vec<Vec<String>>,
-    },
     /// Found on exactly the listed `(system, abi?)` rows; settled *false* on
     /// every other configured system, with no knob anywhere — the importer
     /// determined the answer for the whole configured matrix (a `zig cc
@@ -215,16 +187,18 @@ pub enum Probe {
         found: Vec<(String, Vec<String>)>,
     },
     /// True on exactly the `rows` that hold — and, within every probed
-    /// system, *false* everywhere else, with no knob: the probe was compiled
-    /// for every `(cpu[, abi])` combination that system has, so within it the
-    /// answer is complete. Only outside the probed systems — a target the
-    /// importer did not build the probe for — does it stay open, the same
-    /// as an unanswered probe.
+    /// system, *false* everywhere else, with no knob: for that system the
+    /// importer determined the whole answer, either by compiling the probe
+    /// for every `(cpu[, abi])` combination the system has, or from a
+    /// *complete* bundled export list (`has_function` against glibc / musl /
+    /// a BSD `abilists`). Only outside the probed systems — a target the
+    /// importer had no way to answer for — does it stay open, the same as an
+    /// unanswered probe.
     ///
-    /// Distinct from [`Probe::SystemsAndConstraint`], which leaves the
-    /// complement open even inside its systems because its source (a
-    /// partial symbol database) genuinely does not know it; here the
-    /// compiler answered for the whole matrix.
+    /// Each system's `rows` name the exact `(cpu[, abi])` *combinations*
+    /// confirmed, never ranging the axes independently: a symbol musl
+    /// exports on `arm64` but glibc does not must not round up to `abi ∈
+    /// {gnu, musl}` ANDed with `cpu ∈ {arm64}` and also claim `gnu`+`arm64`.
     Matrix(Vec<MatrixSystem>),
 }
 
@@ -235,8 +209,8 @@ pub enum Probe {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MatrixSystem {
     pub system: String,
-    /// One constraint setting and its known domain per axis, as in
-    /// [`Probe::SystemsAndConstraint`].
+    /// One constraint setting and its known domain per axis (e.g. `abi`,
+    /// `cpu`), shared across every row.
     pub axes: Vec<(String, Vec<String>)>,
     /// Each combination the probe compiled for, one value per axis.
     pub rows: Vec<Vec<String>>,

@@ -108,49 +108,63 @@ impl<'a> ConfigOracle<'a> {
     /// Decay's built-in `has_function` fallback, consulted only once a
     /// project's own `[probes]` entry misses.
     ///
-    /// Answers only the symbols `decay_zig` knows are part of glibc or
-    /// musl, on any of [`decay_zig::Cpu::ALL`] (parsed from glibc's own
-    /// published ABI list, and derived from a real `zig cc` for musl —
-    /// neither hand-curated), and only when the project actually has a
-    /// `linux` system to ask — a project that never targets `linux` gets
-    /// nothing here, same as if the database did not exist, rather than an
-    /// error about an unconfigured system.
+    /// Answers only the symbols `decay_zig` knows from a bundled `abilists`
+    /// export table — glibc / musl on `linux` (split on `abi`), and the
+    /// FreeBSD / NetBSD libc on those systems (`cpu` only) — for any of
+    /// [`decay_zig::Cpu::ALL`], none of it hand-curated. Each of those lists
+    /// is *complete*, so within a system it settles found-or-not with no
+    /// knob (an absent symbol is genuinely absent). Only for a configured
+    /// system decay has no table for (`windows`, `darwin`, …) does the probe
+    /// stay an open knob; a project targeting none of the three known
+    /// systems gets nothing here.
     fn builtin_has_function(&self, what: &str) -> Option<Probe> {
-        const LIBCS: [(decay_zig::Libc, &str); 2] = [
+        // One row per (abi, cpu) pair the database actually confirms —
+        // never every abi crossed with every cpu, since presence can (and,
+        // for real x86 port-I/O syscalls musl still declares everywhere,
+        // does) differ by architecture; see `Probe::Matrix`'s own doc
+        // comment for why that distinction matters.
+        const LINUX_LIBCS: [(decay_zig::Libc, &str); 2] = [
             (decay_zig::Libc::Glibc, "gnu"),
             (decay_zig::Libc::Musl, "musl"),
         ];
 
-        // One row per (abi, cpu) pair the database actually confirms —
-        // never every abi crossed with every cpu, since presence can (and,
-        // for real x86 port-I/O syscalls musl still declares everywhere,
-        // does) differ by architecture; see `Probe::SystemsAndConstraint`'s
-        // own doc comment for why that distinction matters.
-        let rows: Vec<Vec<String>> = decay_zig::Cpu::ALL
-            .into_iter()
-            .flat_map(|cpu| {
-                LIBCS
-                    .into_iter()
-                    .filter(move |(libc, _)| decay_zig::has_function(*libc, cpu, what))
-                    .map(move |(_, abi)| vec![abi.to_owned(), cpu.buck2_value().to_owned()])
-            })
-            .collect();
-
-        // glibc's ABI list is a *complete* export list, so a symbol absent
-        // from it (and from the musl link probe) genuinely does not exist on
-        // `linux` — an empty `rows` here is "settled not-found on linux", not
-        // "unknown". `resolve_probe` reads it that way: false on `linux`, still
-        // an open knob everywhere the database cannot speak for (`_aligned_malloc`
-        // on Windows, say). Without a `linux` system to anchor it there is
-        // nothing to settle, so fall back to the open knob.
-        self.config
-            .systems
-            .contains_key("linux")
-            .then(|| Probe::SystemsAndConstraint {
-                systems: vec!["linux".to_owned()],
-                axes: self.linux_abi_cpu_axes(),
+        let mut systems = Vec::new();
+        for (system, bsd_libc) in [
+            ("linux", None),
+            ("freebsd", Some(decay_zig::Libc::Freebsd)),
+            ("netbsd", Some(decay_zig::Libc::Netbsd)),
+        ] {
+            if !self.config.systems.contains_key(system) {
+                continue;
+            }
+            let mut rows: Vec<Vec<String>> = Vec::new();
+            for cpu in decay_zig::Cpu::ALL {
+                let cpu_val = cpu.buck2_value().to_owned();
+                match bsd_libc {
+                    // linux: one `[abi, cpu]` row per libc that confirms it.
+                    None => {
+                        for (libc, abi) in LINUX_LIBCS {
+                            if decay_zig::has_function(libc, cpu, what) {
+                                rows.push(vec![abi.to_owned(), cpu_val.clone()]);
+                            }
+                        }
+                    }
+                    // a BSD: one `[cpu]` row, no abi split.
+                    Some(libc) => {
+                        if decay_zig::has_function(libc, cpu, what) {
+                            rows.push(vec![cpu_val]);
+                        }
+                    }
+                }
+            }
+            systems.push(MatrixSystem {
+                system: system.to_owned(),
+                axes: self.probe_axes(system),
                 rows,
-            })
+            });
+        }
+
+        (!systems.is_empty()).then_some(Probe::Matrix(systems))
     }
 
     /// Decay's built-in `find_library()` fallback, consulted once a project's
@@ -315,8 +329,7 @@ impl<'a> ConfigOracle<'a> {
             if !self.config.systems.contains_key(system) {
                 continue;
             }
-            let rows =
-                probe::probe_rows(&mut self.probe_cache.borrow_mut(), probe, system);
+            let rows = probe::probe_rows(&mut self.probe_cache.borrow_mut(), probe, system);
             systems.push(MatrixSystem {
                 system: system.to_owned(),
                 axes: self.probe_axes(system),

@@ -66,6 +66,16 @@ impl Cpu {
         }
     }
 
+    /// The abi component a BSD `abilists` triple names this arch with. Every
+    /// column is `none` except arm32, which both FreeBSD and NetBSD ship
+    /// only as hard-float EABI (`arm-<os>-eabihf`).
+    pub fn bsd_abi(self) -> &'static str {
+        match self {
+            Self::Arm32 => "eabihf",
+            _ => "none",
+        }
+    }
+
     /// The full `-target` triple `zig cc` builds musl for this arch with.
     pub fn musl_target(self) -> String {
         let abi = match self {

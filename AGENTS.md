@@ -287,10 +287,32 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     graphene (SSE path stays), but it is the same clang≠gcc divergence noted
     below under `cc.has_argument` — the real fix is a `compiler` axis on
     `Probe::Matrix`, or a `[probes]` override.
-  - **`has_function` past `linux`** — `builtin_has_function` is still glibc
-    abilists + the musl probe only; `freebsd`/`netbsd` `has_function` stays
-    an open knob (no BSD symbol source), and `x86`/`arm` beyond `Cpu::ALL`
-    are a later pass. `msvc` is unreachable (`zig` has no MSVC headers).
+  - **`has_function` on `freebsd`/`netbsd` — landed.** zig ships
+    `lib/libc/{freebsd,netbsd}/abilists` in the *identical* binary format as
+    glibc's, for the same reason (it cross-links a stub libc from them), so
+    `decay_zig`'s existing `parse()` reads them unchanged
+    (`Libc::Freebsd`/`Libc::Netbsd`, which double as the OS selector — one
+    libc, no abi split; NetBSD ships no `riscv64` column). `builtin_has_function`
+    now returns `Probe::Matrix` with a per-system entry for each of
+    `linux`/`freebsd`/`netbsd` the config uses (`[abi, cpu]` rows for linux,
+    `[cpu]` for a BSD), retiring `Probe::SystemsAndConstraint` (its resolve
+    was a strict special case of `Probe::Matrix`'s). `example/`: ~90
+    `has_function_*` knobs gone from `constraints/BUCK`; BSD-only APIs
+    (`kqueue`, `kevent`, `issetugid`, `getvfsstat`, …) settle from real data
+    instead of an open knob defaulting present, and every verified project
+    still `buck2 build`s on `//platforms:linux`. `x86`/`arm` beyond
+    `Cpu::ALL` are a later pass; `msvc` stays unreachable (`zig` has no MSVC
+    headers).
+
+    Known rough edge: settling a symbol that is real on `linux` (both abis)
+    + `freebsd` but *not* `netbsd` can make `simplify` misplace it onto a
+    `abi[musl]` / linux `select()` arm (a symbol like `issetugid` reading as
+    present on a hypothetical `linux musl` target). It comes from the solver
+    allowing an axis var to take "no value", so `¬(system ∈ probed) ∧ knob`
+    stays vacuously satisfiable; harmless for every `abi[gnu]` target and
+    still an improvement on the pre-existing "unanswered probe defaults
+    true" (which was wrong on `abi[gnu]` too). No `example/` platform
+    exercises `abi[musl]`.
 
   Deferred — out of scope, each its own follow-up:
   - **`cc.has_argument()` / `has_link_argument()` / `has_multi_arguments()`
@@ -538,17 +560,20 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   program to let the user know it hasn't been implemented, and also to keep a
   list here in known gaps.
 
-- **has_function compaction.** Mostly done for `linux`: `builtin_has_function`
-  now returns a `SystemsAndConstraint` even when *no* libc row confirms the
-  symbol, and `resolve_probe` treats the named systems as authoritative — a
-  symbol absent from glibc's (complete) ABI list is settled *false* on
-  `linux`, with no knob, instead of an open probe var defaulting to true.
-  `has_function_*[true/false]` knobs are gone from `linux` in `example/`
-  (`_aligned_malloc` no longer reads as present there). Still a knob off
-  `linux`, where the database cannot speak; and a `has_function` whose rows
-  cover only gnu/musl still leaves the odd `linux`+other-abi corner settled
-  false rather than as a `cpu`-keyed positive — good enough, the abi domain
-  on `linux` is gnu/musl in practice.
+- **has_function compaction.** Done for `linux`, `freebsd` and `netbsd`:
+  `builtin_has_function` returns a `Probe::Matrix` with a per-system entry
+  for each configured one it has an `abilists` for, authoritative on each
+  (an absent symbol is a settled *false*, no knob — glibc's / musl's / a
+  BSD's export list is complete). Every `has_function_*[true/false]` knob is
+  gone from `example/`'s `constraints/BUCK` (`_aligned_malloc` no longer
+  reads present on `linux`; `kqueue`/`issetugid`/… settle from the BSD
+  abilists instead of an open probe defaulting present). Still a knob only
+  off those three systems (`windows`, `darwin`, …), and a `has_function`
+  whose rows cover only gnu/musl still leaves the odd `linux`+other-abi
+  corner settled false rather than as a `cpu`-keyed positive — good enough,
+  the abi domain on `linux` is gnu/musl in practice. See the rough edge
+  noted under the compile-probe section (a linux+freebsd-but-not-netbsd
+  symbol can misplace onto an `abi[musl]` arm).
 
 - **Adding meson specific buck2 rules.** We shall be able to take the .h.in files with `#mesondefine` et all
   and just substitute correctly instead of assuming the layout of the file with `.set` calls, output should

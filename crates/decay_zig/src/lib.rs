@@ -17,6 +17,12 @@
 //!   `src/libs/glibc.zig`). Refreshing it means installing a newer zig,
 //!   never editing a list.
 //!
+//! * **FreeBSD / NetBSD** — `lib_dir/libc/{freebsd,netbsd}/abilists`, the
+//!   same byte-for-byte format, shipped for the same reason (zig
+//!   cross-links a stub libc from it). Each BSD has exactly one libc and no
+//!   abi split, so [`Libc::Freebsd`] / [`Libc::Netbsd`] double as the OS
+//!   selector. NetBSD ships no `riscv64` column.
+//!
 //! * **musl** — no equivalent file exists (musl has no symbol versioning,
 //!   so zig compiles it from source per target rather than shipping a
 //!   stub-generation database). Instead this asks a real `zig cc`, the way
@@ -44,11 +50,14 @@ use std::{
     sync::OnceLock,
 };
 
-/// Which libc [`has_function`] answers for.
+/// Which libc [`has_function`] answers for. `Freebsd` / `Netbsd` also name
+/// the OS — each ships one libc, with a bundled `abilists` just like glibc's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Libc {
     Glibc,
     Musl,
+    Freebsd,
+    Netbsd,
 }
 
 /// Whether `name` is a function symbol `libc` exports on `linux`, for `cpu`.
@@ -61,9 +70,14 @@ pub fn has_function(libc: Libc, cpu: Cpu, name: &str) -> bool {
         Libc::Glibc => glibc_table()
             .get(&cpu)
             .is_some_and(|col| col.functions.contains(name)),
-        Libc::Musl => musl_table()
+        Libc::Musl => musl_table().get(&cpu).is_some_and(|col| {
+            col.functions
+                .binary_search_by(|s| s.as_str().cmp(name))
+                .is_ok()
+        }),
+        Libc::Freebsd | Libc::Netbsd => bsd_table(libc)
             .get(&cpu)
-            .is_some_and(|col| col.functions.binary_search_by(|s| s.as_str().cmp(name)).is_ok()),
+            .is_some_and(|col| col.functions.contains(name)),
     }
 }
 
@@ -82,53 +96,56 @@ pub fn has_library(libc: Libc, cpu: Cpu, name: &str) -> bool {
         Libc::Glibc => glibc_table()
             .get(&cpu)
             .is_some_and(|col| col.libraries.contains(name)),
-        Libc::Musl => musl_table()
-            .get(&cpu)
-            .is_some_and(|col| col.libraries.binary_search_by(|s| s.as_str().cmp(name)).is_ok()),
+        Libc::Musl => musl_table().get(&cpu).is_some_and(|col| {
+            col.libraries
+                .binary_search_by(|s| s.as_str().cmp(name))
+                .is_ok()
+        }),
+        // BSD `find_library()` is answered by a live `zig cc -target … -l`
+        // link in `decay`'s `probe.rs`, not from here — the BSD abilists'
+        // library tables only tag a name when some *function* symbol in this
+        // column points at it, so libm (mostly value-returning math) can go
+        // unlisted. Nothing calls this arm today.
+        Libc::Freebsd | Libc::Netbsd => false,
     }
 }
 
 // ---------------------------------------------------------------------------
-// glibc: parse `abilists` from the zig install
+// glibc / BSD: parse `abilists` from the zig install (one binary format)
 // ---------------------------------------------------------------------------
 
-/// One `<arch>-linux-<abi>` column of the abilist: the function symbols it
+/// One `<arch>-<os>-<abi>` column of an abilist: the function symbols it
 /// exports, and the library names those symbols live in (`m`, `pthread`,
 /// `dl`, `rt`, `util`, `resolv`, `c`, `ld` — whatever the abilist's own
 /// library table happens to list).
-struct GlibcColumn {
+struct AbiColumn {
     functions: HashSet<&'static str>,
     libraries: HashSet<&'static str>,
 }
 
-/// The `abilists` bytes from `zig env`'s `lib_dir`, read once and leaked to
-/// `'static` so the zero-copy parser below can hand back `&'static str`
-/// slices into them. ~250 KiB, once per process.
-fn abilists() -> &'static [u8] {
-    static BYTES: OnceLock<&'static [u8]> = OnceLock::new();
-    BYTES.get_or_init(|| {
-        let path = zig::lib_dir()
-            .join("libc")
-            .join("glibc")
-            .join("abilists");
-        let data = std::fs::read(&path).unwrap_or_else(|e| {
-            panic!(
-                "could not read glibc abilists from the zig install at {}: {e}",
-                path.display()
-            )
-        });
-        &*Box::leak(data.into_boxed_slice())
-    })
+/// The `abilists` bytes shipped under `zig env`'s `lib_dir/libc/<subdir>`,
+/// read and leaked to `'static` so the zero-copy parser below can hand back
+/// `&'static str` slices into them. ~45–250 KiB, once per libc per process.
+fn abilists(subdir: &str) -> &'static [u8] {
+    let path = zig::lib_dir().join("libc").join(subdir).join("abilists");
+    let data = std::fs::read(&path).unwrap_or_else(|e| {
+        panic!(
+            "could not read {subdir} abilists from the zig install at {}: {e}",
+            path.display()
+        )
+    });
+    &*Box::leak(data.into_boxed_slice())
 }
 
-fn glibc_table() -> &'static HashMap<Cpu, GlibcColumn> {
-    static TABLE: OnceLock<HashMap<Cpu, GlibcColumn>> = OnceLock::new();
+fn glibc_table() -> &'static HashMap<Cpu, AbiColumn> {
+    static TABLE: OnceLock<HashMap<Cpu, AbiColumn>> = OnceLock::new();
     TABLE.get_or_init(|| {
+        let data = abilists("glibc");
         Cpu::ALL
             .into_iter()
             .map(|cpu| {
-                let column = parse(abilists(), cpu.zig_arch(), "linux", cpu.glibc_abi())
-                    .unwrap_or_else(|| {
+                let column =
+                    parse(data, cpu.zig_arch(), "linux", cpu.glibc_abi()).unwrap_or_else(|| {
                         panic!(
                             "the zig install's glibc abilists is malformed, or has no \
                              {}-linux-{} column",
@@ -138,6 +155,27 @@ fn glibc_table() -> &'static HashMap<Cpu, GlibcColumn> {
                     });
                 (cpu, column)
             })
+            .collect()
+    })
+}
+
+/// The parsed table for a BSD's bundled `abilists`, one column per [`Cpu`]
+/// zig ships data for. `libc` must be `Freebsd` or `Netbsd`. NetBSD has no
+/// `riscv64` column — that [`Cpu`] is simply absent from the map, which
+/// [`has_function`] / [`has_library`] read as a settled not-found.
+fn bsd_table(libc: Libc) -> &'static HashMap<Cpu, AbiColumn> {
+    static FREEBSD: OnceLock<HashMap<Cpu, AbiColumn>> = OnceLock::new();
+    static NETBSD: OnceLock<HashMap<Cpu, AbiColumn>> = OnceLock::new();
+    let (cell, os) = match libc {
+        Libc::Freebsd => (&FREEBSD, "freebsd"),
+        Libc::Netbsd => (&NETBSD, "netbsd"),
+        other => unreachable!("bsd_table called with {other:?}"),
+    };
+    cell.get_or_init(|| {
+        let data = abilists(os);
+        Cpu::ALL
+            .into_iter()
+            .filter_map(|cpu| Some((cpu, parse(data, cpu.zig_arch(), os, cpu.bsd_abi())?)))
             .collect()
     })
 }
@@ -197,7 +235,7 @@ fn read_uleb128_u64(data: &[u8], idx: &mut usize) -> Option<u64> {
 /// ver+             one byte per version this inclusion holds for; high bit
 ///                  set on the last one
 /// ```
-fn parse(data: &'static [u8], arch: &str, os: &str, abi: &str) -> Option<GlibcColumn> {
+fn parse(data: &'static [u8], arch: &str, os: &str, abi: &str) -> Option<AbiColumn> {
     let mut idx = 0usize;
 
     let n_libs = *data.get(idx)? as usize;
@@ -266,7 +304,7 @@ fn parse(data: &'static [u8], arch: &str, os: &str, abi: &str) -> Option<GlibcCo
         }
     }
 
-    Some(GlibcColumn {
+    Some(AbiColumn {
         functions,
         libraries,
     })
@@ -310,10 +348,7 @@ fn musl_table() -> &'static HashMap<Cpu, MuslColumn> {
         }
 
         let lib_dir = zig::lib_dir();
-        let header_root = lib_dir
-            .join("libc")
-            .join("include")
-            .join("generic-musl");
+        let header_root = lib_dir.join("libc").join("include").join("generic-musl");
         let headers = find_headers(&header_root);
         assert!(
             !headers.is_empty(),
@@ -329,7 +364,13 @@ fn musl_table() -> &'static HashMap<Cpu, MuslColumn> {
                     link_present(cpu, &candidates).into_iter().collect();
                 functions.sort();
                 let libraries = library_link_probe(cpu);
-                (cpu, MuslColumn { functions, libraries })
+                (
+                    cpu,
+                    MuslColumn {
+                        functions,
+                        libraries,
+                    },
+                )
             })
             .collect()
     })
@@ -534,6 +575,41 @@ mod tests {
         // (byteswap.h) — no linkable symbol, so this must stay absent even
         // though step 1 of the musl pass sees the declaration.
         assert!(!has_function(Libc::Musl, Cpu::X86_64, "__bswap_32"));
+    }
+
+    #[test]
+    fn finds_bsd_libc_and_a_bsd_only_api() {
+        for libc in [Libc::Freebsd, Libc::Netbsd] {
+            for cpu in [Cpu::X86_64, Cpu::Arm64, Cpu::Arm32] {
+                for name in ["malloc", "printf", "strlen"] {
+                    assert!(has_function(libc, cpu, name), "{libc:?} {cpu:?}: {name}");
+                }
+            }
+            // kqueue is the BSD event API glibc has never shipped; epoll is
+            // Linux-only and must stay absent here.
+            assert!(
+                has_function(libc, Cpu::X86_64, "kqueue"),
+                "{libc:?}: kqueue"
+            );
+            assert!(
+                !has_function(libc, Cpu::X86_64, "epoll_create1"),
+                "{libc:?}"
+            );
+            assert!(!has_function(
+                libc,
+                Cpu::X86_64,
+                "this_is_not_a_real_libc_symbol"
+            ));
+        }
+        assert!(!has_function(Libc::Glibc, Cpu::X86_64, "kqueue"));
+    }
+
+    #[test]
+    fn netbsd_ships_no_riscv64_column() {
+        // A settled not-found, not a panic — zig has no netbsd/riscv64 data.
+        assert!(!has_function(Libc::Netbsd, Cpu::Riscv64, "malloc"));
+        // FreeBSD does carry riscv64.
+        assert!(has_function(Libc::Freebsd, Cpu::Riscv64, "malloc"));
     }
 
     #[test]
