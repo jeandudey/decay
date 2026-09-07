@@ -99,7 +99,7 @@ cxx_library(
             "-D_CRT_NONSTDC_NO_DEPRECATE",
         ],
     }) + ["-D_LARGEFILE64_SOURCE"],
-    exported_linker_flags = ["-Wl,--version-script,$(location :zlib.git[zlib.map])"],
+    linker_flags = ["-Wl,--version-script,$(location :zlib.git[zlib.map])"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )

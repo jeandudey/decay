@@ -829,7 +829,13 @@ fn render_target<S: Solver>(
                 ));
             }
             if !a.link_args.is_empty() {
-                let key = if library {
+                // meson keeps `link_args:` on `library()`/`executable()`
+                // private to that target; only `declare_dependency(link_args:)`
+                // — a `Kind::Interface` here — propagates to consumers. Exporting
+                // a library's own script double-applies it: pcre2-posix links
+                // both its own version script and libpcre2-8's, and ld rejects
+                // the duplicate `PCRE2_10.x` version nodes.
+                let key = if is_interface {
                     "exported_linker_flags"
                 } else {
                     "linker_flags"

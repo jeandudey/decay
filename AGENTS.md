@@ -400,6 +400,14 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   declaring the same output name — is not disambiguated, just left as a
   literal. Nothing has hit that yet.
 
+  A `library()`/`executable()`'s own `link_args:` is now emitted as private
+  `linker_flags`, not `exported_linker_flags` — only a `declare_dependency(link_args:)`
+  (a `Kind::Interface`) propagates, matching meson. `pcre2-posix` was linking
+  both its own version script and `libpcre2-8`'s, and ld rejected the
+  duplicate `PCRE2_10.x` version nodes; `pcre2-8/-16/-32/-posix` now build.
+  (`find_library`/`threads` stubs still export their `-l…` — separate path in
+  `render_external`.)
+
 - **Conditional `continue` in a `foreach` over a static list.** `break` now
   splits the remaining iterations under its negation (`Flow::Break(Pc)` in
   `decay_meson_eval/src/lib.rs`); `continue` still bails ("has no static

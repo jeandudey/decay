@@ -654,7 +654,7 @@ cxx_library(
             }),
         }),
     }),
-    exported_linker_flags = select({
+    linker_flags = select({
         "prelude//os/constraints:os[linux]": [
             "-Wl,-Bsymbolic-functions",
             "-Wl,-z,relro",

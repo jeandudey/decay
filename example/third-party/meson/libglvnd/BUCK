@@ -4647,7 +4647,7 @@ cxx_library(
     },
     header_namespace = "",
     compiler_flags = _cflags,
-    exported_linker_flags = ["-Wl,--version-script"] + select({
+    linker_flags = ["-Wl,--version-script"] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": ["$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])"],
@@ -5279,7 +5279,7 @@ cxx_library(
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
     }),
-    exported_linker_flags = ["-Wl,-Bsymbolic"],
+    linker_flags = ["-Wl,-Bsymbolic"],
     deps = [
         ":egl_dispatch_stubs",
         ":threads",
@@ -5376,7 +5376,7 @@ cxx_library(
     },
     header_namespace = "",
     compiler_flags = _cflags,
-    exported_linker_flags = ["-Wl,-Bsymbolic"],
+    linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": [":dl"],
@@ -5462,7 +5462,7 @@ cxx_library(
     headers = _headers2,
     header_namespace = "",
     compiler_flags = _cflags,
-    exported_linker_flags = ["-Wl,-Bsymbolic"],
+    linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": [":dl"],

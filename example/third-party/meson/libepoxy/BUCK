@@ -173,7 +173,7 @@ cxx_library(
             "/utf-8",
         ],
     }) + ["-fvisibility=hidden"],
-    exported_linker_flags = select({
+    linker_flags = select({
         "prelude//os/constraints:os[linux]": select({
             "//third-party/meson/constraints:compiler[gcc]": [
                 "-Wl,-Bsymbolic-functions",

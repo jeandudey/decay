@@ -1875,7 +1875,7 @@ _headers3 = {
     "girepository/gi-visibility.h": ":custom_target-6",
     "config.h": ":config.h",
 }
-_exported_linker_flags = select({
+_ldflags_compiler = select({
     "//third-party/meson/constraints:compiler[msvc]": [],
     "DEFAULT": [
         "-Wl,-z,nodelete",
@@ -2121,7 +2121,7 @@ _cflags_compiler_cpp_compiler2 = select({
     "//third-party/meson/constraints:cpp_compiler[clang]": [],
     "//third-party/meson/constraints:cpp_compiler[msvc]": [],
 })
-_ldflags = select({
+_ldflags_compiler2 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": ["/SAFESEH:NO"],
@@ -6180,7 +6180,7 @@ cxx_library(
         "//third-party/meson/constraints:cpp_compiler[clang]": [],
         "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
-    exported_linker_flags = select({
+    linker_flags = select({
         "//third-party/meson/constraints:compiler[msvc]": ["/SAFESEH:NO"],
         "DEFAULT": [
             "-Wl,-z,nodelete",
@@ -7817,7 +7817,7 @@ cxx_library(
         "//third-party/meson/constraints:compiler[clang]": ["-Wshorten-64-to-32"],
         "//third-party/meson/constraints:compiler[msvc]": [],
     }),
-    exported_linker_flags = _exported_linker_flags,
+    linker_flags = _ldflags_compiler,
     deps = [
         ":libffi",
         ":glib-dep-3",
@@ -7995,7 +7995,7 @@ cxx_library(
         "//third-party/meson/constraints:compiler[clang]": ["-Wshorten-64-to-32"],
         "//third-party/meson/constraints:compiler[msvc]": [],
     }),
-    exported_linker_flags = _exported_linker_flags,
+    linker_flags = _ldflags_compiler,
     deps = [":glib-dep-3"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -8802,7 +8802,7 @@ cxx_library(
         "//third-party/meson/constraints:cpp_compiler[clang]": [],
         "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
-    exported_linker_flags = _exported_linker_flags,
+    linker_flags = _ldflags_compiler,
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": select({
@@ -9149,7 +9149,7 @@ cxx_binary(
     },
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler2,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = [":glib-dep"],
     visibility = ["PUBLIC"],
 )
@@ -12570,7 +12570,7 @@ cxx_library(
         "//third-party/meson/constraints:cpp_compiler[clang]": [],
         "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
-    exported_linker_flags = select({
+    linker_flags = select({
         "//third-party/meson/constraints:compiler[msvc]": ["/SAFESEH:NO"],
         "DEFAULT": [
             "-Wl,-z,nodelete",
@@ -13090,7 +13090,7 @@ cxx_binary(
     },
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler2,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -13101,7 +13101,7 @@ cxx_binary(
     headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = select({
         "//third-party/meson/constraints:elf[true]": select({
             "//third-party/meson/constraints:libelf[true]": [],
@@ -13160,7 +13160,7 @@ cxx_binary(
     },
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler2,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -13188,7 +13188,7 @@ cxx_binary(
     },
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = _deps2,
     visibility = ["PUBLIC"],
 )
@@ -13199,7 +13199,7 @@ cxx_binary(
     headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler2,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = _deps2,
     visibility = ["PUBLIC"],
 )
@@ -13210,7 +13210,7 @@ cxx_binary(
     headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler2,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -13238,7 +13238,7 @@ cxx_binary(
     },
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler2,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -13249,7 +13249,7 @@ cxx_binary(
     headers = _headers6,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler2,
-    linker_flags = _ldflags,
+    linker_flags = _ldflags_compiler2,
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -13931,7 +13931,7 @@ cxx_library(
         "//third-party/meson/constraints:cpp_compiler[clang]": [],
         "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
-    exported_linker_flags = _exported_linker_flags,
+    linker_flags = _ldflags_compiler,
     deps = [
         ":glib-dep-3",
         ":glib-dep-5",
