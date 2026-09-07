@@ -178,15 +178,24 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   be hand-curated — built by parsing an authoritative data source, the way
   `bindgen` reads a header instead of a person transcribing it.
 
+  **Landed.** `decay_zig` (the crate; `has_function` / `has_library` /
+  `Cpu`, plus the bare `zig::{compiles,link,ast_dump}` wrappers the rest of
+  decay probes through). `zig` is a hard requirement of decay now, not
+  optional — there is no vendored data file, no `build.rs`, and no toggle:
+  the glibc `abilists` is read at runtime from `zig env`'s `lib_dir`, the
+  musl half is a real `zig cc` ast-dump + link probe done once per process
+  on first use, and an explicit `[probes]` / `[dependencies]` answer still
+  wins first. The rest of this plan (the reasoning, the `Probe` variant it
+  needed) still describes what shipped.
+
   Plan, scoped to `has_function` on `linux`+`gnu` first:
   1. Zig ships exactly such a source: `lib/libc/glibc/abilists`, a compact
      binary listing, for every glibc version and target triple, which
      symbols each versioned glibc release exports — the data glibc's own
      project publishes and zig uses to synthesize its glibc stub `.so`s for
-     cross-linking. Vendor that one file (pinned to one zig release, noted
-     in-tree) into a new crate rather than requiring `zig` installed, since
-     it is a plain data file. A refresh means re-fetching that file from a
-     newer zig release, never editing a function list by hand.
+     cross-linking. `decay_zig` reads it straight out of the local zig
+     install (`zig env` → `lib_dir/libc/glibc/abilists`) at runtime; a
+     refresh is just installing a newer zig, never editing a function list.
   2. Parse its binary format (documented by `loadMetaData` and the
      function-inclusion loop in zig's own `src/libs/glibc.zig`) into the set
      of symbol names present in the function table (skip the object table —
@@ -204,7 +213,7 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
      `Pc` `[systems]` already builds with the one `[probes]`'s
      `Probe::Constraint` already builds, rather than reusing `Probe::Constraint`
      unchanged.
-  5. A later pass extends the same vendored file to other glibc target
+  5. A later pass extends the same abilist read to other glibc target
      columns, and separately to musl/Darwin/mingw once an equally
      authoritative, automatically-parseable source for each is found — and,
      after that, to `has_header` and the rest, which is a harder problem
@@ -222,10 +231,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   dependent branch is dead and nothing is emitted; compiles for some → a
   `select()` over `os`/`cpu`/`abi`, never a synthetic `has_foo_bar`
   constraint. `zig` is one hermetic cross-compiler with bundled
-  glibc/musl/mingw/wasi headers and stubs, pinned to one release the same
-  way `decay_libc_db/data/glibc-abilists` already is; an explicit
-  `decay.toml [probes]` answer still wins first, and a project-wide toggle
-  turns the whole mechanism off.
+  glibc/musl/mingw/wasi headers and stubs, the same install `decay_zig`
+  reads `abilists` out of; an explicit `decay.toml [probes]` answer still
+  wins first.
 
   **Landed (first slice).** `cc.has_header`, `cc.has_type`, and
   `cc.compiles` — no `dependencies:` (a `pkg-config` answer the importer
@@ -238,16 +246,15 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   arm32 only; `-msse*`/`-mavx*`/`-mfpmath=sse` → x86) so a `-target` that
   lacks the ISA is never handed the flag (clang hard-errors on that);
   `has_header` still skips anything but a plain header path — are answered by
-  `src/probe.rs`: `zig cc -c` (compile to a
-  discarded object; zig 0.15.2's own `-fsyntax-only` is broken) for each
-  `(abi, cpu)` in `decay_libc_db::Cpu::ALL` × {gnu, musl}, on `linux` only.
+  `src/probe.rs` via `decay_zig::zig::compiles` (`zig cc -c` to a discarded
+  object; zig 0.15.2's own `-fsyntax-only` is broken) for each `(abi, cpu)`
+  in `decay_zig::Cpu::ALL` × {gnu, musl}, on `linux` only.
   The result is `oracle::Probe::Matrix` — true on the rows that compiled,
   settled *false* (no knob) on every other `(abi, cpu)` under `linux`, and
   left open only off `linux` where nothing was built. `decay_meson_eval`
   gains `oracle::CompileProbe` (the reconstructed translation unit) and
-  `Oracle::compile_probe`; `src/config.rs` gains `probe_with_zig` (default
-  true, no effect without `zig` on `PATH`); an explicit `[probes]` entry
-  still wins first via the existing `Oracle::probe` path.
+  `Oracle::compile_probe`; an explicit `[probes]` entry still wins first via
+  the existing `Oracle::probe` path.
 
   Still in scope, not yet done:
   - **`cc.links`** — needs a real link (output file, `main` handling), not
@@ -550,10 +557,11 @@ constraint(
   still emitted an `x11[true/false]` knob nothing needed.
   How it works now:
 
-  - `decay_libc_db::has_library` keeps the vendored glibc `abilists` library
-    table `parse()` used to discard (`m pthread c dl rt ld util resolv`) and
-    `build.rs` adds a `musl_libraries` `zig cc -lNAME` link probe. This is
-    the fast, offline answer for `linux`.
+  - `decay_zig::has_library` keeps the glibc `abilists` library table
+    `parse()` used to discard (`m pthread c dl rt ld util resolv`) and adds
+    a `musl_libraries` `zig cc -lNAME` link probe (run once per process on
+    first use, same as the musl `has_function` half). This is the fast
+    answer for `linux`.
   - `src/probe.rs` gains `ProbeCache::links_library` — an import-time `zig cc
     -target <triple> <empty.c> -lNAME` link, memoised in the same cache as
     the compile probes — and `system_link_targets(system)`, the `zig`
@@ -563,7 +571,7 @@ constraint(
     on macOS, `-lresolv` on the BSDs), which is why it is a real probe.
   - `ConfigOracle::builtin_system_library` (behind the `Oracle::system_library`
     trait method, consulted by `cc.find_library` in `decay_meson_eval` before
-    the open-knob fallback; toggle `config.builtin_system_library`) walks
+    the open-knob fallback) walks
     every configured system, collecting `(system, abi-filter)` rows: the libc
     DB / link probe for the hostable ones, `decay.toml`'s new
     `[system_libraries]` table for the ones `zig` cannot host (`sunos`,
@@ -592,9 +600,9 @@ constraint(
     done yet — the `decay_buck2` arm still renders these via `non_msvc_select`.
   - **`runtimeobject`** stays a knob: mingw ships no `libruntimeobject.a`
     (WinRT/UWP), so the link probe cannot confirm it. Needs Slice 2.
-  - **Slice 2** — a vendored mingw-w64 `.def`-name database in `decay_libc_db`
-    for Windows *OS* libs the link probe misses, and to drop the live probe
-    for the ones it does cover.
+  - **Slice 2** — a mingw-w64 `.def`-name source in `decay_zig` (read from
+    the zig install the same way `abilists` is) for Windows *OS* libs the
+    link probe misses, and to drop the live probe for the ones it covers.
   - **Slice 3** — `iconv` / `intl` as `threads`-style builtins (in libc on
     glibc/musl, `-liconv` / `-lintl` on macOS/Windows). They still come
     through `dependency()` as `dep:iconv` knobs.

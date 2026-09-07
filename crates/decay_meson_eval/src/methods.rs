@@ -669,7 +669,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         });
         // The variable is keyed by `setting`, so two callers with different
         // ideas of its domain (`[sizeof]` names the CPUs decay.toml lists; a
-        // `zig cc` probe matrix names `decay_libc_db::Cpu::ALL`) resolve to the
+        // `zig cc` probe matrix names `decay_zig::Cpu::ALL`) resolve to the
         // same variable — and `declare` keeps whichever ran first. A caller
         // maps its values to literal indices by position in the choice list,
         // so it has to use the *declared* var's list, not the one it passed,

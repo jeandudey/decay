@@ -7,11 +7,9 @@
 //! Apple ships only for watchOS — and `wasm32`'s only zig `musl`-like target
 //! is `wasm32-wasi-musl`, whose system is `wasi`, not `linux`.
 //!
-//! Shared, via `#[path]`, between `build.rs` (which only needs [`Cpu::ALL`]
-//! and [`Cpu::zig_arch`]/[`Cpu::musl_target`] to generate musl's half of the
-//! database) and `src/lib.rs` (which additionally needs [`Cpu::glibc_abi`]
-//! and exposes [`Cpu::buck2_value`] for `decay`'s own oracle to build a
-//! `select()` on).
+//! `src/lib.rs` parses glibc's abilist column named by [`Cpu::zig_arch`] /
+//! [`Cpu::glibc_abi`], link-probes musl with [`Cpu::musl_target`], and
+//! `decay`'s own oracle builds a `select()` on [`Cpu::buck2_value`].
 #![allow(dead_code)] // not every consumer of this file uses every method.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

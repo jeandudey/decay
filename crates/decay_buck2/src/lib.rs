@@ -183,7 +183,7 @@ impl Used {
 
 /// `host_machine.cpu_family()`'s meson-side spelling, mapped onto the value
 /// buck2's own `prelude//cpu/constraints:cpu` uses for it — the same five
-/// architectures `decay_libc_db::Cpu` tracks (see its own doc comment for
+/// architectures `decay_zig::Cpu` tracks (see its own doc comment for
 /// why only five of buck2's seven `cpu` values are real targets: the other
 /// two, `arm64_32` and `wasm32`, drop out for reasons specific to that
 /// crate's `has_function` database and are not modelled here either).

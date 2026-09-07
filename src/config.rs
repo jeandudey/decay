@@ -72,24 +72,6 @@ pub struct Config {
     /// Answers to `cc.alignment()`, in the same shape as [`Self::sizeof`].
     #[serde(default)]
     pub alignment: BTreeMap<String, SizeValue>,
-    /// Whether `has_function` falls back to decay's built-in glibc/musl
-    /// symbol database (see `decay_libc_db`) when `[probes]` has no entry
-    /// for it.
-    ///
-    /// An explicit `[probes]` entry for the same check always wins over the
-    /// built-in answer; this only turns the fallback off entirely, for a
-    /// project that wants every `has_function` left open regardless.
-    #[serde(default = "default_true")]
-    pub builtin_has_function: bool,
-    /// Whether `cc.find_library()` falls back to decay's built-in database of
-    /// libraries the C runtime splits out (see `decay_libc_db`) when
-    /// `[dependencies]` has no entry for the name.
-    ///
-    /// An explicit `[dependencies]` mapping always wins; this only turns the
-    /// fallback off entirely, for a project that wants every `find_library()`
-    /// left open regardless.
-    #[serde(default = "default_true")]
-    pub builtin_system_library: bool,
     /// `cc.find_library()` answers for the systems `zig cc` cannot link-probe
     /// (no bundled libc: `sunos`/`illumos`, `openbsd`, `android`, `fuchsia`),
     /// keyed by system name, listing the library names that resolve there.
@@ -101,24 +83,11 @@ pub struct Config {
     /// not-found there.
     #[serde(default)]
     pub system_libraries: BTreeMap<String, Vec<String>>,
-    /// Whether `cc.has_header` / `cc.has_type` / `cc.compiles` are answered
-    /// by building the probe with a live `zig cc` for every target in the
-    /// configured matrix, instead of leaving each an open knob. Needs `zig`
-    /// on `PATH`; without it this has no effect. An explicit `[probes]`
-    /// entry for the same check always wins, and a probe carrying an
-    /// `args:` / `dependencies:` the importer cannot replay is left open
-    /// regardless.
-    #[serde(default = "default_true")]
-    pub probe_with_zig: bool,
     /// Global options applied to every project unless overridden by that project.
     #[serde(default)]
     pub options: BTreeMap<String, OptionValue>,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 impl Config {

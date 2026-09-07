@@ -107,20 +107,17 @@ impl<'a> ConfigOracle<'a> {
     /// Decay's built-in `has_function` fallback, consulted only once a
     /// project's own `[probes]` entry misses.
     ///
-    /// Answers only the symbols `decay_libc_db` knows are part of glibc or
-    /// musl, on any of [`decay_libc_db::Cpu::ALL`] (parsed from glibc's own
+    /// Answers only the symbols `decay_zig` knows are part of glibc or
+    /// musl, on any of [`decay_zig::Cpu::ALL`] (parsed from glibc's own
     /// published ABI list, and derived from a real `zig cc` for musl —
     /// neither hand-curated), and only when the project actually has a
     /// `linux` system to ask — a project that never targets `linux` gets
     /// nothing here, same as if the database did not exist, rather than an
     /// error about an unconfigured system.
     fn builtin_has_function(&self, what: &str) -> Option<Probe> {
-        if !self.config.builtin_has_function {
-            return None;
-        }
-        const LIBCS: [(decay_libc_db::Libc, &str); 2] = [
-            (decay_libc_db::Libc::Glibc, "gnu"),
-            (decay_libc_db::Libc::Musl, "musl"),
+        const LIBCS: [(decay_zig::Libc, &str); 2] = [
+            (decay_zig::Libc::Glibc, "gnu"),
+            (decay_zig::Libc::Musl, "musl"),
         ];
 
         // One row per (abi, cpu) pair the database actually confirms —
@@ -128,12 +125,12 @@ impl<'a> ConfigOracle<'a> {
         // for real x86 port-I/O syscalls musl still declares everywhere,
         // does) differ by architecture; see `Probe::SystemsAndConstraint`'s
         // own doc comment for why that distinction matters.
-        let rows: Vec<Vec<String>> = decay_libc_db::Cpu::ALL
+        let rows: Vec<Vec<String>> = decay_zig::Cpu::ALL
             .into_iter()
             .flat_map(|cpu| {
                 LIBCS
                     .into_iter()
-                    .filter(move |(libc, _)| decay_libc_db::has_function(*libc, cpu, what))
+                    .filter(move |(libc, _)| decay_zig::has_function(*libc, cpu, what))
                     .map(move |(_, abi)| vec![abi.to_owned(), cpu.buck2_value().to_owned()])
             })
             .collect();
@@ -160,16 +157,13 @@ impl<'a> ConfigOracle<'a> {
     ///
     /// Settles found-or-not for *every* configured system — no
     /// `<lib>[true/false]` knob, ever. `linux` is answered from
-    /// `decay_libc_db` (glibc's own ABI list + a real `zig cc -l` link for
+    /// `decay_zig` (glibc's own ABI list + a real `zig cc -l` link for
     /// musl); `macos` / `freebsd` / `netbsd` / `windows` from a live `zig cc
     /// -target … -l<name>` link; the systems zig cannot host (`sunos`,
     /// `openbsd`, `android`, `fuchsia`) from `decay.toml`'s
     /// `[system_libraries]`. A name nothing confirms anywhere is not a system
     /// library — `None`, and it stays an open knob (`libselinux`, `libelf`).
     fn builtin_system_library(&self, name: &str) -> Option<Probe> {
-        if !self.config.builtin_system_library {
-            return None;
-        }
         // An explicit `[dependencies]` mapping still wins: leave it to the
         // existing `dep:`-keyed resolution path untouched.
         if self.config.dependencies.contains_key(name) {
@@ -179,9 +173,9 @@ impl<'a> ConfigOracle<'a> {
         // The database's own answer for `linux` (glibc's ABI list + the
         // `zig cc -l` musl probe): a fast offline pre-check that saves a
         // link.
-        let db_linux_ok = decay_libc_db::Cpu::ALL.into_iter().any(|cpu| {
-            decay_libc_db::has_library(decay_libc_db::Libc::Glibc, cpu, name)
-                || decay_libc_db::has_library(decay_libc_db::Libc::Musl, cpu, name)
+        let db_linux_ok = decay_zig::Cpu::ALL.into_iter().any(|cpu| {
+            decay_zig::has_library(decay_zig::Libc::Glibc, cpu, name)
+                || decay_zig::has_library(decay_zig::Libc::Musl, cpu, name)
         });
         // MSVC ships no standalone `.lib` for a C-runtime-split library (the
         // fact `dependency('threads')` / `is_crt_provided_lib` already
@@ -203,9 +197,7 @@ impl<'a> ConfigOracle<'a> {
                             hit = true; // database already confirmed it
                             continue;
                         }
-                        if probe::zig_present()
-                            && self.probe_cache.borrow_mut().links_library(triple, name)
-                        {
+                        if self.probe_cache.borrow_mut().links_library(triple, name) {
                             hit = true;
                         }
                     }
@@ -277,7 +269,7 @@ impl<'a> ConfigOracle<'a> {
             domain.sort();
             domain
         };
-        let cpus: Vec<&str> = decay_libc_db::Cpu::ALL
+        let cpus: Vec<&str> = decay_zig::Cpu::ALL
             .iter()
             .map(|c| c.buck2_value())
             .collect();
@@ -293,21 +285,18 @@ impl<'a> ConfigOracle<'a> {
         ]
     }
 
-    /// Answer a [`CompileProbe`] by building it for every `linux` target in
-    /// the matrix, when the configuration lets decay do that: needs
-    /// `probe_with_zig` on, `zig` present, and a `linux` system to attach
-    /// the answer to. An explicit `[probes]` entry for the same check has
-    /// already won by the time this is reached (see [`Oracle::probe`]).
+    /// Answer a [`CompileProbe`] by building it with `zig` for every `linux`
+    /// target in the matrix. Needs a `linux` system to attach the answer to;
+    /// off `linux` there is nothing to settle. An explicit `[probes]` entry
+    /// for the same check has already won by the time this is reached (see
+    /// [`Oracle::probe`]).
     fn compile_probe_answer(&self, probe: &CompileProbe) -> Option<Probe> {
         if let CompileProbeKind::Header { header } = &probe.kind
             && !probe::is_plain_header(header)
         {
             return None;
         }
-        if !self.config.probe_with_zig
-            || !self.config.systems.contains_key("linux")
-            || !probe::zig_present()
-        {
+        if !self.config.systems.contains_key("linux") {
             return None;
         }
 
