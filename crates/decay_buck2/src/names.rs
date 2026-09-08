@@ -79,13 +79,14 @@ fn candidates(var: &Var) -> Vec<String> {
             out.push("compiler".to_owned());
             out.push(format!("{}_compiler", sanitize(lang)));
         }
-        ["probe", lang, check, what] => {
-            out.push(format!("{}_{}", sanitize(check), sanitize(what)));
+        ["probe", lang, check, what @ ..] if !what.is_empty() => {
+            let what = what.join("_");
+            out.push(format!("{}_{}", sanitize(check), sanitize(&what)));
             out.push(format!(
                 "{}_{}_{}",
                 sanitize(lang),
                 sanitize(check),
-                sanitize(what)
+                sanitize(&what)
             ));
         }
         ["dep", name] => {

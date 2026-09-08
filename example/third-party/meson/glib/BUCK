@@ -3179,10 +3179,9 @@ genrule(
         }),
         "//third-party/meson/constraints:run_C99_vsnprintf[false]": " '-es|@GLIB_USING_SYSTEM_PRINTF@||g'",
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
-        "DEFAULT": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+        "prelude//cpu/constraints:cpu[arm64]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|@glib_extension@||g' '-es|@gint64@|long|g' '-es|@gint64_modifier@|\"l\"|g' '-es|@gint64_format@|\"li\"|g' '-es|@guint64_format@|\"lu\"|g' '-es|@gint64_constant@|(val##L)|g' '-es|@guint64_constant@|(val##UL)|g'",
+        "DEFAULT": " '-es|@glib_extension@|G_GNUC_EXTENSION |g' '-es|@gint64@|long long|g' '-es|@gint64_modifier@|\"ll\"|g' '-es|@gint64_format@|\"lli\"|g' '-es|@guint64_format@|\"llu\"|g' '-es|@gint64_constant@|(G_GNUC_EXTENSION (val##LL))|g' '-es|@guint64_constant@|(G_GNUC_EXTENSION (val##ULL))|g'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|@glib_size_type_define@|long|g' '-es|@gsize_modifier@|\"l\"|g' '-es|@gssize_modifier@|\"l\"|g' '-es|@gsize_format@|\"lu\"|g' '-es|@gssize_format@|\"li\"|g' '-es|@glib_msize_type@|LONG|g'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|@glib_size_type_define@|long|g' '-es|@gsize_modifier@|\"l\"|g' '-es|@gssize_modifier@|\"l\"|g' '-es|@gsize_format@|\"lu\"|g' '-es|@gssize_format@|\"li\"|g' '-es|@glib_msize_type@|LONG|g'",
@@ -3224,10 +3223,9 @@ genrule(
         }),
         "//third-party/meson/constraints:run_C99_vsnprintf[false]": " '-es|^#mesondefine[[:space:]]\\+GLIB_USING_SYSTEM_PRINTF\\>.*|/* #undef GLIB_USING_SYSTEM_PRINTF */|'",
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
-        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
+        "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (val##L)|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (val##UL)|'",
+        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+glib_extension\\>.*|#define glib_extension G_GNUC_EXTENSION |' '-es|^#mesondefine[[:space:]]\\+gint64\\>.*|#define gint64 long long|' '-es|^#mesondefine[[:space:]]\\+gint64_modifier\\>.*|#define gint64_modifier \"ll\"|' '-es|^#mesondefine[[:space:]]\\+gint64_format\\>.*|#define gint64_format \"lli\"|' '-es|^#mesondefine[[:space:]]\\+guint64_format\\>.*|#define guint64_format \"llu\"|' '-es|^#mesondefine[[:space:]]\\+gint64_constant\\>.*|#define gint64_constant (G_GNUC_EXTENSION (val##LL))|' '-es|^#mesondefine[[:space:]]\\+guint64_constant\\>.*|#define guint64_constant (G_GNUC_EXTENSION (val##ULL))|'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+glib_size_type_define\\>.*|#define glib_size_type_define long|' '-es|^#mesondefine[[:space:]]\\+gsize_modifier\\>.*|#define gsize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gssize_modifier\\>.*|#define gssize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gsize_format\\>.*|#define gsize_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gssize_format\\>.*|#define gssize_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+glib_msize_type\\>.*|#define glib_msize_type LONG|'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+glib_size_type_define\\>.*|#define glib_size_type_define long|' '-es|^#mesondefine[[:space:]]\\+gsize_modifier\\>.*|#define gsize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gssize_modifier\\>.*|#define gssize_modifier \"l\"|' '-es|^#mesondefine[[:space:]]\\+gsize_format\\>.*|#define gsize_format \"lu\"|' '-es|^#mesondefine[[:space:]]\\+gssize_format\\>.*|#define gssize_format \"li\"|' '-es|^#mesondefine[[:space:]]\\+glib_msize_type\\>.*|#define glib_msize_type LONG|'",
@@ -9670,10 +9668,26 @@ cxx_library(
     name = "glib-dep-9",
     exported_headers = {
         "gioenumtypes.h": ":gioenumtypes_h",
-        "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
+        "glib-enumtypes.h": ":glib_enumtypes_h",
         "gio-visibility.h": ":custom_target-5",
     },
-    headers = _headers6,
+    headers = {
+        "glib/glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "gobject-visibility.h": ":custom_target-3",
+        "glib-enumtypes.h": ":glib_enumtypes_h",
+        "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
+        "gnetworking.h": ":gnetworking.h",
+        "xdp-dbus.h": ":xdp-dbus",
+        "gdbus-daemon-generated.h": ":gdbus-daemon-generated",
+        "gio-visibility.h": ":custom_target-5",
+        "gioenumtypes.h": ":gioenumtypes_h",
+        "gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
+        "config.h": ":config.h",
+    },
     header_namespace = "",
     visibility = ["PUBLIC"],
 )
@@ -13916,126 +13930,15 @@ cxx_binary(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define GLIB_MAJOR_VERSION 2' '#define GLIB_MINOR_VERSION 88' '#define GLIB_MICRO_VERSION 3' '#define GLIB_INTERFACE_AGE 3' '#define GLIB_BINARY_AGE 8803' '#define GETTEXT_PACKAGE \"glib20\"' '#define PACKAGE_BUGREPORT \"https://gitlab.gnome.org/GNOME/glib/issues/new\"' '#define PACKAGE_NAME \"glib\"' '#define PACKAGE_STRING \"glib 2.88.3\"' '#define PACKAGE_TARNAME \"glib\"' '#define PACKAGE_URL \"\"' '#define PACKAGE_VERSION \"2.88.3\"' '#define ENABLE_NLS 1' '#define _GNU_SOURCE 1' '#define HAVE_ALLOCA_H 1' '#define HAVE_DIRENT_H 1' '#define HAVE_FLOAT_H 1' '#define HAVE_FTW_H 1' '#define HAVE_GRP_H 1' '#define HAVE_INTTYPES_H 1' '#define HAVE_LIMITS_H 1' '#define HAVE_LINUX_NETLINK_H 1' '#define HAVE_LOCALE_H 1' '#define HAVE_MEMORY_H 1' '#define HAVE_MNTENT_H 1' '#define HAVE_POLL_H 1' '#define HAVE_PWD_H 1' '#define HAVE_SCHED_H 1' '#define HAVE_SPAWN_H 1' '#define HAVE_STDATOMIC_H 1' '#define HAVE_STDCKDINT_H 1' '#define HAVE_STDINT_H 1' '#define HAVE_STDLIB_H 1' '#define HAVE_STRING_H 1' '#define HAVE_STRINGS_H 1' '#define HAVE_SYS_AUXV_H 1' '#define HAVE_SYS_UIO_H 1' '#define HAVE_SYS_INOTIFY_H 1' '#define HAVE_SYS_MOUNT_H 1' '#define HAVE_SYS_PARAM_H 1' '#define HAVE_SYS_PRCTL_H 1' '#define HAVE_SYS_RESOURCE_H 1' '#define HAVE_SYS_SELECT_H 1' '#define HAVE_SYS_STATFS_H 1' '#define HAVE_SYS_STAT_H 1' '#define HAVE_SYS_STATVFS_H 1' '#define HAVE_SYS_TIME_H 1' '#define HAVE_SYS_TIMES_H 1' '#define HAVE_SYS_TYPES_H 1' '#define HAVE_SYS_VFS_H 1' '#define HAVE_SYS_WAIT_H 1' '#define HAVE_SYSLOG_H 1' '#define HAVE_TERMIOS_H 1' '#define HAVE_UNISTD_H 1' '#define HAVE_VALUES_H 1' '#define HAVE_WCHAR_H 1' '#define HAVE_NETLINK 1' '#define HAVE_STATX 1' '#define HAVE_ACCEPT4 1' '#define HAVE_COPY_FILE_RANGE 1' '#define HAVE_ENDMNTENT 1' '#define HAVE_ENDSERVENT 1' '#define HAVE_EPOLL_CREATE1 1' '#define HAVE_FACCESSAT 1' '#define HAVE_FALLOCATE 1' '#define HAVE_FCHMOD 1' '#define HAVE_FCHOWN 1' '#define HAVE_FSYNC 1' '#define HAVE_GETAUXVAL 1' '#define HAVE_GETC_UNLOCKED 1' '#define HAVE_GETGRGID_R 1' '#define HAVE_GETIFADDRS 1' '#define HAVE_GETMNTENT_R 1' '#define HAVE_GETPWNAM_R 1' '#define HAVE_GETPWUID_R 1' '#define HAVE_GETRESUID 1' '#define HAVE_GMTIME_R 1' '#define HAVE_HASMNTOPT 1' '#define HAVE_INOTIFY_INIT1 1' '#define HAVE_LCHMOD 1' '#define HAVE_LCHOWN 1' '#define HAVE_LINK 1' '#define HAVE_LOCALTIME_R 1' '#define HAVE_LSTAT 1' '#define HAVE_MBRTOWC 1' '#define HAVE_MEMALIGN 1' '#define HAVE_MEMMEM 1' '#define HAVE_MMAP 1' '#define HAVE_NEWLOCALE 1' '#define HAVE_PIPE2 1' '#define HAVE_POLL 1' '#define HAVE_PRLIMIT 1' '#define HAVE_READLINK 1' '#define HAVE_RECVMMSG 1' '#define HAVE_SENDMMSG 1' '#define HAVE_SETENV 1' '#define HAVE_SETMNTENT 1' '#define HAVE_STRERROR_R 1' '#define HAVE_STRNLEN 1' '#define HAVE_STRSIGNAL 1' '#define HAVE_STRTOD_L 1' '#define HAVE_SYMLINK 1' '#define HAVE_TIMEGM 1' '#define HAVE_UNSETENV 1' '#define HAVE_USELOCALE 1' '#define HAVE_UTIMES 1' '#define HAVE_UTIMENSAT 1' '#define HAVE_VALLOC 1' '#define HAVE_VASPRINTF 1' '#define HAVE_VSNPRINTF 1' '#define HAVE_WCRTOMB 1' '#define HAVE_WCSLEN 1' '#define HAVE_WCSNLEN 1' '#define HAVE_STATVFS 1' '#define HAVE_STATFS 1' '#define HAVE_PRCTL 1' '#define HAVE_IF_INDEXTONAME 1' '#define HAVE_IF_NAMETOINDEX 1' '#define HAVE_SPLICE 1' '#define HAVE_SYSINFO 1' '#define HAVE_STPCPY 1' '#define HAVE_GETSERVBYNAME_R 1' '#define HAVE_ALIGNED_ALLOC 1' '#define HAVE_POSIX_MEMALIGN 1' '#define HAVE_POSIX_SPAWN 1' '#define HAVE_SNPRINTF 1' '#define HAVE_STRCASECMP 1' '#define HAVE_STRNCASECMP 1' '#define HAVE_UNSHARE 1' '#define HAVE_MKOSTEMP 1' '#define HAVE_FUTEX 1' '#define HAVE_OPEN_O_DIRECTORY 1' '#define EXEEXT ' '#define HAVE_LONG_LONG 1' '#define HAVE_LONG_DOUBLE 1' '#define HAVE_INTTYPES_H_WITH_UINTMAX 1' '#define HAVE_STDINT_H_WITH_UINTMAX 1' '#define HAVE_INTMAX_T 1' '#define SIZEOF_CHAR 1' '#define SIZEOF_INT 4' '#define SIZEOF_SHORT 2' '#define SIZEOF_LONG_LONG 8' '#define SIZEOF_WCHAR_T 4' '#define HAVE_IPV6' '#define THREADS_POSIX 1' '#define HAVE_BIND_TEXTDOMAIN_CODESET' '#define HAVE_DCGETTEXT 1' '#define HAVE_GETTEXT 1' '#define GLIB_LOCALE_DIR \"/usr/local/share/locale\"' '#define GLIB_LOCALSTATEDIR \"/usr/local/var\"' '#define GLIB_RUNSTATEDIR \"/run\"' '#define HAVE_SYS_XATTR_H 1' '#define HAVE_XATTR 1' '#define HAVE_IP_MREQN 1' '#define HAVE_SIOCGIFADDR /**/' '#define FILE_MONITOR_BACKEND_INOTIFY 1'" + select({
+    cmd = "printf '%s\\n'" + " '#define GLIB_MAJOR_VERSION 2' '#define GLIB_MINOR_VERSION 88' '#define GLIB_MICRO_VERSION 3' '#define GLIB_INTERFACE_AGE 3' '#define GLIB_BINARY_AGE 8803' '#define GETTEXT_PACKAGE \"glib20\"' '#define PACKAGE_BUGREPORT \"https://gitlab.gnome.org/GNOME/glib/issues/new\"' '#define PACKAGE_NAME \"glib\"' '#define PACKAGE_STRING \"glib 2.88.3\"' '#define PACKAGE_TARNAME \"glib\"' '#define PACKAGE_URL \"\"' '#define PACKAGE_VERSION \"2.88.3\"' '#define ENABLE_NLS 1' '#define _GNU_SOURCE 1' '#define HAVE_ALLOCA_H 1' '#define HAVE_DIRENT_H 1' '#define HAVE_FLOAT_H 1' '#define HAVE_FTW_H 1' '#define HAVE_GRP_H 1' '#define HAVE_INTTYPES_H 1' '#define HAVE_LIMITS_H 1' '#define HAVE_LINUX_NETLINK_H 1' '#define HAVE_LOCALE_H 1' '#define HAVE_MEMORY_H 1' '#define HAVE_MNTENT_H 1' '#define HAVE_POLL_H 1' '#define HAVE_PWD_H 1' '#define HAVE_SCHED_H 1' '#define HAVE_SPAWN_H 1' '#define HAVE_STDATOMIC_H 1' '#define HAVE_STDCKDINT_H 1' '#define HAVE_STDINT_H 1' '#define HAVE_STDLIB_H 1' '#define HAVE_STRING_H 1' '#define HAVE_STRINGS_H 1' '#define HAVE_SYS_AUXV_H 1' '#define HAVE_SYS_UIO_H 1' '#define HAVE_SYS_INOTIFY_H 1' '#define HAVE_SYS_MOUNT_H 1' '#define HAVE_SYS_PARAM_H 1' '#define HAVE_SYS_PRCTL_H 1' '#define HAVE_SYS_RESOURCE_H 1' '#define HAVE_SYS_SELECT_H 1' '#define HAVE_SYS_STATFS_H 1' '#define HAVE_SYS_STAT_H 1' '#define HAVE_SYS_STATVFS_H 1' '#define HAVE_SYS_TIME_H 1' '#define HAVE_SYS_TIMES_H 1' '#define HAVE_SYS_TYPES_H 1' '#define HAVE_SYS_VFS_H 1' '#define HAVE_SYS_WAIT_H 1' '#define HAVE_SYSLOG_H 1' '#define HAVE_TERMIOS_H 1' '#define HAVE_UNISTD_H 1' '#define HAVE_VALUES_H 1' '#define HAVE_WCHAR_H 1' '#define HAVE_NETLINK 1' '#define HAVE_STATX 1' '#define HAVE_LC_MESSAGES 1' '#define HAVE_ACCEPT4 1' '#define HAVE_COPY_FILE_RANGE 1' '#define HAVE_ENDMNTENT 1' '#define HAVE_ENDSERVENT 1' '#define HAVE_EPOLL_CREATE1 1' '#define HAVE_FACCESSAT 1' '#define HAVE_FALLOCATE 1' '#define HAVE_FCHMOD 1' '#define HAVE_FCHOWN 1' '#define HAVE_FSYNC 1' '#define HAVE_GETAUXVAL 1' '#define HAVE_GETC_UNLOCKED 1' '#define HAVE_GETGRGID_R 1' '#define HAVE_GETIFADDRS 1' '#define HAVE_GETMNTENT_R 1' '#define HAVE_GETPWNAM_R 1' '#define HAVE_GETPWUID_R 1' '#define HAVE_GETRESUID 1' '#define HAVE_GMTIME_R 1' '#define HAVE_HASMNTOPT 1' '#define HAVE_INOTIFY_INIT1 1' '#define HAVE_LCHMOD 1' '#define HAVE_LCHOWN 1' '#define HAVE_LINK 1' '#define HAVE_LOCALTIME_R 1' '#define HAVE_LSTAT 1' '#define HAVE_MBRTOWC 1' '#define HAVE_MEMALIGN 1' '#define HAVE_MEMMEM 1' '#define HAVE_MMAP 1' '#define HAVE_NEWLOCALE 1' '#define HAVE_PIPE2 1' '#define HAVE_POLL 1' '#define HAVE_PRLIMIT 1' '#define HAVE_READLINK 1' '#define HAVE_RECVMMSG 1' '#define HAVE_SENDMMSG 1' '#define HAVE_SETENV 1' '#define HAVE_SETMNTENT 1' '#define HAVE_STRERROR_R 1' '#define HAVE_STRNLEN 1' '#define HAVE_STRSIGNAL 1' '#define HAVE_STRTOD_L 1' '#define HAVE_SYMLINK 1' '#define HAVE_TIMEGM 1' '#define HAVE_UNSETENV 1' '#define HAVE_USELOCALE 1' '#define HAVE_UTIMES 1' '#define HAVE_UTIMENSAT 1' '#define HAVE_VALLOC 1' '#define HAVE_VASPRINTF 1' '#define HAVE_VSNPRINTF 1' '#define HAVE_WCRTOMB 1' '#define HAVE_WCSLEN 1' '#define HAVE_WCSNLEN 1' '#define HAVE_STATVFS 1' '#define HAVE_STATFS 1' '#define HAVE_PRCTL 1' '#define HAVE_IF_INDEXTONAME 1' '#define HAVE_IF_NAMETOINDEX 1' '#define HAVE_SPLICE 1' '#define HAVE_SYSINFO 1' '#define HAVE_STPCPY 1' '#define HAVE_GETSERVBYNAME_R 1' '#define HAVE_ALIGNED_ALLOC 1' '#define HAVE_POSIX_MEMALIGN 1' '#define HAVE_POSIX_SPAWN 1' '#define HAVE_SNPRINTF 1' '#define HAVE_STRCASECMP 1' '#define HAVE_STRNCASECMP 1' '#define MAJOR_IN_SYSMACROS 1' '#define HAVE_RTLD_LAZY 1' '#define HAVE_RTLD_NOW 1' '#define HAVE_RTLD_GLOBAL 1' '#define HAVE_RTLD_NEXT 1' '#define HAVE_UNSHARE 1' '#define HAVE_MKOSTEMP 1' '#define HAVE_FUTEX 1' '#define HAVE_OPEN_O_DIRECTORY 1' '#define EXEEXT ' '#define HAVE_LONG_LONG 1' '#define HAVE_LONG_DOUBLE 1' '#define HAVE_INTTYPES_H_WITH_UINTMAX 1' '#define HAVE_STDINT_H_WITH_UINTMAX 1' '#define HAVE_INTMAX_T 1' '#define SIZEOF_CHAR 1' '#define SIZEOF_INT 4' '#define SIZEOF_SHORT 2' '#define SIZEOF_LONG_LONG 8' '#define SIZEOF_WCHAR_T 4' '#define HAVE_IPV6' '#define THREADS_POSIX 1' '#define HAVE_PTHREAD_ATTR_SETSTACKSIZE 1' '#define HAVE_PTHREAD_ATTR_SETINHERITSCHED 1' '#define HAVE_PTHREAD_CONDATTR_SETCLOCK 1' '#define HAVE_BIND_TEXTDOMAIN_CODESET' '#define HAVE_DCGETTEXT 1' '#define HAVE_GETTEXT 1' '#define GLIB_LOCALE_DIR \"/usr/local/share/locale\"' '#define GLIB_LOCALSTATEDIR \"/usr/local/var\"' '#define GLIB_RUNSTATEDIR \"/run\"' '#define HAVE_SYS_XATTR_H 1' '#define HAVE_XATTR 1' '#define HAVE_PTRACE_O_EXITKILL 1' '#define HAVE_IP_MREQN 1' '#define HAVE_SIOCGIFADDR /**/' '#define FILE_MONITOR_BACKEND_INOTIFY 1'" + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTAB_H 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTAB_H 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTAB_H 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTAB_H 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTAB_H 1'",
-                "DEFAULT": "",
-            }),
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTAB_H 1'",
             "DEFAULT": "",
         }),
         "DEFAULT": " '#define HAVE_FSTAB_H 1'",
     }) + select({
         "//third-party/meson/constraints:check_header_malloc_h[true]": " '#define HAVE_MALLOC_H 1'",
         "//third-party/meson/constraints:check_header_malloc_h[false]": "",
-    }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "DEFAULT": "",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                    "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-                }),
-                "DEFAULT": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:has_header_symbol_locale_h[true]": " '#define HAVE_LC_MESSAGES 1'",
-                "//third-party/meson/constraints:has_header_symbol_locale_h[false]": "",
-            }),
-            "DEFAULT": "",
-        }),
     }) + select({
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_mtim_tv_nsec[true]": " '#define HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC 1'",
         "//third-party/meson/constraints:compiles_type_struct_stat_has_member_st_mtim_tv_nsec[false]": "",
@@ -14065,177 +13968,55 @@ genrule(
         "//third-party/meson/constraints:compiles_type_struct_tm_has_member_tm_gmtoff[false]": "",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
-                "DEFAULT": "",
-            }),
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_CLOSE_RANGE 1'",
             "DEFAULT": "",
         }),
         "prelude//os/constraints:os[netbsd]": "",
         "DEFAULT": " '#define HAVE_CLOSE_RANGE 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
-                "DEFAULT": "",
-            }),
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FTRUNCATE64 1'",
             "DEFAULT": "",
         }),
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": " '#define HAVE_ISSETUGID 1'",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": " '#define HAVE_ISSETUGID 1'",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": " '#define HAVE_ISSETUGID 1'",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": " '#define HAVE_ISSETUGID 1'",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
-                "DEFAULT": " '#define HAVE_ISSETUGID 1'",
-            }),
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETFSENT 1'",
             "DEFAULT": " '#define HAVE_ISSETUGID 1'",
         }),
         "DEFAULT": " '#define HAVE_GETFSENT 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
-                "DEFAULT": "",
-            }),
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOLL_L 1'",
             "DEFAULT": "",
         }),
         "DEFAULT": " '#define HAVE_STRTOLL_L 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
-                "DEFAULT": "",
-            }),
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRTOULL_L 1'",
             "DEFAULT": "",
         }),
         "DEFAULT": " '#define HAVE_STRTOULL_L 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": " '#define STRERROR_R_CHAR_P 1'",
-            "DEFAULT": "",
-        }),
-        "DEFAULT": "",
-    }) + select({
-        "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[true]": " '#define MAJOR_IN_SYSMACROS 1'",
-        "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[true]": "",
-        "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[false]": select({
-            "//third-party/meson/constraints:has_header_symbol_sys_mkdev_h[true]": " '#define MAJOR_IN_MKDEV 1'",
-            "//third-party/meson/constraints:has_header_symbol_sys_mkdev_h[false]": "",
-        }),
-    }) + select({
-        "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[true]": "",
-        "//third-party/meson/constraints:has_header_symbol_sys_sysmacros_h[false]": select({
-            "//third-party/meson/constraints:has_header_symbol_sys_mkdev_h[true]": "",
-            "//third-party/meson/constraints:has_header_symbol_sys_mkdev_h[false]": select({
-                "//third-party/meson/constraints:has_header_symbol_sys_types_h[true]": " '#define MAJOR_IN_TYPES 1'",
-                "//third-party/meson/constraints:has_header_symbol_sys_types_h[false]": "",
-            }),
-        }),
-    }) + select({
-        "//third-party/meson/constraints:has_header_symbol_dlfcn_h[true]": " '#define HAVE_RTLD_LAZY 1' '#define HAVE_RTLD_NOW 1' '#define HAVE_RTLD_GLOBAL 1' '#define HAVE_RTLD_NEXT 1'",
-        "//third-party/meson/constraints:has_header_symbol_dlfcn_h[false]": "",
-    }) + select({
-        "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOFF_T 1'",
+                "prelude//abi/constraints:abi[gnu]": " '#define STRERROR_R_CHAR_P 1'",
                 "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOFF_T 1'",
+                "prelude//abi/constraints:abi[gnu]": " '#define STRERROR_R_CHAR_P 1'",
                 "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOFF_T 1'",
+                "prelude//abi/constraints:abi[gnu]": " '#define STRERROR_R_CHAR_P 1'",
                 "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOFF_T 1'",
+                "prelude//abi/constraints:abi[gnu]": " '#define STRERROR_R_CHAR_P 1'",
                 "DEFAULT": "",
             }),
             "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOFF_T 1'",
+                "prelude//abi/constraints:abi[gnu]": " '#define STRERROR_R_CHAR_P 1'",
                 "DEFAULT": "",
             }),
             "DEFAULT": "",
@@ -14243,47 +14024,62 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOFF_T 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": "",
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                 }),
                 "DEFAULT": " '#define USE_STATVFS 1'",
             }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                 }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
+                "DEFAULT": " '#define USE_STATVFS 1'",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                 }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                 }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "DEFAULT": " '#define USE_STATVFS 1'",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
+                }),
+                "DEFAULT": " '#define USE_STATVFS 1'",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": " '#define USE_STATFS 1'",
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": " '#define USE_STATVFS 1'",
                 }),
@@ -14343,27 +14139,10 @@ genrule(
         "//third-party/meson/constraints:links_pidfd_open_2_system_call[true]": " '#define HAVE_PIDFD 1'",
         "//third-party/meson/constraints:links_pidfd_open_2_system_call[false]": "",
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UINT128_T 1'",
-                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_UINT128_T 1'",
-                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UINT128_T 1'",
-                "DEFAULT": "",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UINT128_T 1'",
-                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_UINT128_T 1'",
-                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UINT128_T 1'",
-                "DEFAULT": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UINT128_T 1'",
-            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_UINT128_T 1'",
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UINT128_T 1'",
-            "DEFAULT": "",
-        }),
+        "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UINT128_T 1'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_UINT128_T 1'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UINT128_T 1'",
+        "DEFAULT": "",
     }) + select({
         "//third-party/meson/constraints:links_clock_gettime[true]": " '#define HAVE_CLOCK_GETTIME 1'",
         "//third-party/meson/constraints:links_clock_gettime[false]": select({
@@ -14372,8 +14151,8 @@ genrule(
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -14383,37 +14162,7 @@ genrule(
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
-                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
-                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
-                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
-                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
-                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
-                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
-                        }),
-                    }),
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -14425,8 +14174,8 @@ genrule(
                 }),
                 "DEFAULT": "",
             }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -14436,7 +14185,7 @@ genrule(
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -14446,7 +14195,10 @@ genrule(
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -14456,7 +14208,7 @@ genrule(
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -14466,7 +14218,43 @@ genrule(
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                        }),
+                    }),
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                        }),
+                    }),
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                }),
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[true]": " '#define STATFS_ARGS 4'",
+                            "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_4[false]": "",
+                        }),
+                    }),
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": "",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": select({
@@ -14578,36 +14366,15 @@ genrule(
         }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
-                    }),
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
-                    }),
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
-                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
-                    }),
-                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
@@ -14616,36 +14383,66 @@ genrule(
                 }),
                 "DEFAULT": "",
             }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
                     }),
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                    }),
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                    }),
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                }),
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
+                        "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
+                    }),
+                    "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[false]": "",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:compiles_type_struct_statfs_has_member_f_bavail[true]": select({
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[true]": " '#define STATFS_ARGS 2'",
                         "//third-party/meson/constraints:compiles_number_of_arguments_to_statfs_n_2[false]": "",
@@ -14765,14 +14562,8 @@ genrule(
         "//third-party/meson/constraints:links_nl_langinfo_and_NL_TIME_CODESET[true]": " '#define HAVE_LANGINFO_TIME_CODESET 1'",
         "//third-party/meson/constraints:links_nl_langinfo_and_NL_TIME_CODESET[false]": "",
     }) + select({
-        "//third-party/meson/constraints:has_header_symbol_stddef_h[true]": " '#define HAVE_PTRDIFF_T 1' '#define HAVE_WCHAR_T 1'",
-        "//third-party/meson/constraints:has_header_symbol_stddef_h[false]": "",
-    }) + select({
         "//third-party/meson/constraints:links_sig_atomic_t[true]": " '#define HAVE_SIG_ATOMIC_T 1'",
         "//third-party/meson/constraints:links_sig_atomic_t[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:has_header_symbol_wchar_h[true]": " '#define HAVE_WINT_T 1'",
-        "//third-party/meson/constraints:has_header_symbol_wchar_h[false]": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4' '#define SIZEOF_VOID_P 4'",
         "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4' '#define SIZEOF_VOID_P 4'",
@@ -14803,8 +14594,11 @@ genrule(
             "//third-party/meson/constraints:links_atomic_ops[false]": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:has_header_symbol_pthread_h[true]": " '#define HAVE_PTHREAD_ATTR_SETSTACKSIZE 1' '#define HAVE_PTHREAD_ATTR_SETINHERITSCHED 1' '#define HAVE_PTHREAD_CONDATTR_SETCLOCK 1' '#define HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP 1' '#define HAVE_PTHREAD_GETNAME_NP 1' '#define HAVE_PTHREAD_GETAFFINITY_NP 1'",
-        "//third-party/meson/constraints:has_header_symbol_pthread_h[false]": "",
+        "//third-party/meson/constraints:has_header_symbol_pthread_h_pthread_getname_np[true]": " '#define HAVE_PTHREAD_GETNAME_NP 1'",
+        "//third-party/meson/constraints:has_header_symbol_pthread_h_pthread_getname_np[false]": "",
+    }) + select({
+        "//third-party/meson/constraints:has_header_symbol_pthread_h_pthread_getaffinity_np[true]": " '#define HAVE_PTHREAD_GETAFFINITY_NP 1'",
+        "//third-party/meson/constraints:has_header_symbol_pthread_h_pthread_getaffinity_np[false]": "",
     }) + select({
         "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[true]": " '#define HAVE_PTHREAD_SETNAME_NP_WITH_TID 1'",
         "//third-party/meson/constraints:links_pthread_setname_np_pthread_t_const_char[false]": "",
@@ -14837,47 +14631,56 @@ genrule(
         "DEFAULT": " '/* #undef HAVE_SELINUX */'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
-                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
-                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
                 "DEFAULT": "",
             }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[riscv64]": select({
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": select({
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
+                    "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
+                }),
+                "prelude//abi/constraints:abi[musl]": select({
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[true]": " '#define HAVE_STRLCPY 1'",
                     "//third-party/meson/constraints:run_OpenBSD_strlcpy_strlcat[false]": "",
                 }),
@@ -14930,9 +14733,6 @@ genrule(
     }) + select({
         "//third-party/meson/constraints:run_proc_self_cmdline[true]": " '#define HAVE_PROC_SELF_CMDLINE'",
         "//third-party/meson/constraints:run_proc_self_cmdline[false]": " '/* #undef HAVE_PROC_SELF_CMDLINE */'",
-    }) + select({
-        "//third-party/meson/constraints:has_header_symbol_sys_ptrace_h[true]": " '#define HAVE_PTRACE_O_EXITKILL 1'",
-        "//third-party/meson/constraints:has_header_symbol_sys_ptrace_h[false]": "",
     }) + select({
         "//third-party/meson/constraints:sysprof_capture_4[true]": " '#define HAVE_SYSPROF'",
         "//third-party/meson/constraints:sysprof_capture_4[false]": " '/* #undef HAVE_SYSPROF */'",

@@ -117,110 +117,26 @@ genrule(
     name = "graphene-config.h",
     out = "graphene-config.h",
     cmd = "sed" + " -e ''" + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
-                "DEFAULT": "",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
-                "DEFAULT": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
-            "DEFAULT": "",
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|@GRAPHENE_HAS_SSE@|1|g'",
+        "DEFAULT": "",
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-                "prelude//cpu/constraints:cpu[arm64]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-                "DEFAULT": "",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-                "prelude//cpu/constraints:cpu[arm64]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-                "DEFAULT": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-            "prelude//cpu/constraints:cpu[arm64]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
-            "DEFAULT": "",
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
+        "prelude//cpu/constraints:cpu[arm64]": " '-es|@GRAPHENE_HAS_ARM_NEON@|1|g'",
+        "DEFAULT": "",
     }) + " '-es|@GRAPHENE_HAS_GCC@||g'" + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
-                "DEFAULT": "",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
-                "DEFAULT": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
-            "DEFAULT": "",
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|#define GRAPHENE_HAS_SSE 1|'",
+        "DEFAULT": "",
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-                "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-                "DEFAULT": "",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-                "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-                "DEFAULT": "",
-            }),
-            "DEFAULT": "",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-            "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
-            "DEFAULT": "",
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+        "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|#define GRAPHENE_HAS_ARM_NEON 1|'",
+        "DEFAULT": "",
     }) + " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_GCC\\>.*|/* #undef GRAPHENE_HAS_GCC */|'" + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": "",
-                "prelude//cpu/constraints:cpu[arm64]": "",
-                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": "",
-                "prelude//cpu/constraints:cpu[arm64]": "",
-                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
-            }),
-            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": "",
-            "prelude//cpu/constraints:cpu[arm64]": "",
-            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": "",
+        "prelude//cpu/constraints:cpu[arm64]": "",
+        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_ARM_NEON\\>.*|/* #undef GRAPHENE_HAS_ARM_NEON */|'",
     }) + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": "",
-                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
-            }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": "",
-                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
-            }),
-            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
-        }),
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": "",
-            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": "",
+        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+GRAPHENE_HAS_SSE\\>.*|/* #undef GRAPHENE_HAS_SSE */|'",
     }) + " $(location :graphene.git[include/graphene-config.h.meson]) > $OUT",
     visibility = ["PUBLIC"],
 )
@@ -240,8 +156,31 @@ genrule(
         "//third-party/meson/constraints:has_header_pthread_h[false]": " '/* #undef HAVE_PTHREAD_H */'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
-            "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
+                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
+            }),
             "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
         }),
         "prelude//os/constraints:os[netbsd]": " '#define HAVE_ALIGNED_ALLOC 1'",
@@ -377,73 +316,25 @@ cxx_library(
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [],
         "DEFAULT": select({
-            "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": select({
-                    "prelude//cpu/constraints:cpu[x86_64]": [
-                        "-mfpmath=sse",
-                        "-msse",
-                        "-msse2",
-                    ],
-                    "DEFAULT": [],
-                }),
-                "prelude//abi/constraints:abi[musl]": select({
-                    "prelude//cpu/constraints:cpu[x86_64]": [
-                        "-mfpmath=sse",
-                        "-msse",
-                        "-msse2",
-                    ],
-                    "DEFAULT": [],
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_64]": [
-                    "-mfpmath=sse",
-                    "-msse",
-                    "-msse2",
-                ],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[x86_64]": [
+                "-mfpmath=sse",
+                "-msse",
+                "-msse2",
+            ],
+            "DEFAULT": [],
         }),
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": [],
         "DEFAULT": select({
-            "prelude//os/constraints:os[linux]": select({
-                "prelude//abi/constraints:abi[gnu]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": select({
-                        "prelude//cpu/constraints:cpu[arm64]": [],
-                        "DEFAULT": ["-mfpu=neon"],
-                    }),
-                    "prelude//cpu/constraints:cpu[arm64]": select({
-                        "prelude//cpu/constraints:cpu[arm64]": [],
-                        "DEFAULT": ["-mfpu=neon"],
-                    }),
-                    "DEFAULT": [],
-                }),
-                "prelude//abi/constraints:abi[musl]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": select({
-                        "prelude//cpu/constraints:cpu[arm64]": [],
-                        "DEFAULT": ["-mfpu=neon"],
-                    }),
-                    "prelude//cpu/constraints:cpu[arm64]": select({
-                        "prelude//cpu/constraints:cpu[arm64]": [],
-                        "DEFAULT": ["-mfpu=neon"],
-                    }),
-                    "DEFAULT": [],
-                }),
-                "DEFAULT": [],
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "DEFAULT": ["-mfpu=neon"],
             }),
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "prelude//cpu/constraints:cpu[arm64]": [],
-                    "DEFAULT": ["-mfpu=neon"],
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "prelude//cpu/constraints:cpu[arm64]": [],
-                    "DEFAULT": ["-mfpu=neon"],
-                }),
-                "DEFAULT": [],
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "DEFAULT": ["-mfpu=neon"],
             }),
+            "DEFAULT": [],
         }),
     }),
     linker_flags = select({

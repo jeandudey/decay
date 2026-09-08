@@ -231,6 +231,8 @@ pub struct CompileProbe {
 pub enum CompileProbeKind {
     /// `cc.has_header('h')` with no `prefix:`/`dependencies:`.
     Header { header: String },
+    /// `cc.has_header_symbol('h', 'SYM')` with no `prefix:`/`dependencies:`.
+    HeaderSymbol { header: String, symbol: String },
     /// `cc.has_type('t', prefix: p)` with no `dependencies:`.
     Type { name: String, prefix: String },
     /// `cc.compiles(code, prefix: p)` with no `dependencies:`.
@@ -243,6 +245,11 @@ impl CompileProbe {
     pub fn snippet(&self) -> String {
         match &self.kind {
             CompileProbeKind::Header { header } => format!("#include <{header}>\n"),
+            // Mirrors meson's own `has_header_symbol` test: include the
+            // header, then use the name as a symbol when it is not a macro.
+            CompileProbeKind::HeaderSymbol { header, symbol } => format!(
+                "#include <{header}>\nint main(void) {{\n#ifndef {symbol}\n    (void) {symbol};\n#endif\n    return 0;\n}}\n"
+            ),
             CompileProbeKind::Type { name, prefix } => {
                 format!("{prefix}\nvoid _decay_probe(void) {{ sizeof({name}); }}\n")
             }

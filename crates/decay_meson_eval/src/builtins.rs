@@ -492,23 +492,57 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
         // Headers listed as sources are not compiled; splitting them out here
         // keeps the backend from having to guess by extension.
-        let (srcs, mut headers) = self.split_headers(srcs);
+        let (mut srcs, mut headers) = self.split_headers(srcs);
 
         let mut deps = Variational::empty();
         if let Some(v) = args.get("dependencies") {
             deps.extend(self.deps(v)?);
         }
 
+        // A `shared_library()` with no compiled sources of its own, only a
+        // `link_whole:` of some private static lib (libglvnd's
+        // `shared_library('OpenGL', link_whole: libopengl_main)`), would emit
+        // as a buck2 `cxx_library` with `srcs = []` — which buck2 links into
+        // nothing, so no `.so` is produced. meson's `link_whole` means "every
+        // object of that lib, as if it were mine", so fold its sources in
+        // here instead of linking it as a dep.
+        let sourceless = srcs.variants().is_empty();
         let mut link_with = Variational::empty();
+        let mut link_whole_targets = Vec::new();
+        let mut inline_targets = Vec::new();
         for key in ["link_with", "link_whole"] {
             if let Some(v) = args.get(key) {
-                link_with.extend(self.deps(v)?);
+                let resolved = self.deps(v)?;
+                if key == "link_whole" {
+                    for var in resolved.variants() {
+                        if sourceless {
+                            inline_targets.push(var.value);
+                        } else {
+                            link_whole_targets.push(var.value);
+                        }
+                    }
+                    if sourceless {
+                        continue;
+                    }
+                }
+                link_with.extend(resolved);
             }
         }
 
         let mut include_dirs = Variational::empty();
         if let Some(v) = args.get("include_directories") {
             include_dirs.extend(self.include_dirs(v)?);
+        }
+
+        let mut inline_compile_args = Variational::empty();
+        let mut inline_sibling_headers = Variational::empty();
+        for tid in &inline_targets {
+            let a = self.graph.target(*tid).attrs.clone();
+            srcs.extend(a.srcs);
+            headers.extend(a.headers);
+            include_dirs.extend(a.include_dirs);
+            inline_compile_args.extend(a.compile_args);
+            inline_sibling_headers.extend(a.sibling_headers);
         }
 
         // A `.rc` cannot be compiled inside the `cxx_library`/`cxx_binary`
@@ -558,6 +592,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 compile_args.extend(self.strings(v)?.map(|s| self.capture_flag(&s)));
             }
         }
+        compile_args.extend(inline_compile_args);
+        sibling_headers.extend(inline_sibling_headers);
 
         let mut link_args = Variational::empty();
         if let Some(v) = args.get("link_args") {
@@ -578,6 +614,10 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.link_args = link_args;
         target.attrs.install = install;
         target.attrs.version = version;
+
+        for tid in link_whole_targets {
+            self.graph.target_mut(tid).attrs.link_whole = true;
+        }
 
         Ok(self.pure(Value::Obj(Obj::Target(id))))
     }
@@ -1378,9 +1418,14 @@ impl<'a, S: Solver> Interp<'a, S> {
         let id = self.graph.add(&name, &dir, self.pc, Kind::Interface);
 
         let mut link_with = Variational::empty();
+        let mut link_whole_targets = Vec::new();
         for key in ["link_with", "link_whole"] {
             if let Some(v) = args.get(key) {
-                link_with.extend(self.deps(v)?);
+                let resolved = self.deps(v)?;
+                if key == "link_whole" {
+                    link_whole_targets.extend(resolved.variants().iter().map(|v| v.value));
+                }
+                link_with.extend(resolved);
             }
         }
 
@@ -1463,6 +1508,10 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.headers = headers;
         target.attrs.srcs = srcs;
         target.attrs.variables = variables.clone();
+
+        for tid in link_whole_targets {
+            self.graph.target_mut(tid).attrs.link_whole = true;
+        }
 
         // A `declare_dependency()` in the project's own root `meson.build` is
         // that project's public face — the analogue of a wrap's

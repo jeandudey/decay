@@ -23,6 +23,18 @@ git_fetch(
     visibility = ["PUBLIC"],
 )
 
+# Values shared by several of the rules below, named so that each rule
+# says what it is rather than how it was configured.
+_headers = {
+    "epoxy/gl_generated.h": ":gl_generated.h",
+    "gl_generated.h": ":gl_generated.h",
+    "epoxy/egl_generated.h": ":egl_generated.h",
+    "egl_generated.h": ":egl_generated.h",
+    "epoxy/glx_generated.h": ":glx_generated.h",
+    "glx_generated.h": ":glx_generated.h",
+    "config.h": ":config.h",
+}
+
 # meson: find_library("dl")
 # `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
@@ -96,20 +108,23 @@ cxx_library(
     exported_headers = {
         "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
         "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
+        "common.h": ":libepoxy.git[include/epoxy/common.h]",
         "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
+        "gl.h": ":libepoxy.git[include/epoxy/gl.h]",
         "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
+        "egl.h": ":libepoxy.git[include/epoxy/egl.h]",
         "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
+        "glx.h": ":libepoxy.git[include/epoxy/glx.h]",
         "epoxy/gl_generated.h": ":gl_generated.h",
+        "gl_generated.h": ":gl_generated.h",
         "epoxy/egl_generated.h": ":egl_generated.h",
+        "egl_generated.h": ":egl_generated.h",
         "epoxy/glx_generated.h": ":glx_generated.h",
+        "glx_generated.h": ":glx_generated.h",
         "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
+        "wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
     },
-    headers = {
-        "epoxy/gl_generated.h": ":gl_generated.h",
-        "epoxy/egl_generated.h": ":egl_generated.h",
-        "epoxy/glx_generated.h": ":glx_generated.h",
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
     compiler_flags = select({
         "//third-party/meson/constraints:compiler[msvc]": [],
@@ -199,21 +214,24 @@ cxx_library(
     name = "libepoxy-dep",
     exported_headers = {
         "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
+        "common.h": ":libepoxy.git[include/epoxy/common.h]",
         "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
+        "gl.h": ":libepoxy.git[include/epoxy/gl.h]",
         "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
+        "egl.h": ":libepoxy.git[include/epoxy/egl.h]",
         "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
+        "glx.h": ":libepoxy.git[include/epoxy/glx.h]",
         "epoxy/gl_generated.h": ":gl_generated.h",
+        "gl_generated.h": ":gl_generated.h",
         "epoxy/egl_generated.h": ":egl_generated.h",
+        "egl_generated.h": ":egl_generated.h",
         "epoxy/glx_generated.h": ":glx_generated.h",
+        "glx_generated.h": ":glx_generated.h",
         "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
+        "wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
         "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
     },
-    headers = {
-        "epoxy/gl_generated.h": ":gl_generated.h",
-        "epoxy/egl_generated.h": ":egl_generated.h",
-        "epoxy/glx_generated.h": ":glx_generated.h",
-        "config.h": ":config.h",
-    },
+    headers = _headers,
     header_namespace = "",
     exported_deps = [
         ":epoxy",

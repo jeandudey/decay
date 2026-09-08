@@ -759,7 +759,23 @@ fn render_target<S: Solver>(
             // checked in, so there is no directory in this package to point at.
             // The header maps below carry the same information, keyed by the
             // path an `#include` actually uses.
-            let roots = include_roots(&a.include_dirs, &target.package);
+            let mut roots = include_roots(&a.include_dirs, &target.package);
+            // meson puts the build-dir of every generated file a target
+            // compiles on that target's include path. So a generated `.c`
+            // that `#include`s its generated `.h` sibling by bare name
+            // (libglvnd's `g_egldispatchstubs.c`), and a
+            // `-DHDR="@0@".format(gen.full_path())` then `#include HDR`
+            // (its `MAPI_ABI_HEADER`), both resolve without the header being
+            // named against an `include_directories()` root.
+            for entry in a.srcs.iter().chain(a.headers.iter()) {
+                if let Source::Generated(id) = &entry.value {
+                    let dir = graph.target(*id).package.clone();
+                    if !dir.as_os_str().is_empty() && !roots.contains(&dir) {
+                        roots.push(dir);
+                    }
+                }
+            }
+            let roots = roots;
 
             // A generated configuration header has no file in the source
             // tree, so every compiled target has to be told where it lands.
@@ -887,6 +903,14 @@ fn render_target<S: Solver>(
                 ));
             } else if let Some(name) = static_linkage(&target.kind) {
                 attrs.push(("preferred_linkage", format!("{name:?}")));
+            }
+
+            // Named in some target's meson `link_whole:`. Forces every object
+            // into whatever links this library, so a sourceless re-export
+            // `shared_library` (`link_whole: libfoo` and nothing else) still
+            // has content to put in its `.so`.
+            if a.link_whole {
+                attrs.push(("link_whole", "True".to_owned()));
             }
         }
     }

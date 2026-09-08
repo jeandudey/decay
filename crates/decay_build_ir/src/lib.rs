@@ -185,6 +185,11 @@ pub struct Attrs {
     /// Targets linked into this one without inheriting their usage
     /// requirements (`link_with:`).
     pub link_with: Variational<TargetId>,
+    /// Set when some target names this one in meson's `link_whole:` — every
+    /// object of this library is pulled into whatever links it, even with no
+    /// undefined reference. Lets a sourceless re-export `shared_library`
+    /// (`link_whole: libfoo` and nothing else) produce a real `.so`.
+    pub link_whole: bool,
     /// Command line for [`Kind::Custom`] targets.
     pub cmd: Variational<CmdArg>,
     /// Files a [`Kind::Custom`] or [`Kind::ConfigHeader`] target produces.

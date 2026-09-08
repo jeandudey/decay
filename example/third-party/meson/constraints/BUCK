@@ -38,25 +38,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header_symbol:features.h`: `features.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_features_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:run:-mtls-dialect=gnu2`: `-mtls-dialect=gnu2` is available to the c compiler
 constraint(
     name = "run_mtls_dialect_gnu2",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:dlfcn.h`: `dlfcn.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_dlfcn_h",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -81,14 +65,6 @@ constraint(
 # toolchain probe `probe:c:check_header:malloc.h`: `malloc.h` is available to the c compiler
 constraint(
     name = "check_header_malloc_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:locale.h`: `locale.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_locale_h",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -161,30 +137,6 @@ constraint(
 # toolchain probe `probe:c:compiles:type "struct tm" has member "tm_gmtoff"`: `type "struct tm" has member "tm_gmtoff"` is available to the c compiler
 constraint(
     name = "compiles_type_struct_tm_has_member_tm_gmtoff",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:sys/sysmacros.h`: `sys/sysmacros.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_sys_sysmacros_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:sys/mkdev.h`: `sys/mkdev.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_sys_mkdev_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:sys/types.h`: `sys/types.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_sys_types_h",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -342,25 +294,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header_symbol:stddef.h`: `stddef.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_stddef_h",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:sig_atomic_t`: `sig_atomic_t` is available to the c compiler
 constraint(
     name = "links_sig_atomic_t",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:wchar.h`: `wchar.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_wchar_h",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -398,9 +334,17 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_header_symbol:pthread.h`: `pthread.h` is available to the c compiler
+# toolchain probe `probe:c:has_header_symbol:pthread.h:pthread_getname_np`: `pthread.h:pthread_getname_np` is available to the c compiler
 constraint(
-    name = "has_header_symbol_pthread_h",
+    name = "has_header_symbol_pthread_h_pthread_getname_np",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_header_symbol:pthread.h:pthread_getaffinity_np`: `pthread.h:pthread_getaffinity_np` is available to the c compiler
+constraint(
+    name = "has_header_symbol_pthread_h_pthread_getaffinity_np",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -473,14 +417,6 @@ constraint(
 # toolchain probe `probe:c:run:/proc/self/cmdline`: `/proc/self/cmdline` is available to the c compiler
 constraint(
     name = "run_proc_self_cmdline",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_header_symbol:sys/ptrace.h`: `sys/ptrace.h` is available to the c compiler
-constraint(
-    name = "has_header_symbol_sys_ptrace_h",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],

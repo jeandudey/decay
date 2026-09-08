@@ -235,8 +235,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   reads `abilists` out of; an explicit `decay.toml [probes]` answer still
   wins first.
 
-  **Landed (first slice).** `cc.has_header`, `cc.has_type`, and
-  `cc.compiles` — no `dependencies:` (a `pkg-config` answer the importer
+  **Landed (first slice).** `cc.has_header`, `cc.has_type`,
+  `cc.has_header_symbol` (`CompileProbeKind::HeaderSymbol`, meson's own
+  include-then-use-as-symbol test), and `cc.compiles` — no `dependencies:`
+  (a `pkg-config` answer the importer
   cannot reconstruct); a project `args:` *is* replayed when every element is
   a plain compiler flag (`is_replayable_cflag` in `decay_meson_eval`:
   `-`-prefixed, ASCII, no space / `/` / `@`), so graphene's
@@ -264,6 +266,18 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   probed system. `decay_meson_eval` gains `oracle::CompileProbe` (the
   reconstructed translation unit) and `Oracle::compile_probe`; an explicit
   `[probes]` entry still wins first via the existing `Oracle::probe` path.
+
+  Before the matrix is handed back, `src/oracle.rs`'s `collapse_full_axes`
+  drops any axis whose whole real domain compiled for every combination of
+  the others — which also covers "`linux` `gnu` and `musl` agree, lose the
+  `abi` axis" (group the `[abi, cpu]` rows by cpu). A probe that compiled
+  *everywhere* thus reduces to `axes: []`, `rows: [[]]` on each system →
+  `simplify()` folds it to plain `true` and no `select()` is emitted at
+  all. Without this the `constraint_var` `ANY_OTHER` fallback
+  value kept every such probe non-tautological forever, so an arch-heavy
+  build (libglvnd) grew a full `os`/`abi`/`cpu` decision tree into every
+  attribute that touched a probe — libglvnd's `BUCK` went 7.3k → ~1.9k
+  lines, glib/graphene/pcre2 all shrank too.
 
   Operating systems zig cannot probe end to end (partial SDK: `darwin`,
   `windows`; no bundled libc at all: `illumos`, `android`, `fuchsia`) are
@@ -499,6 +513,34 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     block `gio-2.0` (nothing in it compiles the generated `.c`), but
     `girepository-2.0` and the gio tools may need `outs` support.
   - `girepository-2.0` and `gio` (the module-loading variant) are untried.
+
+- **libglvnd build status.** `buck2 build` of `GL`, `EGL`, `GLX`, `OpenGL`,
+  `GLdispatch`, `GLESv1_CM`, `GLESv2` from `example/` succeeds
+  (`//platforms:linux`, gcc), each producing its `.so`. Took four fixes:
+  (1) `src/sources.rs`'s checkout walker no longer follows directory
+  symlinks — libglvnd commits `src/util/uthash/include -> src/`, and buck2
+  cannot `project()` a `git_fetch` sub_target path that passes through a
+  symlink; (2) `cc.has_header_symbol` is zig-compile-probed (see the
+  compile-probe note), which — with the matrix axis-collapse there — turns
+  the `__GLIBC__` / `RTLD_NOLOAD` / … knobs that drove `gl_dispatch_type`
+  into settled facts and cuts the `select()` blowup; (3) `decay_buck2`
+  `include_roots` adds the package dir of every generated file a target
+  compiles, so a generated `.c` that `#include`s its generated `.h` sibling
+  by bare name (`g_egldispatchstubs.c`) and a
+  `-DHDR="@0@".format(gen.full_path())` then `#include HDR`
+  (`MAPI_ABI_HEADER`) both resolve; (4) a sourceless `shared_library` whose
+  only content is a `link_whole:` of a private static lib
+  (`shared_library('OpenGL', link_whole: libopengl_main)`) would emit as a
+  buck2 `cxx_library` with `srcs = []` and link into nothing — its sources
+  are folded in here instead (`build_target` in `decay_meson_eval`),
+  matching meson's `link_whole` semantics. A `shared_library` with sources
+  *and* `link_whole:` still marks the whole-archived target
+  `link_whole = True`.
+  - libglvnd's `tests/` executables still fail to link — `libGLX.so` /
+    `libOpenGL.so` carry undefined `__glDispatch*` (resolved from
+    `libGLdispatch.so` at runtime, fine for a shared lib), but the test
+    exes don't pull `libGLdispatch` transitively the way meson wires them.
+    The libraries — the deliverable — are unaffected.
 
 - **`run_command()` is refused outright.** Some projects call it for
   harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`

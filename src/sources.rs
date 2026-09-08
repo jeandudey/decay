@@ -122,11 +122,50 @@ fn walk(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) {
         return;
     };
     for entry in entries.flatten() {
+        // Skip symlinks entirely, dir or file: a checkout is fetched into a
+        // buck2 `git_fetch` artifact, and buck2 cannot `project()` a path
+        // that passes through one (libglvnd commits `uthash/include -> src/`).
+        // A file reached only through a symlinked dir is still reachable by
+        // its real path, which is what meson's own `include_directories()`
+        // uses anyway.
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if file_type.is_symlink() {
+            continue;
+        }
         let path = entry.path();
-        if path.is_dir() {
+        if file_type.is_dir() {
             walk(root, &path, out);
         } else if let Ok(rel) = path.strip_prefix(root) {
             out.push(rel.to_path_buf());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::*,
+        std::{fs, os::unix::fs::symlink, process},
+    };
+
+    #[test]
+    fn list_dir_skips_symlinks() {
+        let root = std::env::temp_dir().join(format!("decay-walk-test-{}", process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("real")).unwrap();
+        fs::write(root.join("real/a.h"), "").unwrap();
+        fs::write(root.join("top.h"), "").unwrap();
+        // A symlinked dir (like libglvnd's `uthash/include -> src/`) and a
+        // symlinked file — buck2 cannot project either.
+        symlink("real", root.join("link_dir")).unwrap();
+        symlink("real/a.h", root.join("link_file.h")).unwrap();
+
+        let mut got = DiskSources.list_dir(&root);
+        got.sort();
+        assert_eq!(got, vec![PathBuf::from("real/a.h"), PathBuf::from("top.h")]);
+
+        fs::remove_dir_all(&root).unwrap();
     }
 }

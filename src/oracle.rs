@@ -318,7 +318,12 @@ impl<'a> ConfigOracle<'a> {
     /// explicit `[probes]` entry for the same check has already won by the
     /// time this is reached (see [`Oracle::probe`]).
     fn compile_probe_answer(&self, probe: &CompileProbe) -> Option<Probe> {
-        if let CompileProbeKind::Header { header } = &probe.kind
+        let header = match &probe.kind {
+            CompileProbeKind::Header { header }
+            | CompileProbeKind::HeaderSymbol { header, .. } => Some(header),
+            _ => None,
+        };
+        if let Some(header) = header
             && !probe::is_plain_header(header)
         {
             return None;
@@ -330,9 +335,10 @@ impl<'a> ConfigOracle<'a> {
                 continue;
             }
             let rows = probe::probe_rows(&mut self.probe_cache.borrow_mut(), probe, system);
+            let (axes, rows) = collapse_full_axes(self.probe_axes(system), rows);
             systems.push(MatrixSystem {
                 system: system.to_owned(),
-                axes: self.probe_axes(system),
+                axes,
                 rows,
             });
         }
@@ -483,10 +489,147 @@ impl Oracle for ConfigOracle<'_> {
     }
 }
 
+/// Drop any axis of a compile-probe matrix whose entire real domain is
+/// covered for every combination of the other axes — the probe compiled
+/// *everywhere* along it, so selecting on it distinguishes nothing. This
+/// subsumes "`linux` `gnu` and `musl` agree, drop the `abi` axis": grouping
+/// the `[abi, cpu]` rows by cpu, an `abi` domain that shows up in full for
+/// every cpu present is exactly that.
+///
+/// With every axis dropped the system's answer is an unconditional "true
+/// here" (`rows == [[]]`); when every probed system reaches that,
+/// [`Selects::simplify`] folds the whole probe to `true` and no `select()`
+/// is emitted. The `constraint_var` fallback value (`ANY_OTHER`) is what
+/// otherwise keeps such a probe non-tautological forever — every attribute
+/// touching it would grow an `abi` — then `cpu` — `select()`.
+fn collapse_full_axes(
+    mut axes: Vec<(String, Vec<String>)>,
+    mut rows: Vec<Vec<String>>,
+) -> (Vec<(String, Vec<String>)>, Vec<Vec<String>>) {
+    if rows.is_empty() {
+        return (axes, rows);
+    }
+    'again: loop {
+        for i in 0..axes.len() {
+            let domain: std::collections::BTreeSet<&str> =
+                axes[i].1.iter().map(String::as_str).collect();
+            let mut groups: std::collections::HashMap<Vec<String>, std::collections::BTreeSet<String>> =
+                std::collections::HashMap::new();
+            for row in &rows {
+                if row.len() != axes.len() {
+                    return (axes, rows);
+                }
+                let others: Vec<String> = row
+                    .iter()
+                    .enumerate()
+                    .filter(|(j, _)| *j != i)
+                    .map(|(_, v)| v.clone())
+                    .collect();
+                groups.entry(others).or_default().insert(row[i].clone());
+            }
+            let covered = groups.values().all(|vals| {
+                vals.len() == domain.len() && vals.iter().all(|v| domain.contains(v.as_str()))
+            });
+            if covered {
+                axes.remove(i);
+                let mut seen = std::collections::BTreeSet::new();
+                rows = rows
+                    .into_iter()
+                    .map(|mut r| {
+                        r.remove(i);
+                        r
+                    })
+                    .filter(|r| seen.insert(r.clone()))
+                    .collect();
+                continue 'again;
+            }
+        }
+        break;
+    }
+    (axes, rows)
+}
+
 fn scalar_pinned(scalar: &OptionScalar) -> Pinned {
     match scalar {
         OptionScalar::Bool(v) => Pinned::Bool(*v),
         OptionScalar::Int(v) => Pinned::Int(*v),
         OptionScalar::String(v) => Pinned::Str(Rc::from(v.as_str())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ax(pairs: &[(&str, &[&str])]) -> Vec<(String, Vec<String>)> {
+        pairs
+            .iter()
+            .map(|(s, d)| (s.to_string(), d.iter().map(|v| v.to_string()).collect()))
+            .collect()
+    }
+    fn rows(rs: &[&[&str]]) -> Vec<Vec<String>> {
+        rs.iter()
+            .map(|r| r.iter().map(|v| v.to_string()).collect())
+            .collect()
+    }
+
+    #[test]
+    fn abi_axis_dropped_when_gnu_equals_musl() {
+        // Partial cpu coverage, but abi never discriminates → abi axis goes,
+        // cpu axis stays (only 2 of its domain present).
+        let (axes, r) = collapse_full_axes(
+            ax(&[
+                ("abi", &["gnu", "musl"]),
+                ("cpu", &["x86_64", "arm64", "riscv64"]),
+            ]),
+            rows(&[
+                &["gnu", "x86_64"],
+                &["musl", "x86_64"],
+                &["gnu", "arm64"],
+                &["musl", "arm64"],
+            ]),
+        );
+        assert_eq!(axes.len(), 1);
+        assert_eq!(axes[0].0, "cpu");
+        assert_eq!(r, rows(&[&["x86_64"], &["arm64"]]));
+    }
+
+    #[test]
+    fn abi_axis_kept_when_musl_missing_for_a_cpu() {
+        let before = (
+            ax(&[("abi", &["gnu", "musl"]), ("cpu", &["x86_64", "arm64"])]),
+            rows(&[&["gnu", "x86_64"], &["musl", "x86_64"], &["gnu", "arm64"]]),
+        );
+        let after = collapse_full_axes(before.0.clone(), before.1.clone());
+        assert_eq!(after, before);
+    }
+
+    #[test]
+    fn full_coverage_collapses_to_always() {
+        let (axes, r) = collapse_full_axes(
+            ax(&[("cpu", &["x86_64", "arm64"])]),
+            rows(&[&["x86_64"], &["arm64"]]),
+        );
+        assert!(axes.is_empty());
+        assert_eq!(r, vec![Vec::<String>::new()]);
+    }
+
+    #[test]
+    fn partial_coverage_keeps_axis() {
+        let before = (ax(&[("cpu", &["x86_64", "arm64"])]), rows(&[&["x86_64"]]));
+        let after = collapse_full_axes(before.0.clone(), before.1.clone());
+        assert_eq!(after, before);
+    }
+
+    #[test]
+    fn one_full_axis_dropped_the_other_kept() {
+        // abi fully covered for the one cpu present; cpu not fully covered.
+        let (axes, r) = collapse_full_axes(
+            ax(&[(probe::ABI_SETTING, &["gnu", "musl"]), ("cpu", &["x86_64", "arm64"])]),
+            rows(&[&["gnu", "x86_64"], &["musl", "x86_64"]]),
+        );
+        assert_eq!(axes.len(), 1);
+        assert_eq!(axes[0].0, "cpu");
+        assert_eq!(r, rows(&[&["x86_64"]]));
     }
 }

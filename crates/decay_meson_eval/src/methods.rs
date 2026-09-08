@@ -358,6 +358,12 @@ impl<'a, S: Solver> Interp<'a, S> {
 
             // -- build targets --
             (Obj::Target(id), "full_path" | "path") => {
+                // meson's `.full_path()` is an absolute build-dir path. The
+                // importer cannot bake one; the basename is what a
+                // `-DFOO="@0@".format(gen.full_path())` then `#include FOO`
+                // needs, since the backend also puts a generated file's own
+                // directory on the include path of anything compiling it
+                // (libglvnd's `MAPI_ABI_HEADER`).
                 let v = self.graph.target(*id).name.clone();
                 Ok(self.pure(Value::from(v)))
             }
@@ -782,6 +788,21 @@ impl<'a, S: Solver> Interp<'a, S> {
         let arg0 = self.one_string(args.at(0)?).ok()?.to_string();
         let kind = match name {
             "has_header" if prefix.is_empty() => CompileProbeKind::Header { header: arg0 },
+            "has_header_symbol" if prefix.is_empty() => {
+                let symbol = self.one_string(args.at(1)?).ok()?.to_string();
+                if symbol.is_empty()
+                    || !symbol
+                        .bytes()
+                        .all(|b| b == b'_' || b.is_ascii_alphanumeric())
+                    || symbol.as_bytes()[0].is_ascii_digit()
+                {
+                    return None;
+                }
+                CompileProbeKind::HeaderSymbol {
+                    header: arg0,
+                    symbol,
+                }
+            }
             "has_type" => CompileProbeKind::Type { name: arg0, prefix },
             "compiles" => CompileProbeKind::Compiles { prefix, code: arg0 },
             _ => return None,
@@ -903,6 +924,16 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let what = match args.at(0) {
                     Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
                     None => Rc::from("expr"),
+                };
+                // `has_header_symbol` takes two arguments; fold the symbol
+                // into the probe key so `('x.h', 'A')` and `('x.h', 'B')` do
+                // not collide on one knob.
+                let what = match (name, args.at(1)) {
+                    ("has_header_symbol", Some(v)) => {
+                        let sym = self.one_string(v).unwrap_or_else(|_| Rc::from("expr"));
+                        Rc::from(format!("{what}:{sym}"))
+                    }
+                    _ => what,
                 };
                 let cond = self.probe_cond(lang, name, &what, args)?;
                 Ok(self.bool_value(cond))
