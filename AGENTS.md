@@ -514,9 +514,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     `girepository-2.0` and the gio tools may need `outs` support.
   - `girepository-2.0` and `gio` (the module-loading variant) are untried.
 
-- **libglvnd build status.** `buck2 build` of `GL`, `EGL`, `GLX`, `OpenGL`,
-  `GLdispatch`, `GLESv1_CM`, `GLESv2` from `example/` succeeds
-  (`//platforms:linux`, gcc), each producing its `.so`. Took four fixes:
+- **libglvnd build status.** `buck2 build //third-party/meson/libglvnd/...`
+  from `example/` succeeds (`//platforms:linux`, gcc) — the seven `.so`s
+  (`GL`, `EGL`, `GLX`, `OpenGL`, `GLdispatch`, `GLESv1_CM`, `GLESv2`) *and*
+  every `tests/` executable. Took five fixes:
   (1) `src/sources.rs`'s checkout walker no longer follows directory
   symlinks — libglvnd commits `src/util/uthash/include -> src/`, and buck2
   cannot `project()` a `git_fetch` sub_target path that passes through a
@@ -535,12 +536,16 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   are folded in here instead (`build_target` in `decay_meson_eval`),
   matching meson's `link_whole` semantics. A `shared_library` with sources
   *and* `link_whole:` still marks the whole-archived target
-  `link_whole = True`.
-  - libglvnd's `tests/` executables still fail to link — `libGLX.so` /
-    `libOpenGL.so` carry undefined `__glDispatch*` (resolved from
-    `libGLdispatch.so` at runtime, fine for a shared lib), but the test
-    exes don't pull `libGLdispatch` transitively the way meson wires them.
-    The libraries — the deliverable — are unaffected.
+  `link_whole = True`. (5) every `cxx_binary` gets
+  `-Wl,--allow-shlib-undefined` in `linker_flags` (`decay_buck2`): meson
+  co-locates every `.so` in one build dir so ld resolves an inter-shlib
+  reference (`libGLX.so`'s `__glDispatch*`, defined in `libGLdispatch.so`)
+  via rpath-link at link time; buck2 keeps each `.so` in its own artifact
+  dir and supplies the full runtime closure through the `$ORIGIN` symlink
+  tree instead, so the executable link must not treat a transitive shared
+  lib's own undefined symbols as errors. The flag is appended to any
+  existing `link_args:` before common-value hoisting, so a shared
+  `_ldflags_*` var only ever merges across executables.
 
 - **`run_command()` is refused outright.** Some projects call it for
   harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`

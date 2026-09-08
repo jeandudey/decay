@@ -2121,7 +2121,7 @@ _ldflags_compiler2 = select({
     "//third-party/meson/constraints:compiler[gcc]": [],
     "//third-party/meson/constraints:compiler[clang]": [],
     "//third-party/meson/constraints:compiler[msvc]": ["/SAFESEH:NO"],
-})
+}) + ["-Wl,--allow-shlib-undefined"]
 _headers6 = {
     "glib/glibconfig.h": ":glibconfig.h",
     "glib/gversionmacros.h": ":custom_target",
@@ -6883,6 +6883,7 @@ cxx_binary(
         "//third-party/meson/constraints:cpp_compiler[clang]": [],
         "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glib-dep-3",
         ":glib-dep",
@@ -7725,6 +7726,7 @@ cxx_binary(
     headers = _headers4,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glib-dep-3",
         ":glib-dep-5",
@@ -13167,6 +13169,7 @@ cxx_binary(
     },
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glib-dep-14",
         ":glib-dep-10",
@@ -13284,6 +13287,7 @@ cxx_binary(
             "-Wno-duplicated-branches",
         ],
     }),
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glib-dep-14",
         ":glib-dep-13",
@@ -13402,6 +13406,7 @@ cxx_binary(
             "-Wno-duplicated-branches",
         ],
     }),
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glib-dep-14",
         ":glib-dep-13",
@@ -13520,6 +13525,7 @@ cxx_binary(
             "-Wno-duplicated-branches",
         ],
     }),
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glib-dep-14",
         ":glib-dep-10",
@@ -13546,6 +13552,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13559,6 +13566,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13572,6 +13580,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13585,6 +13594,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13598,6 +13608,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13611,6 +13622,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13624,6 +13636,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13637,6 +13650,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13650,6 +13664,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13663,6 +13678,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13676,6 +13692,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13689,6 +13706,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13702,6 +13720,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13715,6 +13734,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13728,6 +13748,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13741,6 +13762,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13754,6 +13776,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13767,6 +13790,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13780,6 +13804,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13793,6 +13818,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13806,6 +13832,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13819,6 +13846,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13832,6 +13860,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13845,6 +13874,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13858,6 +13888,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13871,6 +13902,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13884,6 +13916,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13897,6 +13930,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13910,6 +13944,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )
@@ -13923,6 +13958,7 @@ cxx_binary(
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_FuzzingEngine,
     visibility = ["PUBLIC"],
 )

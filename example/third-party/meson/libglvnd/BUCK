@@ -3264,6 +3264,7 @@ cxx_binary(
     headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
         ":patchentrypoints",
@@ -3280,6 +3281,7 @@ cxx_binary(
     headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glvnd-dep-11",
         ":threads",
@@ -3296,6 +3298,7 @@ cxx_binary(
     headers = _headers8,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
         ":glvnd-dep-14",
@@ -3310,6 +3313,7 @@ cxx_binary(
     headers = _headers8,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
         "//third-party/system:X11",
@@ -3454,6 +3458,7 @@ cxx_binary(
         "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
         "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
     }),
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
         "//third-party/system:X11",
@@ -3471,6 +3476,7 @@ cxx_binary(
     headers = _headers8,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":GL",
         "//third-party/system:X11",
@@ -3486,6 +3492,7 @@ cxx_binary(
     headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         "//third-party/system:X11",
         ":glvnd-dep-14",
@@ -3500,6 +3507,7 @@ cxx_binary(
     headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         "//third-party/system:X11",
         ":glvnd-dep-14",
@@ -3513,6 +3521,7 @@ cxx_binary(
     headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
         "//third-party/system:X11",
@@ -3529,6 +3538,7 @@ cxx_binary(
     headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
         "//third-party/system:X11",
@@ -3546,6 +3556,7 @@ cxx_binary(
     headers = _headers9,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -3559,6 +3570,7 @@ cxx_binary(
     headers = _headers9,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -3572,6 +3584,7 @@ cxx_binary(
     headers = _headers9,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -3585,6 +3598,7 @@ cxx_binary(
     headers = _headers9,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":EGL",
         ":OpenGL",
@@ -3605,6 +3619,7 @@ cxx_binary(
     headers = _headers9,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":EGL",
         ":OpenGL",
@@ -3624,6 +3639,7 @@ cxx_binary(
     headers = _headers9,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -3637,6 +3653,7 @@ cxx_binary(
     headers = _headers9,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
 )
@@ -3647,6 +3664,7 @@ cxx_binary(
     headers = _headers7,
     header_namespace = "",
     compiler_flags = _cflags,
+    linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":EGL",
         ":threads",
