@@ -517,7 +517,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 - **libglvnd build status.** `buck2 build //third-party/meson/libglvnd/...`
   from `example/` succeeds (`//platforms:linux`, gcc) — the seven `.so`s
   (`GL`, `EGL`, `GLX`, `OpenGL`, `GLdispatch`, `GLESv1_CM`, `GLESv2`) *and*
-  every `tests/` executable. Took five fixes:
+  every `tests/` executable, which also **run** (`ldd` clean; a few exit
+  non-zero only because decay does not wire meson's `test()` env / the
+  `libGLX_dummy` vendor — `glxqueryversion` / `glxgetclientstr` pass
+  outright). Took six fixes:
   (1) `src/sources.rs`'s checkout walker no longer follows directory
   symlinks — libglvnd commits `src/util/uthash/include -> src/`, and buck2
   cannot `project()` a `git_fetch` sub_target path that passes through a
@@ -545,7 +548,20 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   tree instead, so the executable link must not treat a transitive shared
   lib's own undefined symbols as errors. The flag is appended to any
   existing `link_args:` before common-value hoisting, so a shared
-  `_ldflags_*` var only ever merges across executables.
+  `_ldflags_*` var only ever merges across executables. (6)
+  `example/toolchains/BUCK` gives `system_cxx_toolchain` `link_flags =
+  ["-Wl,--disable-new-dtags"]`. The prelude stages every transitive shared
+  lib in one flat symlink tree and points a single `$ORIGIN` `-rpath` at it;
+  GNU ld's default `DT_RUNPATH` is *not* transitive, so an intermediate
+  `.so`'s own `NEEDED` (libGLX.so → libGLdispatch.so, both already in the
+  tree) never resolves and the executable fails to start. Old-style
+  `DT_RPATH` is transitive, which is what the one-flat-tree design needs.
+  This is a toolchain property, not something decay emits per target — a
+  hand-written buck2 project on `system_cxx_toolchain` + GNU ld hits the
+  same wall. (An unrelated pre-existing gap it exposes: an *external*
+  `dependency()` `.so` like `libffi` is not staged into the tree, so glib's
+  `gdbus` still can't start — libglvnd's chain is entirely decay-built and
+  self-contained.)
 
 - **`run_command()` is refused outright.** Some projects call it for
   harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`

@@ -9,6 +9,12 @@ system_cxx_toolchain(
     compiler_type = "gcc",
     cxx_compiler = "g++",
     linker = "g++",
+    # The prelude puts every transitive shared library in one flat symlink
+    # tree and points a single -rpath at it. GNU ld's default DT_RUNPATH is
+    # not transitive, so an intermediate .so's own NEEDED entries never
+    # resolve against that tree. Old-style DT_RPATH is transitive, which is
+    # what the one-flat-tree design needs.
+    link_flags = ["-Wl,--disable-new-dtags"],
     visibility = ["PUBLIC"],
 )
 
