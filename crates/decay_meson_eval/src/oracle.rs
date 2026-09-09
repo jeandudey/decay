@@ -145,6 +145,26 @@ pub trait Oracle {
         let _ = (query, type_name);
         None
     }
+
+    /// The result of a `run_command()`, when the importer can answer it
+    /// *deterministically* — from an explicit configuration entry, from a
+    /// ref it already resolved (`git describe`), or by running one of a small
+    /// set of read-only commands whose output is a pure function of the
+    /// pinned source tree. `None` means the importer will not run the command
+    /// and has no settled answer, so the call is refused rather than a
+    /// machine-specific result baked in.
+    fn run_command(&self, argv: &[String]) -> Option<RunAnswer> {
+        let _ = argv;
+        None
+    }
+}
+
+/// A settled [`Oracle::run_command`] answer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunAnswer {
+    pub code: i32,
+    pub stdout: String,
+    pub stderr: String,
 }
 
 /// What a toolchain probe answers, when the configuration knows.

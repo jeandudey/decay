@@ -36,6 +36,8 @@ pub enum Obj {
     Dep(Rc<Dep>),
     /// `find_program()`.
     Program(Rc<Program>),
+    /// What `run_command()` returns: a settled `returncode`/`stdout`/`stderr`.
+    RunResult(Rc<RunOutput>),
     /// A build target: a library, an executable, a `custom_target`.
     Target(TargetId),
     /// A single named output of a multi-output `custom_target`.
@@ -68,6 +70,7 @@ impl Obj {
             Self::ConfigData(_) => "cfg_data",
             Self::Dep(_) => "dep",
             Self::Program(_) => "external_program",
+            Self::RunResult(_) => "runresult",
             Self::Target(_) => "build_tgt",
             Self::Output(..) => "file",
             Self::IncludeDirs(_) => "inc",
@@ -92,6 +95,7 @@ impl PartialEq for Obj {
             (Self::ConfigData(a), Self::ConfigData(b)) => Rc::ptr_eq(a, b),
             (Self::Dep(a), Self::Dep(b)) => Rc::ptr_eq(a, b),
             (Self::Program(a), Self::Program(b)) => Rc::ptr_eq(a, b),
+            (Self::RunResult(a), Self::RunResult(b)) => Rc::ptr_eq(a, b),
             (Self::Target(a), Self::Target(b)) => a == b,
             (Self::Output(a, i), Self::Output(b, j)) => a == b && i == j,
             (Self::IncludeDirs(a), Self::IncludeDirs(b)) => a == b,
@@ -118,6 +122,7 @@ impl Hash for Obj {
             Self::ConfigData(a) => Rc::as_ptr(a).hash(state),
             Self::Dep(a) => Rc::as_ptr(a).hash(state),
             Self::Program(a) => Rc::as_ptr(a).hash(state),
+            Self::RunResult(a) => Rc::as_ptr(a).hash(state),
             Self::Target(t) => t.hash(state),
             Self::Output(t, i) => (t, i).hash(state),
             Self::IncludeDirs(d) => d.hash(state),
@@ -272,4 +277,14 @@ pub struct Program {
     pub target: TargetId,
     /// Set when the program is a file inside the source tree.
     pub path: Option<String>,
+}
+
+/// A settled `run_command()` result. Its value is a pure function of the
+/// pinned source tree / config, never of the machine the importer runs on —
+/// see [`crate::oracle::Oracle::run_command`].
+#[derive(Debug)]
+pub struct RunOutput {
+    pub code: i32,
+    pub stdout: Rc<str>,
+    pub stderr: Rc<str>,
 }

@@ -532,6 +532,17 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
         {
             out.insert(path.display().to_string());
         }
+
+        // A `raw_include_roots` target is compiled with `-I` pointing straight
+        // at these directories in the fetched tree, so each needs its own
+        // sub-target projection.
+        if target.attrs.raw_include_roots {
+            for root in include_roots(&target.attrs.include_dirs, &target.package) {
+                if !root.as_os_str().is_empty() {
+                    out.insert(root.display().to_string());
+                }
+            }
+        }
     }
 
     out.into_iter().collect()
@@ -792,15 +803,30 @@ fn render_target<S: Solver>(
                 .map(|t| Variant::new(Pc::TRUE, Source::Generated(t.id)))
                 .collect();
 
+            // A `raw_include_roots` target is compiled against real `-I` roots
+            // into the fetched tree (below), so its checked-in headers must
+            // NOT also go into the flat symlink tree — a `..` include resolved
+            // through that tree escapes it. Generated headers have no file in
+            // the tree and stay.
+            let own_headers: Variational<Source> = if a.raw_include_roots {
+                a.headers
+                    .iter()
+                    .filter(|e| matches!(e.value, Source::Generated(_)))
+                    .cloned()
+                    .collect()
+            } else {
+                a.headers.clone()
+            };
+
             // Headers are keyed by the path an `#include` uses, which is why
             // the namespace buck2 would otherwise prepend is cleared.
             if library {
-                if !a.headers.is_empty() {
+                if !own_headers.is_empty() {
                     attrs.push((
                         "exported_headers",
                         selects.render_dict(
                             logic,
-                            &header_aliases(graph, &a.headers, &roots),
+                            &header_aliases(graph, &own_headers, &roots),
                             cond,
                             1,
                             |(key, s)| (key.clone(), source(graph, s)),
@@ -808,7 +834,7 @@ fn render_target<S: Solver>(
                     ));
                 }
             } else {
-                private.extend(a.headers.iter().cloned());
+                private.extend(own_headers.iter().cloned());
             }
 
             // A source's own-directory `#include "x"` siblings are private and
@@ -837,6 +863,35 @@ fn render_target<S: Solver>(
             }
 
             attrs.push(("header_namespace", "\"\"".to_owned()));
+
+            // A header of this target does a `..` quoted include, which the
+            // flat symlink tree cannot satisfy — its checked-in headers were
+            // held out of the dict above; point the compile straight at the
+            // real fetched tree here. On a library this is exported, the same
+            // way meson's `declare_dependency(include_directories:)` carries
+            // to consumers; `cxx_binary` has no exported form.
+            // ponytail: also names the repo root when `.` is an include root —
+            // broader than meson's own export; harmless, nothing relies on it.
+            if a.raw_include_roots {
+                let mut flags: Vec<String> = include_roots(&a.include_dirs, &target.package)
+                    .iter()
+                    .map(|r| {
+                        let loc = if r.as_os_str().is_empty() {
+                            format!("$(location :{})", repo_target(graph))
+                        } else {
+                            format!("$(location :{}[{}])", repo_target(graph), r.display())
+                        };
+                        format!("\"-I{loc}\"")
+                    })
+                    .collect();
+                flags.dedup();
+                let key = if matches!(target.kind, Kind::Executable) {
+                    "preprocessor_flags"
+                } else {
+                    "exported_preprocessor_flags"
+                };
+                attrs.push((key, format!("[{}]", flags.join(", "))));
+            }
 
             if !a.compile_args.is_empty() {
                 attrs.push((

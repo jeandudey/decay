@@ -440,6 +440,38 @@ impl fmt::Display for ConstraintValue {
     }
 }
 
+/// A canned `run_command()` result, keyed in `[[project]].commands` by the
+/// command line joined with spaces (`"git describe"`). Either a bare string
+/// (its stdout, exit 0) or a table with any of `stdout`/`stderr`/`returncode`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandValue {
+    pub stdout: String,
+    pub stderr: String,
+    pub returncode: i32,
+}
+
+impl<'de> Deserialize<'de> for CommandValue {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Stdout(String),
+            Full {
+                #[serde(default)]
+                stdout: String,
+                #[serde(default)]
+                stderr: String,
+                #[serde(default)]
+                returncode: i32,
+            },
+        }
+        Ok(match Raw::deserialize(de)? {
+            Raw::Stdout(stdout) => CommandValue { stdout, stderr: String::new(), returncode: 0 },
+            Raw::Full { stdout, stderr, returncode } => CommandValue { stdout, stderr, returncode },
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct Project {
     pub source: Source,
@@ -448,6 +480,10 @@ pub struct Project {
     /// Anything left out stays a build-time choice, which is the point: most
     /// projects should pin nothing here.
     pub options: BTreeMap<String, OptionValue>,
+    /// Canned `run_command()` answers, keyed by the space-joined command line.
+    /// Per-project on purpose: what a command reads is a property of that
+    /// project's tree, not the import as a whole.
+    pub commands: BTreeMap<String, CommandValue>,
     pub host_machine: Machine,
     pub build_machine: Machine,
     /// Other projects in this file that must be imported before this one,
@@ -547,6 +583,8 @@ impl<'de> Deserialize<'de> for Project {
             #[serde(default)]
             options: BTreeMap<String, OptionValue>,
             #[serde(default)]
+            commands: BTreeMap<String, CommandValue>,
+            #[serde(default)]
             host_machine: Machine,
             #[serde(default)]
             build_machine: Machine,
@@ -585,6 +623,7 @@ impl<'de> Deserialize<'de> for Project {
         Ok(Project {
             source,
             options: raw.options,
+            commands: raw.commands,
             host_machine: raw.host_machine,
             build_machine: raw.build_machine,
             depends: raw.depends,
@@ -1000,5 +1039,26 @@ mod tests {
         let toml = "third_party_dir = \"tp\"\n[[project]]\nrepo = \"https://example.com/x.git\"\nbranch = \"main\"\ntag = \"v1\"\n";
         let err = toml::from_str::<Config>(toml).unwrap_err();
         assert!(format!("{err}").contains("only one of `branch`, `tag`, or `rev`"));
+    }
+
+    #[test]
+    fn per_project_commands_parse_string_and_table() {
+        let cfg = config(
+            "[[project]]\n\
+             repo = \"https://example.com/x/glib.git\"\n\
+             rev = \"0000000000000000000000000000000000000000\"\n\
+             commands.\"cat VERSION\" = \"2.15.4\"\n\
+             commands.\"pkg-config --modversion foo\" = { returncode = 1, stderr = \"nope\" }\n",
+        )
+        .unwrap();
+        let c = &cfg.projects[0].commands;
+        assert_eq!(
+            c["cat VERSION"],
+            CommandValue { stdout: "2.15.4".into(), stderr: String::new(), returncode: 0 }
+        );
+        assert_eq!(
+            c["pkg-config --modversion foo"],
+            CommandValue { stdout: String::new(), stderr: "nope".into(), returncode: 1 }
+        );
     }
 }

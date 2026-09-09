@@ -9,10 +9,12 @@ use {
             Lang,
             Module,
             Obj,
-            Program, //
+            Program,
+            RunOutput, //
         },
         ops::join_paths,
         oracle::Pinned,
+        string_arg,
         val::Value,
     },
     decay_build_ir::{
@@ -222,10 +224,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(self.bool_value(found))
             }
 
-            "run_command" => bail!(
-                "`run_command()` would have to run a program at import time, which would \
-                 bake this machine's answer into the generated build"
-            ),
+            "run_command" => self.fn_run_command(args),
 
             _ => bail!("unimplemented function `{name}()`"),
         }
@@ -260,7 +259,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .root
                 .join(self.dirs.last().unwrap())
                 .join(path.as_ref());
-            self.sources.read(&path).map(Some)?
+            self.sources.read(&path).map(|v| Some(v.trim().to_string()))?
         } else {
             self.opt_string(args, "version")?.map(|v| v.to_string())
         };
@@ -595,6 +594,22 @@ impl<'a, S: Solver> Interp<'a, S> {
         compile_args.extend(inline_compile_args);
         sibling_headers.extend(inline_sibling_headers);
 
+        // A checked-in header doing `#include "../x"` relies on the real
+        // on-disk layout between headers, which the flat symlink tree decay
+        // stages cannot reproduce (the `..` walks out of it). Mark the target
+        // so the backend compiles it against real `-I` roots into the fetched
+        // tree. ponytail: any `..` trips this; no finer analysis needed —
+        // such an include is already unrepresentable in the flat tree.
+        let raw_include_roots = headers.variants().iter().any(|h| {
+            let Source::File(p) = &h.value else {
+                return false;
+            };
+            self.sources
+                .read(&self.root.join(p))
+                .map(|t| quoted_includes(&t).any(|inc| inc.contains("..")))
+                .unwrap_or(false)
+        });
+
         let mut link_args = Variational::empty();
         if let Some(v) = args.get("link_args") {
             link_args.extend(self.strings(v)?.map(|s| self.capture_flag(&s)));
@@ -607,6 +622,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.srcs = srcs;
         target.attrs.headers = headers;
         target.attrs.sibling_headers = sibling_headers;
+        target.attrs.raw_include_roots = raw_include_roots;
         target.attrs.deps = deps;
         target.attrs.link_with = link_with;
         target.attrs.include_dirs = include_dirs;
@@ -1723,6 +1739,55 @@ impl<'a, S: Solver> Interp<'a, S> {
             cond = self.logic.or(cond, t);
         }
         Ok(self.logic.and(self.pc, cond))
+    }
+
+    /// `run_command()`: never executed here. The result is whatever the
+    /// oracle settles deterministically (a config entry, a resolved
+    /// `git describe`, a read-only file read); anything else is refused with
+    /// the config key to add, the same shape as a missing `find_program`.
+    fn fn_run_command(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let mut argv = Vec::new();
+        for arg in &args.pos {
+            let flat = self.flat(arg);
+            let [only] = flat.as_slice() else {
+                bail!(
+                    "run_command() arguments must not differ between configurations \
+                     ({} variants)",
+                    flat.len()
+                );
+            };
+            match &only.value {
+                Value::Obj(Obj::Program(p)) => argv.push(p.name.clone()),
+                other => argv.push(
+                    string_arg(other)
+                        .ok_or_else(|| {
+                            eyre::eyre!(
+                                "run_command() with a {} argument is not supported",
+                                other.type_name()
+                            )
+                        })?
+                        .to_string(),
+                ),
+            }
+        }
+        if argv.is_empty() {
+            bail!("run_command() needs a command");
+        }
+
+        let out = match self.oracle.run_command(&argv) {
+            Some(a) => RunOutput {
+                code: a.code,
+                stdout: Rc::from(a.stdout.as_str()),
+                stderr: Rc::from(a.stderr.as_str()),
+            },
+            None => bail!(
+                "run_command({argv:?}) has no deterministic answer and the importer will \
+                 not run it; add `commands.{key:?} = {{ stdout = \"...\" }}` to this \
+                 project in the importer configuration",
+                key = argv.join(" "),
+            ),
+        };
+        Ok(self.pure(Value::Obj(Obj::RunResult(Rc::new(out)))))
     }
 
     fn fn_find_program(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {

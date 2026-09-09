@@ -11,9 +11,11 @@ use {
             OptionValue,
             ProbeValue,
             Project,
-            SizeValue, //
+            SizeValue,
+            Source, //
         },
         packages::Packages,
+        run_command,
     },
     decay_meson_eval::{
         obj,
@@ -24,12 +26,14 @@ use {
             Oracle,
             Pinned,
             Probe,
+            RunAnswer,
             SizeAnswer,
             SizeQuery, //
         },
     },
     std::{
         cell::RefCell,
+        path::Path,
         rc::Rc, //
     },
 };
@@ -43,16 +47,25 @@ pub struct ConfigOracle<'a> {
     project: &'a Project,
     config: &'a Config,
     packages: &'a Packages,
+    /// The project's checkout — the working directory a read-only
+    /// `run_command()` runs in.
+    root: &'a Path,
     /// Memoised `zig cc` probe results — see [`Oracle::compile_probe`].
     probe_cache: RefCell<ProbeCache>,
 }
 
 impl<'a> ConfigOracle<'a> {
-    pub fn new(config: &'a Config, project: &'a Project, packages: &'a Packages) -> Self {
+    pub fn new(
+        config: &'a Config,
+        project: &'a Project,
+        packages: &'a Packages,
+        root: &'a Path,
+    ) -> Self {
         Self {
             project,
             config,
             packages,
+            root,
             probe_cache: RefCell::default(),
         }
     }
@@ -486,6 +499,27 @@ impl Oracle for ConfigOracle<'_> {
             return ["gcc", "clang", "msvc"].map(str::to_owned).to_vec();
         }
         self.config.compilers.keys().cloned().collect()
+    }
+
+    fn run_command(&self, argv: &[String]) -> Option<RunAnswer> {
+        // 1. An explicit per-project answer wins.
+        if let Some(c) = self.project.commands.get(&argv.join(" ")) {
+            return Some(RunAnswer {
+                code: c.returncode,
+                stdout: c.stdout.clone(),
+                stderr: c.stderr.clone(),
+            });
+        }
+        // 2. `git describe` follows from the ref decay already pinned.
+        if let [cmd, sub, ..] = argv
+            && cmd == "git"
+            && sub == "describe"
+            && let Source::Git { reference, .. } = &self.project.source
+        {
+            return Some(run_command::git_describe(reference, argv));
+        }
+        // 3. A read-only command over the pinned checkout, else refused.
+        run_command::run_readonly(self.root, argv)
     }
 }
 

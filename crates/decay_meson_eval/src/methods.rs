@@ -356,6 +356,11 @@ impl<'a, S: Solver> Interp<'a, S> {
             // generally are here.
             (Obj::Program(_), "language_version") => Ok(self.pure(Value::str("3.12"))),
 
+            // -- run_command() result --
+            (Obj::RunResult(r), "returncode") => Ok(self.pure(Value::Int(r.code as i64))),
+            (Obj::RunResult(r), "stdout") => Ok(self.pure(Value::str(&*r.stdout))),
+            (Obj::RunResult(r), "stderr") => Ok(self.pure(Value::str(&*r.stderr))),
+
             // -- build targets --
             (Obj::Target(id), "full_path" | "path") => {
                 // meson's `.full_path()` is an absolute build-dir path. The
@@ -1638,25 +1643,48 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     /// Index a list whose elements may each be conditional.
     ///
-    /// Positions only line up when the elements before the one being asked for
-    /// are unconditional; otherwise the index means different things in
-    /// different configurations and the sources have to be restructured.
+    /// A list literal flattens every element's variants into one sequence, so
+    /// an element with a configuration-dependent *value* (`[want_c14n,
+    /// ['c14n.c']]`, `want_c14n` a still-open feature) shows up as several
+    /// adjacent variants whose conditions partition the current path. Those
+    /// are regrouped back into positions here: a run of variants is one
+    /// position once its conditions cover the whole path condition.
+    ///
+    /// Positions only line up when every position before the one asked for is
+    /// unconditional; otherwise the index means different things in different
+    /// configurations and the sources have to be restructured.
     fn index_list(
         &mut self,
         items: &[Variant<Value>],
         index: &Variational<Value>,
         fallback: Option<Variational<Value>>,
     ) -> eyre::Result<Variational<Value>> {
+        // Regroup flattened variants into positions.
+        let mut positions: Vec<Vec<Variant<Value>>> = Vec::new();
+        let mut acc: Vec<Variant<Value>> = Vec::new();
+        let mut cover = Pc::FALSE;
+        for v in items {
+            acc.push(v.clone());
+            cover = self.logic.or(cover, v.cond);
+            if self.logic.entails(self.pc, cover) {
+                positions.push(std::mem::take(&mut acc));
+                cover = Pc::FALSE;
+            }
+        }
+        if !acc.is_empty() {
+            positions.push(acc);
+        }
+
         let mut out = Variational::empty();
         for want in index.variants() {
             let i = want
                 .value
                 .as_int()
                 .ok_or_eyre("expected an integer index")?;
-            let n = items.len() as i64;
+            let n = positions.len() as i64;
             let i = if i < 0 { n + i } else { i };
 
-            let Some(item) = usize::try_from(i).ok().and_then(|i| items.get(i)) else {
+            let Some(position) = usize::try_from(i).ok().and_then(|i| positions.get(i)) else {
                 match &fallback {
                     Some(v) => {
                         out.extend(v.clone().into_variants());
@@ -1666,8 +1694,11 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
             };
 
-            for earlier in &items[..usize::try_from(i)?] {
-                if !self.logic.entails(self.pc, earlier.cond) {
+            for earlier in &positions[..usize::try_from(i)?] {
+                let covered = earlier
+                    .iter()
+                    .fold(Pc::FALSE, |acc, v| self.logic.or(acc, v.cond));
+                if !self.logic.entails(self.pc, covered) {
                     bail!(
                         "indexing past an element that only exists in some configurations \
                          would select different values in different builds"
@@ -1675,8 +1706,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
             }
 
-            let cond = self.logic.and(want.cond, item.cond);
-            out.push(Variant::new(cond, item.value.clone()));
+            for item in position {
+                let cond = self.logic.and(want.cond, item.cond);
+                out.push(Variant::new(cond, item.value.clone()));
+            }
         }
         out.normalize(&mut self.logic);
         Ok(out)

@@ -138,6 +138,7 @@ mod tests {
                 reference: GitReference::Rev("0".repeat(40)),
             },
             options: Default::default(),
+            commands: Default::default(),
             host_machine: Machine::default(),
             build_machine: Machine::default(),
             depends: depends.iter().map(|s| s.to_string()).collect(),

@@ -30,7 +30,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                     let value = self
                         .lookup(name)?
                         .ok_or_else(|| eyre::eyre!("`@{name}@` names an undefined variable"))?;
-                    self.strings(&value)?
+                    self.stringify(&value)?
                 }
             };
 

@@ -563,9 +563,50 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `gdbus` still can't start — libglvnd's chain is entirely decay-built and
   self-contained.)
 
-- **`run_command()` is refused outright.** Some projects call it for
-  harmless reads (a `VERSION` file). A read-only subset, or a `decay.toml`
-  answer, would unblock them without baking in a machine-specific result.
+- **`run_command()` is answered deterministically or refused.** Three ways,
+  in priority order (`ConfigOracle::run_command`, `src/run_command.rs`):
+  1. a per-project `[[project]].commands` table in `decay.toml`, keyed by the
+     space-joined command line — `"git describe" = "v2.15.4"` or `= { stdout,
+     stderr, returncode }` (`CommandValue`, `src/config.rs`);
+  2. `git describe` synthesized from the ref decay already pinned (a `tag`
+     prints the bare tag; a `branch`/`rev` exits 128 unless `--always`),
+     never touching the checkout's `.git`;
+  3. a read-only allowlist executor — `cat`/`head`/`tail`/`echo`/`true`/
+     `false`, run in the pinned checkout, path args must stay inside it.
+
+  Anything else is a hard error naming the `commands` key to add — the
+  importer still never runs an arbitrary program. `Obj::RunResult` carries
+  `.returncode()`/`.stdout()`/`.stderr()`. Still open: config-dependent
+  (`select()`-keyed) output is not modelled; the allowlist is a fixed set;
+  `patch_filename`-style legacy stays refused elsewhere.
+
+  libxml2 (`v2.15.4`) exercised this: its lone `run_command('git',
+  'describe', check: false)` needs no config — the synth answers `v2.15.4`,
+  so `xmllint --version` reports `…-GITv2.15.4`. Getting it to *evaluate*
+  also took `index_list` regrouping a flattened list literal back into
+  positions when an element's value is configuration-dependent (`[want_c14n,
+  ['c14n.c']]`), and `format_string` interpolating an int/bool the way
+  `.format()` already does (`f'@so_version@.@age@.@v_mic@'`). It is in
+  `example/` now and every target `buck2 build`s on `//platforms:linux`
+  (gcc): `xml2` (the `.so`), `xmllint`, `xmlcatalog`, `testdso`, and the
+  `test*` / `runtest` / example binaries.
+
+- **A `..` quoted include in a checked-in header → real `-I` roots.** The
+  flat `headers`/`exported_headers` symlink tree keys each header by its
+  `#include` spelling, which cannot preserve the on-disk directory distance
+  a quoted `#include "../../x"` *inside* a header walks (libxml2's
+  `include/private/memory.h` → `#include "../../libxml.h"`; found via
+  `-Iinclude`, the `..` then only resolves against the real tree). decay
+  detects any `..` in a checked-in header's quoted includes during the
+  `build_target` `#include` scan (`Attrs.raw_include_roots`); `decay_buck2`
+  then holds that target's checked-in headers *out* of the dict (generated
+  headers stay) and instead emits `-I$(location :<repo>.git[<root>])` for
+  each of its include roots — `exported_preprocessor_flags` on a library
+  (reaches consumers, like meson's `declare_dependency(include_directories:)`),
+  `preprocessor_flags` on a `cxx_binary`. The fetch rule gains a directory
+  `sub_target` per non-root include dir. ponytail: the `-I` list also names
+  the repo root when `.` is an include root — broader than meson's own
+  export, harmless. Only libxml2 trips this today.
 
 - **No end-to-end import test.** The only tests are the `schedule` and
   `config` unit tests. An evaluator regression that breaks the `example/`

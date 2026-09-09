@@ -56,6 +56,7 @@ mod oracle;
 mod packages;
 mod pool;
 mod probe;
+mod run_command;
 mod schedule;
 mod sources;
 mod wrap_cache;
@@ -200,7 +201,7 @@ pub(crate) fn execute(
     };
     let checkout_ms = checkout_start.elapsed().as_millis();
 
-    let oracle = ConfigOracle::new(config, project, packages);
+    let oracle = ConfigOracle::new(config, project, packages, &dir);
     let sources = CountingSources::new(&DiskSources);
     let eval_start = Instant::now();
     let (mut graph, logic) = decay_meson_eval::eval(&oracle, &sources, &dir)

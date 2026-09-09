@@ -179,6 +179,11 @@ pub struct Attrs {
     pub sibling_headers: Variational<Source>,
     /// Include directories, relative to the project root.
     pub include_dirs: Variational<PathBuf>,
+    /// Set when a checked-in header of this target has a quoted `#include`
+    /// with `..`. The flat header symlink tree decay stages cannot reproduce
+    /// the on-disk layout such an include walks out of, so the target is
+    /// compiled against real `-I` roots into the fetched source tree instead.
+    pub raw_include_roots: bool,
     pub compile_args: Variational<Flag>,
     pub link_args: Variational<Flag>,
     pub deps: Variational<TargetId>,

@@ -132,11 +132,18 @@ libdir = "lib"
 datadir = "share"
 includedir = "include"
 
-# TODO: Needs run_command too.
-#
-#[[project]]
-#repo = "https://gitlab.gnome.org/GNOME/libxml2"
-#tag = "v2.15.4"
+# libxml2's one `run_command('git', 'describe')` is answered from the pinned
+# tag; `options` pins the feature options the importer would otherwise leave
+# open. `include/private/memory.h` does `#include "../../libxml.h"`, which the
+# flat `headers` dict cannot preserve — decay detects the `..` and compiles
+# the target against real `-I` roots into the git_fetch tree instead.
+[[project]]
+repo = "https://gitlab.gnome.org/GNOME/libxml2"
+tag = "v2.15.4"
+options = { docs = "disabled", python = "disabled" }
+# For a canned run_command answer instead of the git-describe synth:
+#   commands."git describe" = "v2.15.4"
+#   commands."cat VERSION"  = { stdout = "2.15.4", returncode = 0 }
 
 [[project]]
 repo = "https://github.com/ebassi/graphene"
