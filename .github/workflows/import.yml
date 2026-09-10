@@ -88,23 +88,31 @@ jobs:
           sudo mv buck2 /usr/local/bin/buck2
           buck2 --version
 
-      # Explicit target list: the projects AGENTS.md documents as green on
-      # //platforms:linux. Not `//...` -- decay.toml names //third-party/tools
-      # targets (nm, cargo, cp, gperf) that have no definitions, and
-      # //platforms:windows has no toolchain.
+      # Specific targets AGENTS.md documents as green on //platforms:linux --
+      # not package wildcards. `//third-party/meson/glib/...` would also pull
+      # girepository-2.0 (needs libffi wired, not done) and glib's ~30 fuzz_*
+      # harnesses (which #include unstaged .c files); neither is claimed to
+      # build. Transitive deps (gvdb, zlib, libxext, xorgproto, gobject-2.0,
+      # ...) come along automatically.
       - name: buck2 build
         run: |
           cd example && buck2 build \
             //third-party/meson/libglvnd/... \
-            //third-party/meson/graphene/... \
-            //third-party/meson/glib/... \
-            //third-party/meson/libxml2/... \
-            //third-party/meson/libepoxy/... \
-            //third-party/meson/pcre2/... \
-            //third-party/meson/zlib/... \
-            //third-party/meson/libxext/... \
-            //third-party/meson/xorgproto/... \
-            //third-party/meson/gvdb/...
+            //third-party/meson/libepoxy:epoxy \
+            //third-party/meson/graphene:graphene-1.0 \
+            //third-party/meson/glib:glib-2.0 \
+            //third-party/meson/glib:gobject-2.0 \
+            //third-party/meson/glib:gmodule-2.0 \
+            //third-party/meson/glib:gthread-2.0 \
+            //third-party/meson/glib:gio-2.0 \
+            //third-party/meson/libxml2:xml2 \
+            //third-party/meson/libxml2:xmllint \
+            //third-party/meson/libxml2:xmlcatalog \
+            //third-party/meson/libxml2:testdso \
+            //third-party/meson/pcre2:pcre2-8 \
+            //third-party/meson/pcre2:pcre2-16 \
+            //third-party/meson/pcre2:pcre2-32 \
+            //third-party/meson/pcre2:pcre2-posix
 
       - name: Stop buck2 daemon
         if: always()
