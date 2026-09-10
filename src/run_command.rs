@@ -35,7 +35,11 @@ pub fn git_describe(reference: &GitReference, argv: &[String]) -> RunAnswer {
 }
 
 fn ok(stdout: String) -> RunAnswer {
-    RunAnswer { code: 0, stdout, stderr: String::new() }
+    RunAnswer {
+        code: 0,
+        stdout,
+        stderr: String::new(),
+    }
 }
 
 /// Commands decay will actually run: output is a pure function of the pinned
@@ -60,7 +64,11 @@ pub fn run_readonly(root: &Path, argv: &[String]) -> Option<RunAnswer> {
             return None;
         }
     }
-    let out = Command::new(cmd).args(rest).current_dir(root).output().ok()?;
+    let out = Command::new(cmd)
+        .args(rest)
+        .current_dir(root)
+        .output()
+        .ok()?;
     Some(RunAnswer {
         code: out.status.code().unwrap_or(-1),
         stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
@@ -75,10 +83,16 @@ mod tests {
     #[test]
     fn describe_synth() {
         let tag = GitReference::Tag("v2.15.4".into());
-        assert_eq!(git_describe(&tag, &["git".into(), "describe".into()]).stdout, "v2.15.4");
+        assert_eq!(
+            git_describe(&tag, &["git".into(), "describe".into()]).stdout,
+            "v2.15.4"
+        );
 
         let rev = GitReference::Rev("a".repeat(40));
-        assert_eq!(git_describe(&rev, &["git".into(), "describe".into()]).code, 128);
+        assert_eq!(
+            git_describe(&rev, &["git".into(), "describe".into()]).code,
+            128
+        );
         assert_eq!(
             git_describe(&rev, &["git".into(), "describe".into(), "--always".into()]).stdout,
             "aaaaaaaaaaaa"

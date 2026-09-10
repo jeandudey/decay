@@ -332,8 +332,9 @@ impl<'a> ConfigOracle<'a> {
     /// time this is reached (see [`Oracle::probe`]).
     fn compile_probe_answer(&self, probe: &CompileProbe) -> Option<Probe> {
         let header = match &probe.kind {
-            CompileProbeKind::Header { header }
-            | CompileProbeKind::HeaderSymbol { header, .. } => Some(header),
+            CompileProbeKind::Header { header } | CompileProbeKind::HeaderSymbol { header, .. } => {
+                Some(header)
+            }
             _ => None,
         };
         if let Some(header) = header
@@ -547,8 +548,10 @@ fn collapse_full_axes(
         for i in 0..axes.len() {
             let domain: std::collections::BTreeSet<&str> =
                 axes[i].1.iter().map(String::as_str).collect();
-            let mut groups: std::collections::HashMap<Vec<String>, std::collections::BTreeSet<String>> =
-                std::collections::HashMap::new();
+            let mut groups: std::collections::HashMap<
+                Vec<String>,
+                std::collections::BTreeSet<String>,
+            > = std::collections::HashMap::new();
             for row in &rows {
                 if row.len() != axes.len() {
                     return (axes, rows);
@@ -659,7 +662,10 @@ mod tests {
     fn one_full_axis_dropped_the_other_kept() {
         // abi fully covered for the one cpu present; cpu not fully covered.
         let (axes, r) = collapse_full_axes(
-            ax(&[(probe::ABI_SETTING, &["gnu", "musl"]), ("cpu", &["x86_64", "arm64"])]),
+            ax(&[
+                (probe::ABI_SETTING, &["gnu", "musl"]),
+                ("cpu", &["x86_64", "arm64"]),
+            ]),
             rows(&[&["gnu", "x86_64"], &["musl", "x86_64"]]),
         );
         assert_eq!(axes.len(), 1);

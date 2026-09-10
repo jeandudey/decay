@@ -8,11 +8,11 @@
 //! per-run cache on top of [`decay_zig::zig`]'s bare `compiles` / `link`.
 
 use {
+    decay_meson_eval::oracle::CompileProbe,
     decay_zig::{
         Cpu,
         zig, //
     },
-    decay_meson_eval::oracle::CompileProbe,
     std::collections::HashMap,
 };
 
@@ -30,7 +30,10 @@ pub struct ProbeCache(HashMap<(String, String), bool>);
 
 impl ProbeCache {
     fn compiles(&mut self, triple: &str, snippet: &str, extra: &[&str]) -> bool {
-        let key = (triple.to_owned(), format!("{snippet}\u{0}{}", extra.join(" ")));
+        let key = (
+            triple.to_owned(),
+            format!("{snippet}\u{0}{}", extra.join(" ")),
+        );
         if let Some(hit) = self.0.get(&key) {
             return *hit;
         }
@@ -104,7 +107,10 @@ const GNUC_VERSION: &str = "-fgnuc-version=10.5.0";
 fn probe_targets(system: &str, cpu: Cpu) -> Vec<(&'static str, String)> {
     match system {
         "linux" => vec![
-            ("gnu", format!("{}-linux-{}", cpu.zig_arch(), cpu.glibc_abi())),
+            (
+                "gnu",
+                format!("{}-linux-{}", cpu.zig_arch(), cpu.glibc_abi()),
+            ),
             ("musl", cpu.musl_target()),
         ],
         "freebsd" => vec![("", format!("{}-freebsd", cpu.zig_arch()))],
@@ -217,7 +223,10 @@ mod tests {
     fn arch_isa_flags_gate_by_target() {
         // ARM `-mfpu=` only ever reaches an arm32 target.
         let neon = vec!["-mfpu=neon".to_owned(), "-D_GNU_SOURCE".to_owned()];
-        assert_eq!(flags_for_arch(&neon, "arm"), ["-mfpu=neon", "-D_GNU_SOURCE"]);
+        assert_eq!(
+            flags_for_arch(&neon, "arm"),
+            ["-mfpu=neon", "-D_GNU_SOURCE"]
+        );
         assert_eq!(flags_for_arch(&neon, "x86"), ["-D_GNU_SOURCE"]);
         assert_eq!(flags_for_arch(&neon, "aarch64"), ["-D_GNU_SOURCE"]);
 

@@ -109,7 +109,11 @@ impl Packages {
                         .iter()
                         .map(|s| match &s.value {
                             Source::File(path) => {
-                                format!("//{package}:{}.git[{}]", graph.project.name, path.display())
+                                format!(
+                                    "//{package}:{}.git[{}]",
+                                    graph.project.name,
+                                    path.display()
+                                )
                             }
                             Source::Generated(id) => {
                                 format!("//{package}:{}", graph.target(*id).name)

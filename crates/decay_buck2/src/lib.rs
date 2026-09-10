@@ -657,7 +657,11 @@ fn staged_deps(graph: &Graph, target: &Target) -> BTreeMap<String, TargetId> {
             return None;
         }
         let out = t.attrs.outs.first()?;
-        Some(format!("{}/{out}", t.package.display()).trim_start_matches('/').to_owned())
+        Some(
+            format!("{}/{out}", t.package.display())
+                .trim_start_matches('/')
+                .to_owned(),
+        )
     }
 
     let deps: BTreeMap<String, TargetId> = target
@@ -911,7 +915,8 @@ fn render_target<S: Solver>(
                 } else {
                     "linker_flags"
                 };
-                let mut list = selects.render_list(logic, &a.link_args, cond, 1, |f| flag(graph, f));
+                let mut list =
+                    selects.render_list(logic, &a.link_args, cond, 1, |f| flag(graph, f));
                 if matches!(target.kind, Kind::Executable) {
                     list.push_str(" + [\"-Wl,--allow-shlib-undefined\"]");
                 }
@@ -924,7 +929,10 @@ fn render_target<S: Solver>(
                 // runtime closure through the `$ORIGIN` symlink tree instead, so
                 // the executable link must not treat a transitive shared lib's
                 // own undefined symbols as errors.
-                attrs.push(("linker_flags", "[\"-Wl,--allow-shlib-undefined\"]".to_owned()));
+                attrs.push((
+                    "linker_flags",
+                    "[\"-Wl,--allow-shlib-undefined\"]".to_owned(),
+                ));
             }
 
             // `deps` and `link_with` differ in meson only by whether usage
@@ -1506,9 +1514,8 @@ fn command<S: Solver>(
         .iter()
         .map(|s| match &s.value {
             Source::File(path) => file_arg(graph, path),
-            Source::Generated(id) => {
-                staged_path(*id).unwrap_or_else(|| format!("$(location :{})", graph.target(*id).name))
-            }
+            Source::Generated(id) => staged_path(*id)
+                .unwrap_or_else(|| format!("$(location :{})", graph.target(*id).name)),
         })
         .collect();
 
@@ -1546,8 +1553,7 @@ fn command<S: Solver>(
                             None => name.clone(),
                         }
                     }
-                    _ => staged_path(*id)
-                        .unwrap_or_else(|| format!("$(location :{})", dep.name)),
+                    _ => staged_path(*id).unwrap_or_else(|| format!("$(location :{})", dep.name)),
                 }
             }
             CmdArg::File(path) => file_arg(graph, path),

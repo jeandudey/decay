@@ -466,8 +466,20 @@ impl<'de> Deserialize<'de> for CommandValue {
             },
         }
         Ok(match Raw::deserialize(de)? {
-            Raw::Stdout(stdout) => CommandValue { stdout, stderr: String::new(), returncode: 0 },
-            Raw::Full { stdout, stderr, returncode } => CommandValue { stdout, stderr, returncode },
+            Raw::Stdout(stdout) => CommandValue {
+                stdout,
+                stderr: String::new(),
+                returncode: 0,
+            },
+            Raw::Full {
+                stdout,
+                stderr,
+                returncode,
+            } => CommandValue {
+                stdout,
+                stderr,
+                returncode,
+            },
         })
     }
 }
@@ -897,10 +909,7 @@ mod tests {
 
         assert_eq!(deps["va"].target(), Some("//sys:va"));
         let found = deps["va"].found().expect("a found constraint");
-        assert_eq!(
-            found.setting().unwrap(),
-            Some("prelude//os/constraints:os")
-        );
+        assert_eq!(found.setting().unwrap(), Some("prelude//os/constraints:os"));
     }
 
     #[test]
@@ -1054,11 +1063,19 @@ mod tests {
         let c = &cfg.projects[0].commands;
         assert_eq!(
             c["cat VERSION"],
-            CommandValue { stdout: "2.15.4".into(), stderr: String::new(), returncode: 0 }
+            CommandValue {
+                stdout: "2.15.4".into(),
+                stderr: String::new(),
+                returncode: 0
+            }
         );
         assert_eq!(
             c["pkg-config --modversion foo"],
-            CommandValue { stdout: String::new(), stderr: "nope".into(), returncode: 1 }
+            CommandValue {
+                stdout: String::new(),
+                stderr: "nope".into(),
+                returncode: 1
+            }
         );
     }
 }

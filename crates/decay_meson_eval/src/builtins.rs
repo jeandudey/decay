@@ -259,7 +259,9 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .root
                 .join(self.dirs.last().unwrap())
                 .join(path.as_ref());
-            self.sources.read(&path).map(|v| Some(v.trim().to_string()))?
+            self.sources
+                .read(&path)
+                .map(|v| Some(v.trim().to_string()))?
         } else {
             self.opt_string(args, "version")?.map(|v| v.to_string())
         };
