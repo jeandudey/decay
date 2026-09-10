@@ -8,15 +8,14 @@ concurrency:
 
 jobs:
   import:
-    # 26.04 ships zig 0.15.2 (what decay is developed against) in its repos.
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
       # libz3-dev/python3-dev/pkg-config: build the workspace (z3-sys, pyo3).
       # unzip/zstd: decay extracts wrap archives; zstd also unpacks the buck2
-      # binary. zig: decay's import-time compile/link probes.
+      # binary.
       # libx11-dev/libegl-dev: the only system libraries the generated example/
       # tree links (`-lX11`, `-lEGL` via //third-party/system) -- everything
       # else (glib, its codegen tools, zlib, ...) is imported from source.
@@ -24,12 +23,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libz3-dev python3-dev pkg-config \
-            unzip zstd zig \
+            unzip zstd \
             libx11-dev libegl-dev
 
+      # decay's import-time compile/link probes. Official tarball, not a distro
+      # package (which strips the bundled cross-libc headers). 0.15.2 is what
+      # decay is developed against.
+      - name: Install zig
+        run: |
+          curl -fsSL -o zig.tar.xz https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz
+          echo "02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239  zig.tar.xz" | sha256sum -c -
+          tar -xf zig.tar.xz
+          echo "$PWD/zig-x86_64-linux-0.15.2" >> "$GITHUB_PATH"
+
       # decay_meson_parse imports `mesonbuild` from the embedded interpreter.
-      # Must land in the same python3 pyo3 links against -- plain pip, not pipx.
-      - run: pip install meson
+      # Pinned: meson's mparser AST shape drifts between releases (1.11 changed
+      # arithmetic operators from "add" to "+"), and the committed golden tree
+      # was generated with 1.10.1. Bump this and regenerate the tree together.
+      # Plain pip so it lands in the same python3 pyo3 links against.
+      - run: pip install 'meson==1.10.1'
 
       - uses: dtolnay/rust-toolchain@stable
 
