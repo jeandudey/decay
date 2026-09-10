@@ -1,0 +1,95 @@
+name: import
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # libz3-dev/python3-dev/pkg-config: build the workspace (z3-sys, pyo3).
+      # gperf/unzip/zstd + glib tools + X11/GL/EGL/ffi/z headers: `buck2 build`
+      # of the generated example/ tree (system tool + library shims).
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libz3-dev python3-dev pkg-config \
+            gperf unzip zstd \
+            libglib2.0-dev libglib2.0-dev-bin \
+            libx11-dev libgl-dev libegl-dev libffi-dev zlib1g-dev
+
+      # decay_meson_parse imports `mesonbuild` from the embedded interpreter.
+      # Must land in the same python3 pyo3 links against -- plain pip, not pipx.
+      - run: pip install meson
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - uses: Swatinem/rust-cache@v2
+
+      # decay's own git/wrap fetch cache (~/.cache/decay). A miss just means a
+      # slower fetch, so the key can be coarse.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/decay
+          key: decay-cache-${{ hashFiles('example/decay.toml') }}
+          restore-keys: decay-cache-
+
+      - run: cargo build --release --bin decay
+
+      # Run the importer (reads ./decay.toml + ./decay.lock, writes the BUCK
+      # tree in place). decay.lock is gitignored and re-resolved each run.
+      - run: cd example && ../target/release/decay
+
+      # The generated tree is committed; fail if decay's output drifted from it.
+      # This is the "no end-to-end import test" gap in AGENTS.md.
+      - name: Golden tree unchanged
+        run: git diff --exit-code -- example/
+
+      - name: Install buck2
+        env:
+          # buck2 publishes no versioned releases -- the `latest` tag is
+          # force-updated in place. Pin by sha256 of the linux-gnu binary.
+          # To bump: download the new .zst, `sha256sum` it, update this, and
+          # confirm the golden tree still builds.
+          # Current binary: 2026-09-10-9b2f02c61f016bf4c7302480d2e6dc54de8edc64
+          BUCK2_SHA256: f1f56ee79034420eb826c536128abb1340cdd810d64c039ee3486bda19f4832b
+        run: |
+          curl -fsSL -o buck2.zst \
+            https://github.com/facebook/buck2/releases/download/latest/buck2-x86_64-unknown-linux-gnu.zst
+          echo "${BUCK2_SHA256}  buck2.zst" | sha256sum -c -
+          zstd -dq buck2.zst -o buck2
+          chmod +x buck2
+          sudo mv buck2 /usr/local/bin/buck2
+          buck2 --version
+
+      # Explicit target list: the projects AGENTS.md documents as green on
+      # //platforms:linux. Not `//...` -- decay.toml names //third-party/tools
+      # targets (nm, cargo, cp, gperf) that have no definitions, and
+      # //platforms:windows has no toolchain.
+      - name: buck2 build
+        run: |
+          cd example && buck2 build \
+            //third-party/meson/libglvnd/... \
+            //third-party/meson/graphene/... \
+            //third-party/meson/glib/... \
+            //third-party/meson/libxml2/... \
+            //third-party/meson/libepoxy/... \
+            //third-party/meson/pcre2/... \
+            //third-party/meson/zlib/... \
+            //third-party/meson/libxext/... \
+            //third-party/meson/xorgproto/... \
+            //third-party/meson/gvdb/...
+
+      - name: Stop buck2 daemon
+        if: always()
+        run: cd example && buck2 kill || true
