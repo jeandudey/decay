@@ -132,6 +132,24 @@ libdir = "lib"
 datadir = "share"
 includedir = "include"
 
+# TODO:
+#   Error: Failed to import `icu`
+#
+#   Caused by:
+#      0: Failed to execute `icu`
+#      1: in /meson.build
+#      2: in `subdir()` at /meson.build:124:0
+#      3: in source/meson.build
+#      4: in `subdir()` at source/meson.build:18:0
+#      5: in source/data/meson.build
+#      6: in `.format()` at source/data/meson.build:11:37
+#      7: `@CURRENT_SOURCE_DIR@` is not a positional hole
+#
+#   Location:
+#       crates/decay_meson_eval/src/strings.rs:70:38 
+#[[project]]
+#wrap = "icu"
+
 # libxml2's one `run_command('git', 'describe')` is answered from the pinned
 # tag; `options` pins the feature options the importer would otherwise leave
 # open. `include/private/memory.h` does `#include "../../libxml.h"`, which the
@@ -140,7 +158,8 @@ includedir = "include"
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/libxml2"
 tag = "v2.15.4"
-options = { docs = "disabled", python = "disabled" }
+options = { c14n = "enabled", catalog = "enabled", debugging = "disabled", docs = "disabled", html = "enabled", http = "enabled", iso8859x = "disabled", legacy = "disabled", minimum = false, modules = "enabled", output = "enabled", pattern = "enabled", push = "enabled", python = "disabled", reader = "enabled", readline = "disabled", regexps = "enabled", relaxng = "enabled", sax1 = "enabled", schemas = "enabled", schematron = "enabled", threads = "enabled", thread-alloc = "enabled", tls = "enabled", valid = "enabled", writer = "enabled", xinclude = "enabled", xpath = "enabled", xptr = "enabled", zlib = "enabled" }
+depends = ["zlib"]
 # For a canned run_command answer instead of the git-describe synth:
 #   commands."git describe" = "v2.15.4"
 #   commands."cat VERSION"  = { stdout = "2.15.4", returncode = 0 }
