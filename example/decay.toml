@@ -158,7 +158,7 @@ includedir = "include"
 [[project]]
 repo = "https://gitlab.gnome.org/GNOME/libxml2"
 tag = "v2.15.4"
-options = { c14n = "enabled", catalog = "enabled", debugging = "disabled", docs = "disabled", html = "enabled", http = "enabled", iso8859x = "disabled", legacy = "disabled", minimum = false, modules = "enabled", output = "enabled", pattern = "enabled", push = "enabled", python = "disabled", reader = "enabled", readline = "disabled", regexps = "enabled", relaxng = "enabled", sax1 = "enabled", schemas = "enabled", schematron = "enabled", threads = "enabled", thread-alloc = "enabled", tls = "enabled", valid = "enabled", writer = "enabled", xinclude = "enabled", xpath = "enabled", xptr = "enabled", zlib = "enabled" }
+options = { c14n = "enabled", catalog = "enabled", debugging = "disabled", docs = "disabled", html = "enabled", http = "enabled", iconv = "auto", iso8859x = "disabled", legacy = "disabled", minimum = false, modules = "enabled", output = "enabled", pattern = "enabled", push = "enabled", python = "disabled", reader = "enabled", readline = "disabled", regexps = "enabled", relaxng = "enabled", sax1 = "enabled", schemas = "enabled", schematron = "enabled", threads = "enabled", thread-alloc = "enabled", tls = "enabled", valid = "enabled", writer = "enabled", xinclude = "enabled", xpath = "enabled", xptr = "enabled", zlib = "enabled" }
 depends = ["zlib"]
 # For a canned run_command answer instead of the git-describe synth:
 #   commands."git describe" = "v2.15.4"

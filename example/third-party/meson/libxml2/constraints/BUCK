@@ -11,11 +11,3 @@ constraint(
     default = "disabled",
     visibility = ["PUBLIC"],
 )
-
-# build option `option:iconv`: iconv support
-constraint(
-    name = "iconv",
-    values = ["enabled", "disabled", "auto"],
-    default = "auto",
-    visibility = ["PUBLIC"],
-)
