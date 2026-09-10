@@ -2276,35 +2276,6 @@ fn mesondefine_names(text: &str) -> BTreeSet<String> {
         .collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{is_resource_file, mesondefine_names};
-    use std::{collections::BTreeSet, path::Path};
-
-    #[test]
-    fn only_dot_rc_is_a_resource_file() {
-        assert!(is_resource_file(Path::new("build-aux/win32/app.rc")));
-        assert!(is_resource_file(Path::new("glib.rc")));
-        assert!(!is_resource_file(Path::new("app.c")));
-        assert!(!is_resource_file(Path::new("resource.h")));
-        assert!(!is_resource_file(Path::new("lib.rc.in")));
-        assert!(!is_resource_file(Path::new("norc")));
-    }
-
-    #[test]
-    fn finds_only_valid_mesondefine_directives() {
-        let names = mesondefine_names(
-            "\n  #mesondefine ENABLE_FEATURE\n#mesondefine _PRIVATE 1\n\
-             #mesondefine 1INVALID\n#mesondefine ALSO-INVALID\n#mesondefineNOT_A_DIRECTIVE\n\
-             # mesondefine COMMENT\n",
-        );
-        assert_eq!(
-            names,
-            BTreeSet::from(["ENABLE_FEATURE".to_owned(), "_PRIVATE".to_owned()])
-        );
-    }
-}
-
 /// Every `#define` whose value does not depend on the configuration, as the
 /// plain text it would substitute into a `.in` template — the same rule
 /// `decay_buck2` renders a template substitution with, so resolving one here
@@ -2572,5 +2543,34 @@ fn combo(choices: &[&str], value: &str) -> ProjectOptionKind {
     ProjectOptionKind::Combo {
         choices: choices.iter().map(|s| s.to_string()).collect(),
         value: value.to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_resource_file, mesondefine_names};
+    use std::{collections::BTreeSet, path::Path};
+
+    #[test]
+    fn only_dot_rc_is_a_resource_file() {
+        assert!(is_resource_file(Path::new("build-aux/win32/app.rc")));
+        assert!(is_resource_file(Path::new("glib.rc")));
+        assert!(!is_resource_file(Path::new("app.c")));
+        assert!(!is_resource_file(Path::new("resource.h")));
+        assert!(!is_resource_file(Path::new("lib.rc.in")));
+        assert!(!is_resource_file(Path::new("norc")));
+    }
+
+    #[test]
+    fn finds_only_valid_mesondefine_directives() {
+        let names = mesondefine_names(
+            "\n  #mesondefine ENABLE_FEATURE\n#mesondefine _PRIVATE 1\n\
+             #mesondefine 1INVALID\n#mesondefine ALSO-INVALID\n#mesondefineNOT_A_DIRECTIVE\n\
+             # mesondefine COMMENT\n",
+        );
+        assert_eq!(
+            names,
+            BTreeSet::from(["ENABLE_FEATURE".to_owned(), "_PRIVATE".to_owned()])
+        );
     }
 }

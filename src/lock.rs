@@ -307,21 +307,16 @@ pub fn resolve(
                         // A `[wrap-git]` `revision` may name a branch or tag,
                         // same as a `[[project]]`'s own `rev` — pin it to the
                         // commit it currently names, once, right here.
-                        if let WrapSource::Git { url, revision } = &mut file.source {
-                            if !is_full_sha(revision) {
-                                let repo = Repo(Url::parse(url).wrap_err_with(|| {
-                                    format!(
-                                        "`{url}` (the `[wrap-git]` url for `{name}`) is not a URL"
-                                    )
-                                })?);
-                                *revision = git_cache::resolve_rev(&repo, revision).wrap_err_with(
-                                    || {
-                                        format!(
-                                            "Failed to resolve `{revision}` for the `{name}` wrap"
-                                        )
-                                    },
-                                )?;
-                            }
+                        if let WrapSource::Git { url, revision } = &mut file.source
+                            && !is_full_sha(revision)
+                        {
+                            let repo = Repo(Url::parse(url).wrap_err_with(|| {
+                                format!("`{url}` (the `[wrap-git]` url for `{name}`) is not a URL")
+                            })?);
+                            *revision =
+                                git_cache::resolve_rev(&repo, revision).wrap_err_with(|| {
+                                    format!("Failed to resolve `{revision}` for the `{name}` wrap")
+                                })?;
                         }
                         info!(name, version = resolved_version, "locked");
                         lock.wraps.retain(|w| &w.name != name);

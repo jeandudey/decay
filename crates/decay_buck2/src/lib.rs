@@ -593,14 +593,14 @@ fn render_dep_ref(graph: &Graph, known: &Labels, id: TargetId) -> String {
     // each; valid Starlark, buildifier reflows it. Splitting them properly
     // means threading the extra labels back as `TargetId`s, which `Labels`
     // does not carry.
-    if let Kind::External(_) = &target.kind {
-        if let Some(actual) = known.dependencies.get(&target.label) {
-            return actual
-                .iter()
-                .map(|label| format!("{label:?}"))
-                .collect::<Vec<_>>()
-                .join(", ");
-        }
+    if let Kind::External(_) = &target.kind
+        && let Some(actual) = known.dependencies.get(&target.label)
+    {
+        return actual
+            .iter()
+            .map(|label| format!("{label:?}"))
+            .collect::<Vec<_>>()
+            .join(", ");
     }
     // Everything else uses the short name.
     format!("\":{}\"", target.name)
@@ -677,10 +677,10 @@ fn staged_deps(graph: &Graph, target: &Target) -> BTreeMap<String, TargetId> {
     // The script the command runs has to be staged too, next to its package.
     let mut staged = deps;
     for entry in target.attrs.cmd.iter() {
-        if let CmdArg::Target(id) = &entry.value {
-            if let Some(path) = stage_path(graph, *id) {
-                staged.insert(path, *id);
-            }
+        if let CmdArg::Target(id) = &entry.value
+            && let Some(path) = stage_path(graph, *id)
+        {
+            staged.insert(path, *id);
         }
     }
     staged
@@ -1203,7 +1203,13 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
         // `-liconv` / `-lintl` on the rest. `os` is a prelude constraint,
         // always available without decay declaring one.
         External::Iconv => {
-            render_libc_or_lib(&mut out, target, external, &["linux", "freebsd", "netbsd"], "iconv");
+            render_libc_or_lib(
+                &mut out,
+                target,
+                external,
+                &["linux", "freebsd", "netbsd"],
+                "iconv",
+            );
         }
         External::Intl => {
             render_libc_or_lib(&mut out, target, external, &["linux"], "intl");
@@ -1334,7 +1340,8 @@ fn describe_external(external: &External) -> String {
         External::SystemLibrary { name } => format!("find_library({name:?})"),
         External::Threads => "dependency('threads') — the platform's threading support".to_owned(),
         External::Iconv => {
-            "dependency('iconv') — the platform's iconv (libc, or -liconv on macOS/Windows)".to_owned()
+            "dependency('iconv') — the platform's iconv (libc, or -liconv on macOS/Windows)"
+                .to_owned()
         }
         External::Intl => {
             "dependency('intl') — the platform's gettext (libc, or -lintl elsewhere)".to_owned()

@@ -398,7 +398,7 @@ impl Oracle for ConfigOracle<'_> {
                 let setting = cases[0].0.setting.as_str();
                 let mut domain = self.config.constraint_domain(setting);
                 for (value, _) in cases {
-                    if !domain.iter().any(|d| *d == value.value) {
+                    if !domain.contains(&value.value) {
                         domain.push(value.value.clone());
                     }
                 }
@@ -524,6 +524,11 @@ impl Oracle for ConfigOracle<'_> {
     }
 }
 
+/// A compile-probe matrix axis: a constraint setting and its value domain.
+type Axis = (String, Vec<String>);
+/// Matrix rows: each row picks one value per axis, in axis order.
+type MatrixRows = Vec<Vec<String>>;
+
 /// Drop any axis of a compile-probe matrix whose entire real domain is
 /// covered for every combination of the other axes — the probe compiled
 /// *everywhere* along it, so selecting on it distinguishes nothing. This
@@ -537,10 +542,7 @@ impl Oracle for ConfigOracle<'_> {
 /// is emitted. The `constraint_var` fallback value (`ANY_OTHER`) is what
 /// otherwise keeps such a probe non-tautological forever — every attribute
 /// touching it would grow an `abi` — then `cpu` — `select()`.
-fn collapse_full_axes(
-    mut axes: Vec<(String, Vec<String>)>,
-    mut rows: Vec<Vec<String>>,
-) -> (Vec<(String, Vec<String>)>, Vec<Vec<String>>) {
+fn collapse_full_axes(mut axes: Vec<Axis>, mut rows: MatrixRows) -> (Vec<Axis>, MatrixRows) {
     if rows.is_empty() {
         return (axes, rows);
     }

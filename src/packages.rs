@@ -68,9 +68,10 @@ impl Packages {
     /// Every provided name that contributes copylib `.c` sources, as
     /// `(name, refs)`.
     pub fn source_groups(&self) -> impl Iterator<Item = (String, Vec<String>)> + '_ {
-        self.by_name.iter().filter_map(|(name, pkg)| {
-            (!pkg.sources.is_empty()).then(|| (name.clone(), pkg.sources.clone()))
-        })
+        self.by_name
+            .iter()
+            .filter(|&(_name, pkg)| !pkg.sources.is_empty())
+            .map(|(name, pkg)| (name.clone(), pkg.sources.clone()))
     }
 
     /// Record what one project provides, once it has finished executing.
