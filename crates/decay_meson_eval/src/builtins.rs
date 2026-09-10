@@ -1649,6 +1649,41 @@ impl<'a, S: Solver> Interp<'a, S> {
             return Ok(self.pure(value));
         }
 
+        // `dependency('iconv')` / `dependency('intl')` are likewise resolved
+        // internally by meson, not through pkg-config: both are part of libc
+        // on glibc/musl (iconv also on the BSDs) and a standalone `-liconv` /
+        // `-lintl` elsewhere, but always available. Builtin target, never a
+        // "found" knob.
+        let builtin_lib = match &*name {
+            "iconv" => Some(External::Iconv),
+            "intl" => Some(External::Intl),
+            _ => None,
+        };
+        if let Some(kind) = builtin_lib
+            && self.oracle.dependency_found(&name).is_none()
+        {
+            let target = self.external(&format!("dep:{name}"), &name, kind);
+            let value = self.dep_obj(Dep {
+                name: name.to_string(),
+                found: self.pc,
+                target,
+                type_name: "library",
+                version: None,
+                variables: Vec::new(),
+            });
+            return Ok(self.pure(value));
+        }
+
+        // `dependency('dl')` (meson 0.62+ builtin) resolves internally to the
+        // platform's dlopen support — libdl on glibc/musl, folded into libc
+        // elsewhere. That is exactly `cc.find_library('dl')`, so share the
+        // `lib:` key: a project that calls both (libxml2 does) gets one
+        // target and one settled per-system answer, no knob.
+        if &*name == "dl" && self.oracle.dependency_found(&name).is_none() {
+            let value = self.resolve_system_library(&name, required)?;
+            return Ok(self.pure(value));
+        }
+
         let (key, kind, type_name) = if &*name == "appleframeworks" {
             let modules: Vec<String> = match args.get("modules") {
                 Some(v) => self
@@ -1698,6 +1733,45 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// Where it was `required:`, a build that does not have it fails to
     /// configure at all — so rather than tracking a "found" flag that can never
     /// be false there, the configuration space is narrowed to say so.
+    /// `cc.find_library(name)` / the `dependency('dl')` builtin: a system or
+    /// C-runtime library is a fact about the target, so ask the oracle for a
+    /// settled per-system answer first and only fall back to an open "found"
+    /// knob when it has nothing.
+    pub(crate) fn resolve_system_library(
+        &mut self,
+        libname: &str,
+        required: Pc,
+    ) -> eyre::Result<Value> {
+        let key = format!("lib:{libname}");
+        let target = self.external(
+            &key,
+            libname,
+            External::SystemLibrary {
+                name: libname.to_string(),
+            },
+        );
+        let found = match self.oracle.system_library(libname) {
+            Some(answer) => {
+                let desc = format!("`{libname}` is available");
+                let found = self.resolve_probe(Some(answer), &key, desc)?;
+                if !required.is_false() {
+                    let must = self.logic.implies(required, found);
+                    self.logic.assume(must);
+                }
+                found
+            }
+            None => self.dependency_found(&key, libname, required)?,
+        };
+        Ok(self.dep_obj(Dep {
+            name: libname.to_string(),
+            found,
+            target,
+            type_name: "library",
+            version: None,
+            variables: Vec::new(),
+        }))
+    }
+
     pub(crate) fn dependency_found(
         &mut self,
         key: &str,

@@ -163,6 +163,14 @@ pub enum External {
     /// found: `-pthread` on every toolchain except MSVC, where threads are in
     /// the CRT and the flag is not understood.
     Threads,
+    /// `dependency('iconv')` — meson's builtin iconv dependency, always found:
+    /// the iconv API is in libc on glibc/musl and the BSDs, a standalone
+    /// `-liconv` on macOS / Windows.
+    Iconv,
+    /// `dependency('intl')` — meson's builtin gettext dependency, always found:
+    /// the gettext runtime is in libc on glibc/musl, a standalone `-lintl`
+    /// everywhere else (the BSDs, macOS, Windows).
+    Intl,
     /// `find_program('doxygen')`.
     Program { name: String, path: Option<PathBuf> },
 }

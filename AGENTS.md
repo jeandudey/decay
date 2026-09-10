@@ -769,9 +769,23 @@ constraint(
   - **Slice 2** — a mingw-w64 `.def`-name source in `decay_zig` (read from
     the zig install the same way `abilists` is) for Windows *OS* libs the
     link probe misses, and to drop the live probe for the ones it covers.
-  - **Slice 3** — `iconv` / `intl` as `threads`-style builtins (in libc on
-    glibc/musl, `-liconv` / `-lintl` on macOS/Windows). They still come
-    through `dependency()` as `dep:iconv` knobs.
+  - **Slice 3 — done.** `iconv`, `intl` and `dl` are `threads`-style builtins
+    now, all in `fn_dependency` (`decay_meson_eval/src/builtins.rs`):
+    - `dependency('iconv')` / `dependency('intl')` →
+      `External::Iconv` / `External::Intl`, always found, no `dep:` knob;
+      `decay_buck2::render_libc_or_lib` emits a `cxx_library` with empty
+      `exported_linker_flags` on the OSes that fold the runtime into libc
+      (`os[linux]`/`freebsd`/`netbsd` for iconv, `os[linux]` for intl) and
+      `-liconv` / `-lintl` on `DEFAULT`.
+    - `dependency('dl')` (meson 0.62+ builtin) routes through the *same*
+      `system_library` oracle path `cc.find_library('dl')` uses — shared
+      helper `Interp::resolve_system_library`, shared `lib:dl` key — so a
+      project that calls both (libxml2) gets one target and one settled
+      per-system answer (`Probe::PerSystem` from `builtin_system_library`),
+      no `dep:dl` knob. Retired `example/platforms/BUCK`'s hand-pinned
+      `dl[true]`.
+
+    All still overridable with `dependencies.<name> = "//x"`.
   - **`cc.compute_int` / non-hostable systems**: `builtin_system_library`
     settles a non-hostable system to not-found when `[system_libraries]` is
     silent, rather than erroring. Revisit if that proves too permissive.

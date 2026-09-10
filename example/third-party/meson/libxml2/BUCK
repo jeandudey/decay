@@ -197,18 +197,10 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("dl") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.dl = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "dl",
-    visibility = ["PUBLIC"],
-)
-
 # meson: find_library("dl")
 # `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
-    name = "dl-2",
+    name = "dl",
     exported_linker_flags = select({
         "prelude//abi/constraints:abi[msvc]": [],
         "DEFAULT": ["-ldl"],
@@ -238,11 +230,15 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("iconv") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.iconv = "//some:target"`
-# in decay.toml, or edit it here.
+# meson: dependency('iconv') — the platform's iconv (libc, or -liconv on macOS/Windows)
 cxx_library(
     name = "iconv",
+    exported_linker_flags = select({
+        "prelude//os/constraints:os[linux]": [],
+        "prelude//os/constraints:os[freebsd]": [],
+        "prelude//os/constraints:os[netbsd]": [],
+        "DEFAULT": ["-liconv"],
+    }),
     visibility = ["PUBLIC"],
 )
 
@@ -386,13 +382,7 @@ cxx_library(
         "//third-party/meson/zlib:z",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:dl[true]": [],
-            "//third-party/meson/constraints:dl[false]": [":dl-2"],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:dl[true]": [":dl"],
-        "//third-party/meson/constraints:dl[false]": [],
+        "DEFAULT": [":dl"],
     }) + select({
         "//third-party/meson/libxml2/constraints:icu[enabled]": select({
             "//third-party/meson/constraints:icu_uc[true]": [":icu-uc"],
@@ -401,11 +391,9 @@ cxx_library(
         "//third-party/meson/libxml2/constraints:icu[disabled]": [],
         "//third-party/meson/libxml2/constraints:icu[auto]": [],
     }) + select({
+        "//third-party/meson/libxml2/constraints:iconv[enabled]": [":iconv"],
         "//third-party/meson/libxml2/constraints:iconv[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:iconv[true]": [":iconv"],
-            "//third-party/meson/constraints:iconv[false]": [],
-        }),
+        "//third-party/meson/libxml2/constraints:iconv[auto]": [":iconv"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],

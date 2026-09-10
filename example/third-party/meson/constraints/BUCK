@@ -22,25 +22,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:dl`: `dl` is available
-constraint(
-    name = "dl",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # external dependency `dep:icu-uc`: `icu-uc` is available
 constraint(
     name = "icu_uc",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# external dependency `dep:iconv`: `iconv` is available
-constraint(
-    name = "iconv",
     values = ["true", "false"],
     default = "false",
     visibility = ["PUBLIC"],

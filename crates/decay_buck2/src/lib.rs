@@ -1190,6 +1190,16 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
             let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
             let _ = writeln!(out, ")");
         }
+        // `dependency('iconv')` / `dependency('intl')`: the runtime is folded
+        // into libc on some systems (nothing to link) and a standalone
+        // `-liconv` / `-lintl` on the rest. `os` is a prelude constraint,
+        // always available without decay declaring one.
+        External::Iconv => {
+            render_libc_or_lib(&mut out, target, external, &["linux", "freebsd", "netbsd"], "iconv");
+        }
+        External::Intl => {
+            render_libc_or_lib(&mut out, target, external, &["linux"], "intl");
+        }
         // A `find_library()` for something POSIX toolchains split out of libc
         // but MSVC folds into the CRT: meson's own `find_library` returns
         // not-found for these on MSVC, so the target must contribute nothing
@@ -1270,6 +1280,29 @@ fn is_crt_provided_lib(name: &str) -> bool {
     )
 }
 
+/// A builtin `cxx_library` for a runtime library (`iconv`, `intl`) that some
+/// systems fold into libc and others ship standalone: empty
+/// `exported_linker_flags` on each OS in `in_libc`, `-l<lib>` on `DEFAULT`.
+fn render_libc_or_lib(
+    out: &mut String,
+    target: &Target,
+    external: &External,
+    in_libc: &[&str],
+    lib: &str,
+) {
+    let _ = writeln!(out, "# meson: {}", describe_external(external));
+    let _ = writeln!(out, "cxx_library(");
+    let _ = writeln!(out, "    name = {:?},", target.name);
+    let _ = writeln!(out, "    exported_linker_flags = select({{");
+    for os in in_libc {
+        let _ = writeln!(out, "        \"prelude//os/constraints:os[{os}]\": [],");
+    }
+    let _ = writeln!(out, "        \"DEFAULT\": [\"-l{lib}\"],");
+    let _ = writeln!(out, "    }}),");
+    let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
+    let _ = writeln!(out, ")");
+}
+
 /// A `select()` yielding `flags` everywhere except the MSVC ABI, where it is
 /// empty. `abi` is a prelude constraint, so it is always available without
 /// decay declaring one.
@@ -1292,6 +1325,12 @@ fn describe_external(external: &External) -> String {
         }
         External::SystemLibrary { name } => format!("find_library({name:?})"),
         External::Threads => "dependency('threads') — the platform's threading support".to_owned(),
+        External::Iconv => {
+            "dependency('iconv') — the platform's iconv (libc, or -liconv on macOS/Windows)".to_owned()
+        }
+        External::Intl => {
+            "dependency('intl') — the platform's gettext (libc, or -lintl elsewhere)".to_owned()
+        }
         External::Framework { modules } => {
             format!("dependency('appleframeworks', modules: {modules:?})")
         }

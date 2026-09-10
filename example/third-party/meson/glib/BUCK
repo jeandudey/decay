@@ -3055,11 +3055,15 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("iconv") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.iconv = "//some:target"`
-# in decay.toml, or edit it here.
+# meson: dependency('iconv') — the platform's iconv (libc, or -liconv on macOS/Windows)
 cxx_library(
     name = "iconv",
+    exported_linker_flags = select({
+        "prelude//os/constraints:os[linux]": [],
+        "prelude//os/constraints:os[freebsd]": [],
+        "prelude//os/constraints:os[netbsd]": [],
+        "DEFAULT": ["-liconv"],
+    }),
     visibility = ["PUBLIC"],
 )
 
@@ -3091,11 +3095,13 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("intl") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.intl = "//some:target"`
-# in decay.toml, or edit it here.
+# meson: dependency('intl') — the platform's gettext (libc, or -lintl elsewhere)
 cxx_library(
     name = "intl",
+    exported_linker_flags = select({
+        "prelude//os/constraints:os[linux]": [],
+        "DEFAULT": ["-lintl"],
+    }),
     visibility = ["PUBLIC"],
 )
 

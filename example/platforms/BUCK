@@ -25,7 +25,6 @@ platform(
         "prelude//abi/constraints:abi[gnu]",
         # `x11`, `egl`, `gl` are answered by decay.toml's `[dependencies]`, so
         # they are always found and leave no constraint to pin here.
-        "//third-party/meson/constraints:dl[true]",
         "//third-party/meson/libepoxy/constraints:egl[yes]",
     ],
     deps = ["prelude//platforms:default"],

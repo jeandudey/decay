@@ -3,7 +3,6 @@ use {
         Interp,
         args::CallArgs,
         obj::{
-            Dep,
             Entry,
             Lang,
             Machine,
@@ -19,7 +18,6 @@ use {
         },
         val::Value,
     },
-    decay_build_ir::External,
     decay_meson_ast::Loc,
     decay_meson_logic::{
         ANY_OTHER,
@@ -991,38 +989,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 // `required:` accepts a bool or a feature option, same as
                 // `dependency()` / `find_program()`.
                 let required = self.required(args)?;
-                let key = format!("lib:{libname}");
-                let target = self.external(
-                    &key,
-                    &libname,
-                    External::SystemLibrary {
-                        name: libname.to_string(),
-                    },
-                );
-                // A library the C runtime splits out or the OS itself ships
-                // is a fact about the target system, not a knob. Ask the
-                // oracle first; only fall back to an open "found" variable
-                // when it has nothing.
-                let found = match self.oracle.system_library(&libname) {
-                    Some(answer) => {
-                        let desc = format!("`{libname}` is available");
-                        let found = self.resolve_probe(Some(answer), &key, desc)?;
-                        if !required.is_false() {
-                            let must = self.logic.implies(required, found);
-                            self.logic.assume(must);
-                        }
-                        found
-                    }
-                    None => self.dependency_found(&key, &libname, required)?,
-                };
-                let value = self.dep_obj(Dep {
-                    name: libname.to_string(),
-                    found,
-                    target,
-                    type_name: "library",
-                    version: None,
-                    variables: Vec::new(),
-                });
+                let value = self.resolve_system_library(&libname, required)?;
                 Ok(self.pure(value))
             }
 
