@@ -19,12 +19,17 @@ jobs:
       # libx11-dev/libegl-dev: the only system libraries the generated example/
       # tree links (`-lX11`, `-lEGL` via //third-party/system) -- everything
       # else (glib, its codegen tools, zlib, ...) is imported from source.
+      # gcc-14: the runner default (13) has no <stdckdint.h>, which glib 2.88
+      # includes; make 14 the `gcc`/`g++` the buck2 toolchain picks up.
       - run: |
           sudo apt-get update
           sudo apt-get install -y \
             libz3-dev python3-dev pkg-config \
             unzip zstd \
-            libx11-dev libegl-dev
+            libx11-dev libegl-dev \
+            gcc-14 g++-14
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
       # decay's import-time compile/link probes. Official tarball, not a distro
       # package (which strips the bundled cross-libc headers). 0.15.2 is what
