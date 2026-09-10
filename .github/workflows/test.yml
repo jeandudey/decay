@@ -8,25 +8,20 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # 26.04 ships zig 0.15.2 (the version decay is developed against) in its
+    # repos; decay_zig's unit tests shell out to `zig` and panic without it.
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
 
-      # z3-sys links system libz3 via pkg-config; pyo3 needs a Python at build time.
-      - run: sudo apt-get update && sudo apt-get install -y libz3-dev python3-dev pkg-config
+      # libz3-dev/python3-dev/pkg-config: z3-sys + pyo3 build scripts.
+      - run: sudo apt-get update && sudo apt-get install -y libz3-dev python3-dev pkg-config zig
 
       # decay_meson_parse imports `mesonbuild` from the embedded interpreter.
-      # Must land in the same python3 pyo3 links against (the hosted-tool-cache
-      # one on ubuntu-latest) -- so plain pip, not pipx/a venv.
+      # Must land in the same python3 pyo3 links against -- plain pip, not pipx.
       - run: pip install meson
 
       - uses: dtolnay/rust-toolchain@stable
-
-      # decay_zig's unit tests shell out to `zig` (read abilists, run link
-      # probes) and panic without it. Developed against 0.15.2.
-      - uses: mlugg/setup-zig@v2
-        with:
-          version: 0.15.2
 
       - uses: Swatinem/rust-cache@v2
 
