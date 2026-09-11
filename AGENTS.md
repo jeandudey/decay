@@ -495,12 +495,14 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   consumer's `deps` — `<glib-object.h>` was otherwise unreachable. The
   `pkg.generate` main-library pick now prefers the first positional over
   `libraries:` (glib passes `libraries: [libintl_deps]` there, a
-  non-target). `gio-2.0` regenerates fine but was not re-verified — a
-  gitlab.gnome.org outage blocked the `gvdb` `git_fetch`.
+  non-target). `gio-2.0` and graphene-1.0 both build in CI on every push
+  (`.github/workflows/import.yml`) — the gitlab.gnome.org outage that had
+  blocked re-verifying `gvdb`'s `git_fetch` no longer blocks anything.
 
 - **glib build status.** `buck2 build` of `glib-2.0`, `gobject-2.0`,
   `gmodule-2.0`, `gthread-2.0` **and `gio-2.0`** from `example/` succeeds
-  (target platform `//platforms:linux`, gcc). Getting `gio-2.0` there took,
+  (target platform `//platforms:linux`, gcc) — verified on every push by
+  `.github/workflows/import.yml`. Getting `gio-2.0` there took,
   on top of the gvdb / gdbus-codegen / `@INPUT0@` fixes: broadening
   `is_config_header` so a `custom_target` header (`*-visibility.h`) reaches
   every target's include path, and `example/decay.toml [probes]` answers for
@@ -608,11 +610,20 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   the repo root when `.` is an include root — broader than meson's own
   export, harmless. Only libxml2 trips this today.
 
-- **No end-to-end import test.** The only tests are the `schedule` and
-  `config` unit tests. An evaluator regression that breaks the `example/`
-  import (glib, libepoxy, …) would not be caught. Add a test that runs
-  `decay` on `example/` and diffs the generated tree against a
-  committed golden copy — this also pins `-j1` == `-jN`.
+- **End-to-end import test — landed, not yet strict.**
+  `.github/workflows/import.yml` builds `decay` in release mode, runs it on
+  `example/`, `buck2 build`s the concrete targets this file documents
+  (libglvnd, libepoxy, graphene, glib's five core libraries, libxml2, pcre2),
+  and diffs the result against a committed golden tree. Unit tests are no
+  longer just `schedule`/`config` either — `src/lock.rs`, `src/oracle.rs`,
+  `src/wrapdb.rs`, `src/probe.rs`, `src/sources.rs`, `src/run_command.rs`,
+  `src/wrap_cache.rs`, `decay_zig`, `decay_buck2::select`, and
+  `decay_meson_eval::builtins` all carry their own now. Still open: the
+  golden-tree diff step is `continue-on-error: true` — decay emits some
+  header/source dicts in filesystem-walk order, so the tree differs between
+  machines. Flip it to a hard failure once that ordering is deterministic;
+  until then an evaluator regression that changes generated output without
+  breaking a `buck2 build` can still slip through.
 
 - **`declare_dependency()` provide heuristic is narrow.** A sibling
   `dependency('x')` resolves only against a `declare_dependency()` in
@@ -679,12 +690,21 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   noted under the compile-probe section (a linux+freebsd-but-not-netbsd
   symbol can misplace onto an `abi[musl]` arm).
 
-- **Adding meson specific buck2 rules.** We shall be able to take the .h.in files with `#mesondefine` et all
-  and just substitute correctly instead of assuming the layout of the file with `.set` calls, output should
-  be more or less identical to what meson generates.
+- **Adding meson specific buck2 rules.** `.h.in` templates with `#mesondefine`
+  now substitute correctly — `mesondefine_names()`
+  (`decay_meson_eval::builtins`) synthesizes an explicit `Undef` for any name
+  the project never `.set()`, and `decay_buck2::config_header_cmd` emits
+  `sed` edits for both `@NAME@` and whole-line `#mesondefine NAME` rewrites,
+  matching meson's own `#define`/`/* #undef NAME */` output. Still not what
+  this entry is really asking for: it's a `genrule` shelling out to `sed`,
+  not a native buck2 rule — the emitted `BUCK` should read like a
+  config-header rule a person would reach for, not a hand-rolled shell
+  script performing text substitution.
 
-- **add_test_setup.** Implement this, I'm tired of seeing this in the output and it should more or less
-  work with buck2 too.
+- **add_test_setup.** Matched now, but a no-op stub (`warn_unsupported()`
+  then `Value::Unset`) — the warning spam is gone, but the test-setup data
+  (env, wrapper) still goes nowhere. Needs modelling against buck2's own
+  test-env support, not just silencing.
 
 - **Libraries provided by the compiler should exist or not.** See this:
 
@@ -790,7 +810,11 @@ constraint(
     settles a non-hostable system to not-found when `[system_libraries]` is
     silent, rather than erroring. Revisit if that proves too permissive.
 
-- **Support all of meson wrapdb.** This should be the biggest showcase and smoke test for decay, we should be able to import all of the wrapdb projects.
+- **Support all of meson wrapdb.** This should be the biggest showcase and
+  smoke test for decay, we should be able to import all of the wrapdb
+  projects. Currently exercises 3 of wrapdb's ~250+ projects in
+  `example/decay.toml` (`zlib`, `pcre2`, `libxext`); a fourth (`libffi`) is
+  blocked on the `run_command()` gap above and stays commented out.
 
 - **dependency('threads') is a builtin.** `fn_dependency` special-cases it
   (`External::Threads`): always found, never a `threads[true/false]` knob, and
