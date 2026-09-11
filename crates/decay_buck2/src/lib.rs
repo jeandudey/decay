@@ -448,7 +448,7 @@ fn build_file<S: Solver>(
 
 /// The name of the target that fetches the project's sources.
 fn repo_target(graph: &Graph) -> String {
-    format!("{}.git", graph.project.name)
+    graph.project.repo_target()
 }
 
 /// Fetch the sources instead of keeping a copy of them.

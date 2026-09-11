@@ -111,8 +111,8 @@ impl Packages {
                         .map(|s| match &s.value {
                             Source::File(path) => {
                                 format!(
-                                    "//{package}:{}.git[{}]",
-                                    graph.project.name,
+                                    "//{package}:{}[{}]",
+                                    graph.project.repo_target(),
                                     path.display()
                                 )
                             }

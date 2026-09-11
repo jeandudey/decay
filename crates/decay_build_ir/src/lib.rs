@@ -49,6 +49,20 @@ pub struct Project {
     pub origin: Option<Origin>,
 }
 
+impl Project {
+    /// The name of the target that fetches this project's sources.
+    ///
+    /// `.git` names a `git_fetch`; an `http_archive` (a wrap's tarball) isn't
+    /// one, so it doesn't get the suffix — `zlib.git` naming a plain tarball
+    /// fetch reads as a lie about where the archive came from.
+    pub fn repo_target(&self) -> String {
+        match &self.origin {
+            Some(Origin::Archive(_)) => self.name.clone(),
+            Some(Origin::Git { .. }) | None => format!("{}.git", self.name),
+        }
+    }
+}
+
 /// Where a project's sources are fetched from.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Origin {
