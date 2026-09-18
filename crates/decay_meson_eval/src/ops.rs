@@ -132,26 +132,17 @@ impl<'a, S: Solver> Interp<'a, S> {
             .iter()
             .any(|v| matches!(v.value, Value::Dict(_)))
         {
-            let mut items: Vec<Variant<DictEntry>> = Vec::new();
-            for side in [lhs, rhs] {
-                for variant in side.variants() {
-                    let cond = self.logic.and(self.pc, variant.cond);
-                    if cond.is_false() {
-                        continue;
-                    }
-                    let Value::Dict(entries) = &variant.value else {
-                        bail!("cannot add a {} to a dict", variant.value.type_name());
-                    };
-                    for entry in entries.iter() {
-                        let c = self.logic.and(cond, entry.cond);
-                        if c.is_false() {
-                            continue;
-                        }
-                        items.push(Variant::new(c, entry.value.clone()));
-                    }
-                }
-            }
-            return Ok(self.pure(Value::dict(items)));
+            // Fuse entries that carry the same key/value pair, the same
+            // reduction `Variational::normalize` does elsewhere: without it,
+            // identical (key, value) entries re-scanned on every merge pile
+            // up as separate variants instead of one with an `or`ed
+            // condition.
+            let pc = self.pc;
+            let mut items: Variational<DictEntry> =
+                self.dict_entries_under(lhs, pc)?.into_iter().collect();
+            items.extend(self.dict_entries_under(rhs, pc)?);
+            items.normalize(&mut self.logic);
+            return Ok(self.pure(Value::dict(items.into_variants().collect())));
         }
 
         self.map2(lhs, rhs, |a, b| arith(BinOpKind::Add, a, b))

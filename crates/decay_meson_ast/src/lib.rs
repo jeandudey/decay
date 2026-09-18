@@ -70,8 +70,10 @@ impl Expr {
 
 #[derive(Debug)]
 pub struct Dict {
-    pub args: HashMap<String, Expr>,
-    pub order: Vec<String>,
+    /// Key/value pairs in source order. A key is any expression — meson
+    /// allows a computed one (`'cxx-@0@'.format(std): {...}`), not just a
+    /// string literal.
+    pub entries: Vec<(Expr, Expr)>,
 }
 
 #[derive(Debug)]

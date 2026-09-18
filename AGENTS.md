@@ -367,17 +367,41 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   turns out it doesn't work with buck2 rules, also python3 should point to an hermetic
   python3 executable as defined in toolchains//.
 
-- **Computed dict keys.** Meson allows any expression as a dict key
-  (`{ 'cxx-@0@'.format(std): {...} }`, glib's test suite). `Expr::Dict`
-  currently holds `Vec<(String, Expr)>` with a parallel `order: Vec<String>`;
-  the parser's `expect_key()` (`decay_meson_parse/src/node.rs`) only accepts
-  a string- or id-shaped key and bails otherwise. The fix is to carry keys
-  as `Expr` (`Vec<(Expr, Expr)>`), thread that through `lower.rs`'s
-  `Node::Dict` arm and `Interp`'s `Expr::Dict` evaluation, and evaluate each
-  key like any other expression. Needed for glib with `tests` enabled and
-  for any project that builds dict keys with `.format()` / concatenation.
-  `example/decay.toml` pins `options.tests = false` for glib to avoid it
-  for now.
+- **Computed dict keys — landed.** Meson allows any expression as a dict key
+  (`{ 'cxx-@0@'.format(std): {...} }`, glib's test suite). `Expr::Dict` now
+  carries `entries: Vec<(Expr, Expr)>` instead of a `HashMap<String, Expr>` +
+  parallel `order`; the parser's `key_expr()` (`decay_meson_parse/src/lower.rs`,
+  replacing `node.rs`'s old `expect_key()`) still takes a bare
+  identifier-shaped key literally but otherwise lowers a key like any other
+  expression, and `Interp`'s `Expr::Dict` arm (`decay_meson_eval/src/lib.rs`)
+  evaluates each key and crosses its variants against the value's.
+
+  Turning this on for glib (`example/decay.toml`'s `options.tests`) surfaced a
+  second, unrelated bug: `Interp::add`'s dict-merge branch (`ops.rs`) and
+  `plus_assign` (`lib.rs`) had no dict fast path the way list/string `+=`
+  already do, so `glib_tests += {...}` repeated under glib's several dozen
+  independent `if`/`foreach` guards forked the *outer* `Variational<Value>`
+  for `glib_tests` into a fresh variant per branch instead of growing one
+  dict's entries in place — exponential in the guard count, tens of millions
+  of `Variant<DictEntry>` by the time it reached OOM territory. Fixed the
+  same way list/string already are: `plus_assign` now special-cases an
+  all-`Value::Dict` `old` and grows each existing outer variant's entries in
+  place (`dict_entries_under`, shared with `add`'s generic merge path), and
+  both paths run the result through `Variational::normalize` so entries with
+  the same (key, value) fuse instead of piling up as separate variants.
+  Regression-tested in `decay_meson_eval/tests/computed_dict_keys.rs`: a
+  computed key per loop iteration, and the same (key, value) pair merged
+  under two dozen mutually exclusive branches collapsing to one entry.
+
+  `example/decay.toml` still pins `options.tests = false` for glib — with
+  both fixes, a full run now gets much further (through the whole
+  `if have_cxx` / `cxx_standards` block) before hitting a real, separate
+  gap: `glib_tests['test-spawn-echo']` (`glib/tests/meson.build`) reads "no
+  dict entry" (`crates/decay_meson_eval/src/methods.rs:1586`) even though
+  that key is defined earlier in the same dict — untraced; likely a genuine
+  variational-coverage gap in how `Index` matches a dict key's condition
+  against the current path, rather than a parsing/merge issue. Worth its own
+  follow-up before flipping `tests` on for real.
 
 - **`declare_dependency(sources: [...])` with compilable sources — done.**
   `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits

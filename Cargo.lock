@@ -208,6 +208,7 @@ dependencies = [
  "decay_build_ir",
  "decay_meson_ast",
  "decay_meson_logic",
+ "decay_meson_parse",
  "eyre",
  "smallvec",
  "tracing",

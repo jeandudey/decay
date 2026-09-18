@@ -649,6 +649,38 @@ impl<'a, S: Solver> Interp<'a, S> {
             return Ok(());
         }
 
+        // Same idea for a dict: grow its entries in place per existing outer
+        // variant instead of re-merging through `assign()`, which would fork
+        // a fresh top-level variant per branch (`2^n` for a chain of `if`s
+        // each doing `d += {...}`) even though the entries pushed into a
+        // dict already carry their own conditions the way a list's do.
+        if !old.is_empty()
+            && old
+                .variants()
+                .iter()
+                .all(|v| matches!(v.value, Value::Dict(_)))
+        {
+            let pc = self.pc;
+            let mut out = Variational::empty();
+            for variant in old.variants() {
+                let Value::Dict(entries) = &variant.value else {
+                    unreachable!("every variant was checked to be a dict")
+                };
+                let base = self.logic.and(variant.cond, pc);
+                let mut items: Variational<val::DictEntry> = entries.iter().cloned().collect();
+                if !base.is_false() {
+                    items.extend(self.dict_entries_under(rhs, base)?);
+                }
+                items.normalize(&mut self.logic);
+                out.push(Variant::new(
+                    variant.cond,
+                    Value::dict(items.into_variants().collect()),
+                ));
+            }
+            self.vars.insert(name.to_owned(), out);
+            return Ok(());
+        }
+
         // Same idea for a string: grow it as conditional pieces instead of
         // rewriting the variable, so appending under a chain of `if`s stays one
         // variant rather than `2^n`.
@@ -736,12 +768,20 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
             Expr::Dict(dict) => {
                 let mut out = Vec::new();
-                for key in &dict.order {
-                    let value = dict.args.get(key).expect("dict order names its own keys");
-                    let value = self.expr(value)?;
-                    let key: Rc<str> = Rc::from(key.as_str());
-                    for v in value.into_variants() {
-                        out.push(Variant::new(v.cond, (key.clone(), v.value)));
+                for (key_expr, value_expr) in &dict.entries {
+                    let keys = self.expr(key_expr)?;
+                    let value = self.expr(value_expr)?;
+                    for k in keys.variants() {
+                        let Some(key) = k.value.as_str() else {
+                            bail!("dict key must be a string, found a {}", k.value.type_name());
+                        };
+                        for v in value.variants() {
+                            let cond = self.logic.and(k.cond, v.cond);
+                            if cond.is_false() {
+                                continue;
+                            }
+                            out.push(Variant::new(cond, (key.clone(), v.value.clone())));
+                        }
                     }
                 }
                 Ok(self.pure(Value::dict(out)))
@@ -1055,6 +1095,33 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
         }
         out
+    }
+
+    /// [`Self::elements_under`], but for a dict's entries rather than a
+    /// list's elements.
+    pub(crate) fn dict_entries_under(
+        &mut self,
+        v: &Variational<Value>,
+        pc: Pc,
+    ) -> eyre::Result<Vec<Variant<val::DictEntry>>> {
+        let mut out = Vec::new();
+        for variant in v.variants() {
+            let cond = self.logic.and(pc, variant.cond);
+            if cond.is_false() {
+                continue;
+            }
+            let Value::Dict(entries) = &variant.value else {
+                bail!("cannot add a {} to a dict", variant.value.type_name());
+            };
+            for entry in entries.iter() {
+                let c = self.logic.and(cond, entry.cond);
+                if c.is_false() {
+                    continue;
+                }
+                out.push(Variant::new(c, entry.value.clone()));
+            }
+        }
+        Ok(out)
     }
 
     pub(crate) fn flat(&mut self, v: &Variational<Value>) -> Vec<Variant<Value>> {
