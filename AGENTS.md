@@ -367,41 +367,23 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   turns out it doesn't work with buck2 rules, also python3 should point to an hermetic
   python3 executable as defined in toolchains//.
 
-- **Computed dict keys — landed.** Meson allows any expression as a dict key
-  (`{ 'cxx-@0@'.format(std): {...} }`, glib's test suite). `Expr::Dict` now
-  carries `entries: Vec<(Expr, Expr)>` instead of a `HashMap<String, Expr>` +
-  parallel `order`; the parser's `key_expr()` (`decay_meson_parse/src/lower.rs`,
-  replacing `node.rs`'s old `expect_key()`) still takes a bare
-  identifier-shaped key literally but otherwise lowers a key like any other
-  expression, and `Interp`'s `Expr::Dict` arm (`decay_meson_eval/src/lib.rs`)
-  evaluates each key and crosses its variants against the value's.
-
-  Turning this on for glib (`example/decay.toml`'s `options.tests`) surfaced a
-  second, unrelated bug: `Interp::add`'s dict-merge branch (`ops.rs`) and
-  `plus_assign` (`lib.rs`) had no dict fast path the way list/string `+=`
-  already do, so `glib_tests += {...}` repeated under glib's several dozen
-  independent `if`/`foreach` guards forked the *outer* `Variational<Value>`
-  for `glib_tests` into a fresh variant per branch instead of growing one
-  dict's entries in place — exponential in the guard count, tens of millions
-  of `Variant<DictEntry>` by the time it reached OOM territory. Fixed the
-  same way list/string already are: `plus_assign` now special-cases an
-  all-`Value::Dict` `old` and grows each existing outer variant's entries in
-  place (`dict_entries_under`, shared with `add`'s generic merge path), and
-  both paths run the result through `Variational::normalize` so entries with
-  the same (key, value) fuse instead of piling up as separate variants.
-  Regression-tested in `decay_meson_eval/tests/computed_dict_keys.rs`: a
-  computed key per loop iteration, and the same (key, value) pair merged
-  under two dozen mutually exclusive branches collapsing to one entry.
-
-  `example/decay.toml` still pins `options.tests = false` for glib — with
-  both fixes, a full run now gets much further (through the whole
-  `if have_cxx` / `cxx_standards` block) before hitting a real, separate
-  gap: `glib_tests['test-spawn-echo']` (`glib/tests/meson.build`) reads "no
-  dict entry" (`crates/decay_meson_eval/src/methods.rs:1586`) even though
-  that key is defined earlier in the same dict — untraced; likely a genuine
-  variational-coverage gap in how `Index` matches a dict key's condition
-  against the current path, rather than a parsing/merge issue. Worth its own
-  follow-up before flipping `tests` on for real.
+- **A dict `[]` index can miss a key defined earlier in the same dict.**
+  Surfaced by glib's test suite (`example/decay.toml`'s `options.tests`,
+  still left `false`): `test_extra_programs_targets[program]`
+  (`glib/tests/meson.build:482`) reads "no dict entry `test-spawn-echo`"
+  (`Interp::index`'s `Value::Dict` arm, `crates/decay_meson_eval/src/methods.rs:1586`)
+  even though `test_extra_programs` — the dict `test_extra_programs_targets`
+  is built from, key for key, via a `foreach program_name, extra_args :
+  test_extra_programs` a few lines above — defines `'test-spawn-echo' : {}`
+  unconditionally. Root cause not actually traced yet: `index`'s dict arm
+  matches entries by key and only bails when *none* match by name, so a
+  first read suggests the entry is simply missing by the time the lookup
+  runs, not a presence-condition mismatch (though `index` does take each
+  matching `entry.cond` as-is rather than ANDing it against the lookup's own
+  path condition first, unlike every other dict/list reader —
+  `dict_entries_under`, `elements_under`, `loop_entries` — so that may still
+  be part of it). Needs a real debugging session (bisect which `+=` step
+  between the literal and the failing lookup drops the key) before fixing.
 
 - **`declare_dependency(sources: [...])` with compilable sources — done.**
   `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits
