@@ -367,17 +367,59 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   turns out it doesn't work with buck2 rules, also python3 should point to an hermetic
   python3 executable as defined in toolchains//.
 
-- **Computed dict keys.** Meson allows any expression as a dict key
-  (`{ 'cxx-@0@'.format(std): {...} }`, glib's test suite). `Expr::Dict`
-  currently holds `Vec<(String, Expr)>` with a parallel `order: Vec<String>`;
-  the parser's `expect_key()` (`decay_meson_parse/src/node.rs`) only accepts
-  a string- or id-shaped key and bails otherwise. The fix is to carry keys
-  as `Expr` (`Vec<(Expr, Expr)>`), thread that through `lower.rs`'s
-  `Node::Dict` arm and `Interp`'s `Expr::Dict` evaluation, and evaluate each
-  key like any other expression. Needed for glib with `tests` enabled and
-  for any project that builds dict keys with `.format()` / concatenation.
-  `example/decay.toml` pins `options.tests = false` for glib to avoid it
-  for now.
+- **A dict `[]` index missing a key defined earlier in the same dict — fixed.**
+  Was `test_extra_programs_targets[program]` (`glib/tests/meson.build:482`)
+  reading "no dict entry `test-spawn-echo`" even though
+  `test_extra_programs` — the dict `test_extra_programs_targets` is built
+  from, key for key, via `foreach program_name, extra_args :
+  test_extra_programs` a few lines above — defines `'test-spawn-echo' : {}`
+  unconditionally. Root cause: `{program_name : executable(...)}`'s key is a
+  bare identifier, and `decay_meson_parse::lower`'s `key_expr` special-cased
+  a bare `Node::Id` dict key as a *literal* string (the identifier's own
+  name), rather than evaluating it as the variable reference it is — so
+  every entry landed under the literal key `"program_name"` instead of its
+  value. That special case was simply wrong: checked against meson's own
+  grammar (`Parser.key_values` in `mparser.py`), a dict literal's key is
+  *always* parsed as a full expression; the "bare identifier is a literal
+  name" rule belongs only to function/method-call keyword arguments
+  (`Parser.args`), a distinct grammar path already handled by `Args.kw`.
+  Fixed by deleting `key_expr` and lowering a dict key the same as any other
+  expression (`crates/decay_meson_parse/src/lower.rs`).
+
+  With that fix, `example/decay.toml`'s glib `tests` option (still left
+  `false`) gets past `glib/tests/` entirely and into `gio/tests/meson.build`,
+  where it hit a new, unrelated error — **also fixed** — `cannot apply '+' to
+  a str and a file` (`arith` in `crates/decay_meson_eval/src/ops.rs`).
+  Traced to `gio/tests/meson.build`'s hand-rolled `custom_target(command:
+  [glib_compile_resources, ..., '--sourcedir=' + meson.current_source_dir(),
+  ...])` (14 call sites, none going through the `gnome.compile_resources()`
+  module decay already special-cases): `meson.current_source_dir()` is
+  modelled as `Obj::File` (a real path in the fetched checkout, not a plain
+  string), deliberately, so a project that joins one with `/` gets back a
+  reference `command()` can resolve against the checkout rather than a path
+  meaning nothing once the build runs elsewhere — but nothing had ever
+  concatenated a literal prefix directly onto one with `+` before, and
+  `arith` had no `Str`/`File` overload for it. Fixed by adding
+  `Obj::PrefixedFile(prefix, path)` — the `Add` analogue of the existing
+  `Flag::File(prefix, Source)` compile/link-arg pattern — plus a mirror
+  `File + Str` overload (real meson allows either order; `current_source_dir()
+  + '/x'` just extends the path, unlike `Div`'s dedicated join-with-slash
+  semantics). `command()` (`decay_meson_eval/src/builtins.rs`) turns one into
+  `CmdArg::PrefixedFile`, and `decay_buck2` renders it as the prefix text with
+  no separating space glued directly onto the `$(location ...)` macro
+  (`--sourcedir=$(location :glib.git[gio/tests])`), and picks it up in
+  `referenced_files()` the same as a plain `CmdArg::File`.
+
+  With both fixes, a capped run with glib's `tests` flipped on imports
+  cleanly end to end (`gio/tests` targets included) and
+  `buck2 build`s the five already-verified glib libraries with no
+  regression; reverted `tests` back to `false` for the golden tree, since a
+  new, separate blocker turned up past this one: turning `tests` on adds a
+  `test_resources2.h` custom_target whose command depends on the
+  `glib-compile-resources` tool target, which itself (via a different
+  generated header) depends back on `test_resources2.h` — a genuine
+  configured-target cycle buck2 refuses to build. Not yet root-caused; needs
+  its own debugging session.
 
 - **`declare_dependency(sources: [...])` with compilable sources — done.**
   `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits

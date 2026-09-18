@@ -132,15 +132,6 @@ impl Node {
         }
     }
 
-    /// Dict keys parse as strings, but meson also accepts an identifier-shaped
-    /// key in some positions, so accept both.
-    pub(crate) fn expect_key(&self) -> eyre::Result<String> {
-        match self {
-            Node::String { value, .. } | Node::Id { value } => Ok(value.clone()),
-            _ => bail!("Expected a key node, found {self:?}"),
-        }
-    }
-
     pub(crate) fn expect_argument(&self) -> eyre::Result<&Argument> {
         match self {
             Node::Argument(v) => Ok(v),

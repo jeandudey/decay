@@ -47,6 +47,12 @@ pub enum Obj {
     /// A source file, as a path relative to the project root. `files()` binds
     /// paths at its call site, which is why they cannot stay plain strings.
     File(Rc<str>),
+    /// A literal prefix concatenated onto a [`Self::File`] (glib's
+    /// `'--sourcedir=' + meson.current_source_dir()`, handed straight to a
+    /// `custom_target()` `command:`): the file reference has to survive the
+    /// `+` so `command()` can still resolve it against the checkout, but the
+    /// prefix text needs to stay glued on with no separating space.
+    PrefixedFile(Rc<str>, Rc<str>),
     /// `environment()`.
     Env,
     /// A `feature` option: `enabled`, `disabled` or `auto`.
@@ -74,7 +80,7 @@ impl Obj {
             Self::Target(_) => "build_tgt",
             Self::Output(..) => "file",
             Self::IncludeDirs(_) => "inc",
-            Self::File(_) => "file",
+            Self::File(_) | Self::PrefixedFile(..) => "file",
             Self::Env => "env",
             Self::Feature(_) => "feature",
             Self::Disabler => "disabler",
@@ -100,6 +106,7 @@ impl PartialEq for Obj {
             (Self::Output(a, i), Self::Output(b, j)) => a == b && i == j,
             (Self::IncludeDirs(a), Self::IncludeDirs(b)) => a == b,
             (Self::File(a), Self::File(b)) => a == b,
+            (Self::PrefixedFile(a1, a2), Self::PrefixedFile(b1, b2)) => a1 == b1 && a2 == b2,
             (Self::Feature(a), Self::Feature(b)) => a == b,
             _ => false,
         }
@@ -127,6 +134,7 @@ impl Hash for Obj {
             Self::Output(t, i) => (t, i).hash(state),
             Self::IncludeDirs(d) => d.hash(state),
             Self::File(f) | Self::Feature(f) => f.hash(state),
+            Self::PrefixedFile(a, b) => (a, b).hash(state),
         }
     }
 }

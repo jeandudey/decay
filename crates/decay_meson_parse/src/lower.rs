@@ -199,13 +199,9 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
         Node::Dict { args } => {
             let kwargs = &args.expect_argument()?.kwargs;
             Ok(Expr::Dict(Dict {
-                args: kwargs
+                entries: kwargs
                     .iter()
-                    .map(|pair| Ok((pair.key.expect_key()?, expr(&pair.value)?)))
-                    .collect::<eyre::Result<_>>()?,
-                order: kwargs
-                    .iter()
-                    .map(|pair| pair.key.expect_key())
+                    .map(|pair| Ok((expr(&pair.key)?, expr(&pair.value)?)))
                     .collect::<eyre::Result<_>>()?,
             }))
         }

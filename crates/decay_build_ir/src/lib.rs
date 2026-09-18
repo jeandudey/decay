@@ -256,6 +256,10 @@ pub enum CmdArg {
     Target(TargetId),
     /// A file, spelled the way the backend spells file references.
     File(PathBuf),
+    /// A literal prefix glued directly onto a file reference, no separating
+    /// space (`--sourcedir=`/a source-tree path, from `'--sourcedir=' +
+    /// meson.current_source_dir()`).
+    PrefixedFile(String, PathBuf),
     /// Meson's `@INPUT@`, `@OUTPUT@`, `@OUTDIR@`.
     Inputs,
     Outputs,

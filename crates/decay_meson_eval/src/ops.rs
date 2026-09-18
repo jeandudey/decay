@@ -132,26 +132,17 @@ impl<'a, S: Solver> Interp<'a, S> {
             .iter()
             .any(|v| matches!(v.value, Value::Dict(_)))
         {
-            let mut items: Vec<Variant<DictEntry>> = Vec::new();
-            for side in [lhs, rhs] {
-                for variant in side.variants() {
-                    let cond = self.logic.and(self.pc, variant.cond);
-                    if cond.is_false() {
-                        continue;
-                    }
-                    let Value::Dict(entries) = &variant.value else {
-                        bail!("cannot add a {} to a dict", variant.value.type_name());
-                    };
-                    for entry in entries.iter() {
-                        let c = self.logic.and(cond, entry.cond);
-                        if c.is_false() {
-                            continue;
-                        }
-                        items.push(Variant::new(c, entry.value.clone()));
-                    }
-                }
-            }
-            return Ok(self.pure(Value::dict(items)));
+            // Fuse entries that carry the same key/value pair, the same
+            // reduction `Variational::normalize` does elsewhere: without it,
+            // identical (key, value) entries re-scanned on every merge pile
+            // up as separate variants instead of one with an `or`ed
+            // condition.
+            let pc = self.pc;
+            let mut items: Variational<DictEntry> =
+                self.dict_entries_under(lhs, pc)?.into_iter().collect();
+            items.extend(self.dict_entries_under(rhs, pc)?);
+            items.normalize(&mut self.logic);
+            return Ok(self.pure(Value::dict(items.into_variants().collect())));
         }
 
         self.map2(lhs, rhs, |a, b| arith(BinOpKind::Add, a, b))
@@ -346,6 +337,17 @@ fn arith(kind: BinOpKind, a: &Value, b: &Value) -> eyre::Result<Value> {
         // time a command runs.
         (Div, Value::Obj(Obj::File(a)), Value::Str(b)) => {
             Value::Obj(Obj::File(Rc::from(join_paths([&**a, &**b]).as_str())))
+        }
+        // A literal prefix glued directly onto a source-tree path (glib's
+        // `'--sourcedir=' + meson.current_source_dir()`, handed to a
+        // `custom_target()` `command:`) has to keep the file reference
+        // resolvable rather than decay into a plain string that means
+        // nothing once decay itself is done running.
+        (Add, Value::Str(a), Value::Obj(Obj::File(b))) => {
+            Value::Obj(Obj::PrefixedFile(a.clone(), b.clone()))
+        }
+        (Add, Value::Obj(Obj::File(a)), Value::Str(b)) => {
+            Value::Obj(Obj::File(Rc::from(format!("{a}{b}"))))
         }
         (Lt, a, b) => Value::Bool(compare(a, b)? == std::cmp::Ordering::Less),
         (Le, a, b) => Value::Bool(compare(a, b)? != std::cmp::Ordering::Greater),
