@@ -414,12 +414,41 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   cleanly end to end (`gio/tests` targets included) and
   `buck2 build`s the five already-verified glib libraries with no
   regression; reverted `tests` back to `false` for the golden tree, since a
-  new, separate blocker turned up past this one: turning `tests` on adds a
+  new, separate blocker turned up past this one: turning `tests` on added a
   `test_resources2.h` custom_target whose command depends on the
-  `glib-compile-resources` tool target, which itself (via a different
-  generated header) depends back on `test_resources2.h` — a genuine
-  configured-target cycle buck2 refuses to build. Not yet root-caused; needs
-  its own debugging session.
+  `glib-compile-resources` tool target, which itself, via `is_config_header`
+  (`decay_buck2`), depended back on `test_resources2.h` — a genuine
+  configured-target cycle buck2 refused to build.
+
+  **Fixed.** `is_config_header` broadcasts every generated `.h` custom_target
+  onto every compiled target's private include path, unconditionally — the
+  approximation `decay_buck2` uses in place of tracking each target's real
+  `include_directories:` (see "Meson mirrors the source layout ..." on that
+  function). That is right for a header genuinely project-wide like
+  `gversionmacros.h`/`gioenumtypes.h`/`*-visibility.h`, but `test_resources2.h`
+  is test-only, and with `tests` pinned `true` (not left open as a `select()`)
+  its presence condition collapses to the same `true` every other target
+  carries, so the broadcast reached `glib-compile-resources` itself — the very
+  tool `test_resources2.h`'s own command runs. Fixed with a targeted guard
+  rather than special-casing the header by name or directory: `depends_on`
+  (`decay_buck2/src/lib.rs`) walks a candidate config header's own build
+  inputs (`srcs`/`headers`/`sibling_headers`/`deps`/`link_with`/`cmd`'s
+  `CmdArg::Target`/`template`) and the broadcast now skips any header already
+  (transitively) depending on the target it would be wired into — the general
+  shape of "don't manufacture a back-edge that closes a loop already present
+  the other way," not just this one pair. Verified: `buck2 build` of the
+  previously-green libglvnd/libepoxy/graphene/glib-five/libxml2/pcre2 targets
+  is unaffected, and building `gio/tests` with `tests = true` no longer hits a
+  configured-target cycle at all — `test_resources2.h`'s genrule action now
+  actually runs `glib-compile-resources`.
+
+  What surfaced past the cycle, still open: running `glib-compile-resources`
+  fails at runtime — `undefined symbol: ffi_type_void` in
+  `gobject-2.0.so` — the same "external `dependency()` `.so` like `libffi` is
+  not staged into the `$ORIGIN` runtime symlink tree" gap already noted below
+  under "libglvnd build status" (there it stops `gio`'s `gdbus` from
+  starting; here it stops a build-time codegen tool from running at all).
+  `tests` stays `false` in `example/decay.toml` until that's fixed.
 
 - **`declare_dependency(sources: [...])` with compilable sources — done.**
   `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits
