@@ -105,16 +105,6 @@ fn args(node: &Node) -> eyre::Result<Args> {
     })
 }
 
-/// A dict key is usually a computed expression, but meson also accepts a
-/// bare identifier-shaped key, taken literally rather than as a variable
-/// reference.
-fn key_expr(node: &Node) -> eyre::Result<Expr> {
-    match node {
-        Node::Id { value } => Ok(Expr::String(value.clone())),
-        _ => expr(node),
-    }
-}
-
 fn expr(node: &Node) -> eyre::Result<Expr> {
     match node {
         Node::Id { value } => Ok(Expr::Id(value.clone())),
@@ -211,7 +201,7 @@ fn expr(node: &Node) -> eyre::Result<Expr> {
             Ok(Expr::Dict(Dict {
                 entries: kwargs
                     .iter()
-                    .map(|pair| Ok((key_expr(&pair.key)?, expr(&pair.value)?)))
+                    .map(|pair| Ok((expr(&pair.key)?, expr(&pair.value)?)))
                     .collect::<eyre::Result<_>>()?,
             }))
         }
