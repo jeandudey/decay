@@ -510,8 +510,11 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
         }
 
         for entry in &target.attrs.cmd {
-            if let CmdArg::File(path) = &entry.value {
-                out.insert(path.display().to_string());
+            match &entry.value {
+                CmdArg::File(path) | CmdArg::PrefixedFile(_, path) => {
+                    out.insert(path.display().to_string());
+                }
+                _ => {}
             }
         }
 
@@ -1564,6 +1567,7 @@ fn command<S: Solver>(
                 }
             }
             CmdArg::File(path) => file_arg(graph, path),
+            CmdArg::PrefixedFile(prefix, path) => format!("{prefix}{}", file_arg(graph, path)),
             CmdArg::Inputs => inputs.join(" "),
             CmdArg::Outputs => "$OUT".to_owned(),
             CmdArg::OutDir => OUT_DIR.to_owned(),

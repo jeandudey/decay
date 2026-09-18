@@ -1423,6 +1423,9 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Value::Obj(Obj::Program(p)) => CmdArg::Target(p.target),
                 Value::Obj(Obj::Target(id)) | Value::Obj(Obj::Output(id, _)) => CmdArg::Target(*id),
                 Value::Obj(Obj::File(path)) => CmdArg::File(PathBuf::from(&**path)),
+                Value::Obj(Obj::PrefixedFile(prefix, path)) => {
+                    CmdArg::PrefixedFile(prefix.to_string(), PathBuf::from(&**path))
+                }
                 other => bail!("cannot use a {} in a command", other.type_name()),
             };
             out.push(Variant::new(variant.cond, arg));

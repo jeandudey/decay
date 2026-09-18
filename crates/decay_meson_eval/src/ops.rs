@@ -338,6 +338,17 @@ fn arith(kind: BinOpKind, a: &Value, b: &Value) -> eyre::Result<Value> {
         (Div, Value::Obj(Obj::File(a)), Value::Str(b)) => {
             Value::Obj(Obj::File(Rc::from(join_paths([&**a, &**b]).as_str())))
         }
+        // A literal prefix glued directly onto a source-tree path (glib's
+        // `'--sourcedir=' + meson.current_source_dir()`, handed to a
+        // `custom_target()` `command:`) has to keep the file reference
+        // resolvable rather than decay into a plain string that means
+        // nothing once decay itself is done running.
+        (Add, Value::Str(a), Value::Obj(Obj::File(b))) => {
+            Value::Obj(Obj::PrefixedFile(a.clone(), b.clone()))
+        }
+        (Add, Value::Obj(Obj::File(a)), Value::Str(b)) => {
+            Value::Obj(Obj::File(Rc::from(format!("{a}{b}"))))
+        }
         (Lt, a, b) => Value::Bool(compare(a, b)? == std::cmp::Ordering::Less),
         (Le, a, b) => Value::Bool(compare(a, b)? != std::cmp::Ordering::Greater),
         (Gt, a, b) => Value::Bool(compare(a, b)? == std::cmp::Ordering::Greater),

@@ -388,15 +388,38 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
   With that fix, `example/decay.toml`'s glib `tests` option (still left
   `false`) gets past `glib/tests/` entirely and into `gio/tests/meson.build`,
-  where it hits a new, unrelated error: `cannot apply '+' to a str and a
-  file` (`arith` in `crates/decay_meson_eval/src/ops.rs`, no `Str`/`File`
-  overload for `+`). Not yet traced to a specific line — decay's statement
-  errors only carry a meson location at a `subdir()`/call frame, not for an
-  arbitrary expression inside one, and `gio/tests/meson.build` has several
-  `foreach`-built dicts shaped like `test_extra_programs`/`gio_tests` where
-  a `.get(key, default)`'s eagerly-evaluated default is a string
-  concatenation (`test_name + '.c'`) sitting next to entries whose real
-  value is a `files()`-produced File. Needs its own debugging session.
+  where it hit a new, unrelated error — **also fixed** — `cannot apply '+' to
+  a str and a file` (`arith` in `crates/decay_meson_eval/src/ops.rs`).
+  Traced to `gio/tests/meson.build`'s hand-rolled `custom_target(command:
+  [glib_compile_resources, ..., '--sourcedir=' + meson.current_source_dir(),
+  ...])` (14 call sites, none going through the `gnome.compile_resources()`
+  module decay already special-cases): `meson.current_source_dir()` is
+  modelled as `Obj::File` (a real path in the fetched checkout, not a plain
+  string), deliberately, so a project that joins one with `/` gets back a
+  reference `command()` can resolve against the checkout rather than a path
+  meaning nothing once the build runs elsewhere — but nothing had ever
+  concatenated a literal prefix directly onto one with `+` before, and
+  `arith` had no `Str`/`File` overload for it. Fixed by adding
+  `Obj::PrefixedFile(prefix, path)` — the `Add` analogue of the existing
+  `Flag::File(prefix, Source)` compile/link-arg pattern — plus a mirror
+  `File + Str` overload (real meson allows either order; `current_source_dir()
+  + '/x'` just extends the path, unlike `Div`'s dedicated join-with-slash
+  semantics). `command()` (`decay_meson_eval/src/builtins.rs`) turns one into
+  `CmdArg::PrefixedFile`, and `decay_buck2` renders it as the prefix text with
+  no separating space glued directly onto the `$(location ...)` macro
+  (`--sourcedir=$(location :glib.git[gio/tests])`), and picks it up in
+  `referenced_files()` the same as a plain `CmdArg::File`.
+
+  With both fixes, a capped run with glib's `tests` flipped on imports
+  cleanly end to end (`gio/tests` targets included) and
+  `buck2 build`s the five already-verified glib libraries with no
+  regression; reverted `tests` back to `false` for the golden tree, since a
+  new, separate blocker turned up past this one: turning `tests` on adds a
+  `test_resources2.h` custom_target whose command depends on the
+  `glib-compile-resources` tool target, which itself (via a different
+  generated header) depends back on `test_resources2.h` — a genuine
+  configured-target cycle buck2 refuses to build. Not yet root-caused; needs
+  its own debugging session.
 
 - **`declare_dependency(sources: [...])` with compilable sources — done.**
   `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits
