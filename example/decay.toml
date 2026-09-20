@@ -300,16 +300,21 @@ options = { grep = false, test = false, jit = "auto", jit_sealloc = "auto" }
 [[project]]
 wrap = "libxext"
 
-# TODO: Fails with:
-#   Error: Failed to import `libffi`
-#
-#   Caused by:
-#      0: Failed to execute `libffi`
-#      1: in /meson.build
-#      2: in `run_command()` at /meson.build:21:18
-#      3: `run_command()` would have to run a program at import time, which would bake this machine's answer into the generated build
-#
-#   Location:
-#       crates/decay_meson_eval/src/builtins.rs:218:30
+# Imports cleanly now (run_command()/sizeof('long double') answers below;
+# `doc` pinned off to avoid needing `makeinfo`; `tests` pinned off since
+# testsuite/meson.build hits the documented `continue`-in-a-partial-foreach
+# gap) — but stays disabled: `buck2 build` fails on `fficonfig.h.meson`,
+# which lives only in wrapdb's `patch_directory` overlay, not the plain
+# upstream tarball the emitted `http_archive` fetches (see AGENTS.md's "Wrap
+# support" entry). Worse than libffi alone not building: glib's own
+# `dependency('libffi')` resolves cross-project to this real target instead
+# of its previous empty stub the moment this project is enabled, so
+# `gio-2.0` — a green CI target — stops building too. Leave commented until
+# that overlay-file gap has a real fix.
 # [[project]]
 # wrap = "libffi"
+# options = { doc = false, tests = false }
+# commands."meson-scripts/extract-libtool-version.py libtool-version" = "13:0:5\n"
+# commands."meson-scripts/test-unwind-section.py c" = { returncode = 0 }
+# commands."meson-scripts/test-cc-supports-hidden-visibility.py c" = { returncode = 0 }
+# commands."meson-scripts/test-ro-eh-frame.py c -fpic -fexceptions -fno-lto" = { returncode = 1 }

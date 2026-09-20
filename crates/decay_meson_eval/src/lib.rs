@@ -1373,6 +1373,11 @@ fn string_arg(v: &Value) -> Option<Rc<str>> {
     match v {
         Value::Str(s) => Some(s.clone()),
         Value::Obj(Obj::File(p)) => Some(p.clone()),
+        // A context that just wants the text (`has_link_argument()` checking
+        // whether a toolchain accepts the flag, say) doesn't need the file
+        // reference resolved against the checkout — its literal spelling is
+        // still a faithful string.
+        Value::Obj(Obj::PrefixedFile(prefix, p)) => Some(Rc::from(format!("{prefix}{p}"))),
         _ => None,
     }
 }

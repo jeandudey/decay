@@ -37,7 +37,10 @@ use {
         rc::Rc,
         str::FromStr, //
     },
-    tracing::debug,
+    tracing::{
+        debug,
+        warn, //
+    },
 };
 
 /// Function attribute names `cc.has_function_attribute()` recognizes —
@@ -1043,6 +1046,23 @@ impl<'a, S: Solver> Interp<'a, S> {
                     }
                 }
                 Ok(self.bool_value(cond))
+            }
+
+            // `cc.preprocess(*sources, output:, ...)`: MSVC-only (masm
+            // needs its `.asm` sources preprocessed first), reached only
+            // under `compiler[msvc]` — a branch no `[systems]` entry can
+            // build today regardless (msvc has no probeable toolchain here).
+            // The importer does not run the preprocessor, so this is not a
+            // real translation, just enough to keep evaluation alive: each
+            // source passes through unchanged rather than becoming its
+            // `output:`-named `.i`/`.masm` file.
+            "preprocess" => {
+                warn!("cc.preprocess() does not preprocess; sources pass through unchanged");
+                let mut items = Vec::new();
+                for arg in &args.pos {
+                    items.extend(self.flat(arg));
+                }
+                Ok(self.pure(Value::list(items)))
             }
 
             // Which compiler is active decides the answer, so this does not

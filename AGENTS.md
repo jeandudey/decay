@@ -110,12 +110,25 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   every wrap wrapdb currently publishes does), which the emitted build never
   fetches anyway since `decay` forgets meson and replaces it with generated
   `BUCK` rules. A `patch_directory` that overlaid a file some target's
-  `srcs`/`headers`/`template` actually references — none does today, but a
-  few packagefiles trees carry non-meson helper files (`.def` export lists,
-  `config.h.meson` templates) for other projects — would need that file
+  `srcs`/`headers`/`template` actually references would need that file
   fetched into the archive some other way; `sub_targets` addressing against
-  the plain tarball would just fail loudly for it rather than silently
-  produce a wrong build, but nothing does that fetch yet.
+  the plain tarball fails loudly for it rather than silently producing a
+  wrong build, but nothing does that fetch yet. Confirmed, not just
+  theoretical: wrapdb's `libffi_3.8.0-1` `patch_directory` carries
+  `fficonfig.h.meson` (a `configure_file()` `input:`, not a meson build
+  file), evaluates and emits a `BUCK` fine — `decay` reads the overlaid copy
+  from its own working tree the same way it reads any other project file —
+  but `buck2 build //third-party/meson/libffi:ffi` fails: `fficonfig.h.meson`
+  is not in `libffi-3.8.0.tar.gz`, the plain upstream tarball the emitted
+  `http_archive` actually fetches, so the genrule's `$(location
+  :libffi.git[fficonfig.h.meson])` has nothing to resolve. Worse than
+  `libffi` alone not building: the moment it is enabled, glib's own
+  `dependency('libffi')` resolves cross-project to this real (but broken)
+  target instead of the empty stub it fell back to before — `Packages`
+  doesn't know a target failed to build, only that one exists — so `gio-2.0`,
+  a green CI target, stops building too. `example/decay.toml` keeps a
+  commented-out `libffi` entry (`run_command()`/`sizeof` answers, `doc`/
+  `tests` pinned off) ready to enable once this has a real fix.
 
   `decay.lock` also pins the wrapdb commit a `patch_directory` overlay came
   from (`WrapFile::wrapdb_rev`, `LockedWrap::wrapdb_rev`), not just the
@@ -884,8 +897,33 @@ constraint(
 - **Support all of meson wrapdb.** This should be the biggest showcase and
   smoke test for decay, we should be able to import all of the wrapdb
   projects. Currently exercises 3 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `pcre2`, `libxext`); a fourth (`libffi`) is
-  blocked on the `run_command()` gap above and stays commented out.
+  `example/decay.toml` (`zlib`, `pcre2`, `libxext`); a fourth (`libffi`)
+  now *evaluates* cleanly but stays commented out — see "Wrap support"
+  above, `fficonfig.h.meson` — since enabling it breaks `gio-2.0`, a green
+  CI target, through no fault of libffi's own build.
+
+  Getting `libffi` to evaluate took two real fixes in the evaluator, both
+  general and kept regardless of `fficonfig.h.meson`: `cc.preprocess()`
+  was entirely unimplemented (`compiler_method` in `decay_meson_eval/src/
+  methods.rs`; MSVC-only masm preprocessing — a no-op-looking stub is
+  enough, since nothing in `[systems]` can build `compiler[msvc]` today
+  regardless), and `string_arg` (`decay_meson_eval/src/lib.rs`, the generic
+  "coerce to a string argument" path `has_link_argument()`/
+  `has_multi_link_arguments()`/etc. all go through) didn't know about
+  `Obj::PrefixedFile` (the `str + File` case landed for `custom_target()`
+  commands), so `cc.has_multi_link_arguments(['-shared',
+  '-Wl,--version-script=' + meson.project_source_root() /
+  'libffi.map.in'])` read as "expected a string, found a file". The
+  commented-out `[[project]] wrap = "libffi"` entry in `example/decay.toml`
+  carries what evaluating it still needs once `fficonfig.h.meson` is fixed:
+  three `run_command()` toolchain probes (`test-unwind-section.py`/
+  `test-cc-supports-hidden-visibility.py`/`test-ro-eh-frame.py`, each a real
+  `zig cc`-hostable gcc/binutils-on-Linux fact) and `doc`/`tests` options
+  pinned off (the former needs `makeinfo`, the latter's `testsuite/
+  meson.build` hits the `continue`-in-a-partial-foreach gap below); a
+  `sizeof('long double')` per-`cpu` pin (16/16/8/12 on x86_64/arm64/arm32/
+  x86_32) is not in `decay.toml` since nothing else needs it while `libffi`
+  stays disabled.
 
 - **dependency('threads') is a builtin.** `fn_dependency` special-cases it
   (`External::Threads`): always found, never a `threads[true/false]` knob, and
