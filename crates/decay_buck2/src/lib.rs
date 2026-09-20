@@ -457,6 +457,12 @@ fn repo_target(graph: &Graph) -> String {
 /// rule elsewhere in the file names one: `:libepoxy.git[src/dispatch.c]`.
 /// `git_fetch` and `http_archive` both support that the same way, so the two
 /// origins share everything but the rule name and its own address.
+///
+/// A file [`decay_build_ir::WrapdbOverlay`] provided is never in `origin`'s
+/// own sub_targets — see [`Origin::Archive`] — so [`referenced_files`]
+/// splits those out, and a second `git_fetch`, of wrapdb itself pinned at
+/// the overlay's commit, gets appended after `origin`'s own rule to answer
+/// for them instead (nothing is emitted when nothing referenced one).
 fn render_fetch(graph: &Graph, origin: &Origin) -> String {
     let mut out = String::new();
     match origin {
@@ -476,19 +482,66 @@ fn render_fetch(graph: &Graph, origin: &Origin) -> String {
             }
         }
     }
+    let (origin_files, wrapdb_files) = referenced_files(graph);
     let _ = writeln!(out, "    sub_targets = [");
-    for path in referenced_files(graph) {
+    for path in origin_files {
         let _ = writeln!(out, "        {path:?},");
     }
     let _ = writeln!(out, "    ],");
     let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
     let _ = writeln!(out, ")");
+
+    if !wrapdb_files.is_empty() {
+        let overlay = graph
+            .project
+            .wrapdb_overlay
+            .as_ref()
+            .expect("a wrapdb-sourced referenced file implies an overlay");
+        out.push('\n');
+        let _ = writeln!(out, "git_fetch(");
+        let _ = writeln!(out, "    name = {:?},", graph.project.wrapdb_target());
+        let _ = writeln!(out, "    repo = {WRAPDB_REPO:?},");
+        let _ = writeln!(out, "    rev = {:?},", overlay.rev);
+        let _ = writeln!(out, "    sub_targets = [");
+        for path in wrapdb_files {
+            let _ = writeln!(
+                out,
+                "        \"subprojects/packagefiles/{}/{path}\",",
+                overlay.patch_directory
+            );
+        }
+        let _ = writeln!(out, "    ],");
+        let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
+        let _ = writeln!(out, ")");
+    }
+
     out
 }
 
-/// Every file in the project that some rule refers to, sorted.
-fn referenced_files(graph: &Graph) -> Vec<String> {
-    let mut out: BTreeSet<String> = BTreeSet::new();
+/// Where wrapdb itself lives — the same repository `src/wrapdb.rs` (the
+/// `decay` binary, which `decay_buck2` cannot depend on) reads
+/// `patch_directory` overlays from at import time.
+const WRAPDB_REPO: &str = "https://github.com/mesonbuild/wrapdb.git";
+
+/// File a rule referenced `path`, so [`referenced_files`] knows to list it —
+/// under `origin`'s own sub_targets, unless [`decay_build_ir::WrapdbOverlay`]
+/// is the one that actually provided it.
+fn classify(graph: &Graph, path: &Path, origin: &mut BTreeSet<String>, wrapdb: &mut BTreeSet<String>) {
+    let is_overlay = graph
+        .project
+        .wrapdb_overlay
+        .as_ref()
+        .is_some_and(|o| o.paths.contains(path));
+    let dest = if is_overlay { wrapdb } else { origin };
+    dest.insert(path.display().to_string());
+}
+
+/// Every file in the project that some rule refers to, sorted, split by
+/// where it is actually fetched from: `origin`'s own sub_targets, or —
+/// when [`decay_build_ir::WrapdbOverlay`] provided it — wrapdb's.
+fn referenced_files(graph: &Graph) -> (Vec<String>, Vec<String>) {
+    let mut origin: BTreeSet<String> = BTreeSet::new();
+    let mut wrapdb: BTreeSet<String> = BTreeSet::new();
 
     for target in &graph.targets {
         if target.cond.is_false() {
@@ -505,14 +558,14 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
             .chain(target.attrs.template.iter());
         for source in sources {
             if let Source::File(path) = source {
-                out.insert(path.display().to_string());
+                classify(graph, path, &mut origin, &mut wrapdb);
             }
         }
 
         for entry in &target.attrs.cmd {
             match &entry.value {
                 CmdArg::File(path) | CmdArg::PrefixedFile(_, path) => {
-                    out.insert(path.display().to_string());
+                    classify(graph, path, &mut origin, &mut wrapdb);
                 }
                 _ => {}
             }
@@ -525,7 +578,7 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
             .chain(target.attrs.link_args.iter())
         {
             if let Flag::File(_, Source::File(path)) = &entry.value {
-                out.insert(path.display().to_string());
+                classify(graph, path, &mut origin, &mut wrapdb);
             }
         }
 
@@ -533,22 +586,23 @@ fn referenced_files(graph: &Graph) -> Vec<String> {
             path: Some(path), ..
         }) = &target.kind
         {
-            out.insert(path.display().to_string());
+            classify(graph, path, &mut origin, &mut wrapdb);
         }
 
         // A `raw_include_roots` target is compiled with `-I` pointing straight
         // at these directories in the fetched tree, so each needs its own
-        // sub-target projection.
+        // sub-target projection. Always a real checked-in directory, never a
+        // wrap overlay's own concern, so this always goes to `origin`.
         if target.attrs.raw_include_roots {
             for root in include_roots(&target.attrs.include_dirs, &target.package) {
                 if !root.as_os_str().is_empty() {
-                    out.insert(root.display().to_string());
+                    origin.insert(root.display().to_string());
                 }
             }
         }
     }
 
-    out.into_iter().collect()
+    (origin.into_iter().collect(), wrapdb.into_iter().collect())
 }
 
 /// One rule of the build file, still in pieces so that values several rules
@@ -1517,14 +1571,34 @@ fn has_rule(target: &Target) -> bool {
 
 fn source(graph: &Graph, source: &Source) -> String {
     match source {
-        Source::File(path) => format!("\":{}[{}]\"", repo_target(graph), path.display()),
+        Source::File(path) => format!("\":{}\"", source_address(graph, path)),
         Source::Generated(id) => format!("\":{}\"", graph.target(*id).name),
     }
 }
 
+/// The `target[path]` address `path` (relative to the project root) is
+/// actually reachable at: `origin`'s own fetch, unless
+/// [`decay_build_ir::WrapdbOverlay`] is what provided it, in which case it
+/// only ever lived in `decay`'s own working copy — never in `origin`, see
+/// [`Origin::Archive`] — and has to come from wrapdb itself instead, the
+/// second `git_fetch` [`render_fetch`] appends for exactly this.
+fn source_address(graph: &Graph, path: &Path) -> String {
+    if let Some(overlay) = &graph.project.wrapdb_overlay
+        && overlay.paths.contains(path)
+    {
+        return format!(
+            "{}[subprojects/packagefiles/{}/{}]",
+            graph.project.wrapdb_target(),
+            overlay.patch_directory,
+            path.display()
+        );
+    }
+    format!("{}[{}]", repo_target(graph), path.display())
+}
+
 /// A file as it is named on a command line.
 fn file_arg(graph: &Graph, path: &Path) -> String {
-    format!("$(location :{}[{}])", repo_target(graph), path.display())
+    format!("$(location :{})", source_address(graph, path))
 }
 
 /// A `compiler_flags`/`exported_linker_flags` entry, as a quoted Starlark

@@ -21,7 +21,8 @@ use {
     decay_build_ir::{
         ArchiveFile,
         Graph,
-        Origin, //
+        Origin,
+        WrapdbOverlay, //
     },
     decay_meson_logic::{
         Logic,
@@ -155,14 +156,14 @@ pub(crate) fn execute(
     let name = project.short_name();
 
     let checkout_start = Instant::now();
-    let (dir, origin) = match (&project.source, resolved) {
+    let (dir, origin, wrapdb_overlay) = match (&project.source, resolved) {
         (Source::Git { repo, .. }, Resolved::Git { rev }) => {
             let dir = git_cache.checkout(repo, rev)?;
             let origin = Origin::Git {
                 repo: repo.0.to_string(),
                 rev: rev.clone(),
             };
-            (dir, origin)
+            (dir, origin, None)
         }
         (Source::Wrap { .. }, Resolved::Wrap { version, file }) => match &file.source {
             WrapSource::Archive { .. } => {
@@ -172,7 +173,18 @@ pub(crate) fn execute(
                     sha256: wrap.sha256,
                     strip_prefix: wrap.strip_prefix,
                 });
-                (wrap.dir, origin)
+                // `overlay_paths` is only ever non-empty when the wrap named
+                // a `patch_directory` and it came from wrapdb, not a
+                // `local_overlay` test fixture (`WrapCache::materialize`).
+                let wrapdb_overlay = (!wrap.overlay_paths.is_empty()).then(|| WrapdbOverlay {
+                    rev: file.wrapdb_rev.clone(),
+                    patch_directory: file
+                        .patch_directory
+                        .clone()
+                        .expect("non-empty overlay_paths implies patch_directory"),
+                    paths: wrap.overlay_paths,
+                });
+                (wrap.dir, origin, wrapdb_overlay)
             }
             WrapSource::Git { url, revision } => {
                 let repo = Repo(Url::parse(url).wrap_err_with(|| format!("`{url}` is not a URL"))?);
@@ -192,7 +204,19 @@ pub(crate) fn execute(
                     repo: url.clone(),
                     rev: revision.clone(),
                 };
-                (dir, origin)
+                // Same `local_overlay` exception as the `[wrap-file]` arm
+                // above: only a real wrapdb-sourced overlay gets a
+                // `WrapdbOverlay` (a `local_overlay` has no stable commit a
+                // generated build could fetch it from).
+                let wrapdb_overlay = match (&overlay, &file.local_overlay, &file.patch_directory) {
+                    (Some(dir), None, Some(patch_directory)) => Some(WrapdbOverlay {
+                        rev: file.wrapdb_rev.clone(),
+                        patch_directory: patch_directory.clone(),
+                        paths: wrap_cache::list(dir)?,
+                    }),
+                    _ => None,
+                };
+                (dir, origin, wrapdb_overlay)
             }
         },
         _ => {
@@ -212,6 +236,7 @@ pub(crate) fn execute(
     // The build files fetch the sources themselves rather than referring to a
     // copy of them checked into this repository.
     graph.project.origin = Some(origin);
+    graph.project.wrapdb_overlay = wrapdb_overlay;
 
     info!(
         project = %graph.project.name,

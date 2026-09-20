@@ -300,17 +300,17 @@ options = { grep = false, test = false, jit = "auto", jit_sealloc = "auto" }
 [[project]]
 wrap = "libxext"
 
-# Imports cleanly now (run_command()/sizeof('long double') answers below;
-# `doc` pinned off to avoid needing `makeinfo`; `tests` pinned off since
-# testsuite/meson.build hits the documented `continue`-in-a-partial-foreach
-# gap) — but stays disabled: `buck2 build` fails on `fficonfig.h.meson`,
-# which lives only in wrapdb's `patch_directory` overlay, not the plain
-# upstream tarball the emitted `http_archive` fetches (see AGENTS.md's "Wrap
-# support" entry). Worse than libffi alone not building: glib's own
-# `dependency('libffi')` resolves cross-project to this real target instead
-# of its previous empty stub the moment this project is enabled, so
-# `gio-2.0` — a green CI target — stops building too. Leave commented until
-# that overlay-file gap has a real fix.
+# Imports and its `patch_directory` overlay's `fficonfig.h.meson` now
+# resolves (a `libffi.wrapdb.git` git_fetch, pinned at the wrap's own
+# `wrapdb_rev`) — the overlay-fetch gap this was blocked on is fixed. Stays
+# disabled: past that, `buck2 build` hits a different, unrelated problem —
+# `src/{arch}/ffitarget.h` exists once per architecture (30 of them) and
+# `ffi.h` includes it bare (`#include <ffitarget.h>`), relying on meson
+# scoping `-I` to the one selected `targetdir`; decay's headers/
+# exported_headers dict is basename-keyed with no per-configuration
+# selection, so only one `ffitarget.h` wins project-wide and every other
+# arch's sources fail to compile against it. New AGENTS.md entry:
+# "ffitarget.h" per-arch header collision.
 # [[project]]
 # wrap = "libffi"
 # options = { doc = false, tests = false }

@@ -20,6 +20,7 @@ use {
         Sha256, //
     },
     std::{
+        collections::BTreeSet,
         fs,
         path::{
             Path,
@@ -44,6 +45,10 @@ pub struct Wrap {
     pub url: String,
     pub sha256: String,
     pub strip_prefix: Option<String>,
+    /// Every project-root-relative path a wrapdb `patch_directory` overlay
+    /// provided, empty when the wrap named none or used a `local_overlay`
+    /// test fixture instead (no stable wrapdb commit to fetch one from).
+    pub overlay_paths: BTreeSet<PathBuf>,
 }
 
 impl WrapCache {
@@ -71,20 +76,31 @@ impl WrapCache {
         };
         let archive = self.download(url, filename, hash)?;
 
+        let overlay = file
+            .local_overlay
+            .clone()
+            .map(Ok)
+            .or_else(|| {
+                file.patch_directory
+                    .as_deref()
+                    .map(|dir| wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir))
+            })
+            .transpose()?;
+
         let dest = self.root.join("src").join(name).join(version);
         if !dest.join(".ok").is_file() {
-            let overlay = file
-                .local_overlay
-                .clone()
-                .map(Ok)
-                .or_else(|| {
-                    file.patch_directory
-                        .as_deref()
-                        .map(|dir| wrapdb::patch_dir(git_cache, &file.wrapdb_rev, dir))
-                })
-                .transpose()?;
             extract(&archive, filename, &dest, overlay.as_deref())?;
         }
+
+        // A `local_overlay` is a `decay.toml`-local test fixture, not
+        // something wrapdb's own history pins a commit for — nothing a
+        // generated build could fetch reproducibly, so a file it provided
+        // stays addressed against `origin` like before (and, same as
+        // before, fails to resolve there if actually referenced).
+        let overlay_paths = match (&overlay, &file.local_overlay) {
+            (Some(dir), None) => list(dir)?,
+            _ => BTreeSet::new(),
+        };
 
         let strip_prefix = single_top_level_dir(&dest)?;
         let dir = match &strip_prefix {
@@ -96,6 +112,7 @@ impl WrapCache {
             url: url.clone(),
             sha256: hash.clone(),
             strip_prefix,
+            overlay_paths,
         })
     }
 
@@ -257,6 +274,37 @@ fn copy_tree(src: &Path, dst: &Path) -> eyre::Result<()> {
                     dst_path.display()
                 )
             })?;
+        }
+    }
+    Ok(())
+}
+
+/// Every file under `dir`, as a path relative to it — the same walk
+/// [`copy_tree`] does, minus the copying. Used to know exactly which
+/// project-root-relative paths a `patch_directory` overlay provided, so a
+/// generated build can fetch one of them from wrapdb instead of the
+/// project's own `origin`, which never gets this overlay applied (see
+/// [`decay_build_ir::WrapdbOverlay`]).
+pub(crate) fn list(dir: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
+    let mut out = BTreeSet::new();
+    list_into(dir, dir, &mut out)?;
+    Ok(out)
+}
+
+fn list_into(root: &Path, dir: &Path, out: &mut BTreeSet<PathBuf>) -> eyre::Result<()> {
+    for entry in fs::read_dir(dir).wrap_err_with(|| format!("Failed to read {}", dir.display()))? {
+        let entry = entry.wrap_err("Failed to read a directory entry")?;
+        if entry.file_name() == ".git" {
+            continue;
+        }
+        let path = entry.path();
+        let file_type = entry
+            .file_type()
+            .wrap_err("Failed to stat a directory entry")?;
+        if file_type.is_dir() {
+            list_into(root, &path, out)?;
+        } else if let Ok(rel) = path.strip_prefix(root) {
+            out.insert(rel.to_path_buf());
         }
     }
     Ok(())

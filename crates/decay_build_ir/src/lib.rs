@@ -47,6 +47,12 @@ pub struct Project {
     /// about where that project lives; a backend that fetches sources rather
     /// than keeping a copy of them needs to be told.
     pub origin: Option<Origin>,
+    /// A wrap's `patch_directory` overlay this project's sources were merged
+    /// with before evaluation, when it named one and it actually came from
+    /// wrapdb (not a `decay.toml`-local test fixture). The overlay itself
+    /// never lands in `origin` — see [`Origin::Archive`] — so a referenced
+    /// file it provided needs fetching from here instead.
+    pub wrapdb_overlay: Option<WrapdbOverlay>,
 }
 
 impl Project {
@@ -61,6 +67,12 @@ impl Project {
             Some(Origin::Git { .. }) | None => format!("{}.git", self.name),
         }
     }
+
+    /// The name of the target that fetches wrapdb itself, for a file
+    /// [`WrapdbOverlay`]'s `patch_directory` provided.
+    pub fn wrapdb_target(&self) -> String {
+        format!("{}.wrapdb.git", self.name)
+    }
 }
 
 /// Where a project's sources are fetched from.
@@ -73,14 +85,13 @@ pub enum Origin {
         /// move under a build that is supposed to be reproducible.
         rev: String,
     },
-    /// A tarball, as a meson wrap's `[wrap-file]` names one.
-    ///
-    /// A wrap that also ships a wrapdb patch (a second archive overlaid on
-    /// top, for a project wrapdb writes a `meson.build` for rather than one
-    /// it was born with) is rejected before this is ever built: there is no
-    /// buck2 rule this could name that still supports `sub_targets`
-    /// addressing for a merge of two archives, so it stays unsupported
-    /// rather than silently wrong.
+    /// A tarball, as a meson wrap's `[wrap-file]` names one — still just the
+    /// plain upstream tarball's own URL and hash even when the wrap also
+    /// names a `patch_directory`: that overlay only ever applies to
+    /// `decay`'s own working copy before it evaluates the project, never to
+    /// what gets fetched here. A referenced file the overlay provided is
+    /// addressed against [`Project::wrapdb_overlay`] instead — see
+    /// `decay_buck2`'s `source_address`.
     Archive(ArchiveFile),
 }
 
@@ -94,6 +105,25 @@ pub struct ArchiveFile {
     /// one, so a backend can strip it and land the project at the archive
     /// root the way `decay` evaluated it.
     pub strip_prefix: Option<String>,
+}
+
+/// A wrap's `patch_directory` overlay — wrapdb's own files for it, copied
+/// onto the fetched source before `decay` ever evaluates the project (see
+/// `WrapCache::materialize`/`materialize_git` in `src/wrap_cache.rs`). Not
+/// part of `origin`'s own fetch, so a target that references one of
+/// `paths` needs a second fetch, of wrapdb itself, pinned at `rev`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WrapdbOverlay {
+    /// The wrapdb commit `patch_directory`'s content was read from —
+    /// `WrapFile::wrapdb_rev` in `src/wrapdb.rs`, the same commit
+    /// `decay.lock` pins so a later run overlays the exact same files.
+    pub rev: String,
+    /// `subprojects/packagefiles/<patch_directory>` in wrapdb's own tree —
+    /// the directory `paths` are relative to, once wrapdb itself is
+    /// checked out.
+    pub patch_directory: String,
+    /// Every path, relative to the project root, this overlay provided.
+    pub paths: std::collections::BTreeSet<PathBuf>,
 }
 
 /// A node in the build graph.

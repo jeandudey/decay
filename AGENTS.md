@@ -106,29 +106,53 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   evaluate a project whose upstream release has no meson build at all. That
   overlay only ever lands in `decay`'s own working copy, not in the emitted
   `Origin::Archive` (still just the plain upstream tarball's URL and hash) —
-  fine for a `patch_directory` that only replaces meson build files (as
-  every wrap wrapdb currently publishes does), which the emitted build never
-  fetches anyway since `decay` forgets meson and replaces it with generated
-  `BUCK` rules. A `patch_directory` that overlaid a file some target's
-  `srcs`/`headers`/`template` actually references would need that file
-  fetched into the archive some other way; `sub_targets` addressing against
-  the plain tarball fails loudly for it rather than silently producing a
-  wrong build, but nothing does that fetch yet. Confirmed, not just
-  theoretical: wrapdb's `libffi_3.8.0-1` `patch_directory` carries
+  fine for a `patch_directory` that only replaces meson build files (as most
+  wraps' overlays do), which the emitted build never fetches anyway since
+  `decay` forgets meson and replaces it with generated `BUCK` rules.
+
+  **Landed.** A `patch_directory` that overlaid a file some target's
+  `srcs`/`headers`/`template` actually references is no longer a dead end:
+  surfaced by wrapdb's real `libffi_3.8.0-1`, whose overlay carries
   `fficonfig.h.meson` (a `configure_file()` `input:`, not a meson build
-  file), evaluates and emits a `BUCK` fine — `decay` reads the overlaid copy
-  from its own working tree the same way it reads any other project file —
-  but `buck2 build //third-party/meson/libffi:ffi` fails: `fficonfig.h.meson`
-  is not in `libffi-3.8.0.tar.gz`, the plain upstream tarball the emitted
-  `http_archive` actually fetches, so the genrule's `$(location
-  :libffi.git[fficonfig.h.meson])` has nothing to resolve. Worse than
-  `libffi` alone not building: the moment it is enabled, glib's own
-  `dependency('libffi')` resolves cross-project to this real (but broken)
-  target instead of the empty stub it fell back to before — `Packages`
-  doesn't know a target failed to build, only that one exists — so `gio-2.0`,
-  a green CI target, stops building too. `example/decay.toml` keeps a
-  commented-out `libffi` entry (`run_command()`/`sizeof` answers, `doc`/
-  `tests` pinned off) ready to enable once this has a real fix.
+  file) — `decay` evaluated it fine (reading the overlaid copy from its own
+  working tree, same as any other project file) but the emitted
+  `$(location :libffi.git[fficonfig.h.meson])` had nothing to resolve,
+  `fficonfig.h.meson` not being in `libffi-3.8.0.tar.gz`, the plain upstream
+  tarball `Origin::Archive` actually fetches. Fixed the way this entry
+  already said it would need to be: a *second* fetch, of wrapdb itself.
+  `decay_build_ir::Project` gains `wrapdb_overlay: Option<WrapdbOverlay>`
+  (`{ rev, patch_directory, paths }` — `paths` every project-root-relative
+  path the overlay actually provided, listed once by `wrap_cache::list` off
+  the same directory `WrapCache::materialize`/`materialize_git` already
+  copied from) set in `src/main.rs::execute()` alongside `graph.project.
+  origin`, skipped for a `local_overlay` test fixture (no stable wrapdb
+  commit to fetch one from). `decay_buck2`'s `referenced_files` now splits
+  into `(origin_files, wrapdb_files)` by membership in `wrapdb_overlay`'s
+  `paths`; `render_fetch` still lists `origin_files` on the project's own
+  `http_archive`/`git_fetch` exactly as before, and — only when
+  `wrapdb_files` is non-empty, so a project whose overlay never gets
+  referenced (`pcre2`, `libxext`: overlay replaces `meson.build` et al.,
+  nothing `decay` emits ever names those) emits nothing extra — appends a
+  second `git_fetch` for `https://github.com/mesonbuild/wrapdb.git` pinned
+  at the overlay's `rev`, with `sub_targets` addressing
+  `subprojects/packagefiles/<patch_directory>/<path>` for each. A shared
+  `source_address` (`decay_buck2`, behind both `source()` and `file_arg()`)
+  picks whichever fetch a given `Source::File` path is actually reachable
+  from. Verified end to end: `buck2 build //third-party/meson/libffi:ffi`
+  now gets past `fficonfig.h.meson` entirely — `libffi.wrapdb.git` fetches
+  and the `sed` genrule runs — and every previously-green target
+  (`pcre2`/`libxext`/`zlib`/`libglvnd`/`graphene`/`libepoxy`/`libxml2`/the
+  five glib libraries) still builds unchanged, `referenced_files`' split
+  landing all of their files in `origin_files` exactly as before.
+
+  `libffi` itself still doesn't fully `buck2 build` — a new, unrelated
+  problem past this one, "`ffitarget.h` per-arch header collision" below —
+  so it stays commented out in `example/decay.toml` (`run_command()`/
+  `sizeof` answers, `doc`/`tests` pinned off, ready to re-enable once that
+  is fixed too). Leaving it enabled would still break `gio-2.0`: glib's own
+  `dependency('libffi')` resolves cross-project to the real `libffi` target
+  the moment the project exists at all, and `Packages` has no notion of a
+  target that exists but fails to build.
 
   `decay.lock` also pins the wrapdb commit a `patch_directory` overlay came
   from (`WrapFile::wrapdb_rev`, `LockedWrap::wrapdb_rev`), not just the
@@ -897,13 +921,14 @@ constraint(
 - **Support all of meson wrapdb.** This should be the biggest showcase and
   smoke test for decay, we should be able to import all of the wrapdb
   projects. Currently exercises 3 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `pcre2`, `libxext`); a fourth (`libffi`)
-  now *evaluates* cleanly but stays commented out — see "Wrap support"
-  above, `fficonfig.h.meson` — since enabling it breaks `gio-2.0`, a green
-  CI target, through no fault of libffi's own build.
+  `example/decay.toml` (`zlib`, `pcre2`, `libxext`); a fourth (`libffi`) now
+  *evaluates and gets past its own overlay file* (see "Wrap support" above)
+  but stays commented out — "`ffitarget.h` per-arch header collision" below
+  — since enabling it breaks `gio-2.0`, a green CI target, through no fault
+  of libffi's own build.
 
   Getting `libffi` to evaluate took two real fixes in the evaluator, both
-  general and kept regardless of `fficonfig.h.meson`: `cc.preprocess()`
+  general and kept regardless of anything libffi-specific: `cc.preprocess()`
   was entirely unimplemented (`compiler_method` in `decay_meson_eval/src/
   methods.rs`; MSVC-only masm preprocessing — a no-op-looking stub is
   enough, since nothing in `[systems]` can build `compiler[msvc]` today
@@ -915,15 +940,35 @@ constraint(
   '-Wl,--version-script=' + meson.project_source_root() /
   'libffi.map.in'])` read as "expected a string, found a file". The
   commented-out `[[project]] wrap = "libffi"` entry in `example/decay.toml`
-  carries what evaluating it still needs once `fficonfig.h.meson` is fixed:
-  three `run_command()` toolchain probes (`test-unwind-section.py`/
-  `test-cc-supports-hidden-visibility.py`/`test-ro-eh-frame.py`, each a real
-  `zig cc`-hostable gcc/binutils-on-Linux fact) and `doc`/`tests` options
-  pinned off (the former needs `makeinfo`, the latter's `testsuite/
-  meson.build` hits the `continue`-in-a-partial-foreach gap below); a
-  `sizeof('long double')` per-`cpu` pin (16/16/8/12 on x86_64/arm64/arm32/
-  x86_32) is not in `decay.toml` since nothing else needs it while `libffi`
-  stays disabled.
+  carries what evaluating it needs: three `run_command()` toolchain probes
+  (`test-unwind-section.py`/`test-cc-supports-hidden-visibility.py`/
+  `test-ro-eh-frame.py`, each a real `zig cc`-hostable gcc/binutils-on-Linux
+  fact) and `doc`/`tests` options pinned off (the former needs `makeinfo`,
+  the latter's `testsuite/meson.build` hits the `continue`-in-a-partial-
+  foreach gap below); a `sizeof('long double')` per-`cpu` pin (16/16/8/12 on
+  x86_64/arm64/arm32/x86_32) is not in `decay.toml` since nothing else needs
+  it while `libffi` stays disabled.
+
+- **`ffitarget.h` per-arch header collision.** What `libffi` hits past the
+  wrapdb-overlay fix above: `buck2 build //third-party/meson/libffi:ffi`
+  fails compiling any source outside the arch `decay`'s flat header dict
+  happened to keep — `#error "libffi was configured for a RISC-V target but
+  this does not appear to be a RISC-V compiler."` compiling an x86 `.S` file,
+  from `riscv/ffitarget.h`. libffi ships `src/<arch>/ffitarget.h` once per
+  architecture (30 of them, `aarch64` through `xtensa`), and `include/
+  ffi.h.in` includes it bare (`#include <ffitarget.h>`) — real meson scopes
+  `-I` to the one `targetdir` `host_cpu_family()` picked, so only that
+  arch's copy is ever reachable. `decay`'s own `headers`/`exported_headers`
+  (and `sibling_headers`, the `#include`-scan mechanism the graphene section
+  above added) are a flat, basename-keyed dict with no notion of
+  configuration at all — every arch's `ffitarget.h` collides on the same
+  key, and whichever insert happened to win is the only one any
+  configuration ever sees. Every other verified project has at most one file
+  per basename, so this hasn't surfaced before. Needs the header dict itself
+  to carry a presence condition per entry (the same `Variational` shape
+  `srcs`/`headers` attributes already use), keyed so the `cpu` an entry's
+  own source directory implies picks it — not a small change, since
+  `decay_buck2`'s header-dict rendering assumes one winner per name today.
 
 - **dependency('threads') is a builtin.** `fn_dependency` special-cases it
   (`External::Threads`): always found, never a `threads[true/false]` knob, and
