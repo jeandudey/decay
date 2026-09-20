@@ -526,7 +526,12 @@ const WRAPDB_REPO: &str = "https://github.com/mesonbuild/wrapdb.git";
 /// File a rule referenced `path`, so [`referenced_files`] knows to list it —
 /// under `origin`'s own sub_targets, unless [`decay_build_ir::WrapdbOverlay`]
 /// is the one that actually provided it.
-fn classify(graph: &Graph, path: &Path, origin: &mut BTreeSet<String>, wrapdb: &mut BTreeSet<String>) {
+fn classify(
+    graph: &Graph,
+    path: &Path,
+    origin: &mut BTreeSet<String>,
+    wrapdb: &mut BTreeSet<String>,
+) {
     let is_overlay = graph
         .project
         .wrapdb_overlay
