@@ -9,6 +9,13 @@ choices they expose.
 
 - Always materialize git lfs (`git lfs pull`) when working, no skip before doingo
   anything, otherwise build error.
+- **"Known gaps" below is a live list of what's still missing, not a
+  changelog.** When a gap is fully fixed, delete its entry outright. When a
+  gap is partially fixed, rewrite the entry down to only what's still open —
+  never append a "Landed:"/"Fixed:" paragraph narrating how or when it got
+  fixed, what it took, or what got verified. Git history and commit messages
+  are where that belongs; this file is where a person checks what to expect
+  before they hit it.
 
 ## How it works
 
@@ -70,466 +77,89 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 ## Known gaps
 
-- **Wrap support covers both `[wrap-file]` and `[wrap-git]`.** A `[[project]]` entry can now be
-  `wrap = "name"` (optionally `version = "..."`, wrapdb's own
-  `version-revision` spelling) instead of `repo`/`rev`: `src/wrapdb.rs` and
-  `src/wrap_cache.rs` resolve it, and the rest of the pipeline treats it
-  exactly like a git project from there (`Packages` resolution, `depends`,
-  `decay_build_ir::Origin::Archive` → a buck2 `http_archive` with
-  `sub_targets`, same as `git_fetch`). `decay.lock` (`src/lock.rs`) pins
-  whatever was resolved — a wrap's wrapdb version when `decay.toml` does not
-  pin one, and now also a `[[project]]` `rev` that names a branch or tag
-  rather than a commit (resolved once via `git ls-remote`, the same relation
-  `Cargo.lock` has to `Cargo.toml`).
-
-  wrapdb has no supported API for this: its `v2` query endpoints answer with
-  data that doesn't know about `patch_directory` and don't match what a
-  current `.wrap` file says. `src/wrapdb.rs` instead treats wrapdb itself —
-  <https://github.com/mesonbuild/wrapdb> — as the source of truth, checked
-  out through [`crate::git_cache::GitCache`] the same way any other
-  project's git history is: `releases.json` at its root lists every
-  project's known versions (newest first, used when `decay.toml` pins none),
-  and each `name`/`version` pair is tagged `{name}_{version}`, at which
-  `subprojects/{name}.wrap` and, when the wrap carries one,
-  `subprojects/packagefiles/{patch_directory}` are exactly what that release
-  resolved to — matching `mesonbuild.wrap.wrap.PackageDefinition` and
-  `Resolver.apply_patch` in meson's own source, which is what `patch_directory`
-  and its `copy_tree` overlay semantics here are modeled on. A bare branch or
-  tag name doesn't resolve directly against `GitCache`'s local mirror (its
-  fetch lands branches under `refs/remotes/origin/*`, and `checkout` only
-  reliably takes a full commit hash), so `wrapdb.rs` resolves one through
-  `git_cache::resolve_rev` first, the same as `[[project]]`'s own `rev` does
-  in `src/lock.rs`.
-
-  `WrapCache::materialize` downloads and extracts the upstream tarball as
-  before, then — when the wrap names a `patch_directory` — copies wrapdb's
-  own files for it onto the extracted tree before `decay` ever evaluates it,
-  the same recursive overwrite meson's `copy_tree` does. Verified against
-  the real `pcre2` wrap (10.48-1): `wrapdb.rs`'s discovery, fetch, and
-  overlay all produce the same `meson.build` wrapdb ships, letting `decay`
-  evaluate a project whose upstream release has no meson build at all. That
-  overlay only ever lands in `decay`'s own working copy, not in the emitted
-  `Origin::Archive` (still just the plain upstream tarball's URL and hash) —
-  fine for a `patch_directory` that only replaces meson build files (as most
-  wraps' overlays do), which the emitted build never fetches anyway since
-  `decay` forgets meson and replaces it with generated `BUCK` rules.
-
-  **Landed.** A `patch_directory` that overlaid a file some target's
-  `srcs`/`headers`/`template` actually references is no longer a dead end:
-  surfaced by wrapdb's real `libffi_3.8.0-1`, whose overlay carries
-  `fficonfig.h.meson` (a `configure_file()` `input:`, not a meson build
-  file) — `decay` evaluated it fine (reading the overlaid copy from its own
-  working tree, same as any other project file) but the emitted
-  `$(location :libffi.git[fficonfig.h.meson])` had nothing to resolve,
-  `fficonfig.h.meson` not being in `libffi-3.8.0.tar.gz`, the plain upstream
-  tarball `Origin::Archive` actually fetches. Fixed the way this entry
-  already said it would need to be: a *second* fetch, of wrapdb itself.
-  `decay_build_ir::Project` gains `wrapdb_overlay: Option<WrapdbOverlay>`
-  (`{ rev, patch_directory, paths }` — `paths` every project-root-relative
-  path the overlay actually provided, listed once by `wrap_cache::list` off
-  the same directory `WrapCache::materialize`/`materialize_git` already
-  copied from) set in `src/main.rs::execute()` alongside `graph.project.
-  origin`, skipped for a `local_overlay` test fixture (no stable wrapdb
-  commit to fetch one from). `decay_buck2`'s `referenced_files` now splits
-  into `(origin_files, wrapdb_files)` by membership in `wrapdb_overlay`'s
-  `paths`; `render_fetch` still lists `origin_files` on the project's own
-  `http_archive`/`git_fetch` exactly as before, and — only when
-  `wrapdb_files` is non-empty, so a project whose overlay never gets
-  referenced (`pcre2`, `libxext`: overlay replaces `meson.build` et al.,
-  nothing `decay` emits ever names those) emits nothing extra — appends a
-  second `git_fetch` for `https://github.com/mesonbuild/wrapdb.git` pinned
-  at the overlay's `rev`, with `sub_targets` addressing
-  `subprojects/packagefiles/<patch_directory>/<path>` for each. A shared
-  `source_address` (`decay_buck2`, behind both `source()` and `file_arg()`)
-  picks whichever fetch a given `Source::File` path is actually reachable
-  from. Verified end to end: `buck2 build //third-party/meson/libffi:ffi`
-  now gets past `fficonfig.h.meson` entirely — `libffi.wrapdb.git` fetches
-  and the `sed` genrule runs — and every previously-green target
-  (`pcre2`/`libxext`/`zlib`/`libglvnd`/`graphene`/`libepoxy`/`libxml2`/the
-  five glib libraries) still builds unchanged, `referenced_files`' split
-  landing all of their files in `origin_files` exactly as before.
-
-  `libffi` now `buck2 build`s in full, and is enabled in `example/decay.toml`.
-  Getting there past the overlay fix above took two more fixes, now landed:
-  libffi ships one `src/<arch>/ffitarget.h` per architecture, bare-included
-  by `ffi.h.in`, and decay's flat basename-keyed header dict could only ever
-  keep one winner — `include_roots`/`header_aliases`/the raw `-I` flags
-  (`decay_buck2/src/lib.rs`) now carry a presence condition per root so each
-  arch's copy is only reachable under that arch's own condition. That
-  surfaced the `gio-2.0` breakage this paragraph used to warn about: `ffi.h`
-  is itself a generated header, and `is_config_header`'s broadcast
-  (`decay_buck2::render_target`) keeps every generated header private to its
-  own project, so glib's `#include <ffi.h>` kept resolving to the *system*
-  header while still inheriting decay's own (now correctly per-arch)
-  `ffitarget.h` — two different libffi's headers that don't agree. Fixed by
-  promoting a broadcast config header into a `raw_include_roots` library's
-  `exported_headers` when its package matches one of that library's own
-  declared `include_directories()` roots, the same reachability
-  `declare_dependency(include_directories:)` gives a real meson consumer.
-  Verified: every previously-green target plus `libffi:ffi` itself
-  `buck2 build` together on `//platforms:linux` (now in
-  `.github/workflows/import.yml`'s target list), and — a bonus from libffi
-  no longer being an external stub — `glib-compile-resources` and `gdbus`,
-  both broken at runtime by an unstaged system `libffi.so`, now work too
-  (see the `gio/tests` and libglvnd entries below).
-
-  `decay.lock` also pins the wrapdb commit a `patch_directory` overlay came
-  from (`WrapFile::wrapdb_rev`, `LockedWrap::wrapdb_rev`), not just the
-  tarball's own hash or the `[wrap-git]` commit — `source`'s hash or resolved
-  commit already made the *source* reproducible, but nothing pinned the
-  overlay's own content the same way, only the `{name}_{version}` tag's
-  name, and that tag is not actually immutable: wrapdb force-moved
-  `ff-nvcodec-headers_11.1.5.1-0` from a `[wrap-git]` wrap to an unrelated
-  `[wrap-file]` one after the fact. `wrapdb::fetch` resolves that tag to a
-  commit hash once and stamps it onto the result; `wrapdb::patch_dir` then
-  takes that hash directly rather than ever re-resolving the tag, so a
-  second run overlays the exact same files a first one did even if wrapdb's
-  tag has since moved.
-
-  A `[wrap-git]` wrap (`url`/`revision`, plus an optional `patch_directory` —
-  wrapdb's `ff-nvcodec-headers_11.1.5.1-0` once carried both) resolves and
-  fetches exactly the way an ordinary `[[project]]` `repo`/`rev` does:
-  `wrapdb::parse_wrap` returns a `WrapSource::Git { url, revision }`,
-  `src/lock.rs` resolves `revision` to a full commit hash through
-  `git_cache::resolve_rev` and pins it in `decay.lock` (same as `[[project]]`'s
-  own `rev`), and `execute()` in `src/main.rs` checks it out through the same
-  shared `GitCache` every git project uses — `Origin::Git` in the emitted
-  build, not `Origin::Archive`. A `patch_directory` still applies afterward,
-  but never onto `GitCache`'s own checkout directory: that's a shared
-  worktree every other project pinned to the same commit trusts unmodified,
-  so `WrapCache::materialize_git` only copies it (skipping `.git`) into a
-  private directory when there's an overlay to apply, and hands back the
-  shared checkout untouched otherwise. No current wrapdb release is actually
-  `[wrap-git]` to test this against end-to-end — every one has migrated to
-  `[wrap-file]` — so `wrap_cache.rs`'s test for it runs entirely offline,
-  against a throwaway local git repo, rather than `#[ignore = "network"]`
-  like the `[wrap-file]` one.
-
-  Still open:
-  - **The legacy `patch_filename` archive overlay is refused.** No current
-    wrapdb release uses it (every one migrated to `patch_directory`), only a
-    handful of old pinned versions might still need it, and it has the same
-    "can't fetch it into the emitted archive" limitation as a `patch_directory`
-    that overlays a referenced non-meson file, above — just without the
-    "current releases never hit it" mitigation. `wrapdb::parse_wrap` bails
-    with a clear message rather than approximate it.
-  - **`[provide] dependency_names` is not read.** A wrap resolves against a
-    sibling `dependency()` the same way any other project does — by its own
-    `meson.build`'s `declare_dependency()`, matched by name against the wrap's
-    `name` — which already has the "only when the looked-up name equals the
-    project's `short_name`" narrowness noted below under "`declare_dependency()`
-    provide heuristic is narrow." A wrap whose `[provide]` names something
-    else would need that gap closed first for `dependency_names` to be worth
-    reading.
+- **Wrap support.** `[[project]] wrap = "name"` resolves both `[wrap-file]`
+  and `[wrap-git]` wraps, including a `patch_directory` overlay fetched
+  alongside the project's own archive when something actually references an
+  overlaid file (`src/wrapdb.rs`, `src/wrap_cache.rs`). Still open:
+  - The legacy `patch_filename` archive overlay is refused (`wrapdb::parse_wrap`
+    bails with the key to add) — no current wrapdb release uses it.
+  - `[provide] dependency_names` is not read — a wrap resolves against a
+    sibling `dependency()` only through the same name-matching heuristic as
+    any other project (see "`declare_dependency()` provide heuristic is
+    narrow" below), not its own declared provides.
 
 - **Unsatisfiable constraint.** This could be removed, we need to research if
   select_incompatible is a better option, the message could just be
   unsatisfiable or a custom generated one if we have the data to back it up.
 
-- **has_function.** For common C standard library functions on most operating
-  systems we could have this built-in in decay (altough with an option
-  to disable it in decay.toml or allow overriding the results), e.g.
-  has_function('dlvsym') or whatever should just compile to a select for linux
-  and gnu abi. This should be a database built-in into decay, and it must never
-  be hand-curated — built by parsing an authoritative data source, the way
-  `bindgen` reads a header instead of a person transcribing it.
+- **has_function.** Built from an authoritative source (zig's `abilists`,
+  `decay_zig`), never hand-curated — landed for `linux`/`freebsd`/`netbsd`,
+  each a settled `select()` over `os`/`abi`/`cpu`, not an open knob. Still
+  open: `windows`/`darwin`/others leave it an open knob (no equally
+  authoritative, automatically-parseable source found yet); `has_header` and
+  the rest are a harder follow-up (header presence also depends on optional
+  dev packages, not just the libc). Known rough edge: a symbol real on
+  `linux` (both abis) + `freebsd` but not `netbsd` can misplace onto an
+  `abi[musl]` arm (the solver allows an axis var to take "no value") —
+  harmless on `abi[gnu]`, and no `example/` platform exercises `abi[musl]`.
 
-  **Landed.** `decay_zig` (the crate; `has_function` / `has_library` /
-  `Cpu`, plus the bare `zig::{compiles,link,ast_dump}` wrappers the rest of
-  decay probes through). `zig` is a hard requirement of decay now, not
-  optional — there is no vendored data file, no `build.rs`, and no toggle:
-  the glibc `abilists` is read at runtime from `zig env`'s `lib_dir`, the
-  musl half is a real `zig cc` ast-dump + link probe done once per process
-  on first use, and an explicit `[probes]` / `[dependencies]` answer still
-  wins first. The rest of this plan (the reasoning, the `Probe` variant it
-  needed) still describes what shipped.
+- **Compile/link probes resolved by `zig cc` at import time.** `cc.has_header`,
+  `cc.has_type`, `cc.has_header_symbol`, and `cc.compiles` — none with
+  `dependencies:` (a `pkg-config` answer the importer cannot reconstruct) —
+  are answered by linking against `zig cc -target <triple>` per `(os, cpu,
+  abi)` in decay's configured matrix (`src/probe.rs`,
+  `oracle::Probe::Matrix`); compiles everywhere → plain `true`, compiles
+  nowhere → dead branch, compiles on some → a real `select()`, never a
+  synthetic `has_foo_bar` constraint. An explicit `decay.toml [probes]`
+  answer still wins first. Systems zig cannot probe end to end (`darwin`,
+  `windows`, `illumos`, `android`, `fuchsia`) are meant to be left out of
+  `[systems]` entirely.
 
-  Plan, scoped to `has_function` on `linux`+`gnu` first:
-  1. Zig ships exactly such a source: `lib/libc/glibc/abilists`, a compact
-     binary listing, for every glibc version and target triple, which
-     symbols each versioned glibc release exports — the data glibc's own
-     project publishes and zig uses to synthesize its glibc stub `.so`s for
-     cross-linking. `decay_zig` reads it straight out of the local zig
-     install (`zig env` → `lib_dir/libc/glibc/abilists`) at runtime; a
-     refresh is just installing a newer zig, never editing a function list.
-  2. Parse its binary format (documented by `loadMetaData` and the
-     function-inclusion loop in zig's own `src/libs/glibc.zig`) into the set
-     of symbol names present in the function table (skip the object table —
-     data symbols, not functions) for the `x86_64-linux-gnu` column, unioned
-     across libc/libm/libpthread/libdl/librt/libutil/libresolv, since
-     `has_function` doesn't care which of those a symbol lives in.
-  3. Wire it into `src/oracle.rs` as a fallback `Oracle::probe` consults only
-     after a project's own `decay.toml` `[probes]` entry misses — an explicit
-     answer there still wins, and a project-wide toggle turns the built-in
-     table off entirely.
-  4. Buck2's `abi` constraint (`gnu`/`msvc`/`musl`/`unspecified`) is shared
-     across every OS — `abi[gnu]` also means mingw on Windows, not just
-     glibc — so a glibc-derived fact must select on `os == linux AND abi ==
-     gnu` together, not `abi` alone. `Probe` needs a variant that ANDs the
-     `Pc` `[systems]` already builds with the one `[probes]`'s
-     `Probe::Constraint` already builds, rather than reusing `Probe::Constraint`
-     unchanged.
-  5. A later pass extends the same abilist read to other glibc target
-     columns, and separately to musl/Darwin/mingw once an equally
-     authoritative, automatically-parseable source for each is found — and,
-     after that, to `has_header` and the rest, which is a harder problem
-     (header presence also depends on optional dev packages, not just the
-     libc), so it stays its own follow-up.
-
-- **Compile/link probes resolved by `zig cc` at import time.** The
-  `has_function` database above answers one probe kind from a parsed table;
-  the more general version is to *link-test* a probe against `zig cc
-  -target <triple>` once per `(os, cpu, abi)` tuple in decay's configured
-  matrix (the `[systems]` set intersected with the constraints left open).
-  A probe then stops being a `VarKind::Probe` constraint and becomes a
-  presence condition over constraints decay already tracks: compiles for
-  every tuple → just `true`, no `select()`; compiles for none → the
-  dependent branch is dead and nothing is emitted; compiles for some → a
-  `select()` over `os`/`cpu`/`abi`, never a synthetic `has_foo_bar`
-  constraint. `zig` is one hermetic cross-compiler with bundled
-  glibc/musl/mingw/wasi headers and stubs, the same install `decay_zig`
-  reads `abilists` out of; an explicit `decay.toml [probes]` answer still
-  wins first.
-
-  **Landed (first slice).** `cc.has_header`, `cc.has_type`,
-  `cc.has_header_symbol` (`CompileProbeKind::HeaderSymbol`, meson's own
-  include-then-use-as-symbol test), and `cc.compiles` — no `dependencies:`
-  (a `pkg-config` answer the importer
-  cannot reconstruct); a project `args:` *is* replayed when every element is
-  a plain compiler flag (`is_replayable_cflag` in `decay_meson_eval`:
-  `-`-prefixed, ASCII, no space / `/` / `@`), so graphene's
-  `cc.compiles(neon_prog, args: ['-mfpu=neon'])` / `sse_prog` resolve by
-  arch instead of leaving an open knob that defaults present. `src/probe.rs`'s
-  `flags_for_arch` gates the ISA `-m…` families (`-mfpu=`/`-mfloat-abi=` →
-  arm32 only; `-msse*`/`-mavx*`/`-mfpmath=sse` → x86) so a `-target` that
-  lacks the ISA is never handed the flag (clang hard-errors on that);
-  `has_header` still skips anything but a plain header path — are answered by
-  `src/probe.rs` via `decay_zig::zig::compiles` (`zig cc -c` to a discarded
-  object; zig 0.15.2's own `-fsyntax-only` is broken) for each `(abi, cpu)`
-  in `decay_zig::Cpu::ALL`, on every system in `probe::PROBE_SYSTEMS` the
-  configuration uses — `linux` ({gnu, musl}), `freebsd` and `netbsd` (no abi
-  split), the three whose libc headers zig bundles in full. Every `zig cc`
-  probe line carries `-fgnuc-version=10.5.0` (`GNUC_VERSION`) so a check
-  gated on `__GNUC__ >= N` answers as the gcc the emitted build uses, not as
-  clang's spoofed `4.2.1` (which failed graphene's `>= 4.9` GCC-vector
-  check); `11`+ is unusable — glibc's `sys/cdefs.h` then wants the
-  two-argument `__malloc__` attribute zig's clang lacks, and every glibc
-  header stops parsing.
-  The result is `oracle::Probe::Matrix(Vec<MatrixSystem>)` — per probed
-  system, its own axes (`[abi, cpu]` for `linux`, `[cpu]` for the BSDs) and
-  the rows that compiled; true on those rows, settled *false* (no knob) on
-  every other combination within a probed system, left open only off every
-  probed system. `decay_meson_eval` gains `oracle::CompileProbe` (the
-  reconstructed translation unit) and `Oracle::compile_probe`; an explicit
-  `[probes]` entry still wins first via the existing `Oracle::probe` path.
-
-  Before the matrix is handed back, `src/oracle.rs`'s `collapse_full_axes`
-  drops any axis whose whole real domain compiled for every combination of
-  the others — which also covers "`linux` `gnu` and `musl` agree, lose the
-  `abi` axis" (group the `[abi, cpu]` rows by cpu). A probe that compiled
-  *everywhere* thus reduces to `axes: []`, `rows: [[]]` on each system →
-  `simplify()` folds it to plain `true` and no `select()` is emitted at
-  all. Without this the `constraint_var` `ANY_OTHER` fallback
-  value kept every such probe non-tautological forever, so an arch-heavy
-  build (libglvnd) grew a full `os`/`abi`/`cpu` decision tree into every
-  attribute that touched a probe — libglvnd's `BUCK` went 7.3k → ~1.9k
-  lines, glib/graphene/pcre2 all shrank too.
-
-  Operating systems zig cannot probe end to end (partial SDK: `darwin`,
-  `windows`; no bundled libc at all: `illumos`, `android`, `fuchsia`) are
-  meant to be left out of `[systems]` entirely — a build for one would rest
-  on probe knobs defaulting present, so buck2 should simply not be able to
-  target it. `example/decay.toml` now lists only `linux`/`freebsd`/`netbsd`.
-
-  Still in scope, not yet done:
+  Still in scope:
   - **`cc.links`** — needs a real link (output file, `main` handling), not
-    just `-c`; `CompileProbe` has no `Links` variant yet. A `links:` probe
-    still defaults present and needs a `[probes]` answer (glib's
+    just `-c`. Still defaults present and needs a `[probes]` answer (glib's
     `pthread_setname_np(const char*)`, `res_ndestroy()`).
   - **compile-time `cc.sizeof` of a *type*** — the `static_assert` binary
-    search meson falls back to when it cannot run. Goes through the
-    `SizeAnswer` path (`Oracle::type_size`), not `compile_probe`.
-  - **gcc-only builtins.** `-fgnuc-version=` fixes the *version-guard* class
-    of probe, not a probe that uses a GCC extension clang never implemented:
-    graphene's `GCC vector intrinsics` check calls `__builtin_shuffle`
-    (clang has only `__builtin_shufflevector`), so it still settles *false*
-    where a real gcc build would set `GRAPHENE_HAS_GCC`. Harmless for
-    graphene (SSE path stays), but it is the same clang≠gcc divergence noted
-    below under `cc.has_argument` — the real fix is a `compiler` axis on
-    `Probe::Matrix`, or a `[probes]` override.
-  - **`has_function` on `freebsd`/`netbsd` — landed.** zig ships
-    `lib/libc/{freebsd,netbsd}/abilists` in the *identical* binary format as
-    glibc's, for the same reason (it cross-links a stub libc from them), so
-    `decay_zig`'s existing `parse()` reads them unchanged
-    (`Libc::Freebsd`/`Libc::Netbsd`, which double as the OS selector — one
-    libc, no abi split; NetBSD ships no `riscv64` column). `builtin_has_function`
-    now returns `Probe::Matrix` with a per-system entry for each of
-    `linux`/`freebsd`/`netbsd` the config uses (`[abi, cpu]` rows for linux,
-    `[cpu]` for a BSD), retiring `Probe::SystemsAndConstraint` (its resolve
-    was a strict special case of `Probe::Matrix`'s). `example/`: ~90
-    `has_function_*` knobs gone from `constraints/BUCK`; BSD-only APIs
-    (`kqueue`, `kevent`, `issetugid`, `getvfsstat`, …) settle from real data
-    instead of an open knob defaulting present, and every verified project
-    still `buck2 build`s on `//platforms:linux`. `x86`/`arm` beyond
-    `Cpu::ALL` are a later pass; `msvc` stays unreachable (`zig` has no MSVC
-    headers).
+    search meson falls back to when it cannot run. Goes through
+    `Oracle::type_size`, not `compile_probe`.
+  - **gcc-only builtins.** `-fgnuc-version=` fixes the version-guard class
+    of probe, not one that uses a GCC extension clang never implemented
+    (graphene's `__builtin_shuffle`, no `GRAPHENE_HAS_GCC`). Needs a
+    `compiler` axis on `Probe::Matrix`, or a `[probes]` override.
 
-    Known rough edge: settling a symbol that is real on `linux` (both abis)
-    + `freebsd` but *not* `netbsd` can make `simplify` misplace it onto a
-    `abi[musl]` / linux `select()` arm (a symbol like `issetugid` reading as
-    present on a hypothetical `linux musl` target). It comes from the solver
-    allowing an axis var to take "no value", so `¬(system ∈ probed) ∧ knob`
-    stays vacuously satisfiable; harmless for every `abi[gnu]` target and
-    still an improvement on the pre-existing "unanswered probe defaults
-    true" (which was wrong on `abi[gnu]` too). No `example/` platform
-    exercises `abi[musl]`.
-
-  Deferred — out of scope, each its own follow-up:
-  - **`cc.has_argument()` / `has_link_argument()` / `has_multi_arguments()`
-    are compiler-specific.** `zig cc` *is* clang, so "does `-Wfoo` exist"
-    can diverge from a gcc toolchain. Mostly still passed through unfiltered,
-    but the handful of bare `-W…` flags gcc and clang reject outright
-    (`GCC_ONLY_WARNING_ARGS` / `CLANG_ONLY_WARNING_ARGS` in
-    `decay_meson_eval/src/methods.rs` — extend as projects turn up more) are
-    now gated on the `compiler` constraint by `arg_supported_cond`, so
-    `cc.get_supported_arguments()` no longer hands a clang-only flag to gcc
-    (glib's `-Wshorten-64-to-32` was a hard error). A `-Wno-…` needs no entry
-    — every compiler ignores an unknown one. The general case still wants a
-    real per-toolchain answer, or decay standardizing its emitted builds on
-    clang/zig — the same direction as the hermetic-`python3`-in-`toolchains//`
-    note below.
-  - **`cc.run()` proper, `cc.alignment()`'s value, `cc.compute_int()`.**
-    These need the probe *executed*, not just linked, and decay does not
-    cross-run (no qemu). They stay on the `decay.toml` path — see
-    "`cc.compute_int()` has no configured answer" below, which this does not
-    change.
-  - **Kernel/libc-header-vintage probes.** `HAVE_FUTEX_TIME64` and kin
-    resolve against `zig`'s *bundled* Linux headers — one pinned answer.
-    Better than today's "default to `true` then fail to compile" (see "An
-    unanswered probe defaults to `true`" below), but it is a zig-release
-    pin, not a real per-host fact; real Linux systems still disagree.
-  - **Probe context threading.** Meson runs a probe with the project's
-    `c_args` and each named dependency's cflags/include paths. `zig cc`
-    needs the same flags for `cc.has_header('x.h', dependencies: dep)` and
-    friends to answer correctly; without them a header behind a dependency's
-    include dir reads as absent.
-  - **Determinism / golden tree.** Probe answers get baked into the emitted
-    build, so `example/`'s golden tree shifts whenever the pinned `zig`'s
-    libc or headers change — the same maintenance tradeoff the abilists
-    database already accepted.
+  Deferred, each its own follow-up:
+  - **`cc.has_argument()`/`has_link_argument()`/`has_multi_arguments()` are
+    compiler-specific** — `zig cc` is clang, so "does `-Wfoo` exist" can
+    diverge from a gcc toolchain. The handful of known gcc/clang-only
+    warning flags are gated (`GCC_ONLY_WARNING_ARGS`/`CLANG_ONLY_WARNING_ARGS`
+    in `decay_meson_eval/src/methods.rs` — extend as projects turn up more);
+    the general case wants a real per-toolchain answer.
+  - **`cc.run()` proper, `cc.alignment()`'s value, `cc.compute_int()`** need
+    the probe *executed*, not just linked — decay does not cross-run. Stay
+    on the `decay.toml` path (see `cc.compute_int()`'s own entry below).
+  - **Kernel/libc-header-vintage probes** (`HAVE_FUTEX_TIME64` and kin)
+    resolve against `zig`'s *bundled* headers — a version pin, not a real
+    per-host fact (see "An unanswered probe defaults to `true`" below).
+  - **Probe context threading** — a header behind a dependency's include dir
+    reads as absent (`cc.has_header('x.h', dependencies: dep)` gets none of
+    that dependency's flags).
+  - **Determinism / golden tree** — `example/`'s golden tree shifts whenever
+    the pinned `zig`'s libc or headers change.
 
 - **Python3 genrules.** the genrules using python should try to use python rules if possible
   to define the scripts, and only fallback to genrule with an override in decay.toml if it
   turns out it doesn't work with buck2 rules, also python3 should point to an hermetic
   python3 executable as defined in toolchains//.
 
-- **A dict `[]` index missing a key defined earlier in the same dict — fixed.**
-  Was `test_extra_programs_targets[program]` (`glib/tests/meson.build:482`)
-  reading "no dict entry `test-spawn-echo`" even though
-  `test_extra_programs` — the dict `test_extra_programs_targets` is built
-  from, key for key, via `foreach program_name, extra_args :
-  test_extra_programs` a few lines above — defines `'test-spawn-echo' : {}`
-  unconditionally. Root cause: `{program_name : executable(...)}`'s key is a
-  bare identifier, and `decay_meson_parse::lower`'s `key_expr` special-cased
-  a bare `Node::Id` dict key as a *literal* string (the identifier's own
-  name), rather than evaluating it as the variable reference it is — so
-  every entry landed under the literal key `"program_name"` instead of its
-  value. That special case was simply wrong: checked against meson's own
-  grammar (`Parser.key_values` in `mparser.py`), a dict literal's key is
-  *always* parsed as a full expression; the "bare identifier is a literal
-  name" rule belongs only to function/method-call keyword arguments
-  (`Parser.args`), a distinct grammar path already handled by `Args.kw`.
-  Fixed by deleting `key_expr` and lowering a dict key the same as any other
-  expression (`crates/decay_meson_parse/src/lower.rs`).
+- **glib's `tests` option stays off.** Enabling it means verifying all
+  ~367 of glib's test targets, not just spot-checking a couple — its own
+  follow-up.
 
-  With that fix, `example/decay.toml`'s glib `tests` option (still left
-  `false`) gets past `glib/tests/` entirely and into `gio/tests/meson.build`,
-  where it hit a new, unrelated error — **also fixed** — `cannot apply '+' to
-  a str and a file` (`arith` in `crates/decay_meson_eval/src/ops.rs`).
-  Traced to `gio/tests/meson.build`'s hand-rolled `custom_target(command:
-  [glib_compile_resources, ..., '--sourcedir=' + meson.current_source_dir(),
-  ...])` (14 call sites, none going through the `gnome.compile_resources()`
-  module decay already special-cases): `meson.current_source_dir()` is
-  modelled as `Obj::File` (a real path in the fetched checkout, not a plain
-  string), deliberately, so a project that joins one with `/` gets back a
-  reference `command()` can resolve against the checkout rather than a path
-  meaning nothing once the build runs elsewhere — but nothing had ever
-  concatenated a literal prefix directly onto one with `+` before, and
-  `arith` had no `Str`/`File` overload for it. Fixed by adding
-  `Obj::PrefixedFile(prefix, path)` — the `Add` analogue of the existing
-  `Flag::File(prefix, Source)` compile/link-arg pattern — plus a mirror
-  `File + Str` overload (real meson allows either order; `current_source_dir()
-  + '/x'` just extends the path, unlike `Div`'s dedicated join-with-slash
-  semantics). `command()` (`decay_meson_eval/src/builtins.rs`) turns one into
-  `CmdArg::PrefixedFile`, and `decay_buck2` renders it as the prefix text with
-  no separating space glued directly onto the `$(location ...)` macro
-  (`--sourcedir=$(location :glib.git[gio/tests])`), and picks it up in
-  `referenced_files()` the same as a plain `CmdArg::File`.
-
-  With both fixes, a capped run with glib's `tests` flipped on imports
-  cleanly end to end (`gio/tests` targets included) and
-  `buck2 build`s the five already-verified glib libraries with no
-  regression; reverted `tests` back to `false` for the golden tree, since a
-  new, separate blocker turned up past this one: turning `tests` on added a
-  `test_resources2.h` custom_target whose command depends on the
-  `glib-compile-resources` tool target, which itself, via `is_config_header`
-  (`decay_buck2`), depended back on `test_resources2.h` — a genuine
-  configured-target cycle buck2 refused to build.
-
-  **Fixed.** `is_config_header` broadcasts every generated `.h` custom_target
-  onto every compiled target's private include path, unconditionally — the
-  approximation `decay_buck2` uses in place of tracking each target's real
-  `include_directories:` (see "Meson mirrors the source layout ..." on that
-  function). That is right for a header genuinely project-wide like
-  `gversionmacros.h`/`gioenumtypes.h`/`*-visibility.h`, but `test_resources2.h`
-  is test-only, and with `tests` pinned `true` (not left open as a `select()`)
-  its presence condition collapses to the same `true` every other target
-  carries, so the broadcast reached `glib-compile-resources` itself — the very
-  tool `test_resources2.h`'s own command runs. Fixed with a targeted guard
-  rather than special-casing the header by name or directory: `depends_on`
-  (`decay_buck2/src/lib.rs`) walks a candidate config header's own build
-  inputs (`srcs`/`headers`/`sibling_headers`/`deps`/`link_with`/`cmd`'s
-  `CmdArg::Target`/`template`) and the broadcast now skips any header already
-  (transitively) depending on the target it would be wired into — the general
-  shape of "don't manufacture a back-edge that closes a loop already present
-  the other way," not just this one pair. Verified: `buck2 build` of the
-  previously-green libglvnd/libepoxy/graphene/glib-five/libxml2/pcre2 targets
-  is unaffected, and building `gio/tests` with `tests = true` no longer hits a
-  configured-target cycle at all — `test_resources2.h`'s genrule action now
-  actually runs `glib-compile-resources`.
-
-  What surfaced past the cycle — **also fixed**, as a side effect of wiring
-  `libffi` for real (see the "Support all of meson wrapdb" entry above):
-  running `glib-compile-resources` used to fail at runtime
-  with `undefined symbol: ffi_type_void` in `gobject-2.0.so`, the same
-  "external `dependency()` `.so` like `libffi` is not staged into the
-  `$ORIGIN` runtime symlink tree" gap noted below under "libglvnd build
-  status" (there it stopped `gio`'s `gdbus` from starting; here it stopped a
-  build-time codegen tool from running at all). Both are gone now that
-  `libffi` is a real decay-built target instead of an external stub:
-  verified `buck2 build //third-party/meson/glib:test_resources2.h` (the
-  genrule that runs `glib-compile-resources`) and `buck2 run
-  //third-party/meson/glib:gdbus -- --help` both succeed with `tests`
-  flipped on. `tests` still stays `false` in `example/decay.toml` — turning
-  it on for real means verifying all ~367 of glib's test targets, not just
-  spot-checking these two, and that's its own follow-up.
-
-- **`declare_dependency(sources: [...])` with compilable sources — done.**
-  `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits
-  `sources:` into real headers vs. compilable translation units
-  (`is_compilable_source`); the latter land on the interface target's
-  `srcs`. A consumer that depends on the interface splices those source
-  refs straight into its own `srcs` (`copylib_source_groups` in
-  `decay_buck2`), so meson's "compile the copylib in each consumer, with the
-  consumer's flags and includes" is preserved — gvdb's `gvdb-builder.c` /
-  `gvdb-reader.c` need `<gio/gio.h>`, which only a consumer has.
-  Cross-project, the refs ride `Packages` → `Labels::dependency_sources` as
-  `//third-party/meson/gvdb:gvdb.git[gvdb/gvdb-builder.c]`. Not a
-  `filegroup`: buck2's `cxx_library` rejects one in `srcs`
-  (`collect_extensions` chokes on the directory artifact). A same-project
-  copylib folds from the local interface target the same way; a
-  `declare_dependency(objects:)` (glib's `libglib_static_dep`) is still not
-  modelled.
+- **`declare_dependency(sources: [...])` with compilable sources.** Real
+  headers vs. compilable translation units are split and spliced into a
+  consumer's own `srcs` (`fn_declare_dependency`, `copylib_source_groups` in
+  `decay_buck2`). Still not modelled: `declare_dependency(objects:)` (glib's
+  `libglib_static_dep`).
 
 - **Configuration-dependent install paths and `.pc` variables.**
   `Attrs.install_dir` is `Option<String>` and `src/packages.rs`'s `Package.
@@ -541,43 +171,13 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   (glib's `multiarch`-keyed `giomoduledir`) rather than emitting a
   `select()`. Both want the value carried variationally through to emit.
 
-- **`link_args:`/`c_args:` embedding a path to a same-project file are now
-  resolved instead of opaque strings.** Surfaced by pcre2's version scripts
-  (`'-Wl,--version-script,@0@/lib@1@.sym'.format(meson.current_build_dir(),
-  lib)`, `meson.current_build_dir()` having no real directory to answer with
-  and fabricating `"."`) and, the same shape one level simpler, zlib's and
-  libglvnd's own version scripts naming a plain file already in their
-  checkout via `current_source_dir()`/a bare relative path. `Attrs.
-  compile_args`/`link_args` (`decay_build_ir/src/lib.rs`) are now
-  `Variational<Flag>` — `Flag::Literal` unchanged, `Flag::File(prefix, Source)`
-  for a flag whose trailing path names something the project's own graph
-  provides. `Interp::capture_flag` (`decay_meson_eval/src/lib.rs`) recognizes
-  it at the point `link_args:`/`compile_args:` is captured: the flag's last
-  comma- or space-delimited word, normalized (`normalize_path`, which is what
-  turns `current_source_dir()`'s fabricated leading `/` or `current_build_dir()`'s
-  `./` into a clean relative path), checked first against every
-  `configure_file()`/`custom_target()` output this project's graph already
-  declares, then against the project's own checkout (`Sources::exists`) —
-  anything else comes back unchanged. `decay_buck2`'s `flag()` renders a match
-  as `$(location ...)` spliced into the flag's literal prefix — buck2 expands
-  the macro and adds the referenced target as an implicit dependency the same
-  way it does anywhere else a string attribute takes one — and
-  `referenced_files()` picks up a `Flag::File` the same way it already does
-  `Source::File`/`CmdArg::File`, so a plain checked-out file like `zlib.map`
-  reaches the http_archive's own `sub_targets`.
-
-  Still narrow on purpose: only the flag's *own* trailing word is checked
-  (not an arbitrary embedded substring), and an ambiguous match — two targets
-  declaring the same output name — is not disambiguated, just left as a
-  literal. Nothing has hit that yet.
-
-  A `library()`/`executable()`'s own `link_args:` is now emitted as private
-  `linker_flags`, not `exported_linker_flags` — only a `declare_dependency(link_args:)`
-  (a `Kind::Interface`) propagates, matching meson. `pcre2-posix` was linking
-  both its own version script and `libpcre2-8`'s, and ld rejected the
-  duplicate `PCRE2_10.x` version nodes; `pcre2-8/-16/-32/-posix` now build.
-  (`find_library`/`threads` stubs still export their `-l…` — separate path in
-  `render_external`.)
+- **`link_args:`/`c_args:` embedding a path to a same-project file.**
+  Resolved to a real reference (`Flag::File`) when the flag's own trailing
+  word names a file the project's own graph provides (pcre2/zlib/libglvnd
+  version scripts). Still narrow on purpose: only the flag's own trailing
+  word is checked, not an arbitrary embedded substring, and an ambiguous
+  match — two targets declaring the same output name — is left as a plain
+  literal rather than disambiguated.
 
 - **Conditional `continue` in a `foreach` over a static list.** `break` now
   splits the remaining iterations under its negation (`Flow::Break(Pc)` in
@@ -590,19 +190,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `compile_resources` drops `args:` (resource-compiler flags) and
   `include_directories:` (RC search paths); `fs.copyfile` emits a `cp`
   command, which a Windows genrule does not have. Both matter for the
-  Windows target that is a priority.
-
-  A `.rc` source itself is no longer left in a `cxx_library`, where buck2
-  never runs the resource compiler over it. `split_resources`
-  (`decay_meson_eval/src/builtins.rs`) peels every `.rc` — whether from
-  `library()`/`executable()` sources, `declare_dependency(sources:)`, or a
-  generated `configure_file()` output — out into its own
-  `Kind::WindowsResource` target (`decay_build_ir`), which `decay_buck2`
-  emits as a `windows_resource` rule wired back into the consumer through
-  `link_with` → `deps`/`exported_deps`; the `os[windows]` gating falls out of
-  the pulled entries' presence conditions. Still `srcs`-only: a `.rc` that
-  `#include`s a project header needs `include_directories`/`headers` emitted
-  on that rule too (the `include_directories:` gap above).
+  Windows target that is a priority. A `.rc` source is split into its own
+  `windows_resource` target, but still `srcs`-only: one that `#include`s a
+  project header needs `include_directories`/`headers` emitted on that rule
+  too.
 
 - **The `python` module is a stub.** Only `import('python').
   find_installation()` (resolved like any `[programs]` entry) and
@@ -615,244 +206,49 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   call's `guess:` and errors without one. Like `[sizeof]` / `[alignment]`,
   the no-guess case should be answerable from `decay.toml`.
 
-- **graphene build status.** `buck2 build` of `graphene-1.0` /
-  `graphene-dep` from `example/` succeeds (`//platforms:linux`, gcc). Took
-  three fixes, all in decay: (1) `cc.compiles(..., args:)` with plain flags
-  is now zig-probed (see the compile-probe note above) so the SSE/NEON
-  checks settle by arch instead of adding `-mfpu=neon` on x86_64; (2) a
-  source's own-directory `#include "x"` siblings (graphene's
-  `src/graphene-private.h` &c., named nowhere in its meson build) are
-  collected into `Attrs.sibling_headers` by a `#include` scan in
-  `build_target` and emitted as a private, basename-keyed `headers` dict;
-  (3) `pkg.generate(requires: [...])` is captured (`Package.requires`,
-  through `src/packages.rs`) so `dependency('gobject-2.0')` resolving to a
-  sibling project also pulls that `.pc`'s `Requires:` (`glib-2.0`) into the
-  consumer's `deps` — `<glib-object.h>` was otherwise unreachable. The
-  `pkg.generate` main-library pick now prefers the first positional over
-  `libraries:` (glib passes `libraries: [libintl_deps]` there, a
-  non-target). `gio-2.0` and graphene-1.0 both build in CI on every push
-  (`.github/workflows/import.yml`) — the gitlab.gnome.org outage that had
-  blocked re-verifying `gvdb`'s `git_fetch` no longer blocks anything.
-
-- **glib build status.** `buck2 build` of `glib-2.0`, `gobject-2.0`,
-  `gmodule-2.0`, `gthread-2.0` **and `gio-2.0`** from `example/` succeeds
-  (target platform `//platforms:linux`, gcc) — verified on every push by
-  `.github/workflows/import.yml`. Getting `gio-2.0` there took,
-  on top of the gvdb / gdbus-codegen / `@INPUT0@` fixes: broadening
-  `is_config_header` so a `custom_target` header (`*-visibility.h`) reaches
-  every target's include path, and `example/decay.toml [probes]` answers for
-  a batch of glibc-vintage / non-Linux checks that default present (glib
-  reimplements `has_member` as a `cc.compiles()` decay can't zig-probe;
-  `cc.links()` with `args:` never was): `res_ndestroy()`, the BSD/macOS
-  `struct stat`/`statfs`/`statvfs` members, `XATTR_NOFOLLOW`.
-  - **`gdbus-daemon-generated` / `xdp-dbus` declare two outputs**
-    (`.h` + `.c`); decay's single-`out` genrule keeps only the `.h`. Did not
-    block `gio-2.0` (nothing in it compiles the generated `.c`), but
-    `girepository-2.0` and the gio tools may need `outs` support.
-  - `girepository-2.0` and `gio` (the module-loading variant) are untried.
-
-- **libglvnd build status.** `buck2 build //third-party/meson/libglvnd/...`
-  from `example/` succeeds (`//platforms:linux`, gcc) — the seven `.so`s
-  (`GL`, `EGL`, `GLX`, `OpenGL`, `GLdispatch`, `GLESv1_CM`, `GLESv2`) *and*
-  every `tests/` executable, which also **run** (`ldd` clean; a few exit
-  non-zero only because decay does not wire meson's `test()` env / the
-  `libGLX_dummy` vendor — `glxqueryversion` / `glxgetclientstr` pass
-  outright). Took six fixes:
-  (1) `src/sources.rs`'s checkout walker no longer follows directory
-  symlinks — libglvnd commits `src/util/uthash/include -> src/`, and buck2
-  cannot `project()` a `git_fetch` sub_target path that passes through a
-  symlink; (2) `cc.has_header_symbol` is zig-compile-probed (see the
-  compile-probe note), which — with the matrix axis-collapse there — turns
-  the `__GLIBC__` / `RTLD_NOLOAD` / … knobs that drove `gl_dispatch_type`
-  into settled facts and cuts the `select()` blowup; (3) `decay_buck2`
-  `include_roots` adds the package dir of every generated file a target
-  compiles, so a generated `.c` that `#include`s its generated `.h` sibling
-  by bare name (`g_egldispatchstubs.c`) and a
-  `-DHDR="@0@".format(gen.full_path())` then `#include HDR`
-  (`MAPI_ABI_HEADER`) both resolve; (4) a sourceless `shared_library` whose
-  only content is a `link_whole:` of a private static lib
-  (`shared_library('OpenGL', link_whole: libopengl_main)`) would emit as a
-  buck2 `cxx_library` with `srcs = []` and link into nothing — its sources
-  are folded in here instead (`build_target` in `decay_meson_eval`),
-  matching meson's `link_whole` semantics. A `shared_library` with sources
-  *and* `link_whole:` still marks the whole-archived target
-  `link_whole = True`. (5) every `cxx_binary` gets
-  `-Wl,--allow-shlib-undefined` in `linker_flags` (`decay_buck2`): meson
-  co-locates every `.so` in one build dir so ld resolves an inter-shlib
-  reference (`libGLX.so`'s `__glDispatch*`, defined in `libGLdispatch.so`)
-  via rpath-link at link time; buck2 keeps each `.so` in its own artifact
-  dir and supplies the full runtime closure through the `$ORIGIN` symlink
-  tree instead, so the executable link must not treat a transitive shared
-  lib's own undefined symbols as errors. The flag is appended to any
-  existing `link_args:` before common-value hoisting, so a shared
-  `_ldflags_*` var only ever merges across executables. (6)
-  `example/toolchains/BUCK` gives `system_cxx_toolchain` `link_flags =
-  ["-Wl,--disable-new-dtags"]`. The prelude stages every transitive shared
-  lib in one flat symlink tree and points a single `$ORIGIN` `-rpath` at it;
-  GNU ld's default `DT_RUNPATH` is *not* transitive, so an intermediate
-  `.so`'s own `NEEDED` (libGLX.so → libGLdispatch.so, both already in the
-  tree) never resolves and the executable fails to start. Old-style
-  `DT_RPATH` is transitive, which is what the one-flat-tree design needs.
-  This is a toolchain property, not something decay emits per target — a
-  hand-written buck2 project on `system_cxx_toolchain` + GNU ld hits the
-  same wall. (An unrelated pre-existing gap it exposed — libglvnd's chain is
-  entirely decay-built and self-contained, but an *external* `dependency()`
-  `.so` like `libffi` used to not be staged into the tree, so glib's `gdbus`
-  couldn't start. Fixed as a side effect of wiring `libffi` for real — see
-  the "Support all of meson wrapdb" entry below; `gdbus` now runs.)
+- **glib: `girepository-2.0` and the module-loading `gio` variant are
+  untried.** Also, `gdbus-daemon-generated`/`xdp-dbus` declare two outputs
+  (`.h` + `.c`); decay's single-`out` genrule keeps only the `.h`, which
+  those two (and the gio tools) may need.
 
 - **`run_command()` is answered deterministically or refused.** Three ways,
-  in priority order (`ConfigOracle::run_command`, `src/run_command.rs`):
-  1. a per-project `[[project]].commands` table in `decay.toml`, keyed by the
-     space-joined command line — `"git describe" = "v2.15.4"` or `= { stdout,
-     stderr, returncode }` (`CommandValue`, `src/config.rs`);
-  2. `git describe` synthesized from the ref decay already pinned (a `tag`
-     prints the bare tag; a `branch`/`rev` exits 128 unless `--always`),
-     never touching the checkout's `.git`;
-  3. a read-only allowlist executor — `cat`/`head`/`tail`/`echo`/`true`/
-     `false`, run in the pinned checkout, path args must stay inside it.
+  in priority order (`ConfigOracle::run_command`, `src/run_command.rs`): a
+  per-project `decay.toml` `commands` table; `git describe` synthesized from
+  the pinned ref; a read-only allowlist executor
+  (`cat`/`head`/`tail`/`echo`/`true`/`false`, path args must stay inside the
+  checkout). Anything else is a hard error naming the `commands` key to add.
+  Still open: config-dependent (`select()`-keyed) output is not modelled;
+  the allowlist is a fixed set.
 
-  Anything else is a hard error naming the `commands` key to add — the
-  importer still never runs an arbitrary program. `Obj::RunResult` carries
-  `.returncode()`/`.stdout()`/`.stderr()`. Still open: config-dependent
-  (`select()`-keyed) output is not modelled; the allowlist is a fixed set;
-  `patch_filename`-style legacy stays refused elsewhere.
-
-  libxml2 (`v2.15.4`) exercised this: its lone `run_command('git',
-  'describe', check: false)` needs no config — the synth answers `v2.15.4`,
-  so `xmllint --version` reports `…-GITv2.15.4`. Getting it to *evaluate*
-  also took `index_list` regrouping a flattened list literal back into
-  positions when an element's value is configuration-dependent (`[want_c14n,
-  ['c14n.c']]`), and `format_string` interpolating an int/bool the way
-  `.format()` already does (`f'@so_version@.@age@.@v_mic@'`). It is in
-  `example/` now and every target `buck2 build`s on `//platforms:linux`
-  (gcc): `xml2` (the `.so`), `xmllint`, `xmlcatalog`, `testdso`, and the
-  `test*` / `runtest` / example binaries.
-
-- **A `..` quoted include in a checked-in header → real `-I` roots.** The
-  flat `headers`/`exported_headers` symlink tree keys each header by its
-  `#include` spelling, which cannot preserve the on-disk directory distance
-  a quoted `#include "../../x"` *inside* a header walks (libxml2's
-  `include/private/memory.h` → `#include "../../libxml.h"`; found via
-  `-Iinclude`, the `..` then only resolves against the real tree). decay
-  detects any `..` in a checked-in header's quoted includes during the
-  `build_target` `#include` scan (`Attrs.raw_include_roots`); `decay_buck2`
-  then holds that target's checked-in headers *out* of the dict (generated
-  headers stay) and instead emits `-I$(location :<repo>.git[<root>])` for
-  each of its include roots — `exported_preprocessor_flags` on a library
-  (reaches consumers, like meson's `declare_dependency(include_directories:)`),
-  `preprocessor_flags` on a `cxx_binary`. The fetch rule gains a directory
-  `sub_target` per non-root include dir. ponytail: the `-I` list also names
-  the repo root when `.` is an include root — broader than meson's own
-  export, harmless. Only libxml2 trips this today.
-
-- **End-to-end import test — landed, not yet strict.**
-  `.github/workflows/import.yml` builds `decay` in release mode, runs it on
-  `example/`, `buck2 build`s the concrete targets this file documents
-  (libglvnd, libepoxy, graphene, glib's five core libraries, libxml2, pcre2),
-  and diffs the result against a committed golden tree. Unit tests are no
-  longer just `schedule`/`config` either — `src/lock.rs`, `src/oracle.rs`,
-  `src/wrapdb.rs`, `src/probe.rs`, `src/sources.rs`, `src/run_command.rs`,
-  `src/wrap_cache.rs`, `decay_zig`, `decay_buck2::select`, and
-  `decay_meson_eval::builtins` all carry their own now. Still open: the
-  golden-tree diff step is `continue-on-error: true` — decay emits some
-  header/source dicts in filesystem-walk order, so the tree differs between
-  machines. Flip it to a hard failure once that ordering is deterministic;
-  until then an evaluator regression that changes generated output without
-  breaking a `buck2 build` can still slip through.
+- **End-to-end import test — not yet strict.**
+  `.github/workflows/import.yml` `buck2 build`s the documented targets and
+  diffs the result against a committed golden tree, but that diff step is
+  `continue-on-error: true` — decay emits some header/source dicts in
+  filesystem-walk order, so the tree differs between machines. Flip it to a
+  hard failure once that ordering is deterministic; until then an evaluator
+  regression that changes generated output without breaking a `buck2 build`
+  can still slip through.
 
 - **`declare_dependency()` provide heuristic is narrow.** A sibling
-  `dependency('x')` resolves only against a `declare_dependency()` in
-  project `x`'s *root* `meson.build`, last-call-wins, and only when the
-  looked-up name equals the project's `short_name`. A wrap whose
-  `[provide] dependency_names` differs from the directory name, or a project
-  with several root `declare_dependency()` calls, would not resolve.
+  `dependency('x')` resolves against a `pkg.generate()`/`declare_dependency()`
+  in project `x` only when `Packages::register` can match it by name: the
+  project's own `short_name`, a `pkg.generate(filebase:)`/`name:`, or an
+  explicit `meson.override_dependency(name, dep)` (which always wins over a
+  same-name `pkg.generate()` collision, regardless of which ran first during
+  evaluation — `Interp::dependency_overrides`, merged in `Interp::finish()`).
+  A wrap whose `[provide] dependency_names` differs from the directory name,
+  or a project with several root `declare_dependency()` calls and no
+  override naming the right one, still would not resolve.
 
-  What *does* now cross projects: a `pkg.generate(lib, requires: [...])`'s
-  `Requires:` is captured (`Package.requires` in `decay_build_ir` and
-  `src/packages.rs`) and `Packages::targets()` walks it transitively, so
-  resolving `dependency('gobject-2.0')` to glib's `gobject-2.0` target also
-  puts glib's `glib-2.0` target in the consumer's `deps`. `Labels::
-  dependencies` is now `name -> Vec<label>` for that. Only the plain-string
-  `requires:` entries are read (a dependency-object entry is skipped); a
-  `configure_file()`-produced `.pc` still records no `requires`.
-
-  Also: a `.pc`-named provide with no target of its own (xorg's proto repos —
-  one root `declare_dependency()` umbrella, dozens of
-  `configure_file()`-produced `.pc` files) now falls back to that project's
-  root-`declare_dependency()` target in `Packages::register`, so
-  `dependency('glproto')` against xorgproto resolves to `xorgproto-dep`'s
-  include dirs instead of an empty stub. Only fires when the project
-  registered a root `declare_dependency()` under its own name.
-
-  Two more, found trying gdk-pixbuf (a GTK4 dependency — see "Support all of
-  meson wrapdb" for where that attempt currently stops). **Landed:**
-  `dependency()`'s returned object now reports `type_name() == "internal"`
-  when it resolved against a sibling project (`Oracle::dependency_is_internal`,
-  checking `Packages::get`), matching meson's own distinction from
-  `"pkgconfig"` — a project sometimes branches on it (gdk-pixbuf's
-  `gmodule_dep.type_name() == 'pkgconfig'` guards a
-  `.get_variable(pkgconfig: ...)` call only a real `.pc` file can answer,
-  wrongly taken before this fix since every resolution reported
-  `"pkgconfig"` regardless). **Landed:** `subproject(name).get_variable(key)`
-  now answers too, from whatever top-level variables `name`'s own
-  `meson.build` (and anything it `subdir()`s into, which shares that scope)
-  settled to a single value across the whole build — `Interp::finish()`
-  collapses `self.vars` the same way `Package::variables` already collapses
-  `pkg.generate(variables:)`, and `Packages` carries the result keyed by
-  project name (`Packages::subproject_variable`), separately from
-  `by_name` (a project need not `declare_dependency()`/`pkg.generate()`
-  anything to still answer). A variable that varies by configuration is
-  still unanswered, same tradeoff as everywhere else this pattern appears.
-  Together these got gdk-pixbuf's `gmodule_dep.type_name() == 'pkgconfig' ?
-  ... : subproject('glib').get_variable('g_module_impl') != '0'` all the way
-  to a settled answer — which also needed glib's own `cc.links(dlopen_dlsym_
-  test_code, ...)` pinned via `[probes]` (`"links:dlopen() and dlsym() in
-  system libraries" = true` in `example/decay.toml`; `cc.links()` itself is
-  still unimplemented, see the compile-probe entry's "Still in scope" list),
-  since it was otherwise the last open knob standing between `g_module_impl`
-  and a single collapsible value. That one is a real, general improvement
-  independent of gdk-pixbuf — dlopen/dlsym are libc-resident on every
-  currently-configured system — and shrank `glib/BUCK`'s `gmoduleconf.h`
-  genrule and dropped two now-dead constraints from `constraints/BUCK`.
-
-  **Landed:** `meson.override_dependency(name, dep)` — previously a no-op
-  stub, warned about and ignored — is now implemented, closing the biggest
-  hole in this heuristic. A project's own `pkg.generate()` registration is
-  not always the target a same-build consumer should get: pixman's compiled
-  `library('pixman-1', ...)` carries no `include_directories()` of its own
-  at all — only `declare_dependency(include_directories: inc_pixman)` does —
-  and `meson.override_dependency('pixman-1', idep_pixman)` is what a real
-  meson build actually resolves `dependency('pixman-1')` against, in
-  preference to the `.pc` (which a real consumer only reads outside that
-  build). Without modelling the override, cairo's `dependency('pixman-1')`
-  resolved to the bare library target instead, and compiling anything
-  `#include <pixman.h>` failed outright. `Interp` now records each override
-  (`dependency_overrides: Vec<Package>`, `crates/decay_meson_eval/src/
-  lib.rs`) and merges it into `graph.provides` only in `Interp::finish()` —
-  after every `pkg.generate()` call already ran, regardless of which ran
-  first during evaluation (pixman's own `override_dependency()` call runs,
-  via `subdir('pixman')`, *before* its top-level `pkg.generate()`) — so an
-  override always wins a same-name collision with `pkg.generate()`,
-  matching meson's own priority, not just source order. Only a single,
-  unconditional target is modelled (the overwhelming common case, called
-  right after `declare_dependency()`); a configuration-varying override
-  still falls back to whatever `pkg.generate()` registered.
-
-  This isn't pixman-only: `zlib`, `pcre2`, and `libffi` use the identical
-  `library()` + `declare_dependency()` + `override_dependency()` shape, so
-  landing it also moved every existing sibling lookup of theirs
-  (`glib`/`libxml2`/`graphene`'s `dependency('zlib')`/`dependency('libffi')`
-  / pcre2) from the bare library target onto each project's own `-dep`
-  interface target — e.g. `//third-party/meson/zlib:z` →
-  `//third-party/meson/zlib:zlib-dep` throughout `glib/BUCK` and
-  `libxml2/BUCK`. Harmless where the library already exported its own
-  headers directly (these three did), but it's the more correct edge in
-  general, and it collapsed graphene's `deps = ["...gobject-2.0",
-  "...glib-2.0"]` pair down to the one interface target
-  (`glib:glib-dep-5`) that already carries both transitively. Verified: the
-  full previously-green `buck2 build` set, plus cairo/pixman, still builds
-  together with no regressions.
+  A `pkg.generate(requires: [...])`'s `Requires:` (plain-string entries
+  only) is captured and walked transitively (`Packages::targets()`), so
+  resolving one name also pulls its `Requires:` into the consumer's `deps` —
+  but a `configure_file()`-produced `.pc` still records no `requires`.
+  `dependency()`'s returned object reports `type_name() == "internal"` for a
+  sibling resolution, matching meson's own distinction from `"pkgconfig"`,
+  and `subproject(name).get_variable(key)` answers from a sibling's settled
+  top-level variables — both single-valued only; a configuration-varying
+  answer is unsupported either way.
 
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
@@ -880,322 +276,36 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   program to let the user know it hasn't been implemented, and also to keep a
   list here in known gaps.
 
-- **has_function compaction.** Done for `linux`, `freebsd` and `netbsd`:
-  `builtin_has_function` returns a `Probe::Matrix` with a per-system entry
-  for each configured one it has an `abilists` for, authoritative on each
-  (an absent symbol is a settled *false*, no knob — glibc's / musl's / a
-  BSD's export list is complete). Every `has_function_*[true/false]` knob is
-  gone from `example/`'s `constraints/BUCK` (`_aligned_malloc` no longer
-  reads present on `linux`; `kqueue`/`issetugid`/… settle from the BSD
-  abilists instead of an open probe defaulting present). Still a knob only
-  off those three systems (`windows`, `darwin`, …), and a `has_function`
-  whose rows cover only gnu/musl still leaves the odd `linux`+other-abi
-  corner settled false rather than as a `cpu`-keyed positive — good enough,
-  the abi domain on `linux` is gnu/musl in practice. See the rough edge
-  noted under the compile-probe section (a linux+freebsd-but-not-netbsd
-  symbol can misplace onto an `abi[musl]` arm).
-
-- **Adding meson specific buck2 rules.** `.h.in` templates with `#mesondefine`
-  now substitute correctly — `mesondefine_names()`
-  (`decay_meson_eval::builtins`) synthesizes an explicit `Undef` for any name
-  the project never `.set()`, and `decay_buck2::config_header_cmd` emits
-  `sed` edits for both `@NAME@` and whole-line `#mesondefine NAME` rewrites,
-  matching meson's own `#define`/`/* #undef NAME */` output. Still not what
-  this entry is really asking for: it's a `genrule` shelling out to `sed`,
-  not a native buck2 rule — the emitted `BUCK` should read like a
-  config-header rule a person would reach for, not a hand-rolled shell
-  script performing text substitution.
+- **Adding meson specific buck2 rules.** A config-header template
+  (`#mesondefine`) is emitted as a `genrule` shelling out to `sed`, not a
+  native buck2 rule — the emitted `BUCK` should read like a config-header
+  rule a person would reach for.
 
 - **add_test_setup.** Matched now, but a no-op stub (`warn_unsupported()`
   then `Value::Unset`) — the warning spam is gone, but the test-setup data
   (env, wrapper) still goes nowhere. Needs modelling against buck2's own
   test-env support, not just silencing.
 
-- **Libraries provided by the compiler should exist or not.** See this:
-
-``` 
-# external dependency `lib:m`: `m` is available
-constraint(
-    name = "m",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-```
-
-  **Requirement met for `cc.find_library()`:** there is no `m[true]`/`dl`/`rt`/…
-  knob. `cc.find_library('foo')` for a system/runtime library settles
-  found-or-not for *every* `[systems]` entry, as a `select()` over `os`/`abi`
-  decay already tracks — no `<lib>[true/false]` constraint, no open probe var.
-
-  Partly done: `find_library()` for a libc-split library MSVC has no
-  standalone `.lib` for (`m`, `dl`, `rt`, `pthread`, `resolv`, `nsl`,
-  `socket`, `anl`, `crypt`, `util`, `execinfo` — `is_crt_provided_lib` in
-  `decay_buck2`) now emits its `-l…` under `select({ abi[msvc]: [], DEFAULT:
-  … })`, so it contributes nothing on the MSVC ABI (matching meson's own
-  not-found there). The remaining half — settling the `m[true/false]` knob to
-  *true* on the systems that do provide it, instead of an open probe — still
-  wants the libc DB *for the automatic case*. A project can already pin it by
-  hand: `find_library()` and `dependency()` both consult
-  `ConfigOracle::dependency_found`, which now answers from a `[dependencies]`
-  entry — `m = { found = "prelude//os/constraints:os[linux]" }` settles the
-  knob (found on `linux`, plain `false` elsewhere, no constraint emitted).
-  A bare `x11 = "//sys:X11"` entry is `found = true` everywhere; before, it
-  still emitted an `x11[true/false]` knob nothing needed.
-  How it works now:
-
-  - `decay_zig::has_library` keeps the glibc `abilists` library table
-    `parse()` used to discard (`m pthread c dl rt ld util resolv`) and adds
-    a `musl_libraries` `zig cc -lNAME` link probe (run once per process on
-    first use, same as the musl `has_function` half). This is the fast
-    answer for `linux`.
-  - `src/probe.rs` gains `ProbeCache::links_library` — an import-time `zig cc
-    -target <triple> <empty.c> -lNAME` link, memoised in the same cache as
-    the compile probes — and `system_link_targets(system)`, the `zig`
-    triples per system: `linux` (gnu+musl), `darwin` (x86_64+aarch64),
-    `freebsd`, `netbsd`, `windows` (gnu only — zig has no MSVC libc). The
-    answers are *not* uniform (`-ldl`/`-lrt` fail on mingw, `-lrt`/`-lresolv`
-    on macOS, `-lresolv` on the BSDs), which is why it is a real probe.
-  - `ConfigOracle::builtin_system_library` (behind the `Oracle::system_library`
-    trait method, consulted by `cc.find_library` in `decay_meson_eval` before
-    the open-knob fallback) walks
-    every configured system, collecting `(system, abi-filter)` rows: the libc
-    DB / link probe for the hostable ones, `decay.toml`'s new
-    `[system_libraries]` table for the ones `zig` cannot host (`sunos`,
-    `openbsd`, `android`, `fuchsia`). A name nothing confirms anywhere is not
-    a system library → `None`, still an open knob (`libselinux`, `libelf`,
-    `socket`, `elf`).
-  - It returns `Probe::PerSystem { abi, found }` (new variant); `resolve_probe`
-    turns it into `OR over found of (host_system_is(sys) ∧ abi?)` with
-    **nothing left open** — a configured system with no row is a settled
-    not-found. A `windows` hit for a C-runtime library (`m`, `pthread`,
-    `atomic`) is `abi[gnu]` only (MSVC has no standalone `.lib` — the fact
-    `dependency('threads')` / `is_crt_provided_lib` already encode); any
-    other library confirmed on mingw is both abis (Windows SDK ⊇ mingw
-    import libs). `atomic` is the one name not in the libc DB that still
-    needs the MSVC exception — hardcoded, `ponytail:`-noted.
-
-  `example/`: 13 knobs gone from `constraints/BUCK` (`m dl rt resolv atomic
-  opengl32 gdi32 shcore iphlpapi ws2_32 winmm shlwapi dnsapi`). The
-  `[system_libraries]` mechanism (and `config.rs`'s field) stays for
-  projects that need it, but `example/decay.toml` no longer carries one —
-  `sunos`/`fuchsia`/`android` were dropped from its `[systems]` (see the
-  compile-probe note: only systems zig can probe end to end are kept), so
-  nothing there consults it now. `builtin_system_library` still iterates
-  only the configured systems, so this is purely an example-config change.
-
-  Still to do:
-  - **Retire `is_crt_provided_lib`** (`decay_buck2`): `found` is now settled
-    per system, so the `-lNAME` flag can flow through the normal found-gated
-    select and be absent wherever `found` is false (incl. `abi[msvc]`). Not
-    done yet — the `decay_buck2` arm still renders these via `non_msvc_select`.
-  - **`runtimeobject`** stays a knob: mingw ships no `libruntimeobject.a`
-    (WinRT/UWP), so the link probe cannot confirm it. Needs Slice 2.
-  - **Slice 2** — a mingw-w64 `.def`-name source in `decay_zig` (read from
-    the zig install the same way `abilists` is) for Windows *OS* libs the
-    link probe misses, and to drop the live probe for the ones it covers.
-  - **Slice 3 — done.** `iconv`, `intl` and `dl` are `threads`-style builtins
-    now, all in `fn_dependency` (`decay_meson_eval/src/builtins.rs`):
-    - `dependency('iconv')` / `dependency('intl')` →
-      `External::Iconv` / `External::Intl`, always found, no `dep:` knob;
-      `decay_buck2::render_libc_or_lib` emits a `cxx_library` with empty
-      `exported_linker_flags` on the OSes that fold the runtime into libc
-      (`os[linux]`/`freebsd`/`netbsd` for iconv, `os[linux]` for intl) and
-      `-liconv` / `-lintl` on `DEFAULT`.
-    - `dependency('dl')` (meson 0.62+ builtin) routes through the *same*
-      `system_library` oracle path `cc.find_library('dl')` uses — shared
-      helper `Interp::resolve_system_library`, shared `lib:dl` key — so a
-      project that calls both (libxml2) gets one target and one settled
-      per-system answer (`Probe::PerSystem` from `builtin_system_library`),
-      no `dep:dl` knob. Retired `example/platforms/BUCK`'s hand-pinned
-      `dl[true]`.
-
-    All still overridable with `dependencies.<name> = "//x"`.
-  - **`cc.compute_int` / non-hostable systems**: `builtin_system_library`
-    settles a non-hostable system to not-found when `[system_libraries]` is
-    silent, rather than erroring. Revisit if that proves too permissive.
+- **Libraries provided by the compiler should exist or not.**
+  `cc.find_library()`/`dependency()` for a system/runtime library settle
+  found-or-not per `[systems]` as a real `select()` over `os`/`abi`
+  (`ConfigOracle::builtin_system_library`, backed by zig's `abilists`/a
+  `zig cc -lNAME` link probe), not an open `<lib>[true/false]` knob. A name
+  nothing confirms anywhere (`libselinux`, `libelf`, `socket`, `elf`) is
+  still an open knob; `decay.toml`'s `[system_libraries]` covers systems zig
+  cannot host (`sunos`, `openbsd`, `android`, `fuchsia`). Still to do:
+  - Retire `is_crt_provided_lib` (`decay_buck2`) — `found` is now settled
+    per system, so the `-l…` flag can flow through the normal found-gated
+    select instead of its own `non_msvc_select` arm.
+  - `runtimeobject` stays an open knob — mingw ships no
+    `libruntimeobject.a`, so the link probe cannot confirm it.
+  - A mingw-w64 `.def`-name source for Windows *OS* libs the link probe
+    misses (same shape as the glibc `abilists` read).
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay, we should be able to import all of the wrapdb
-  projects. Currently exercises 8 of wrapdb's ~250+ projects in
+  smoke test for decay — currently exercises 8 of wrapdb's ~250+ projects in
   `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`,
   `graphite2`, `pixman`, `cairo`).
-
-  Getting `libffi` to evaluate took two real fixes in the evaluator, both
-  general and kept regardless of anything libffi-specific: `cc.preprocess()`
-  was entirely unimplemented (`compiler_method` in `decay_meson_eval/src/
-  methods.rs`; MSVC-only masm preprocessing — a no-op-looking stub is
-  enough, since nothing in `[systems]` can build `compiler[msvc]` today
-  regardless), and `string_arg` (`decay_meson_eval/src/lib.rs`, the generic
-  "coerce to a string argument" path `has_link_argument()`/
-  `has_multi_link_arguments()`/etc. all go through) didn't know about
-  `Obj::PrefixedFile` (the `str + File` case landed for `custom_target()`
-  commands), so `cc.has_multi_link_arguments(['-shared',
-  '-Wl,--version-script=' + meson.project_source_root() /
-  'libffi.map.in'])` read as "expected a string, found a file". The
-  `[[project]] wrap = "libffi"` entry in `example/decay.toml` carries what
-  evaluating it needs: three `run_command()` toolchain probes
-  (`test-unwind-section.py`/`test-cc-supports-hidden-visibility.py`/
-  `test-ro-eh-frame.py`, each a real `zig cc`-hostable gcc/binutils-on-Linux
-  fact), `doc`/`tests` options pinned off (the former needs `makeinfo`, the
-  latter's `testsuite/meson.build` hits the `continue`-in-a-partial-foreach
-  gap below), and a `sizeof('long double')` per-`cpu` pin (16/16/8/12 on
-  x86_64/arm64/arm32/x86_32) libffi's own `fficonfig.h` needs and nothing
-  else does.
-
-  Getting it to actually `buck2 build`, and then to `buck2 build` *as a real
-  cross-project dependency* of glib (`dependency('libffi')`, which
-  `Packages` resolves to the real `libffi` target the moment the project
-  exists at all), took two more fixes — see the "Wrap support" entry above,
-  now landed.
-
-  `fribidi` — a GTK4 dependency (via pango), picked while trying that
-  dependency graph — evaluated cleanly first try, but `buck2 build` surfaced
-  three more real, general bugs, none of them narrow workarounds:
-
-  1. **A project's own compiled tool, invoked from a `custom_target()`
-     command, now runs on the machine doing the build.** meson's
-     `native: true` marks an `executable()` as a build-machine tool rather
-     than a cross target (fribidi's `gen-unicode-version`/`gen-*-tab`
-     table generators, run at build time to produce the headers the real
-     library compiles against) — but decay never modelled a build/host
-     platform split at all, and rendered *any* project-built executable a
-     `custom_target()` command invoked as `$(location :name)`
-     (`decay_buck2::command`), which resolves under the *target* platform.
-     Coincidentally correct only because nothing yet configured ever cross-
-     compiles. Fixed generally, without modelling `native:` as its own
-     concept: any `CmdArg::Target` naming a `Kind::Executable` now renders as
-     `$(exe :name)` instead — buck2's own execution-platform resolution,
-     transitively, the same mechanism a `find_program()` external tool
-     already got. Verified to change nothing in the committed tree (nothing
-     previously imported takes this path at all), so this is pure
-     groundwork, not a fribidi-specific fix — real payoff lands once a
-     project targets something other than the host.
-  2. **A release tarball's pre-generated header, shadowed by a
-     `custom_target()` regenerating the same basename, no longer collides
-     with it.** fribidi's tarball ships a checked-in
-     `lib/fribidi-unicode-version.h` (a bootstrap fallback) *and* a
-     `gen.tab` `custom_target()` that regenerates it at build time — meson's
-     build-dir search path always prefers the fresh one, but decay's own
-     `list_headers` (directory-walking a target's `include_directories()`)
-     and sibling-header `#include` scan (`build_target`, both in
-     `decay_meson_eval/src/builtins.rs`) each independently found the
-     checked-in copy too, and both claim the same bare-basename dict key a
-     generated header does — a real `Dictionary key repeated` failure, not
-     just redundant output. Fixed with a shared `shadowed_by_generated_header`
-     check: skip a checked-in candidate whenever some `Kind::Custom`/
-     `Kind::ConfigHeader` target elsewhere in the project already generates
-     that basename. Also silently corrected two bogus entries already in the
-     committed tree: libffi's `msvc_build/aarch64/aarch64_include/{ffi,
-     fficonfig}.h` (stale vendor copies `list_headers` had been exposing
-     alongside the real generated `ffi.h`/`fficonfig.h`, under the same
-     `select()` arms — dead weight, not a collision, since they only ever
-     shared a key across different config branches).
-  3. **A project's fetch target and one of its own build targets can now
-     share a name without a silent `buck2` failure.** `Project::repo_target()`
-     names a wrap's `http_archive` after the bare project name — fine, until
-     a `library()` inside that project is *also* named after the project
-     (fribidi's `library('fribidi', ...)`, same as `project('fribidi', ...)`)
-     — `Graph`'s own name uniquification (`used_names`) never saw this
-     coming, since the fetch target's name is only known once `Origin`
-     resolves, after every real target already claimed whatever name it
-     wanted. buck2 caught it at evaluation (`Attempted to register target
-     ... twice`), not decay. Fixed with `Graph::avoid_name_collision`,
-     called from `src/main.rs::execute()` right after `Origin` is set:
-     renames the colliding real target through the exact same
-     uniquification `add()` uses, so it gets what a second real target of
-     that name would have (`fribidi-2`, here).
-
-  Also needed `.i` added to `is_header_file`'s extension allowlist
-  (`decay_meson_eval/src/builtins.rs`) — fribidi's generated Unicode tables
-  (`bidi-type.tab.i`, …) are `#include`d by the real `.c` sources, never
-  compiled as their own translation unit, and buck2's `cxx_library` rejects
-  `.i` as a `srcs` extension outright (`Unknown enum element ".i"`) where
-  meson silently just doesn't compile an unrecognized suffix either.
-
-  `graphite2` — harfbuzz's optional smart-font-rendering backend, next along
-  the same GTK4 chain — evaluated and `buck2 build`s clean on the first try,
-  no new bugs: a small, self-contained C++ wrapdb project with no options
-  left open. (Not a hard GTK4 requirement — harfbuzz's own dependency on it
-  is optional — but it's a real dependency of the chain being built out.) It hit the exact same fetch/build-target name collision fribidi
-  did (`library('graphite2', ...)` inside `project('graphite2', ...)`,
-  resolved to `graphite2-2` by the now-general `Graph::avoid_name_collision`
-  fix above) and nothing else — a useful confirmation that fix is general
-  rather than fribidi-specific.
-
-  `pixman` (cairo's hard, non-optional dependency) and `cairo` itself (+
-  `cairo-gobject`) are next along the chain and both now `buck2 build` —
-  cairo without its `xlib`/`xcb`/`png`/`freetype`/`fontconfig` backends,
-  deferred until those are imported (see the roadmap below; cairo *is* on
-  wrapdb, correcting what this section used to say). Getting there took
-  four more real, general fixes:
-
-  1. **`cc.has_define()` was entirely unmatched** (cairo's FreeType-version
-     feature detection) — `a compiler has no method has_define`. Added
-     alongside `has_member`/`has_function` in `compiler_method`
-     (`decay_meson_eval/src/methods.rs`): an open knob (or a `[probes]`
-     answer), the same as every other boolean compiler check decay cannot
-     zig-probe when `dependencies:` is involved.
-  2. **`meson.get_external_property()` was entirely unmatched** (cairo's
-     `ipc_rmid_deferred_release`, read from a cross/native file's
-     `[properties]` section decay does not model). Since no such file is
-     ever modelled, a lookup now always falls through to the call's own
-     fallback argument — exactly what real meson does once no file sets the
-     property — rather than erroring; only a fallback-less lookup, which
-     would be unanswerable either way, still bails.
-  3. **`meson.override_dependency()`, landed for real** — see
-     "`declare_dependency()` provide heuristic is narrow" above. Surfaced by
-     `dependency('pixman-1')`: pixman's real `pkg.generate()`-registered
-     library carries no headers of its own, only its `declare_dependency()`
-     interface does, and only the override tells decay which one a
-     same-build consumer actually needs.
-  4. **`dependency(x, required: get_option(feature))` no longer reports
-     "found" just because `decay.toml`'s `[dependencies]` says `x` exists on
-     the system, once `feature` is pinned `disabled`.** Real meson treats a
-     `required:` *feature option* specially: a plain `required: false` still
-     searches and may still report found, but an explicitly *disabled*
-     feature skips the search outright and is unconditionally not-found —
-     `dependency('x11', required: get_option('xlib'))` inside `cairo`'s own
-     `meson.build` must not enable the whole Xlib surface (`if
-     x11_dep.found() and xext_dep.found()`) just because X11 genuinely is
-     present, once `xlib` itself is pinned `disabled`. `required()`
-     (`decay_meson_eval/src/builtins.rs`) had already collapsed "disabled
-     feature" and "plain `false`" into one condition, losing the
-     distinction real meson relies on. Added a sibling
-     `feature_disabled()` that recovers just the "explicitly disabled
-     feature" half, and `fn_dependency` now ANDs its negation into the
-     resolved `found` — an unconditional `[dependencies]`/`Packages` answer
-     no longer overrides an explicit `disabled`. Without this,
-     `cairo-xlib-screen.c` (which unconditionally `#include`s
-     `cairo-fontconfig-private.h`, not gated by cairo's own `fontconfig`
-     option — Xft font-matching defaults are baked into the X11 surface
-     regardless) kept compiling in even with `xlib = "disabled"`, and failed
-     with fontconfig macros undeclared.
-
-     Also not cairo-only: `libglvnd`'s own `x11` option and glib's `sysprof`/
-     `libmount`/`selinux` options hit the identical shape (each
-     `dependency(..., required: get_option(feat))` against something
-     `decay.toml` separately says is unconditionally present), and were
-     silently always-on the same way, regardless of what the option was set
-     to — because nothing ever *referenced* the option's own true/false
-     split in the emitted build, decay's "don't generate an unused
-     constraint" goal meant these three projects previously had no
-     project-local `constraints/BUCK` at all. Fixing `fn_dependency` fixed
-     all four at once: `libglvnd/BUCK`'s `-DENABLE_EGL_X11` and several
-     headers are now correctly behind a real `x11[enabled/disabled/auto]`
-     select (default `auto`, matching the prior always-on behavior exactly,
-     so nothing currently configured changes), and glib/libglvnd both
-     gained their own `constraints/BUCK` for the first time. Verified: the
-     full previously-green `buck2 build` set still builds together
-     unchanged — the new selects' `DEFAULT`/unpinned branch is exactly what
-     every configured platform already resolved to.
-
-  Also needed, not a code fix: `cairo`'s `decay.toml` entry originally left
-  `glib` off its own `depends`, even though `glib = "enabled"` makes it
-  `dependency('gobject-2.0')`/`dependency('glib-2.0')` a sibling lookup —
-  `schedule::plan` only orders projects by their declared `depends`, so
-  without it cairo could run before glib had registered anything, same as
-  any other missing `depends` entry.
 
   **GTK4 end-to-end — what's still missing.** Checked against gtk's own
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
@@ -1206,11 +316,10 @@ constraint(
   `fontconfig` backends). Still needed, in roughly the order a next attempt
   should reach for them:
   - `fontconfig`, `freetype2` — needed to turn `cairo`'s `xlib`/`freetype`/
-    `fontconfig` options on (cairo's X11 surface needs fontconfig
-    unconditionally, not just its own `fontconfig` cairo-font-backend
-    option — see the cairo narrative above) and by pango's FreeType
-    backend. `fontconfig` is already noted above as blocked on
-    `run_command` support.
+    `fontconfig` options on (cairo's X11 surface — `cairo-xlib-screen.c` —
+    needs fontconfig unconditionally, not just its own `fontconfig`
+    cairo-font-backend option) and by pango's FreeType backend.
+    `fontconfig` is already noted above as blocked on `run_command` support.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via
@@ -1236,14 +345,6 @@ constraint(
     `cloudproviders`, `sysprof`, `tracker-sparql`, `accesskit`) — not needed
     for a first GTK4 `buck2 build`, since every one of those is
     `required: false` in gtk's own `meson.build`.
-
-- **dependency('threads') is a builtin.** `fn_dependency` special-cases it
-  (`External::Threads`): always found, never a `threads[true/false]` knob, and
-  `decay_buck2` renders it as a real `cxx_library` carrying `-pthread`
-  everywhere except `abi[msvc]` (MSVC / clang-cl put threads in the CRT and
-  reject the flag). Still overridable with `dependencies.threads = "//x"` in
-  `decay.toml`. It did not end up needing the libc DB — `-pthread` is a
-  compiler-driver convention, and `abi[msvc]` is the whole of the exception.
 
 - **Pretty print errors.** Use annotate-snippets crate from rust-lang for this
   current errors are crap.
