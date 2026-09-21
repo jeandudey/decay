@@ -25,6 +25,7 @@ use {
         Flag,
         Graph,
         Kind,
+        Package,
         Source,
         TargetId, //
     },
@@ -198,6 +199,15 @@ pub struct Interp<'a, S: Solver> {
     project_args: Variational<String>,
     /// The same, for `add_project_link_arguments()` / `add_global_link_arguments()`.
     project_link_args: Variational<String>,
+    /// `meson.override_dependency()` calls, applied in [`Self::finish`] after
+    /// every `pkg.generate()`-registered `Package` rather than at the call
+    /// site — an override must win regardless of whether it was reached
+    /// before or after the `pkg.generate()` call it overrides (pixman calls
+    /// `override_dependency()` from a `subdir()` that runs before its own
+    /// top-level `pkg.generate()`), and `Packages::register` resolves a name
+    /// collision by last-in-vec, the same way a second `declare_dependency()`
+    /// already does.
+    pub(crate) dependency_overrides: Vec<Package>,
 }
 
 impl<'a, S: Solver> Interp<'a, S> {
@@ -231,6 +241,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             externals: HashMap::new(),
             project_args: Variational::empty(),
             project_link_args: Variational::empty(),
+            dependency_overrides: Vec::new(),
         }
     }
 
@@ -286,6 +297,11 @@ impl<'a, S: Solver> Interp<'a, S> {
             .collect();
         vars.sort();
         graph.project.variables = vars;
+
+        // Applied last, so an override always wins a same-name collision
+        // with whatever `pkg.generate()` already registered, regardless of
+        // which ran first during evaluation.
+        graph.provides.extend(self.dependency_overrides);
 
         // `add_project_arguments()` reaches every target the project
         // compiles, not just ones declared after the call, so it is applied

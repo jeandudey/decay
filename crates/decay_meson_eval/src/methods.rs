@@ -18,6 +18,7 @@ use {
         },
         val::Value,
     },
+    decay_build_ir::Package,
     decay_meson_ast::Loc,
     decay_meson_logic::{
         ANY_OTHER,
@@ -261,12 +262,68 @@ impl<'a, S: Solver> Interp<'a, S> {
                 | "add_postconf_script"
                 | "add_devenv"
                 | "install_dependency_manifest"
-                | "override_find_program"
-                | "override_dependency",
+                | "override_find_program",
             ) => {
                 self.warn_unsupported(&format!("`meson.{name}()`"), loc);
                 Ok(self.pure(Value::Unset))
             }
+            // A `dependency('x')` lookup a sibling project resolves against
+            // normally picks up whatever `pkg.generate()` registered under
+            // that name -- the real library target. That is wrong whenever a
+            // project overrides the name onto a `declare_dependency()`
+            // interface instead (pixman: `library('pixman-1', ...)` itself
+            // declares no `include_directories()` at all -- only
+            // `declare_dependency(include_directories: inc_pixman)` does, and
+            // `meson.override_dependency('pixman-1', idep_pixman)` is what a
+            // real consumer actually resolves against). Recorded separately
+            // (`Interp::dependency_overrides`) and only merged into
+            // `graph.provides` in `finish()`, after whatever `pkg.generate()`
+            // already registered under the same name -- an override must win
+            // regardless of *source* order, and pixman's own
+            // `override_dependency()` call runs, via `subdir()`, before its
+            // own top-level `pkg.generate()`. Only a single, unconditional
+            // target is modelled (the overwhelming common case, called right
+            // after `declare_dependency()`); a configuration-varying override
+            // falls back to whatever `pkg.generate()` already registered.
+            (Obj::Meson, "override_dependency") => {
+                let dep_name = self.one_string(
+                    args.at(0)
+                        .ok_or_eyre("override_dependency() needs a name")?,
+                )?;
+                let dep = args
+                    .at(1)
+                    .ok_or_eyre("override_dependency() needs a dependency")?;
+                if let [variant] = dep.variants()
+                    && variant.cond.is_true()
+                    && let Value::Obj(Obj::Dep(d)) = &variant.value
+                {
+                    self.dependency_overrides.push(Package {
+                        name: dep_name.to_string(),
+                        target: Some(d.target),
+                        requires: Vec::new(),
+                        variables: d.variables.clone(),
+                    });
+                } else {
+                    self.warn_unsupported(&format!("`meson.{name}()`"), loc);
+                }
+                Ok(self.pure(Value::Unset))
+            }
+            // No cross/native `[properties]` file is modelled, so a lookup
+            // always falls through to the call's own fallback -- exactly
+            // what meson does once no such file sets the property.
+            (Obj::Meson, "get_external_property") => match args.at(1) {
+                Some(v) => Ok(v.clone()),
+                None => {
+                    let prop = self.one_string(
+                        args.at(0)
+                            .ok_or_eyre("get_external_property() needs a name")?,
+                    )?;
+                    bail!(
+                        "`meson.get_external_property('{prop}')` has no configured value \
+                         and the call gave no fallback"
+                    )
+                }
+            },
 
             // -- machines --
             (Obj::Machine(machine), _) => self.machine_property(*machine, name),
@@ -948,6 +1005,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             | "has_type"
             | "has_member"
             | "has_header_symbol"
+            | "has_define"
             | "symbols_have_underscore_prefix" => {
                 let what = match args.at(0) {
                     Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),

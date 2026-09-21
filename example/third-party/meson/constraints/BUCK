@@ -855,3 +855,243 @@ constraint(
     default = "true",
     visibility = ["PUBLIC"],
 )
+
+# toolchain probe `probe:c:links:test for ASM leading underscore`: `test for ASM leading underscore` is available to the c compiler
+constraint(
+    name = "links_test_for_ASM_leading_underscore",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:openmp`: `openmp` is available
+constraint(
+    name = "openmp",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:gtk+-3.0`: `gtk+-3.0` is available
+constraint(
+    name = "gtk_3_0",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:glib-2.0`: `glib-2.0` is available
+constraint(
+    name = "glib_2_0",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:libpng`: `libpng` is available
+constraint(
+    name = "libpng",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libpng16`: `libpng16` is available
+constraint(
+    name = "libpng16",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libpng15`: `libpng15` is available
+constraint(
+    name = "libpng15",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libpng14`: `libpng14` is available
+constraint(
+    name = "libpng14",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libpng13`: `libpng13` is available
+constraint(
+    name = "libpng13",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libpng12`: `libpng12` is available
+constraint(
+    name = "libpng12",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:libpng10`: `libpng10` is available
+constraint(
+    name = "libpng10",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:pthreadVC3`: `pthreadVC3` is available
+constraint(
+    name = "pthreadVC3",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:pthreadVSE3`: `pthreadVSE3` is available
+constraint(
+    name = "pthreadVSE3",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:pthreadVCE3`: `pthreadVCE3` is available
+constraint(
+    name = "pthreadVCE3",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:pthreadVC2`: `pthreadVC2` is available
+constraint(
+    name = "pthreadVC2",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:pthreadVSE2`: `pthreadVSE2` is available
+constraint(
+    name = "pthreadVSE2",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `lib:pthreadVCE2`: `pthreadVCE2` is available
+constraint(
+    name = "pthreadVCE2",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:check_header:sys/mman.h`: `sys/mman.h` is available to the c compiler
+constraint(
+    name = "check_header_sys_mman_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:check_header:fenv.h`: `fenv.h` is available to the c compiler
+constraint(
+    name = "check_header_fenv_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:check_header:unistd.h`: `unistd.h` is available to the c compiler
+constraint(
+    name = "check_header_unistd_h",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:__attribute__((constructor))`: `__attribute__((constructor))` is available to the c compiler
+constraint(
+    name = "links_attribute_constructor",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:__attribute__((destructor))`: `__attribute__((destructor))` is available to the c compiler
+constraint(
+    name = "links_attribute_destructor",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:Has float128 support`: `Has float128 support` is available to the c compiler
+constraint(
+    name = "links_Has_float128_support",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:Support for GCC vector extensions`: `Support for GCC vector extensions` is available to the c compiler
+constraint(
+    name = "links_Support_for_GCC_vector_extensions",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:pthreads`: `pthreads` is available to the c compiler
+constraint(
+    name = "links_pthreads",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:Atomic ops: c11`: `Atomic ops: c11` is available to the c compiler
+constraint(
+    name = "links_Atomic_ops_c11",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:Atomic ops: cxx11`: `Atomic ops: cxx11` is available to the c compiler
+constraint(
+    name = "links_Atomic_ops_cxx11",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:Atomic ops: gcc legacy`: `Atomic ops: gcc legacy` is available to the c compiler
+constraint(
+    name = "links_Atomic_ops_gcc_legacy",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:meson-cc-tests/mkdir-variant-1.c`: `meson-cc-tests/mkdir-variant-1.c` is available to the c compiler
+constraint(
+    name = "links_meson_cc_tests_mkdir_variant_1_c",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:meson-cc-tests/mkdir-variant-2.c`: `meson-cc-tests/mkdir-variant-2.c` is available to the c compiler
+constraint(
+    name = "links_meson_cc_tests_mkdir_variant_2_c",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)

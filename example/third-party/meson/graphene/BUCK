@@ -348,7 +348,7 @@ cxx_library(
     deps = [
         ":m",
         ":threads",
-        "//third-party/meson/glib:gobject-2.0", "//third-party/meson/glib:glib-2.0",
+        "//third-party/meson/glib:glib-dep-5",
     ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -367,7 +367,7 @@ cxx_library(
         ":graphene-1.0",
         ":m",
         ":threads",
-        "//third-party/meson/glib:gobject-2.0", "//third-party/meson/glib:glib-2.0",
+        "//third-party/meson/glib:glib-dep-5",
     ],
     visibility = ["PUBLIC"],
 )

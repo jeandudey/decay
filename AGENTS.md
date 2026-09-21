@@ -816,6 +816,44 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   currently-configured system — and shrank `glib/BUCK`'s `gmoduleconf.h`
   genrule and dropped two now-dead constraints from `constraints/BUCK`.
 
+  **Landed:** `meson.override_dependency(name, dep)` — previously a no-op
+  stub, warned about and ignored — is now implemented, closing the biggest
+  hole in this heuristic. A project's own `pkg.generate()` registration is
+  not always the target a same-build consumer should get: pixman's compiled
+  `library('pixman-1', ...)` carries no `include_directories()` of its own
+  at all — only `declare_dependency(include_directories: inc_pixman)` does —
+  and `meson.override_dependency('pixman-1', idep_pixman)` is what a real
+  meson build actually resolves `dependency('pixman-1')` against, in
+  preference to the `.pc` (which a real consumer only reads outside that
+  build). Without modelling the override, cairo's `dependency('pixman-1')`
+  resolved to the bare library target instead, and compiling anything
+  `#include <pixman.h>` failed outright. `Interp` now records each override
+  (`dependency_overrides: Vec<Package>`, `crates/decay_meson_eval/src/
+  lib.rs`) and merges it into `graph.provides` only in `Interp::finish()` —
+  after every `pkg.generate()` call already ran, regardless of which ran
+  first during evaluation (pixman's own `override_dependency()` call runs,
+  via `subdir('pixman')`, *before* its top-level `pkg.generate()`) — so an
+  override always wins a same-name collision with `pkg.generate()`,
+  matching meson's own priority, not just source order. Only a single,
+  unconditional target is modelled (the overwhelming common case, called
+  right after `declare_dependency()`); a configuration-varying override
+  still falls back to whatever `pkg.generate()` registered.
+
+  This isn't pixman-only: `zlib`, `pcre2`, and `libffi` use the identical
+  `library()` + `declare_dependency()` + `override_dependency()` shape, so
+  landing it also moved every existing sibling lookup of theirs
+  (`glib`/`libxml2`/`graphene`'s `dependency('zlib')`/`dependency('libffi')`
+  / pcre2) from the bare library target onto each project's own `-dep`
+  interface target — e.g. `//third-party/meson/zlib:z` →
+  `//third-party/meson/zlib:zlib-dep` throughout `glib/BUCK` and
+  `libxml2/BUCK`. Harmless where the library already exported its own
+  headers directly (these three did), but it's the more correct edge in
+  general, and it collapsed graphene's `deps = ["...gobject-2.0",
+  "...glib-2.0"]` pair down to the one interface target
+  (`glib:glib-dep-5`) that already carries both transitively. Verified: the
+  full previously-green `buck2 build` set, plus cairo/pixman, still builds
+  together with no regressions.
+
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
   hardcoded `default = 0` ("true"), reasoning that "a compiler capability ...
@@ -979,9 +1017,9 @@ constraint(
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
   smoke test for decay, we should be able to import all of the wrapdb
-  projects. Currently exercises 6 of wrapdb's ~250+ projects in
+  projects. Currently exercises 8 of wrapdb's ~250+ projects in
   `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`,
-  `graphite2`).
+  `graphite2`, `pixman`, `cairo`).
 
   Getting `libffi` to evaluate took two real fixes in the evaluator, both
   general and kept regardless of anything libffi-specific: `cc.preprocess()`
@@ -1085,26 +1123,102 @@ constraint(
   fix above) and nothing else — a useful confirmation that fix is general
   rather than fribidi-specific.
 
+  `pixman` (cairo's hard, non-optional dependency) and `cairo` itself (+
+  `cairo-gobject`) are next along the chain and both now `buck2 build` —
+  cairo without its `xlib`/`xcb`/`png`/`freetype`/`fontconfig` backends,
+  deferred until those are imported (see the roadmap below; cairo *is* on
+  wrapdb, correcting what this section used to say). Getting there took
+  four more real, general fixes:
+
+  1. **`cc.has_define()` was entirely unmatched** (cairo's FreeType-version
+     feature detection) — `a compiler has no method has_define`. Added
+     alongside `has_member`/`has_function` in `compiler_method`
+     (`decay_meson_eval/src/methods.rs`): an open knob (or a `[probes]`
+     answer), the same as every other boolean compiler check decay cannot
+     zig-probe when `dependencies:` is involved.
+  2. **`meson.get_external_property()` was entirely unmatched** (cairo's
+     `ipc_rmid_deferred_release`, read from a cross/native file's
+     `[properties]` section decay does not model). Since no such file is
+     ever modelled, a lookup now always falls through to the call's own
+     fallback argument — exactly what real meson does once no file sets the
+     property — rather than erroring; only a fallback-less lookup, which
+     would be unanswerable either way, still bails.
+  3. **`meson.override_dependency()`, landed for real** — see
+     "`declare_dependency()` provide heuristic is narrow" above. Surfaced by
+     `dependency('pixman-1')`: pixman's real `pkg.generate()`-registered
+     library carries no headers of its own, only its `declare_dependency()`
+     interface does, and only the override tells decay which one a
+     same-build consumer actually needs.
+  4. **`dependency(x, required: get_option(feature))` no longer reports
+     "found" just because `decay.toml`'s `[dependencies]` says `x` exists on
+     the system, once `feature` is pinned `disabled`.** Real meson treats a
+     `required:` *feature option* specially: a plain `required: false` still
+     searches and may still report found, but an explicitly *disabled*
+     feature skips the search outright and is unconditionally not-found —
+     `dependency('x11', required: get_option('xlib'))` inside `cairo`'s own
+     `meson.build` must not enable the whole Xlib surface (`if
+     x11_dep.found() and xext_dep.found()`) just because X11 genuinely is
+     present, once `xlib` itself is pinned `disabled`. `required()`
+     (`decay_meson_eval/src/builtins.rs`) had already collapsed "disabled
+     feature" and "plain `false`" into one condition, losing the
+     distinction real meson relies on. Added a sibling
+     `feature_disabled()` that recovers just the "explicitly disabled
+     feature" half, and `fn_dependency` now ANDs its negation into the
+     resolved `found` — an unconditional `[dependencies]`/`Packages` answer
+     no longer overrides an explicit `disabled`. Without this,
+     `cairo-xlib-screen.c` (which unconditionally `#include`s
+     `cairo-fontconfig-private.h`, not gated by cairo's own `fontconfig`
+     option — Xft font-matching defaults are baked into the X11 surface
+     regardless) kept compiling in even with `xlib = "disabled"`, and failed
+     with fontconfig macros undeclared.
+
+     Also not cairo-only: `libglvnd`'s own `x11` option and glib's `sysprof`/
+     `libmount`/`selinux` options hit the identical shape (each
+     `dependency(..., required: get_option(feat))` against something
+     `decay.toml` separately says is unconditionally present), and were
+     silently always-on the same way, regardless of what the option was set
+     to — because nothing ever *referenced* the option's own true/false
+     split in the emitted build, decay's "don't generate an unused
+     constraint" goal meant these three projects previously had no
+     project-local `constraints/BUCK` at all. Fixing `fn_dependency` fixed
+     all four at once: `libglvnd/BUCK`'s `-DENABLE_EGL_X11` and several
+     headers are now correctly behind a real `x11[enabled/disabled/auto]`
+     select (default `auto`, matching the prior always-on behavior exactly,
+     so nothing currently configured changes), and glib/libglvnd both
+     gained their own `constraints/BUCK` for the first time. Verified: the
+     full previously-green `buck2 build` set still builds together
+     unchanged — the new selects' `DEFAULT`/unpinned branch is exactly what
+     every configured platform already resolved to.
+
+  Also needed, not a code fix: `cairo`'s `decay.toml` entry originally left
+  `glib` off its own `depends`, even though `glib = "enabled"` makes it
+  `dependency('gobject-2.0')`/`dependency('glib-2.0')` a sibling lookup —
+  `schedule::plan` only orders projects by their declared `depends`, so
+  without it cairo could run before glib had registered anything, same as
+  any other missing `depends` entry.
+
   **GTK4 end-to-end — what's still missing.** Checked against gtk's own
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
   dependency graph" into a concrete list. Already imported: `glib`/
   `gobject`/`gio`/`gmodule` (as `glib`), `epoxy`, `graphene`, `xorgproto`,
-  `libxext`, `fribidi`, `graphite2`. Still needed, in roughly the order a
-  next attempt should reach for them:
+  `libxext`, `fribidi`, `graphite2`, `pixman`, `cairo` (core: image/tee
+  surfaces + `cairo-gobject`, not yet the `xlib`/`xcb`/`png`/`freetype`/
+  `fontconfig` backends). Still needed, in roughly the order a next attempt
+  should reach for them:
+  - `fontconfig`, `freetype2` — needed to turn `cairo`'s `xlib`/`freetype`/
+    `fontconfig` options on (cairo's X11 surface needs fontconfig
+    unconditionally, not just its own `fontconfig` cairo-font-backend
+    option — see the cairo narrative above) and by pango's FreeType
+    backend. `fontconfig` is already noted above as blocked on
+    `run_command` support.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via
     `dependency(..., required: false)` — the likeliest place to hit the same
     "configuration-varying dependency name" gap that stopped gdk-pixbuf
     (see "`declare_dependency()` provide heuristic is narrow" above).
-  - `cairo` (+ `cairo-gobject`) — GTK4's 2D rendering backend. Not on
-    wrapdb; upstream ships its own meson build but pulls in a backend zoo
-    (X11/xcb, PNG, FreeType, fontconfig) behind feature options.
   - `pango` (+ `pangocairo`, `pangoft2`) — text layout, depends on harfbuzz,
     fribidi, cairo, fontconfig, and freetype all being in place first.
-  - `fontconfig`, `freetype2` — needed by both cairo and pango's FreeType
-    backend. `fontconfig` is already noted above as blocked on `run_command`
-    support.
   - `gdk-pixbuf-2.0` — blocked today on the `dependency()`
     configuration-varying-name rewrite (see "`declare_dependency()` provide
     heuristic is narrow" above); GTK4 also wants at least one of its loader

@@ -336,3 +336,21 @@ options = { bin = false, tests = false, docs = false }
 
 [[project]]
 wrap = "graphite2"
+
+[[project]]
+wrap = "pixman"
+
+[[project]]
+wrap = "cairo"
+depends = ["pixman", "zlib", "glib"]
+commands."version.py" = { stdout = "1.18.4" }
+commands."ln -sfn test ./srcdir" = { returncode = 0 }
+# fontconfig/freetype/png are still-unimported dependencies (see AGENTS.md's
+# GTK4 roadmap) -- disabled here to get a minimal, real cairo building first.
+# xlib is also off: cairo-xlib-screen.c unconditionally `#include`s
+# cairo-fontconfig-private.h regardless of cairo's own `fontconfig` option
+# (Xft font-matching defaults are baked into the X11 surface, not gated by
+# it), so the xlib/xcb backends need fontconfig imported first too.
+# dwrite/quartz are Windows/macOS only, neither a configured system. glib is
+# on for cairo-gobject, one of GTK4's own direct `dependency()`s.
+options = { dwrite = "disabled", fontconfig = "disabled", freetype = "disabled", png = "disabled", quartz = "disabled", tee = "enabled", xcb = "disabled", xlib = "disabled", "xlib-xcb" = "disabled", zlib = "enabled", tests = "disabled", lzo = "disabled", "gtk2-utils" = "disabled", glib = "enabled", spectre = "disabled", "symbol-lookup" = "disabled", gtk_doc = false }

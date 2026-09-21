@@ -383,7 +383,7 @@ cxx_library(
     deps = [
         ":m",
         ":threads",
-        "//third-party/meson/zlib:z",
+        "//third-party/meson/zlib:zlib-dep",
         ":iconv",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
@@ -556,7 +556,7 @@ cxx_binary(
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":libxml2-dep",
-        "//third-party/meson/zlib:z",
+        "//third-party/meson/zlib:zlib-dep",
     ],
     visibility = ["PUBLIC"],
 )
@@ -571,7 +571,7 @@ cxx_binary(
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":libxml2-dep",
-        "//third-party/meson/zlib:z",
+        "//third-party/meson/zlib:zlib-dep",
     ],
     visibility = ["PUBLIC"],
 )
@@ -612,7 +612,7 @@ cxx_binary(
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":threads",
-        "//third-party/meson/zlib:z",
+        "//third-party/meson/zlib:zlib-dep",
         ":libxml2-dep",
     ],
     visibility = ["PUBLIC"],

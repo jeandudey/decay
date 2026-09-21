@@ -1726,7 +1726,12 @@ impl<'a, S: Solver> Interp<'a, S> {
         };
 
         let target = self.external(&key, &name, kind);
-        let found = self.dependency_found(&key, &name, required)?;
+        let mut found = self.dependency_found(&key, &name, required)?;
+        let disabled = self.feature_disabled(args)?;
+        if !disabled.is_false() {
+            let not_disabled = self.logic.not(disabled);
+            found = self.logic.and(found, not_disabled);
+        }
         let variables = self.oracle.dependency_variables(&name);
 
         let value = self.dep_obj(Dep {
@@ -1830,6 +1835,31 @@ impl<'a, S: Solver> Interp<'a, S> {
             cond = self.logic.or(cond, t);
         }
         Ok(self.logic.and(self.pc, cond))
+    }
+
+    /// The condition under which `required:` was an explicitly *disabled*
+    /// feature option, as opposed to a plain `false`. Meson treats the two
+    /// differently: `required: false` still searches for the dependency and
+    /// may still report it found; `required: get_option('x')` with `x`
+    /// disabled skips the search outright and is unconditionally not-found
+    /// (cairo's `dependency('x11', required: get_option('xlib'))` must not
+    /// become "found" just because `decay.toml`'s `[dependencies]` says X11
+    /// exists on the system, once `xlib` is pinned `disabled`).
+    /// [`Self::required`] alone cannot tell the two apart, having already
+    /// collapsed both into one condition.
+    pub(crate) fn feature_disabled(&mut self, args: &CallArgs) -> eyre::Result<Pc> {
+        let Some(v) = args.get("required") else {
+            return Ok(Pc::FALSE);
+        };
+        let mut disabled = Pc::FALSE;
+        for variant in v.variants() {
+            if let Value::Obj(Obj::Feature(f)) = &variant.value
+                && &**f == "disabled"
+            {
+                disabled = self.logic.or(disabled, variant.cond);
+            }
+        }
+        Ok(self.logic.and(self.pc, disabled))
     }
 
     /// `run_command()`: never executed here. The result is whatever the
