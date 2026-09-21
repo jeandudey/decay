@@ -16,6 +16,11 @@ use {
 #[derive(Debug, Clone, Default)]
 pub struct Packages {
     by_name: BTreeMap<String, Package>,
+    /// Every finished project's own top-level variables, keyed by its
+    /// project name (not a provided package name — a project need not
+    /// `declare_dependency()`/`pkg.generate()` anything to still answer
+    /// `subproject(name).get_variable()`).
+    subprojects: BTreeMap<String, Vec<(String, String)>>,
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +42,16 @@ pub struct Package {
 impl Packages {
     pub fn get(&self, name: &str) -> Option<&Package> {
         self.by_name.get(name)
+    }
+
+    /// A `subproject(project).get_variable(key)` answer, when `project` was
+    /// imported as a sibling and settled `key` to a single value.
+    pub fn subproject_variable(&self, project: &str, key: &str) -> Option<&str> {
+        self.subprojects
+            .get(project)?
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
     }
 
     /// Every provided name that names a linkable target, as `(name, labels)`:
@@ -80,6 +95,9 @@ impl Packages {
     /// `third-party/meson/libepoxy`, which is how its targets are named from
     /// anywhere else.
     pub fn register(&mut self, package: &str, graph: &Graph) {
+        self.subprojects
+            .insert(graph.project.name.clone(), graph.project.variables.clone());
+
         // A project's root `declare_dependency()` is registered under the
         // project's own name and carries the include dirs every `.pc` this
         // project ships resolves to (xorg's proto repos: one `ext_*`

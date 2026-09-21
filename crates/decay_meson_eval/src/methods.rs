@@ -340,6 +340,20 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
             }
 
+            (Obj::Subproject(sub), "get_variable") => {
+                let key = self.one_string(args.at(0).ok_or_eyre("get_variable() needs a name")?)?;
+                match self.oracle.subproject_variable(sub, &key) {
+                    Some(v) => Ok(self.pure(Value::from(v))),
+                    None => match self.default_string(args) {
+                        Some(v) => Ok(self.pure(Value::from(v))),
+                        None => bail!(
+                            "`{sub}` has no such variable, or was never imported as a sibling \
+                             `[[project]]`"
+                        ),
+                    },
+                }
+            }
+
             // -- programs --
             (Obj::Program(program), "found") => Ok(self.bool_value(program.found)),
             (Obj::Program(program), "path" | "full_path") => {

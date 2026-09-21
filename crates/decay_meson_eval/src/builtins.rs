@@ -92,12 +92,16 @@ impl<'a, S: Solver> Interp<'a, S> {
             // Subprojects are not evaluated. A project that pulls one in is
             // expected to have it listed as its own `[[project]]` instead, so
             // the `dependency()` the subproject would have provided resolves
-            // against that sibling. The call itself does nothing here; code
-            // that uses the returned subproject object will fail later, which
-            // is the signal to add it to `decay.toml`.
+            // against that sibling. The call itself just carries the name
+            // forward — enough for `.get_variable()` to answer from that
+            // sibling's own settled top-level variables (`Oracle::
+            // subproject_variable`); anything else called on the result
+            // (`.found()`, `.get_variable()` of an unsettled/unknown name)
+            // fails there, which is the signal to add the sibling project or
+            // extend the oracle.
             "subproject" => {
-                self.warn_unsupported(&format!("`{name}()`"), loc);
-                Ok(self.pure(Value::Unset))
+                let sub = self.one_string(args.at(0).ok_or_eyre("subproject() needs a name")?)?;
+                Ok(self.pure(Value::Obj(Obj::Subproject(sub))))
             }
 
             // -- structure --
@@ -1709,7 +1713,11 @@ impl<'a, S: Solver> Interp<'a, S> {
                 External::PkgConfig {
                     module: name.to_string(),
                 },
-                "pkgconfig",
+                if self.oracle.dependency_is_internal(&name) {
+                    "internal"
+                } else {
+                    "pkgconfig"
+                },
             )
         };
 

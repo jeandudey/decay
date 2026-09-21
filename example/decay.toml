@@ -57,6 +57,13 @@ netbsd = "prelude//os/constraints:os[netbsd]"
 # `XATTR_NOFOLLOW` and 6-arg `getxattr`/`setxattr` are the macOS xattr API;
 # Linux's <sys/xattr.h> has neither. Defaults present → macOS call shapes.
 "compiles:XATTR_NOFOLLOW" = false
+# `dlopen()`/`dlsym()` resolve straight out of libc on every glibc/musl/BSD
+# `[systems]` entry decay's own `has_function` abilists confirm them on —
+# `cc.links()` (not `cc.has_function()`) can't be zig-probed (see the
+# `cc.links` gap) so this is a genuine open knob otherwise, and it feeds
+# gdk-pixbuf's `subproject('glib').get_variable('g_module_impl')`, which
+# needs a settled answer, not a `select()`, to resolve at all.
+"links:dlopen() and dlsym() in system libraries" = true
 
 [programs]
 python3 = "//third-party/tools:python3"
@@ -245,11 +252,25 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 #   Caused by:
 #      0: Failed to execute `gdk-pixbuf`
 #      1: in /meson.build
-#      2: in `.get_variable()` at /meson.build:244:30
-#      3: `gmodule-no-export-2.0` has no such variable
+#      2: in `dependency()` at /meson.build:292:12
+#      3: expected a single string, but the value differs between configurations (2 variants)
 #
 #   Location:
-#       crates/decay_meson_eval/src/methods.rs:245:29
+#       crates/decay_meson_eval/src/lib.rs:1236:18
+#
+# `dependency(is_msvc_like ? 'png' : 'libpng', required: false)` — the name
+# itself is configuration-dependent (`compiler` is left open across
+# gcc/clang/msvc, so `is_msvc_like` is too), and `fn_dependency`
+# (decay_meson_eval/src/builtins.rs) assumes a single fixed name throughout:
+# one `External::PkgConfig` target, one `Packages` lookup. Supporting this
+# needs `fn_dependency` to loop over the name's variants and produce a
+# `Variational<Value>` of `Obj::Dep`s, each under its own condition — a real
+# rewrite of that function's threading model, not a narrow fix. (Got here via
+# two real, kept fixes: `dependency()`'s cross-project resolutions now report
+# `type_name() == 'internal'` matching meson's own distinction — see "Wrap
+# support" above; and `subproject(name).get_variable(key)` now answers from a
+# sibling project's own settled top-level variables, which is what got past
+# the `gmodule-no-export-2.0` blocker this TODO used to describe.)
 #[[project]]
 #repo = "https://gitlab.gnome.org/GNOME/gdk-pixbuf"
 #rev = "0bd66153abb6bd548febb82337db79cbefe694b0" # Tag 2.44.8

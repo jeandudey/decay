@@ -781,6 +781,37 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   include dirs instead of an empty stub. Only fires when the project
   registered a root `declare_dependency()` under its own name.
 
+  Two more, found trying gdk-pixbuf (a GTK4 dependency — see "Support all of
+  meson wrapdb" for where that attempt currently stops). **Landed:**
+  `dependency()`'s returned object now reports `type_name() == "internal"`
+  when it resolved against a sibling project (`Oracle::dependency_is_internal`,
+  checking `Packages::get`), matching meson's own distinction from
+  `"pkgconfig"` — a project sometimes branches on it (gdk-pixbuf's
+  `gmodule_dep.type_name() == 'pkgconfig'` guards a
+  `.get_variable(pkgconfig: ...)` call only a real `.pc` file can answer,
+  wrongly taken before this fix since every resolution reported
+  `"pkgconfig"` regardless). **Landed:** `subproject(name).get_variable(key)`
+  now answers too, from whatever top-level variables `name`'s own
+  `meson.build` (and anything it `subdir()`s into, which shares that scope)
+  settled to a single value across the whole build — `Interp::finish()`
+  collapses `self.vars` the same way `Package::variables` already collapses
+  `pkg.generate(variables:)`, and `Packages` carries the result keyed by
+  project name (`Packages::subproject_variable`), separately from
+  `by_name` (a project need not `declare_dependency()`/`pkg.generate()`
+  anything to still answer). A variable that varies by configuration is
+  still unanswered, same tradeoff as everywhere else this pattern appears.
+  Together these got gdk-pixbuf's `gmodule_dep.type_name() == 'pkgconfig' ?
+  ... : subproject('glib').get_variable('g_module_impl') != '0'` all the way
+  to a settled answer — which also needed glib's own `cc.links(dlopen_dlsym_
+  test_code, ...)` pinned via `[probes]` (`"links:dlopen() and dlsym() in
+  system libraries" = true` in `example/decay.toml`; `cc.links()` itself is
+  still unimplemented, see the compile-probe entry's "Still in scope" list),
+  since it was otherwise the last open knob standing between `g_module_impl`
+  and a single collapsible value. That one is a real, general improvement
+  independent of gdk-pixbuf — dlopen/dlsym are libc-resident on every
+  currently-configured system — and shrank `glib/BUCK`'s `gmoduleconf.h`
+  genrule and dropped two now-dead constraints from `constraints/BUCK`.
+
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
   hardcoded `default = 0` ("true"), reasoning that "a compiler capability ...

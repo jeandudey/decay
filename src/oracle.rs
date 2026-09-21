@@ -456,6 +456,16 @@ impl Oracle for ConfigOracle<'_> {
             .unwrap_or_default()
     }
 
+    fn dependency_is_internal(&self, name: &str) -> bool {
+        self.packages.get(name).is_some()
+    }
+
+    fn subproject_variable(&self, project: &str, key: &str) -> Option<String> {
+        self.packages
+            .subproject_variable(project, key)
+            .map(str::to_owned)
+    }
+
     fn dependency_found(&self, name: &str) -> Option<Probe> {
         // Not a probe about the environment: decay is building this either
         // way, because it is another project it already imported.

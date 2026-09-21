@@ -105,6 +105,32 @@ pub trait Oracle {
         None
     }
 
+    /// Whether a dependency resolves to another project the importer is
+    /// building anyway (a sibling's `declare_dependency()`/`pkg.generate()`),
+    /// as opposed to a real external `pkg-config` module.
+    ///
+    /// Meson's own `dependency_obj.type_name()` reads `"internal"` for the
+    /// former and `"pkgconfig"` for the latter — a project sometimes branches
+    /// on that (gdk-pixbuf's `gmodule_dep.type_name() == 'pkgconfig'` guards a
+    /// `.get_variable(pkgconfig: ...)` call that only a real `.pc` file can
+    /// answer). Left `false`, a lookup default to `"pkgconfig"`, correct for
+    /// every dependency not resolved against a sibling project.
+    fn dependency_is_internal(&self, name: &str) -> bool {
+        let _ = name;
+        false
+    }
+
+    /// A `subproject(project).get_variable(key)` answer — a top-level
+    /// variable name `project`'s own `meson.build` bound to a single value
+    /// across its whole configuration, when `project` was imported as a
+    /// sibling. `None` covers both "no such sibling project" and "the
+    /// variable varies by configuration" — either way there is nothing
+    /// settled to hand back.
+    fn subproject_variable(&self, project: &str, key: &str) -> Option<String> {
+        let _ = (project, key);
+        None
+    }
+
     /// Whether `cc.find_library('name')` resolves, when that follows from the
     /// target system rather than from a knob a generated build should carry.
     ///

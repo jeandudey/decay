@@ -3030,17 +3030,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: find_library("dl")
-# `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
-cxx_library(
-    name = "dl",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-ldl"],
-    }),
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
@@ -7864,67 +7853,19 @@ cxx_library(
 genrule(
     name = "gmoduleconf.h",
     out = "gmoduleconf.h",
-    cmd = "sed" + " -e ''" + select({
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": " '-es|@G_MODULE_IMPL@|G_MODULE_IMPL_DL|g' '-es|@G_MODULE_SUPPORTED@|1|g'",
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": " '-es|@G_MODULE_IMPL@|G_MODULE_IMPL_DL|g' '-es|@G_MODULE_SUPPORTED@|1|g'",
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|@G_MODULE_IMPL@|0|g' '-es|@G_MODULE_SUPPORTED@||g'",
+    cmd = "sed" + " -e ''" + " '-es|@G_MODULE_IMPL@|G_MODULE_IMPL_DL|g' '-es|@G_MODULE_SUPPORTED@|1|g' '-es|@G_MODULE_HAVE_DLERROR@|1|g' '-es|@G_MODULE_BROKEN_RTLD_GLOBAL@|0|g'" + select({
+        "//third-party/meson/constraints:compiler[msvc]": " '-es|@G_MODULE_NEED_USCORE@|1|g'",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:run_dlsym_preceding_underscores[true]": " '-es|@G_MODULE_NEED_USCORE@|1|g'",
+            "//third-party/meson/constraints:run_dlsym_preceding_underscores[false]": " '-es|@G_MODULE_NEED_USCORE@|0|g'",
         }),
-    }) + select({
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": " '-es|@G_MODULE_HAVE_DLERROR@|1|g'",
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|@G_MODULE_HAVE_DLERROR@|0|g'",
+    }) + " '-es|^#mesondefine[[:space:]]\\+G_MODULE_IMPL\\>.*|#define G_MODULE_IMPL G_MODULE_IMPL_DL|' '-es|^#mesondefine[[:space:]]\\+G_MODULE_SUPPORTED\\>.*|#define G_MODULE_SUPPORTED|' '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|' '-es|^#mesondefine[[:space:]]\\+G_MODULE_BROKEN_RTLD_GLOBAL\\>.*|#define G_MODULE_BROKEN_RTLD_GLOBAL 0|'" + select({
+        "//third-party/meson/constraints:compiler[msvc]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 1|'",
+        "DEFAULT": select({
+            "//third-party/meson/constraints:run_dlsym_preceding_underscores[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 1|'",
+            "//third-party/meson/constraints:run_dlsym_preceding_underscores[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 0|'",
         }),
-    }) + select({
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
-            "//third-party/meson/constraints:compiler[msvc]": " '-es|@G_MODULE_NEED_USCORE@|1|g'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:run_dlsym_preceding_underscores[true]": " '-es|@G_MODULE_NEED_USCORE@|1|g'",
-                "//third-party/meson/constraints:run_dlsym_preceding_underscores[false]": " '-es|@G_MODULE_NEED_USCORE@|0|g'",
-            }),
-        }),
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
-                "//third-party/meson/constraints:compiler[msvc]": " '-es|@G_MODULE_NEED_USCORE@|1|g'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:run_dlsym_preceding_underscores[true]": " '-es|@G_MODULE_NEED_USCORE@|1|g'",
-                    "//third-party/meson/constraints:run_dlsym_preceding_underscores[false]": " '-es|@G_MODULE_NEED_USCORE@|0|g'",
-                }),
-            }),
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|@G_MODULE_NEED_USCORE@|0|g'",
-        }),
-    }) + " '-es|@G_MODULE_BROKEN_RTLD_GLOBAL@|0|g'" + select({
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_IMPL\\>.*|#define G_MODULE_IMPL G_MODULE_IMPL_DL|' '-es|^#mesondefine[[:space:]]\\+G_MODULE_SUPPORTED\\>.*|#define G_MODULE_SUPPORTED|'",
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_IMPL\\>.*|#define G_MODULE_IMPL G_MODULE_IMPL_DL|' '-es|^#mesondefine[[:space:]]\\+G_MODULE_SUPPORTED\\>.*|#define G_MODULE_SUPPORTED|'",
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_IMPL\\>.*|#define G_MODULE_IMPL 0|' '-es|^#mesondefine[[:space:]]\\+G_MODULE_SUPPORTED\\>.*|/* #undef G_MODULE_SUPPORTED */|'",
-        }),
-    }) + select({
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 1|'",
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_HAVE_DLERROR\\>.*|#define G_MODULE_HAVE_DLERROR 0|'",
-        }),
-    }) + select({
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": select({
-            "//third-party/meson/constraints:compiler[msvc]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 1|'",
-            "DEFAULT": select({
-                "//third-party/meson/constraints:run_dlsym_preceding_underscores[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 1|'",
-                "//third-party/meson/constraints:run_dlsym_preceding_underscores[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 0|'",
-            }),
-        }),
-        "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": select({
-                "//third-party/meson/constraints:compiler[msvc]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 1|'",
-                "DEFAULT": select({
-                    "//third-party/meson/constraints:run_dlsym_preceding_underscores[true]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 1|'",
-                    "//third-party/meson/constraints:run_dlsym_preceding_underscores[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 0|'",
-                }),
-            }),
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": " '-es|^#mesondefine[[:space:]]\\+G_MODULE_NEED_USCORE\\>.*|#define G_MODULE_NEED_USCORE 0|'",
-        }),
-    }) + " '-es|^#mesondefine[[:space:]]\\+G_MODULE_BROKEN_RTLD_GLOBAL\\>.*|#define G_MODULE_BROKEN_RTLD_GLOBAL 0|'" + " $(location :glib.git[gmodule/gmoduleconf.h.in]) > $OUT",
+    }) + " $(location :glib.git[gmodule/gmoduleconf.h.in]) > $OUT",
     visibility = ["PUBLIC"],
 )
 
@@ -8614,16 +8555,7 @@ cxx_library(
         "//third-party/meson/constraints:cpp_compiler[msvc]": [],
     }),
     linker_flags = _ldflags_compiler,
-    deps = select({
-        "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": [":dl"],
-                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": [],
-            }),
-        }),
-    }) + [":glib-dep-3"],
+    deps = [":glib-dep-3"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
@@ -11755,15 +11687,6 @@ cxx_library(
         ":glib-dep-9",
         "//third-party/meson/gvdb:gvdb-dep",
     ] + select({
-        "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[true]": [],
-            "//third-party/meson/constraints:links_dlopen_and_dlsym_in_system_libraries[false]": select({
-                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[true]": [":dl"],
-                "//third-party/meson/constraints:links_dlopen_and_dlsym_in_libdl[false]": [],
-            }),
-        }),
-    }) + select({
         "prelude//os/constraints:os[linux]": select({
             "//third-party/meson/constraints:mount[true]": [":mount"],
             "//third-party/meson/constraints:mount[false]": [],

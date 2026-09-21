@@ -260,6 +260,33 @@ impl<'a, S: Solver> Interp<'a, S> {
         let mut graph = self.graph;
         graph.options = self.logic.vars().to_vec();
 
+        // `subproject(this).get_variable(key)` reads a top-level variable a
+        // consumer looks up by name; only one settled everywhere the project
+        // itself is has an answer worth carrying past this project's own
+        // presence conditions, which mean nothing once execution moves on to
+        // whatever imports this project next.
+        let mut vars: Vec<_> = self
+            .vars
+            .iter()
+            .filter_map(|(name, value)| {
+                let [variant] = value.variants() else {
+                    return None;
+                };
+                if !variant.cond.is_true() {
+                    return None;
+                }
+                let s = match &variant.value {
+                    Value::Str(s) => s.to_string(),
+                    Value::Bool(b) => b.to_string(),
+                    Value::Int(i) => i.to_string(),
+                    _ => return None,
+                };
+                Some((name.clone(), s))
+            })
+            .collect();
+        vars.sort();
+        graph.project.variables = vars;
+
         // `add_project_arguments()` reaches every target the project
         // compiles, not just ones declared after the call, so it is applied
         // here rather than at the call site.

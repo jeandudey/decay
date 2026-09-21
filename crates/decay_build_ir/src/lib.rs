@@ -53,6 +53,13 @@ pub struct Project {
     /// never lands in `origin` — see [`Origin::Archive`] — so a referenced
     /// file it provided needs fetching from here instead.
     pub wrapdb_overlay: Option<WrapdbOverlay>,
+    /// Every top-level variable this project's root `meson.build` (and
+    /// anything it `subdir()`s into, which shares that same scope) bound to a
+    /// single fixed string/bool/int across the whole configuration — what
+    /// `subproject(this).get_variable(key)` reads from a consumer.
+    /// Configuration-dependent variables are dropped, the same tradeoff
+    /// `Package::variables` already makes for `pkg.generate()`.
+    pub variables: Vec<(String, String)>,
 }
 
 impl Project {

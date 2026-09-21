@@ -67,6 +67,10 @@ pub enum Obj {
     /// on it will have to say so with a clear error instead of silently
     /// behaving as if it were found.
     Disabler,
+    /// `subproject()`. Not evaluated — decay expects any project it names to
+    /// be listed as its own sibling `[[project]]` instead — but carries the
+    /// name, so `.get_variable()` can still answer for one that is.
+    Subproject(Rc<str>),
 }
 
 impl Obj {
@@ -87,6 +91,7 @@ impl Obj {
             Self::Env => "env",
             Self::Feature(_) => "feature",
             Self::Disabler => "disabler",
+            Self::Subproject(_) => "subproject",
         }
     }
 }
@@ -111,6 +116,7 @@ impl PartialEq for Obj {
             (Self::File(a), Self::File(b)) => a == b,
             (Self::PrefixedFile(a1, a2), Self::PrefixedFile(b1, b2)) => a1 == b1 && a2 == b2,
             (Self::Feature(a), Self::Feature(b)) => a == b,
+            (Self::Subproject(a), Self::Subproject(b)) => a == b,
             _ => false,
         }
     }
@@ -136,7 +142,7 @@ impl Hash for Obj {
             Self::Target(t) => t.hash(state),
             Self::Output(t, i) => (t, i).hash(state),
             Self::IncludeDirs(d) => d.hash(state),
-            Self::File(f) | Self::Feature(f) => f.hash(state),
+            Self::File(f) | Self::Feature(f) | Self::Subproject(f) => f.hash(state),
             Self::PrefixedFile(a, b) => (a, b).hash(state),
         }
     }

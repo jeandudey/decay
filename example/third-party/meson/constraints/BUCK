@@ -190,22 +190,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:links:dlopen() and dlsym() in system libraries`: `dlopen() and dlsym() in system libraries` is available to the c compiler
-constraint(
-    name = "links_dlopen_and_dlsym_in_system_libraries",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:links:dlopen() and dlsym() in libdl`: `dlopen() and dlsym() in libdl` is available to the c compiler
-constraint(
-    name = "links_dlopen_and_dlsym_in_libdl",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:compiles:number of arguments to statfs() (n=2)`: `number of arguments to statfs() (n=2)` is available to the c compiler
 constraint(
     name = "compiles_number_of_arguments_to_statfs_n_2",
