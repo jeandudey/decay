@@ -114,7 +114,9 @@ jobs:
             //third-party/meson/pcre2:pcre2-32 \
             //third-party/meson/pcre2:pcre2-posix \
             //third-party/meson/libffi:ffi \
-            //third-party/meson/fribidi:fribidi-2
+            //third-party/meson/fribidi:fribidi-2 \
+            //third-party/meson/graphite2:graphite2-2 \
+            //third-party/meson/graphite2:graphite2-dep
 
       - name: Stop buck2 daemon
         if: always()

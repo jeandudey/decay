@@ -59,6 +59,10 @@ The pipeline:
   person would write by hand: buildifier clean, shallow `select()`
   nesting, shared values hoisted, not a naive dump of the decision diagram
   behind them.
+- **Import GTK4 end to end.** `example/` doubles as decay's own dependency
+  smoke test, growing one real project at a time until GTK4 itself
+  `buck2 build`s from it — see "Support all of meson wrapdb" below for the
+  running list of what that still needs.
 
 See `example/` for a libepoxy import, and `example/decay.toml` for how a
 project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
@@ -975,8 +979,9 @@ constraint(
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
   smoke test for decay, we should be able to import all of the wrapdb
-  projects. Currently exercises 5 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`).
+  projects. Currently exercises 6 of wrapdb's ~250+ projects in
+  `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`,
+  `graphite2`).
 
   Getting `libffi` to evaluate took two real fixes in the evaluator, both
   general and kept regardless of anything libffi-specific: `cc.preprocess()`
@@ -1069,6 +1074,54 @@ constraint(
   compiled as their own translation unit, and buck2's `cxx_library` rejects
   `.i` as a `srcs` extension outright (`Unknown enum element ".i"`) where
   meson silently just doesn't compile an unrecognized suffix either.
+
+  `graphite2` — harfbuzz's optional smart-font-rendering backend, next along
+  the same GTK4 chain — evaluated and `buck2 build`s clean on the first try,
+  no new bugs: a small, self-contained C++ wrapdb project with no options
+  left open. (Not a hard GTK4 requirement — harfbuzz's own dependency on it
+  is optional — but it's a real dependency of the chain being built out.) It hit the exact same fetch/build-target name collision fribidi
+  did (`library('graphite2', ...)` inside `project('graphite2', ...)`,
+  resolved to `graphite2-2` by the now-general `Graph::avoid_name_collision`
+  fix above) and nothing else — a useful confirmation that fix is general
+  rather than fribidi-specific.
+
+  **GTK4 end-to-end — what's still missing.** Checked against gtk's own
+  `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
+  dependency graph" into a concrete list. Already imported: `glib`/
+  `gobject`/`gio`/`gmodule` (as `glib`), `epoxy`, `graphene`, `xorgproto`,
+  `libxext`, `fribidi`, `graphite2`. Still needed, in roughly the order a
+  next attempt should reach for them:
+  - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
+    fribidi and graphite2 were imported first. A C++ wrap with several
+    optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via
+    `dependency(..., required: false)` — the likeliest place to hit the same
+    "configuration-varying dependency name" gap that stopped gdk-pixbuf
+    (see "`declare_dependency()` provide heuristic is narrow" above).
+  - `cairo` (+ `cairo-gobject`) — GTK4's 2D rendering backend. Not on
+    wrapdb; upstream ships its own meson build but pulls in a backend zoo
+    (X11/xcb, PNG, FreeType, fontconfig) behind feature options.
+  - `pango` (+ `pangocairo`, `pangoft2`) — text layout, depends on harfbuzz,
+    fribidi, cairo, fontconfig, and freetype all being in place first.
+  - `fontconfig`, `freetype2` — needed by both cairo and pango's FreeType
+    backend. `fontconfig` is already noted above as blocked on `run_command`
+    support.
+  - `gdk-pixbuf-2.0` — blocked today on the `dependency()`
+    configuration-varying-name rewrite (see "`declare_dependency()` provide
+    heuristic is narrow" above); GTK4 also wants at least one of its loader
+    backends (`libpng`/`libtiff-4`/`libjpeg`, all `dependency(..., 'x')`
+    two-name lookups, untried).
+  - `xkbcommon` — required whenever the Wayland backend is enabled.
+  - The remaining X11 extension libraries GTK4's X11 backend links against
+    directly: `xrandr`, `xrender`, `xi`, `xcursor`, `xdamage`, `xfixes`,
+    `xinerama` — same shape as the already-imported `libxext`/`xorgproto`,
+    likely each its own small wrapdb or system entry.
+  - `libdrm` (Linux only) and, further out, the optional pieces GTK4 can
+    build without (`gobject-introspection`, `iso-codes` — already blocked
+    above on `subproject().get_variable()` of a non-decay-imported project,
+    `vulkan`, `wayland-client`/`wayland-protocols`/`wayland-egl`,
+    `cloudproviders`, `sysprof`, `tracker-sparql`, `accesskit`) — not needed
+    for a first GTK4 `buck2 build`, since every one of those is
+    `required: false` in gtk's own `meson.build`.
 
 - **dependency('threads') is a builtin.** `fn_dependency` special-cases it
   (`External::Threads`): always found, never a `threads[true/false]` knob, and

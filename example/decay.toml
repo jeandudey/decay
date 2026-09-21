@@ -333,3 +333,6 @@ commands."meson-scripts/test-ro-eh-frame.py c -fpic -fexceptions -fno-lto" = { r
 [[project]]
 wrap = "fribidi"
 options = { bin = false, tests = false, docs = false }
+
+[[project]]
+wrap = "graphite2"
