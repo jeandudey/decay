@@ -1693,7 +1693,8 @@ impl<'a, S: Solver> Interp<'a, S> {
         // `lib:` key: a project that calls both (libxml2 does) gets one
         // target and one settled per-system answer, no knob.
         if &*name == "dl" && self.oracle.dependency_found(&name).is_none() {
-            let value = self.resolve_system_library(&name, required)?;
+            let disabled = self.feature_disabled(args)?;
+            let value = self.resolve_system_library(&name, required, disabled)?;
             return Ok(self.pure(value));
         }
 
@@ -1759,10 +1760,16 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// C-runtime library is a fact about the target, so ask the oracle for a
     /// settled per-system answer first and only fall back to an open "found"
     /// knob when it has nothing.
+    /// `disabled` is [`Self::feature_disabled`]'s answer for the same call's
+    /// `required:` argument — shared with `dependency()`'s own handling
+    /// (`fn_dependency`) so `cc.find_library(x, required: get_option(feat))`
+    /// gets the same "an explicitly disabled feature is unconditionally
+    /// not-found, not just an unconfirmed system library" treatment.
     pub(crate) fn resolve_system_library(
         &mut self,
         libname: &str,
         required: Pc,
+        disabled: Pc,
     ) -> eyre::Result<Value> {
         let key = format!("lib:{libname}");
         let target = self.external(
@@ -1772,7 +1779,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 name: libname.to_string(),
             },
         );
-        let found = match self.oracle.system_library(libname) {
+        let mut found = match self.oracle.system_library(libname) {
             Some(answer) => {
                 let desc = format!("`{libname}` is available");
                 let found = self.resolve_probe(Some(answer), &key, desc)?;
@@ -1784,6 +1791,10 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
             None => self.dependency_found(&key, libname, required)?,
         };
+        if !disabled.is_false() {
+            let not_disabled = self.logic.not(disabled);
+            found = self.logic.and(found, not_disabled);
+        }
         Ok(self.dep_obj(Dep {
             name: libname.to_string(),
             found,

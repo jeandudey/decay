@@ -303,9 +303,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     misses (same shape as the glibc `abilists` read).
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay — currently exercises 8 of wrapdb's ~250+ projects in
+  smoke test for decay — currently exercises 9 of wrapdb's ~250+ projects in
   `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`,
-  `graphite2`, `pixman`, `cairo`).
+  `graphite2`, `pixman`, `cairo`, `freetype2`).
 
   **GTK4 end-to-end — what's still missing.** Checked against gtk's own
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
@@ -313,13 +313,18 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `gobject`/`gio`/`gmodule` (as `glib`), `epoxy`, `graphene`, `xorgproto`,
   `libxext`, `fribidi`, `graphite2`, `pixman`, `cairo` (core: image/tee
   surfaces + `cairo-gobject`, not yet the `xlib`/`xcb`/`png`/`freetype`/
-  `fontconfig` backends). Still needed, in roughly the order a next attempt
-  should reach for them:
-  - `fontconfig`, `freetype2` — needed to turn `cairo`'s `xlib`/`freetype`/
-    `fontconfig` options on (cairo's X11 surface — `cairo-xlib-screen.c` —
-    needs fontconfig unconditionally, not just its own `fontconfig`
-    cairo-font-backend option) and by pango's FreeType backend.
-    `fontconfig` is already noted above as blocked on `run_command` support.
+  `fontconfig` backends), `freetype2` (zlib support only — `brotli`/`bzip2`/
+  `harfbuzz`/`png` off, none of those imported yet). Still needed, in
+  roughly the order a next attempt should reach for them:
+  - `fontconfig` — needed to turn `cairo`'s `xlib`/`freetype`/`fontconfig`
+    options on (cairo's X11 surface — `cairo-xlib-screen.c` — needs
+    fontconfig unconditionally, not just its own `fontconfig`
+    cairo-font-backend option) and by pango's FreeType backend. Already
+    noted above as blocked on `run_command` support — two of its three
+    `run_command()` calls are a deterministic `gperf -L ANSI-C ...`
+    toolchain probe (answerable with a canned `commands` entry, the
+    libffi/freetype2 pattern) and a doc-only script (skippable via the
+    `docs` option); untried since freetype2 was the priority.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via

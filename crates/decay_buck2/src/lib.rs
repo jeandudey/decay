@@ -532,6 +532,11 @@ fn classify(
     origin: &mut BTreeSet<String>,
     wrapdb: &mut BTreeSet<String>,
 ) {
+    // An empty path names the checkout root itself (see `source_address`) --
+    // the fetch target's own default output, not a `sub_targets` entry.
+    if path.as_os_str().is_empty() {
+        return;
+    }
     let is_overlay = graph
         .project
         .wrapdb_overlay
@@ -1658,7 +1663,18 @@ fn source_address(graph: &Graph, path: &Path) -> String {
             path.display()
         );
     }
-    format!("{}[{}]", repo_target(graph), path.display())
+    let target = repo_target(graph);
+    // An empty path names the checkout root itself -- meson's own
+    // `current_source_dir()`/`project_source_root()` used from a project's
+    // top-level `meson.build` (freetype2's reference-docs generator takes
+    // its whole source tree as `--input-dir=`). The fetch target's own
+    // (bracket-less) output already *is* that root, and buck2 rejects an
+    // empty sub_target name (`:label[]`) outright.
+    if path.as_os_str().is_empty() {
+        target
+    } else {
+        format!("{target}[{}]", path.display())
+    }
 }
 
 /// A file as it is named on a command line.

@@ -121,7 +121,9 @@ jobs:
             //third-party/meson/pixman:pixman-dep \
             //third-party/meson/cairo:cairo-2 \
             //third-party/meson/cairo:cairo-dep \
-            //third-party/meson/cairo:cairo-gobject
+            //third-party/meson/cairo:cairo-gobject \
+            //third-party/meson/freetype2:freetype \
+            //third-party/meson/freetype2:freetype2-dep
 
       - name: Stop buck2 daemon
         if: always()

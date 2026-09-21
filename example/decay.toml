@@ -338,6 +338,22 @@ options = { bin = false, tests = false, docs = false }
 wrap = "graphite2"
 
 [[project]]
+wrap = "freetype2"
+commands."builds/meson/extract_freetype_version.py include/freetype/freetype.h" = { stdout = "2.14.3" }
+commands."python3 builds/meson/extract_libtool_version.py --soversion builds/unix/configure.raw" = { stdout = "6.20.6" }
+commands."python3 builds/meson/extract_libtool_version.py builds/unix/configure.raw" = { stdout = "26.6.20" }
+commands."python3 builds/meson/parse_modules_cfg.py --format=main-modules modules.cfg" = { stdout = "truetype\ntype1\ncff\ncid\npfr\ntype42\nwinfonts\npcf\nbdf\nsfnt\nautofit\npshinter\nsmooth\nraster\nsvg\nsdf\n" }
+commands."python3 builds/meson/parse_modules_cfg.py --format=aux-modules modules.cfg" = { stdout = "cache\ngzip\nlzw\nbzip2\npsaux\npsnames\n" }
+commands."python3 builds/meson/parse_modules_cfg.py --format=base-extensions-list modules.cfg" = { stdout = "ftbbox.c\nftbdf.c\nftbitmap.c\nftcid.c\nftfstype.c\nftgasp.c\nftglyph.c\nftgxval.c\nftmm.c\nftotval.c\nftpatent.c\nftpfr.c\nftstroke.c\nftsynth.c\nfttype1.c\nftwinfnt.c\n" }
+# brotli/bzip2/harfbuzz/png are still-unimported dependencies; zlib is
+# already imported, so route through the plain `dependency('zlib')` path
+# ("system") rather than the `subproject('zlib').get_variable('zlib_dep')`
+# fallback path ("external"), which needs a Dep-object subproject variable
+# decay cannot answer yet.
+options = { brotli = "disabled", bzip2 = "disabled", harfbuzz = "disabled", mmap = "auto", png = "disabled", tests = "disabled", zlib = "system", error_strings = true }
+depends = ["zlib"]
+
+[[project]]
 wrap = "pixman"
 
 [[project]]

@@ -4,6 +4,14 @@
 # chosen. Set them on a platform to configure this project. Options
 # meson provides to every project live alongside, one directory up.
 
+# build option `option:oss_fuzz`: Indicate oss-fuzz build environment
+constraint(
+    name = "oss_fuzz",
+    values = ["enabled", "disabled", "auto"],
+    default = "disabled",
+    visibility = ["PUBLIC"],
+)
+
 # build option `option:libmount`: build with libmount support
 constraint(
     name = "libmount",

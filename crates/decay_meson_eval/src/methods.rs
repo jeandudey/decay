@@ -1072,7 +1072,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 // `required:` accepts a bool or a feature option, same as
                 // `dependency()` / `find_program()`.
                 let required = self.required(args)?;
-                let value = self.resolve_system_library(&libname, required)?;
+                let disabled = self.feature_disabled(args)?;
+                let value = self.resolve_system_library(&libname, required, disabled)?;
                 Ok(self.pure(value))
             }
 
@@ -1431,15 +1432,24 @@ impl<'a, S: Solver> Interp<'a, S> {
         match name {
             "format" => self.format_positional(s, &args.pos),
             "split" => {
-                let pat = match args.at(0) {
-                    Some(v) => self.one_string(v)?.to_string(),
-                    None => " ".to_owned(),
-                };
                 let pc = self.pc;
-                let items = s
-                    .split(pat.as_str())
-                    .map(|part| Variant::new(pc, Value::str(part)))
-                    .collect();
+                // No separator: Python's (and meson's) `str.split()` splits
+                // on any run of whitespace, dropping empty leading/trailing
+                // pieces -- not a literal single space. A `run_command(...)
+                // .stdout().strip().split()` on multi-line output (freetype2's
+                // module list) needs this to tokenize at all.
+                let items: Vec<_> = match args.at(0) {
+                    Some(v) => {
+                        let pat = self.one_string(v)?.to_string();
+                        s.split(pat.as_str())
+                            .map(|part| Variant::new(pc, Value::str(part)))
+                            .collect()
+                    }
+                    None => s
+                        .split_whitespace()
+                        .map(|part| Variant::new(pc, Value::str(part)))
+                        .collect(),
+                };
                 Ok(self.pure(Value::list(items)))
             }
             "splitlines" => {

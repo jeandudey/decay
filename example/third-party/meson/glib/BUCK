@@ -3014,14 +3014,18 @@ _cflags_compiler_cpp_compiler3 = select({
     "//third-party/meson/constraints:cpp_compiler[clang]": [],
     "//third-party/meson/constraints:cpp_compiler[msvc]": [],
 })
-_deps_FuzzingEngine = [
+_deps_FuzzingEngine_oss_fuzz = [
     ":glib-dep-8",
     ":glib-dep-10",
     ":glib-dep-3",
     ":glib-dep-5",
     ":glib-dep-2",
 ] + select({
-    "//third-party/meson/constraints:FuzzingEngine[true]": [":FuzzingEngine"],
+    "//third-party/meson/constraints:FuzzingEngine[true]": select({
+        "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [":FuzzingEngine"],
+        "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [],
+        "//third-party/meson/glib/constraints:oss_fuzz[auto]": [":FuzzingEngine"],
+    }),
     "//third-party/meson/constraints:FuzzingEngine[false]": [],
 })
 
@@ -13485,420 +13489,540 @@ cxx_library(
 cxx_binary(
     name = "fuzz_bookmark",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_bookmark.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_canonicalize_filename",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_canonicalize_filename.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_data_input_stream_read_line",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_data_input_stream_read_line.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_data_input_stream_read_line_utf8",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_data_input_stream_read_line_utf8.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_data_input_stream_read_upto",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_data_input_stream_read_upto.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_date_parse",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_date_parse.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_date_time_new_from_iso8601",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_date_time_new_from_iso8601.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_dbus_message",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_dbus_message.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_filename_from_uri",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_filename_from_uri.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_filename_to_uri",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_filename_to_uri.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_get_locale_variants",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_get_locale_variants.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_inet_address_mask_new_from_string",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_inet_address_mask_new_from_string.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_inet_address_new_from_string",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_inet_address_new_from_string.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_inet_socket_address_new_from_string",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_inet_socket_address_new_from_string.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_key",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_key.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_network_address_parse",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_network_address_parse.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_network_address_parse_uri",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_network_address_parse_uri.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_paths",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_paths.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_resolver",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_resolver.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_special_dirs",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_special_dirs.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_string",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_string.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_uri_escape",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_uri_escape.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_uri_parse",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_uri_parse.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_uri_parse_params",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_uri_parse_params.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_utf8_normalize",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_utf8_normalize.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_utf8_validate",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_utf8_validate.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_uuid_string_is_valid",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_uuid_string_is_valid.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_variant_binary",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_variant_binary.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_variant_binary_byteswap",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_variant_binary_byteswap.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
 cxx_binary(
     name = "fuzz_variant_text",
     srcs = select({
-        "//third-party/meson/constraints:FuzzingEngine[true]": [],
+        "//third-party/meson/constraints:FuzzingEngine[true]": select({
+            "//third-party/meson/glib/constraints:oss_fuzz[enabled]": [],
+            "//third-party/meson/glib/constraints:oss_fuzz[disabled]": [":glib.git[fuzzing/driver.c]"],
+            "//third-party/meson/glib/constraints:oss_fuzz[auto]": [],
+        }),
         "//third-party/meson/constraints:FuzzingEngine[false]": [":glib.git[fuzzing/driver.c]"],
     }) + [":glib.git[fuzzing/fuzz_variant_text.c]"],
     headers = _headers11,
     header_namespace = "",
     compiler_flags = _cflags_compiler_cpp_compiler3,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_FuzzingEngine,
+    deps = _deps_FuzzingEngine_oss_fuzz,
     visibility = ["PUBLIC"],
 )
 
