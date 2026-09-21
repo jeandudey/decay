@@ -2000,7 +2000,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         let mut dirs = Vec::new();
         for arg in &args.pos {
             for variant in self.strings(arg)?.into_variants() {
-                dirs.push(self.resolve(&variant.value));
+                dirs.push((variant.cond, self.resolve(&variant.value)));
             }
         }
         Ok(self.pure(Value::Obj(Obj::IncludeDirs(Rc::new(dirs)))))

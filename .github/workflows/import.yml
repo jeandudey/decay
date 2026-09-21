@@ -90,10 +90,10 @@ jobs:
 
       # Specific targets AGENTS.md documents as green on //platforms:linux --
       # not package wildcards. `//third-party/meson/glib/...` would also pull
-      # girepository-2.0 (needs libffi wired, not done) and glib's ~30 fuzz_*
-      # harnesses (which #include unstaged .c files); neither is claimed to
-      # build. Transitive deps (gvdb, zlib, libxext, xorgproto, gobject-2.0,
-      # ...) come along automatically.
+      # girepository-2.0 (untried) and glib's ~30 fuzz_* harnesses (which
+      # #include unstaged .c files); neither is claimed to build. Transitive
+      # deps (gvdb, zlib, libxext, xorgproto, gobject-2.0, libffi, ...) come
+      # along automatically.
       - name: buck2 build
         run: |
           cd example && buck2 build \
@@ -112,7 +112,8 @@ jobs:
             //third-party/meson/pcre2:pcre2-8 \
             //third-party/meson/pcre2:pcre2-16 \
             //third-party/meson/pcre2:pcre2-32 \
-            //third-party/meson/pcre2:pcre2-posix
+            //third-party/meson/pcre2:pcre2-posix \
+            //third-party/meson/libffi:ffi
 
       - name: Stop buck2 daemon
         if: always()

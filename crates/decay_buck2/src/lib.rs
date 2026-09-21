@@ -599,7 +599,13 @@ fn referenced_files(graph: &Graph) -> (Vec<String>, Vec<String>) {
         // sub-target projection. Always a real checked-in directory, never a
         // wrap overlay's own concern, so this always goes to `origin`.
         if target.attrs.raw_include_roots {
-            for root in include_roots(&target.attrs.include_dirs, &target.package) {
+            for root in target
+                .attrs
+                .include_dirs
+                .iter()
+                .map(|e| e.value.clone())
+                .chain(std::iter::once(target.package.clone()))
+            {
                 if !root.as_os_str().is_empty() {
                     origin.insert(root.display().to_string());
                 }
@@ -836,7 +842,7 @@ fn render_target<S: Solver>(
             // checked in, so there is no directory in this package to point at.
             // The header maps below carry the same information, keyed by the
             // path an `#include` actually uses.
-            let mut roots = include_roots(&a.include_dirs, &target.package);
+            let mut roots = include_roots(logic, &a.include_dirs, &target.package);
             // meson puts the build-dir of every generated file a target
             // compiles on that target's include path. So a generated `.c`
             // that `#include`s its generated `.h` sibling by bare name
@@ -847,8 +853,8 @@ fn render_target<S: Solver>(
             for entry in a.srcs.iter().chain(a.headers.iter()) {
                 if let Source::Generated(id) = &entry.value {
                     let dir = graph.target(*id).package.clone();
-                    if !dir.as_os_str().is_empty() && !roots.contains(&dir) {
-                        roots.push(dir);
+                    if !dir.as_os_str().is_empty() && !roots.iter().any(|(_, p)| *p == dir) {
+                        roots.push((entry.cond, dir));
                     }
                 }
             }
@@ -879,9 +885,29 @@ fn render_target<S: Solver>(
             // through that tree escapes it. Generated headers have no file in
             // the tree and stay.
             let own_headers: Variational<Source> = if a.raw_include_roots {
+                // The broadcast above is otherwise private to this project —
+                // fine for a config header nothing outside it ever
+                // `#include`s, wrong for one that *is* the point of a
+                // `declare_dependency(include_directories:)` a consumer
+                // depends on (libffi's own `ffi_dep` exports `../include`,
+                // where its generated `ffi.h` lands; a consumer's `#include
+                // <ffi.h>` otherwise falls through to a system libffi's,
+                // paired against this project's own checked-out
+                // `ffitarget.h` via the exported `-I` roots below — two
+                // different libffi's headers that don't agree). Only a
+                // broadcast header whose package is one of this target's own
+                // declared roots is promoted — the same reachability a real
+                // meson build-dir mirror would give a consumer through that
+                // `include_directories()`, not every config header in the
+                // project.
+                let exported_private = private.iter().filter(|e| {
+                    matches!(&e.value, Source::Generated(id)
+                        if roots.iter().any(|(_, p)| *p == graph.target(*id).package))
+                });
                 a.headers
                     .iter()
                     .filter(|e| matches!(e.value, Source::Generated(_)))
+                    .chain(exported_private)
                     .cloned()
                     .collect()
             } else {
@@ -892,15 +918,12 @@ fn render_target<S: Solver>(
             // the namespace buck2 would otherwise prepend is cleared.
             if library {
                 if !own_headers.is_empty() {
+                    let aliases = header_aliases(logic, graph, &own_headers, &roots);
                     attrs.push((
                         "exported_headers",
-                        selects.render_dict(
-                            logic,
-                            &header_aliases(graph, &own_headers, &roots),
-                            cond,
-                            1,
-                            |(key, s)| (key.clone(), source(graph, s)),
-                        ),
+                        selects.render_dict(logic, &aliases, cond, 1, |(key, s)| {
+                            (key.clone(), source(graph, s))
+                        }),
                     ));
                 }
             } else {
@@ -910,7 +933,7 @@ fn render_target<S: Solver>(
             // A source's own-directory `#include "x"` siblings are private and
             // keyed by that exact spelling — the basename of the file — rather
             // than by an include-root-relative path.
-            let mut private_aliased = header_aliases(graph, &private, &roots);
+            let mut private_aliased = header_aliases(logic, graph, &private, &roots);
             for entry in a.sibling_headers.iter() {
                 if let Some(name) = logical_path(graph, &entry.value)
                     .file_name()
@@ -943,24 +966,32 @@ fn render_target<S: Solver>(
             // ponytail: also names the repo root when `.` is an include root —
             // broader than meson's own export; harmless, nothing relies on it.
             if a.raw_include_roots {
-                let mut flags: Vec<String> = include_roots(&a.include_dirs, &target.package)
-                    .iter()
-                    .map(|r| {
-                        let loc = if r.as_os_str().is_empty() {
-                            format!("$(location :{})", repo_target(graph))
-                        } else {
-                            format!("$(location :{}[{}])", repo_target(graph), r.display())
-                        };
-                        format!("\"-I{loc}\"")
-                    })
-                    .collect();
-                flags.dedup();
                 let key = if matches!(target.kind, Kind::Executable) {
                     "preprocessor_flags"
                 } else {
                     "exported_preprocessor_flags"
                 };
-                attrs.push((key, format!("[{}]", flags.join(", "))));
+                // Config-dependent (a per-`cpu` `targetdir`, libffi's
+                // `src/<arch>`): a plain flat list would put every arch's
+                // root on the line at once, and whichever the compiler
+                // resolves `#include <x>` against first wins regardless of
+                // the one actually being built — `render_list` renders each
+                // root's own condition instead, so only the selected
+                // configuration's `-I` shows up.
+                let root_list: Variational<PathBuf> = roots
+                    .iter()
+                    .cloned()
+                    .map(|(c, p)| Variant::new(c, p))
+                    .collect();
+                let flags = selects.render_list(logic, &root_list, cond, 1, |r| {
+                    let loc = if r.as_os_str().is_empty() {
+                        format!("$(location :{})", repo_target(graph))
+                    } else {
+                        format!("$(location :{}[{}])", repo_target(graph), r.display())
+                    };
+                    format!("\"-I{loc}\"")
+                });
+                attrs.push((key, flags));
             }
 
             if !a.compile_args.is_empty() {
@@ -1419,7 +1450,8 @@ fn describe_external(external: &External) -> String {
     }
 }
 
-/// The directories an `#include` is resolved against.
+/// The directories an `#include` is resolved against, each with the
+/// configuration it is actually an active root under.
 ///
 /// Tried in the order `include_directories()` actually lists them, the same
 /// order the compiler would see them as `-I` flags: a header reachable
@@ -1430,15 +1462,29 @@ fn describe_external(external: &External) -> String {
 /// needed, so a generated header sitting right beside the sources that use
 /// it is still found — but only once every declared root has had a chance,
 /// since an explicit root always outranks that implicit fallback.
-fn include_roots(dirs: &Variational<PathBuf>, own_dir: &Path) -> Vec<PathBuf> {
-    let mut out: Vec<PathBuf> = Vec::new();
+///
+/// A root's own condition matters as much as its order: libffi's `targetdir`
+/// (`src/<arch>`, one per `cpu`) is a different directory in every
+/// configuration, so treating every arch's root as equally, unconditionally
+/// active — as a plain `Vec<PathBuf>` does — is what let an x86 `.S` file
+/// compile against `riscv/ffitarget.h`, whichever arch's root happened to be
+/// declared first. Kept per-root rather than folded away here so a caller can
+/// intersect a header's own condition with the specific root that resolves
+/// it, not just the header's raw reachability.
+fn include_roots<S: Solver>(
+    logic: &mut Logic<S>,
+    dirs: &Variational<PathBuf>,
+    own_dir: &Path,
+) -> Vec<(Pc, PathBuf)> {
+    let mut out: Vec<(Pc, PathBuf)> = Vec::new();
     for entry in dirs {
-        if !out.contains(&entry.value) {
-            out.push(entry.value.clone());
+        match out.iter_mut().find(|(_, p)| *p == entry.value) {
+            Some((cond, _)) => *cond = logic.or(*cond, entry.cond),
+            None => out.push((entry.cond, entry.value.clone())),
         }
     }
-    if !out.iter().any(|p| p == own_dir) {
-        out.push(own_dir.to_path_buf());
+    if !out.iter().any(|(_, p)| p == own_dir) {
+        out.push((Pc::TRUE, own_dir.to_path_buf()));
     }
     out
 }
@@ -1473,34 +1519,48 @@ fn logical_path(graph: &Graph, source: &Source) -> PathBuf {
 /// true of a real, checked-in header exactly as much as a generated one. One
 /// canonical key would satisfy only one of those, so a header is registered
 /// under every spelling its target's roots produce.
-fn include_paths(graph: &Graph, source: &Source, roots: &[PathBuf]) -> Vec<String> {
+/// Each spelling a root in `roots` gives `source`, paired with that root's
+/// own condition — a bare `ffitarget.h` reached only via `src/riscv` is only
+/// really spelled that way on `cpu[riscv]`, not on every arch whose own
+/// `src/<arch>` also happens to hold a same-named file.
+fn include_paths(graph: &Graph, source: &Source, roots: &[(Pc, PathBuf)]) -> Vec<(Pc, String)> {
     let path = logical_path(graph, source);
-    let mut out: Vec<String> = Vec::new();
-    for root in roots {
+    let mut out: Vec<(Pc, String)> = Vec::new();
+    for (cond, root) in roots {
         if let Ok(rest) = path.strip_prefix(root) {
             let key = rest.display().to_string();
-            if !out.contains(&key) {
-                out.push(key);
+            if !out.iter().any(|(_, k)| *k == key) {
+                out.push((*cond, key));
             }
         }
     }
     if out.is_empty() {
-        out.push(path.display().to_string());
+        out.push((Pc::TRUE, path.display().to_string()));
     }
     out
 }
 
 /// Expand each header into one dict entry per spelling [`include_paths`]
 /// finds for it, all pointing at the same underlying source.
-fn header_aliases(
+///
+/// An alias's condition is the header's own reachability *and* the specific
+/// root that resolves it, not the header's reachability alone: a file that
+/// exists in the checkout unconditionally is still only spelled the bare way
+/// a particular root gives it while that root is the active one.
+fn header_aliases<S: Solver>(
+    logic: &mut Logic<S>,
     graph: &Graph,
     sources: &Variational<Source>,
-    roots: &[PathBuf],
+    roots: &[(Pc, PathBuf)],
 ) -> Variational<(String, Source)> {
     let mut out = Variational::empty();
     for entry in sources {
-        for key in include_paths(graph, &entry.value, roots) {
-            out.push(Variant::new(entry.cond, (key, entry.value.clone())));
+        for (root_cond, key) in include_paths(graph, &entry.value, roots) {
+            let cond = logic.and(entry.cond, root_cond);
+            if cond.is_false() {
+                continue;
+            }
+            out.push(Variant::new(cond, (key, entry.value.clone())));
         }
     }
     out

@@ -855,3 +855,11 @@ constraint(
     default = "true",
     visibility = ["PUBLIC"],
 )
+
+# toolchain probe `probe:c:symbols_have_underscore_prefix:expr`: `expr` is available to the c compiler
+constraint(
+    name = "symbols_have_underscore_prefix_expr",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)

@@ -496,8 +496,16 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
 
             (Obj::File(path), "full_path") => {
-                let v = path.to_string();
-                Ok(self.pure(Value::from(v)))
+                // Unlike a generated target's `.full_path()` above, a plain
+                // checked-in file is the thing `link_args:`/`compile_args:`
+                // capture as a `Flag::File` reference (libffi's
+                // `cc.preprocess(libffi_map_in, ...)[0].full_path()`, glued
+                // onto a `-Wl,--version-script=` prefix via `+`) — degrading
+                // it to a bare string here would lose that tracking and emit
+                // a literal filename the linker can't find. meson's own
+                // `.full_path()` is a real absolute path decay cannot bake
+                // in, so keep the file reference live instead.
+                Ok(self.pure(Value::Obj(Obj::File(path.clone()))))
             }
 
             // `environment()` shapes how tests and dev tooling run, not what

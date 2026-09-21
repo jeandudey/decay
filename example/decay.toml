@@ -111,6 +111,7 @@ egl = "//third-party/system:EGL"
 "ssize_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "SSIZE_T" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "wchar_t" = 4
+"long double" = { "prelude//cpu/constraints:cpu[x86_64]" = 16, "prelude//cpu/constraints:cpu[arm64]" = 16, "prelude//cpu/constraints:cpu[arm32]" = 8, "prelude//cpu/constraints:cpu[x86_32]" = 12 }
 
 [alignment]
 "char" = 1
@@ -300,21 +301,10 @@ options = { grep = false, test = false, jit = "auto", jit_sealloc = "auto" }
 [[project]]
 wrap = "libxext"
 
-# Imports and its `patch_directory` overlay's `fficonfig.h.meson` now
-# resolves (a `libffi.wrapdb.git` git_fetch, pinned at the wrap's own
-# `wrapdb_rev`) — the overlay-fetch gap this was blocked on is fixed. Stays
-# disabled: past that, `buck2 build` hits a different, unrelated problem —
-# `src/{arch}/ffitarget.h` exists once per architecture (30 of them) and
-# `ffi.h` includes it bare (`#include <ffitarget.h>`), relying on meson
-# scoping `-I` to the one selected `targetdir`; decay's headers/
-# exported_headers dict is basename-keyed with no per-configuration
-# selection, so only one `ffitarget.h` wins project-wide and every other
-# arch's sources fail to compile against it. New AGENTS.md entry:
-# "ffitarget.h" per-arch header collision.
-# [[project]]
-# wrap = "libffi"
-# options = { doc = false, tests = false }
-# commands."meson-scripts/extract-libtool-version.py libtool-version" = "13:0:5\n"
-# commands."meson-scripts/test-unwind-section.py c" = { returncode = 0 }
-# commands."meson-scripts/test-cc-supports-hidden-visibility.py c" = { returncode = 0 }
-# commands."meson-scripts/test-ro-eh-frame.py c -fpic -fexceptions -fno-lto" = { returncode = 1 }
+[[project]]
+wrap = "libffi"
+options = { doc = false, tests = false }
+commands."meson-scripts/extract-libtool-version.py libtool-version" = "13:0:5\n"
+commands."meson-scripts/test-unwind-section.py c" = { returncode = 0 }
+commands."meson-scripts/test-cc-supports-hidden-visibility.py c" = { returncode = 0 }
+commands."meson-scripts/test-ro-eh-frame.py c -fpic -fexceptions -fno-lto" = { returncode = 1 }

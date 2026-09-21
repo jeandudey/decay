@@ -3078,14 +3078,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("libffi") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.libffi = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "libffi",
-    visibility = ["PUBLIC"],
-)
-
 # meson: find_library("atomic")
 cxx_library(
     name = "atomic",
@@ -7677,7 +7669,7 @@ cxx_library(
     }),
     linker_flags = _ldflags_compiler,
     deps = [
-        ":libffi",
+        "//third-party/meson/libffi:ffi",
         ":glib-dep-3",
     ],
     preferred_linkage = "shared",
@@ -12891,7 +12883,7 @@ cxx_library(
     }),
     deps = [
         ":glib-dep-12",
-        ":libffi",
+        "//third-party/meson/libffi:ffi",
     ],
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -12905,7 +12897,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":girepository-internals",
-        ":libffi",
+        "//third-party/meson/libffi:ffi",
     ],
     visibility = ["PUBLIC"],
 )

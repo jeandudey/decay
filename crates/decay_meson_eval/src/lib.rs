@@ -1159,14 +1159,15 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// that only worked because decay evaluated it from that checkout.
     /// See [`Flag`]'s own doc comment.
     ///
-    /// The embedded path is always the flag's last comma- or space-delimited
-    /// word (`-Wl,--version-script,./lib.sym`, `-include`+`./foo.h` as two
-    /// separate list entries): whatever text precedes the last `,`/` ` is
+    /// The embedded path is always the flag's last comma-, space-, or
+    /// `=`-delimited word (`-Wl,--version-script,./lib.sym`, `-include`+
+    /// `./foo.h` as two separate list entries, libffi's `-Wl,--version-
+    /// script=' + path`): whatever text precedes the last `,`/` `/`=` is
     /// kept as `Flag::File`'s literal prefix, and only that trailing word is
     /// checked against the project. A flag with no match — most of them —
     /// comes back unchanged.
     pub(crate) fn capture_flag(&self, flag: &str) -> Flag {
-        let (prefix, candidate) = match flag.rfind([',', ' ']) {
+        let (prefix, candidate) = match flag.rfind([',', ' ', '=']) {
             Some(i) => flag.split_at(i + 1),
             None => ("", flag),
         };
@@ -1335,8 +1336,12 @@ impl<'a, S: Solver> Interp<'a, S> {
         for variant in self.flat(v) {
             match &variant.value {
                 Value::Obj(Obj::IncludeDirs(dirs)) => {
-                    for dir in dirs.iter() {
-                        out.push(Variant::new(variant.cond, PathBuf::from(dir)));
+                    for (dir_cond, dir) in dirs.iter() {
+                        let cond = self.logic.and(variant.cond, *dir_cond);
+                        if cond.is_false() {
+                            continue;
+                        }
+                        out.push(Variant::new(cond, PathBuf::from(dir)));
                     }
                 }
                 Value::Str(s) => {

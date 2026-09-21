@@ -145,14 +145,29 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   five glib libraries) still builds unchanged, `referenced_files`' split
   landing all of their files in `origin_files` exactly as before.
 
-  `libffi` itself still doesn't fully `buck2 build` — a new, unrelated
-  problem past this one, "`ffitarget.h` per-arch header collision" below —
-  so it stays commented out in `example/decay.toml` (`run_command()`/
-  `sizeof` answers, `doc`/`tests` pinned off, ready to re-enable once that
-  is fixed too). Leaving it enabled would still break `gio-2.0`: glib's own
-  `dependency('libffi')` resolves cross-project to the real `libffi` target
-  the moment the project exists at all, and `Packages` has no notion of a
-  target that exists but fails to build.
+  `libffi` now `buck2 build`s in full, and is enabled in `example/decay.toml`.
+  Getting there past the overlay fix above took two more fixes, now landed:
+  libffi ships one `src/<arch>/ffitarget.h` per architecture, bare-included
+  by `ffi.h.in`, and decay's flat basename-keyed header dict could only ever
+  keep one winner — `include_roots`/`header_aliases`/the raw `-I` flags
+  (`decay_buck2/src/lib.rs`) now carry a presence condition per root so each
+  arch's copy is only reachable under that arch's own condition. That
+  surfaced the `gio-2.0` breakage this paragraph used to warn about: `ffi.h`
+  is itself a generated header, and `is_config_header`'s broadcast
+  (`decay_buck2::render_target`) keeps every generated header private to its
+  own project, so glib's `#include <ffi.h>` kept resolving to the *system*
+  header while still inheriting decay's own (now correctly per-arch)
+  `ffitarget.h` — two different libffi's headers that don't agree. Fixed by
+  promoting a broadcast config header into a `raw_include_roots` library's
+  `exported_headers` when its package matches one of that library's own
+  declared `include_directories()` roots, the same reachability
+  `declare_dependency(include_directories:)` gives a real meson consumer.
+  Verified: every previously-green target plus `libffi:ffi` itself
+  `buck2 build` together on `//platforms:linux` (now in
+  `.github/workflows/import.yml`'s target list), and — a bonus from libffi
+  no longer being an external stub — `glib-compile-resources` and `gdbus`,
+  both broken at runtime by an unstaged system `libffi.so`, now work too
+  (see the `gio/tests` and libglvnd entries below).
 
   `decay.lock` also pins the wrapdb commit a `patch_directory` overlay came
   from (`WrapFile::wrapdb_rev`, `LockedWrap::wrapdb_rev`), not just the
@@ -479,13 +494,21 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   configured-target cycle at all — `test_resources2.h`'s genrule action now
   actually runs `glib-compile-resources`.
 
-  What surfaced past the cycle, still open: running `glib-compile-resources`
-  fails at runtime — `undefined symbol: ffi_type_void` in
-  `gobject-2.0.so` — the same "external `dependency()` `.so` like `libffi` is
-  not staged into the `$ORIGIN` runtime symlink tree" gap already noted below
-  under "libglvnd build status" (there it stops `gio`'s `gdbus` from
-  starting; here it stops a build-time codegen tool from running at all).
-  `tests` stays `false` in `example/decay.toml` until that's fixed.
+  What surfaced past the cycle — **also fixed**, as a side effect of wiring
+  `libffi` for real (see the "Support all of meson wrapdb" entry above):
+  running `glib-compile-resources` used to fail at runtime
+  with `undefined symbol: ffi_type_void` in `gobject-2.0.so`, the same
+  "external `dependency()` `.so` like `libffi` is not staged into the
+  `$ORIGIN` runtime symlink tree" gap noted below under "libglvnd build
+  status" (there it stopped `gio`'s `gdbus` from starting; here it stopped a
+  build-time codegen tool from running at all). Both are gone now that
+  `libffi` is a real decay-built target instead of an external stub:
+  verified `buck2 build //third-party/meson/glib:test_resources2.h` (the
+  genrule that runs `glib-compile-resources`) and `buck2 run
+  //third-party/meson/glib:gdbus -- --help` both succeed with `tests`
+  flipped on. `tests` still stays `false` in `example/decay.toml` — turning
+  it on for real means verifying all ~367 of glib's test targets, not just
+  spot-checking these two, and that's its own follow-up.
 
 - **`declare_dependency(sources: [...])` with compilable sources — done.**
   `fn_declare_dependency` (`decay_meson_eval/src/builtins.rs`) splits
@@ -668,10 +691,11 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `DT_RPATH` is transitive, which is what the one-flat-tree design needs.
   This is a toolchain property, not something decay emits per target — a
   hand-written buck2 project on `system_cxx_toolchain` + GNU ld hits the
-  same wall. (An unrelated pre-existing gap it exposes: an *external*
-  `dependency()` `.so` like `libffi` is not staged into the tree, so glib's
-  `gdbus` still can't start — libglvnd's chain is entirely decay-built and
-  self-contained.)
+  same wall. (An unrelated pre-existing gap it exposed — libglvnd's chain is
+  entirely decay-built and self-contained, but an *external* `dependency()`
+  `.so` like `libffi` used to not be staged into the tree, so glib's `gdbus`
+  couldn't start. Fixed as a side effect of wiring `libffi` for real — see
+  the "Support all of meson wrapdb" entry below; `gdbus` now runs.)
 
 - **`run_command()` is answered deterministically or refused.** Three ways,
   in priority order (`ConfigOracle::run_command`, `src/run_command.rs`):
@@ -920,12 +944,8 @@ constraint(
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
   smoke test for decay, we should be able to import all of the wrapdb
-  projects. Currently exercises 3 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `pcre2`, `libxext`); a fourth (`libffi`) now
-  *evaluates and gets past its own overlay file* (see "Wrap support" above)
-  but stays commented out — "`ffitarget.h` per-arch header collision" below
-  — since enabling it breaks `gio-2.0`, a green CI target, through no fault
-  of libffi's own build.
+  projects. Currently exercises 4 of wrapdb's ~250+ projects in
+  `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`).
 
   Getting `libffi` to evaluate took two real fixes in the evaluator, both
   general and kept regardless of anything libffi-specific: `cc.preprocess()`
@@ -939,36 +959,21 @@ constraint(
   commands), so `cc.has_multi_link_arguments(['-shared',
   '-Wl,--version-script=' + meson.project_source_root() /
   'libffi.map.in'])` read as "expected a string, found a file". The
-  commented-out `[[project]] wrap = "libffi"` entry in `example/decay.toml`
-  carries what evaluating it needs: three `run_command()` toolchain probes
+  `[[project]] wrap = "libffi"` entry in `example/decay.toml` carries what
+  evaluating it needs: three `run_command()` toolchain probes
   (`test-unwind-section.py`/`test-cc-supports-hidden-visibility.py`/
   `test-ro-eh-frame.py`, each a real `zig cc`-hostable gcc/binutils-on-Linux
-  fact) and `doc`/`tests` options pinned off (the former needs `makeinfo`,
-  the latter's `testsuite/meson.build` hits the `continue`-in-a-partial-
-  foreach gap below); a `sizeof('long double')` per-`cpu` pin (16/16/8/12 on
-  x86_64/arm64/arm32/x86_32) is not in `decay.toml` since nothing else needs
-  it while `libffi` stays disabled.
+  fact), `doc`/`tests` options pinned off (the former needs `makeinfo`, the
+  latter's `testsuite/meson.build` hits the `continue`-in-a-partial-foreach
+  gap below), and a `sizeof('long double')` per-`cpu` pin (16/16/8/12 on
+  x86_64/arm64/arm32/x86_32) libffi's own `fficonfig.h` needs and nothing
+  else does.
 
-- **`ffitarget.h` per-arch header collision.** What `libffi` hits past the
-  wrapdb-overlay fix above: `buck2 build //third-party/meson/libffi:ffi`
-  fails compiling any source outside the arch `decay`'s flat header dict
-  happened to keep — `#error "libffi was configured for a RISC-V target but
-  this does not appear to be a RISC-V compiler."` compiling an x86 `.S` file,
-  from `riscv/ffitarget.h`. libffi ships `src/<arch>/ffitarget.h` once per
-  architecture (30 of them, `aarch64` through `xtensa`), and `include/
-  ffi.h.in` includes it bare (`#include <ffitarget.h>`) — real meson scopes
-  `-I` to the one `targetdir` `host_cpu_family()` picked, so only that
-  arch's copy is ever reachable. `decay`'s own `headers`/`exported_headers`
-  (and `sibling_headers`, the `#include`-scan mechanism the graphene section
-  above added) are a flat, basename-keyed dict with no notion of
-  configuration at all — every arch's `ffitarget.h` collides on the same
-  key, and whichever insert happened to win is the only one any
-  configuration ever sees. Every other verified project has at most one file
-  per basename, so this hasn't surfaced before. Needs the header dict itself
-  to carry a presence condition per entry (the same `Variational` shape
-  `srcs`/`headers` attributes already use), keyed so the `cpu` an entry's
-  own source directory implies picks it — not a small change, since
-  `decay_buck2`'s header-dict rendering assumes one winner per name today.
+  Getting it to actually `buck2 build`, and then to `buck2 build` *as a real
+  cross-project dependency* of glib (`dependency('libffi')`, which
+  `Packages` resolves to the real `libffi` target the moment the project
+  exists at all), took two more fixes — see the "Wrap support" entry above,
+  now landed.
 
 - **dependency('threads') is a builtin.** `fn_dependency` special-cases it
   (`External::Threads`): always found, never a `threads[true/false]` knob, and

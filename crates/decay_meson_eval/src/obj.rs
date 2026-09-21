@@ -42,8 +42,11 @@ pub enum Obj {
     Target(TargetId),
     /// A single named output of a multi-output `custom_target`.
     Output(TargetId, usize),
-    /// `include_directories()`.
-    IncludeDirs(Rc<Vec<String>>),
+    /// `include_directories()`. Each directory keeps the presence condition
+    /// of the argument it came from — an arg built from a config-dependent
+    /// value (libffi's `targetdir = 'src' / host_cpu_family()`) contributes
+    /// a different directory per configuration, not all of them at once.
+    IncludeDirs(Rc<Vec<(Pc, String)>>),
     /// A source file, as a path relative to the project root. `files()` binds
     /// paths at its call site, which is why they cannot stay plain strings.
     File(Rc<str>),

@@ -331,8 +331,18 @@ impl Selects {
                 continue;
             }
             let (key, value) = render(value);
-            // A header reached by two paths only needs listing once.
-            if let Some(slot) = entries.iter_mut().find(|(_, k, _)| *k == key) {
+            // A header reached by two paths only needs listing once — but a
+            // different value under the same key (e.g. libffi's per-arch
+            // `ffitarget.h`, one real file per `cpu` all answering the same
+            // bare `#include`) is a real per-configuration choice, not a
+            // duplicate to collapse: only merge when the value agrees too,
+            // so `dict_at`'s per-variable split below renders each as its
+            // own `select()` arm instead of silently keeping whichever
+            // insert happened first.
+            if let Some(slot) = entries
+                .iter_mut()
+                .find(|(_, k, v)| *k == key && *v == value)
+            {
                 slot.0 = logic.or(slot.0, cond);
                 continue;
             }
