@@ -975,8 +975,8 @@ constraint(
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
   smoke test for decay, we should be able to import all of the wrapdb
-  projects. Currently exercises 4 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`).
+  projects. Currently exercises 5 of wrapdb's ~250+ projects in
+  `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`).
 
   Getting `libffi` to evaluate took two real fixes in the evaluator, both
   general and kept regardless of anything libffi-specific: `cc.preprocess()`
@@ -1005,6 +1005,70 @@ constraint(
   `Packages` resolves to the real `libffi` target the moment the project
   exists at all), took two more fixes — see the "Wrap support" entry above,
   now landed.
+
+  `fribidi` — a GTK4 dependency (via pango), picked while trying that
+  dependency graph — evaluated cleanly first try, but `buck2 build` surfaced
+  three more real, general bugs, none of them narrow workarounds:
+
+  1. **A project's own compiled tool, invoked from a `custom_target()`
+     command, now runs on the machine doing the build.** meson's
+     `native: true` marks an `executable()` as a build-machine tool rather
+     than a cross target (fribidi's `gen-unicode-version`/`gen-*-tab`
+     table generators, run at build time to produce the headers the real
+     library compiles against) — but decay never modelled a build/host
+     platform split at all, and rendered *any* project-built executable a
+     `custom_target()` command invoked as `$(location :name)`
+     (`decay_buck2::command`), which resolves under the *target* platform.
+     Coincidentally correct only because nothing yet configured ever cross-
+     compiles. Fixed generally, without modelling `native:` as its own
+     concept: any `CmdArg::Target` naming a `Kind::Executable` now renders as
+     `$(exe :name)` instead — buck2's own execution-platform resolution,
+     transitively, the same mechanism a `find_program()` external tool
+     already got. Verified to change nothing in the committed tree (nothing
+     previously imported takes this path at all), so this is pure
+     groundwork, not a fribidi-specific fix — real payoff lands once a
+     project targets something other than the host.
+  2. **A release tarball's pre-generated header, shadowed by a
+     `custom_target()` regenerating the same basename, no longer collides
+     with it.** fribidi's tarball ships a checked-in
+     `lib/fribidi-unicode-version.h` (a bootstrap fallback) *and* a
+     `gen.tab` `custom_target()` that regenerates it at build time — meson's
+     build-dir search path always prefers the fresh one, but decay's own
+     `list_headers` (directory-walking a target's `include_directories()`)
+     and sibling-header `#include` scan (`build_target`, both in
+     `decay_meson_eval/src/builtins.rs`) each independently found the
+     checked-in copy too, and both claim the same bare-basename dict key a
+     generated header does — a real `Dictionary key repeated` failure, not
+     just redundant output. Fixed with a shared `shadowed_by_generated_header`
+     check: skip a checked-in candidate whenever some `Kind::Custom`/
+     `Kind::ConfigHeader` target elsewhere in the project already generates
+     that basename. Also silently corrected two bogus entries already in the
+     committed tree: libffi's `msvc_build/aarch64/aarch64_include/{ffi,
+     fficonfig}.h` (stale vendor copies `list_headers` had been exposing
+     alongside the real generated `ffi.h`/`fficonfig.h`, under the same
+     `select()` arms — dead weight, not a collision, since they only ever
+     shared a key across different config branches).
+  3. **A project's fetch target and one of its own build targets can now
+     share a name without a silent `buck2` failure.** `Project::repo_target()`
+     names a wrap's `http_archive` after the bare project name — fine, until
+     a `library()` inside that project is *also* named after the project
+     (fribidi's `library('fribidi', ...)`, same as `project('fribidi', ...)`)
+     — `Graph`'s own name uniquification (`used_names`) never saw this
+     coming, since the fetch target's name is only known once `Origin`
+     resolves, after every real target already claimed whatever name it
+     wanted. buck2 caught it at evaluation (`Attempted to register target
+     ... twice`), not decay. Fixed with `Graph::avoid_name_collision`,
+     called from `src/main.rs::execute()` right after `Origin` is set:
+     renames the colliding real target through the exact same
+     uniquification `add()` uses, so it gets what a second real target of
+     that name would have (`fribidi-2`, here).
+
+  Also needed `.i` added to `is_header_file`'s extension allowlist
+  (`decay_meson_eval/src/builtins.rs`) — fribidi's generated Unicode tables
+  (`bidi-type.tab.i`, …) are `#include`d by the real `.c` sources, never
+  compiled as their own translation unit, and buck2's `cxx_library` rejects
+  `.i` as a `srcs` extension outright (`Unknown enum element ".i"`) where
+  meson silently just doesn't compile an unrecognized suffix either.
 
 - **dependency('threads') is a builtin.** `fn_dependency` special-cases it
   (`External::Threads`): always found, never a `threads[true/false]` knob, and

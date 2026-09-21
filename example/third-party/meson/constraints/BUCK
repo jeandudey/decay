@@ -847,3 +847,11 @@ constraint(
     default = "true",
     visibility = ["PUBLIC"],
 )
+
+# meson build option `option:debug`
+constraint(
+    name = "debug",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)

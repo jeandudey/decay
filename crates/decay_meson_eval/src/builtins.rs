@@ -47,6 +47,7 @@ use {
     },
     std::{
         collections::BTreeSet,
+        ffi::OsStr,
         path::{
             Path,
             PathBuf, //
@@ -585,7 +586,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                     .iter()
                     .chain(sibling_headers.variants())
                     .any(|h| matches!(&h.value, Source::File(p) if *p == rel));
-                if !known && self.sources.exists(&self.root.join(&rel)) {
+                if !known
+                    && !self.shadowed_by_generated_header(OsStr::new(inc))
+                    && self.sources.exists(&self.root.join(&rel))
+                {
                     sibling_headers.push(Variant::new(variant.cond, Source::File(rel)));
                 }
             }
@@ -2161,6 +2165,27 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// filesystem access; buck2's sandbox is not, so a header sitting there
     /// has to actually be listed for a compile to find it, the same way an
     /// explicit one already is.
+    /// Whether some `custom_target()`/`configure_file()` elsewhere in this
+    /// project already generates a header under this exact basename.
+    ///
+    /// A release tarball can ship a pre-generated copy of a header the
+    /// project's own `meson.build` also regenerates at build time (fribidi's
+    /// checked-in `lib/fribidi-unicode-version.h`, alongside `gen.tab`'s
+    /// custom_target of the same basename, there for a build from the
+    /// tarball with no generator run at all) — meson's build-dir search path
+    /// always shadows the checked-in copy with the fresh one, so treating
+    /// the stale file as a real header would collide with the generated one
+    /// under the same bare-basename dict key decay keys both by.
+    fn shadowed_by_generated_header(&self, basename: &OsStr) -> bool {
+        self.graph.targets.iter().any(|t| {
+            matches!(t.kind, Kind::Custom | Kind::ConfigHeader)
+                && t.attrs
+                    .outs
+                    .iter()
+                    .any(|o| Path::new(o.as_str()).file_name() == Some(basename))
+        })
+    }
+
     fn list_headers(
         &mut self,
         include_dirs: &Variational<PathBuf>,
@@ -2176,7 +2201,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                     .variants()
                     .iter()
                     .any(|h| matches!(&h.value, Source::File(p) if *p == path));
-                if !already_listed {
+                let shadowed = path
+                    .file_name()
+                    .is_some_and(|n| self.shadowed_by_generated_header(n));
+                if !already_listed && !shadowed {
                     headers.push(Variant::new(variant.cond, Source::File(path)));
                 }
             }
@@ -2368,7 +2396,12 @@ fn parse_pc_variables(text: &str) -> Vec<(String, String)> {
 fn is_header_file(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|e| e.to_str()),
-        Some("h" | "hh" | "hpp" | "hxx" | "inc" | "def")
+        // `.i` here is fribidi's own convention for a generated table
+        // `#include`d by a real `.c` source (`fribidi-arabic.c` does
+        // `#include "arabic-shaping.tab.i"`), not gcc's "already
+        // preprocessed" sense of the extension — never meant to be compiled
+        // as its own translation unit either way.
+        Some("h" | "hh" | "hpp" | "hxx" | "inc" | "def" | "i")
     )
 }
 

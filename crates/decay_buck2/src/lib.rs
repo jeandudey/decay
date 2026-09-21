@@ -1748,6 +1748,23 @@ fn command<S: Solver>(
                             None => name.clone(),
                         }
                     }
+                    // A project's own compiled tool (meson's `native: true`
+                    // generator executables — fribidi's `gen-*-tab`, and
+                    // anything else a `custom_target()` command invokes) has
+                    // to run on the machine doing the build, not whatever
+                    // `target-platforms` the surrounding build is configured
+                    // for. `$(location ...)` resolves under the *target*
+                    // platform (right for a plain input file, wrong for a
+                    // tool that must actually execute here); `$(exe ...)`
+                    // triggers buck2's own execution-platform resolution
+                    // instead, transitively — the same mechanism a
+                    // `find_program()` external tool already gets below —
+                    // so this stays correct once a build ever targets
+                    // something other than the host, not just today where
+                    // every configured platform happens to equal it.
+                    Kind::Executable => {
+                        staged_path(*id).unwrap_or_else(|| format!("$(exe :{})", dep.name))
+                    }
                     _ => staged_path(*id).unwrap_or_else(|| format!("$(location :{})", dep.name)),
                 }
             }

@@ -329,3 +329,7 @@ commands."meson-scripts/extract-libtool-version.py libtool-version" = "13:0:5\n"
 commands."meson-scripts/test-unwind-section.py c" = { returncode = 0 }
 commands."meson-scripts/test-cc-supports-hidden-visibility.py c" = { returncode = 0 }
 commands."meson-scripts/test-ro-eh-frame.py c -fpic -fexceptions -fno-lto" = { returncode = 1 }
+
+[[project]]
+wrap = "fribidi"
+options = { bin = false, tests = false, docs = false }
