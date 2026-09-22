@@ -331,16 +331,21 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `harfbuzz`/`png` off, none of those imported yet). Still needed, in
   roughly the order a next attempt should reach for them:
   - `fontconfig` — imported (`example/third-party/meson/fontconfig/`);
-    `fcobjshash.h` now builds (real `cc.preprocess()`, see above). The
-    `fontconfig`/`fontconfig-dep` targets themselves still don't `buck2
-    build`: `fcint.h` pulls in `<config.h>`, whose *generated* content
-    quote-includes `config-fixups.h` — nothing stages that for the
-    `fontconfig` library the way a checked-in source's own quoted include
-    already is, so the compile fails with `config-fixups.h: No such file or
-    directory` (`patternlib_internal`, a different target in the same
-    package that declares the header directly, is unaffected and builds
-    fine). Not yet wired into `cairo`'s `xlib`/`freetype`/`fontconfig`
-    options or pango's FreeType backend.
+    `fcobjshash.h` builds (real `cc.preprocess()`, see above), and
+    `fontconfig`/`fontconfig-dep` now see their real `dependencies:`/
+    `link_with:` (`library(..., kwargs: a_dict)` — how fontconfig's own
+    `library()` call actually passes them — is now read like any other
+    keyword argument). Still short of a full `buck2 build`: `freetype2-dep`
+    does not export its own generated `ftconfig.h` (a `custom_target()`, not
+    a checked-in file) under the `freetype/config/ftconfig.h` path
+    `ft2build.h` expects — the config-header broadcast that makes a
+    generated header reachable within its own project only feeds a compiled
+    target's private `headers`, not a bare `declare_dependency()`
+    interface's `exported_headers`, so any *external* consumer that
+    `#include`s FreeType through `freetype2-dep` (fontconfig's `fcfreetype.c`
+    is the first one decay has tried) hits `freetype/config/ftconfig.h: No
+    such file or directory`. Not yet wired into `cairo`'s
+    `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via

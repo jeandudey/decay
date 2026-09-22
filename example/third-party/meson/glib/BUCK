@@ -4900,6 +4900,8 @@ cxx_library(
                     "girepository/gi-visibility.h": ":custom_target-6",
                     "config.h": ":config.h",
                     "printf-frexp.c": ":glib.git[glib/gnulib/printf-frexp.c]",
+                    "c++defs.h": ":glib.git[glib/gnulib/c++defs.h]",
+                    "arg-nonnull.h": ":glib.git[glib/gnulib/arg-nonnull.h]",
                 },
                 "//third-party/meson/constraints:links_include_math_h_if_GNUC_4_undef_isnanl_define_isnanl_x_builtin_isnanl_long_double_x_else_undef_isnanl_define_isnanl_x_isnan_long_double_x_endif_double_x_int_main_return_isnanl_x[false]": {
                     "glib/glibconfig.h": ":glibconfig.h",
@@ -4925,6 +4927,8 @@ cxx_library(
                     "config.h": ":config.h",
                     "printf-frexp.c": ":glib.git[glib/gnulib/printf-frexp.c]",
                     "isnan.c": ":glib.git[glib/gnulib/isnan.c]",
+                    "c++defs.h": ":glib.git[glib/gnulib/c++defs.h]",
+                    "arg-nonnull.h": ":glib.git[glib/gnulib/arg-nonnull.h]",
                 },
             }),
             "//third-party/meson/constraints:links_include_math_h_if_GNUC_4_undef_isnanf_define_isnanf_x_builtin_isnanf_float_x_else_undef_isnanf_define_isnanf_x_isnan_float_x_endif_double_x_int_main_return_isnanf_x[false]": {
@@ -4951,6 +4955,8 @@ cxx_library(
                 "config.h": ":config.h",
                 "printf-frexp.c": ":glib.git[glib/gnulib/printf-frexp.c]",
                 "isnan.c": ":glib.git[glib/gnulib/isnan.c]",
+                "c++defs.h": ":glib.git[glib/gnulib/c++defs.h]",
+                "arg-nonnull.h": ":glib.git[glib/gnulib/arg-nonnull.h]",
             },
         }),
         "//third-party/meson/constraints:links_include_math_h_if_GNUC_4_undef_isnand_define_isnand_x_builtin_isnan_double_x_else_undef_isnand_define_isnand_x_isnan_double_x_endif_double_x_int_main_return_isnand_x[false]": {
@@ -4977,6 +4983,8 @@ cxx_library(
             "config.h": ":config.h",
             "printf-frexp.c": ":glib.git[glib/gnulib/printf-frexp.c]",
             "isnan.c": ":glib.git[glib/gnulib/isnan.c]",
+            "c++defs.h": ":glib.git[glib/gnulib/c++defs.h]",
+            "arg-nonnull.h": ":glib.git[glib/gnulib/arg-nonnull.h]",
         },
     }),
     header_namespace = "",

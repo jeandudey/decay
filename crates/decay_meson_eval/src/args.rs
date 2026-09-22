@@ -6,6 +6,7 @@ use {
     decay_meson_ast::Args,
     decay_meson_logic::{
         Solver,
+        Variant,
         Variational, //
     },
 };
@@ -53,6 +54,38 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .get(name)
                 .expect("keyword order names its own arguments");
             kw.push((name.clone(), self.expr(expr)?));
+        }
+
+        // `kwargs: some_dict` splats a dict as additional keyword arguments —
+        // fontconfig's `library('fontconfig', ..., kwargs: lib_fontconfig_kwargs)`
+        // is how its `dependencies:`/`include_directories:`/`link_with:` are
+        // actually passed. An explicit keyword given alongside `kwargs:` wins
+        // over the same key inside the dict, same as meson's own error case
+        // but permissive instead of refusing the call.
+        if let Some(pos) = kw.iter().position(|(name, _)| name == "kwargs") {
+            let (_, kwargs_val) = kw.remove(pos);
+            let explicit: Vec<String> = kw.iter().map(|(name, _)| name.clone()).collect();
+            let mut splatted: Vec<(String, Variational<Value>)> = Vec::new();
+            for outer in kwargs_val.variants() {
+                let Value::Dict(entries) = &outer.value else {
+                    continue;
+                };
+                for entry in entries.iter() {
+                    let (key, value) = &entry.value;
+                    let cond = self.logic.and(outer.cond, entry.cond);
+                    if cond.is_false() || explicit.iter().any(|name| name == key.as_ref()) {
+                        continue;
+                    }
+                    match splatted.iter_mut().find(|(name, _)| name == key.as_ref()) {
+                        Some((_, existing)) => existing.push(Variant::new(cond, value.clone())),
+                        None => splatted.push((
+                            key.to_string(),
+                            Variational::from_iter([Variant::new(cond, value.clone())]),
+                        )),
+                    }
+                }
+            }
+            kw.extend(splatted);
         }
 
         Ok(CallArgs { pos, kw })

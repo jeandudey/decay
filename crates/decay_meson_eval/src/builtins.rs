@@ -869,6 +869,30 @@ impl<'a, S: Solver> Interp<'a, S> {
             None => None,
         };
 
+        // A `copy: true` (or plain-text) template's own checked-in text can
+        // itself quote-include a plain-named sibling (fontconfig's
+        // `meson-config.h.in`, copied verbatim into `config.h`, `#include`s
+        // `config-fixups.h`) — scan it exactly like a compiled source's own
+        // sibling include, below, so the generated header's real content is
+        // reachable from wherever the header itself is broadcast.
+        let mut sibling_headers = Variational::empty();
+        if let Some(Source::File(path)) = &template
+            && let Ok(text) = self.sources.read(&self.root.join(path))
+        {
+            let dir = path.parent().map(Path::to_path_buf).unwrap_or_default();
+            for inc in quoted_includes(&text) {
+                if inc.is_empty() || inc.contains(['/', '\\']) || inc.contains("..") {
+                    continue;
+                }
+                let rel = dir.join(inc);
+                if !self.shadowed_by_generated_header(OsStr::new(inc))
+                    && self.sources.exists(&self.root.join(&rel))
+                {
+                    sibling_headers.push(Variant::new(self.pc, Source::File(rel)));
+                }
+            }
+        }
+
         let mut defines = match args.get("configuration") {
             Some(v) => self.defines(v)?,
             None => Variational::empty(),
@@ -925,6 +949,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.outs = vec![output.to_string()];
         target.attrs.defines = defines;
         target.attrs.template = template;
+        target.attrs.sibling_headers = sibling_headers;
         target.attrs.install = install;
         target.attrs.install_dir = install_dir;
 

@@ -889,6 +889,21 @@ fn render_target<S: Solver>(
                 .map(|t| Variant::new(Pc::TRUE, Source::Generated(t.id, 0)))
                 .collect();
 
+            // A broadcast config header can itself `#include` a plain-named
+            // sibling (fontconfig's checked-in `meson-config.h.in`, copied
+            // verbatim into the generated `config.h`, `#include`s
+            // `config-fixups.h`) — stage that sibling wherever the header
+            // itself is broadcast, keyed the same basename way as this
+            // target's own sibling includes below.
+            let broadcast_siblings: Vec<Variant<Source>> = graph
+                .targets
+                .iter()
+                .filter(|t| is_config_header(t))
+                .filter(|t| logic.entails(cond, t.cond))
+                .filter(|t| !depends_on(graph, t.id, target.id))
+                .flat_map(|t| t.attrs.sibling_headers.iter().cloned())
+                .collect();
+
             // A `raw_include_roots` target is compiled against real `-I` roots
             // into the fetched tree (below), so its checked-in headers must
             // NOT also go into the flat symlink tree — a `..` include resolved
@@ -944,7 +959,7 @@ fn render_target<S: Solver>(
             // keyed by that exact spelling — the basename of the file — rather
             // than by an include-root-relative path.
             let mut private_aliased = header_aliases(logic, graph, &private, &roots);
-            for entry in a.sibling_headers.iter() {
+            for entry in a.sibling_headers.iter().chain(broadcast_siblings.iter()) {
                 if let Some(name) = logical_path(graph, &entry.value)
                     .file_name()
                     .and_then(|n| n.to_str())
