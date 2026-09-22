@@ -379,6 +379,9 @@ options = { solo = false, tests = "disabled" }
 wrap = "bzip2"
 
 [[project]]
+wrap = "google-brotli"
+
+[[project]]
 wrap = "libpng"
 depends = ["zlib"]
 options = { tests = false }
@@ -413,19 +416,23 @@ commands."python3 builds/meson/extract_libtool_version.py builds/unix/configure.
 commands."python3 builds/meson/parse_modules_cfg.py --format=main-modules modules.cfg" = { stdout = "truetype\ntype1\ncff\ncid\npfr\ntype42\nwinfonts\npcf\nbdf\nsfnt\nautofit\npshinter\nsmooth\nraster\nsvg\nsdf\n" }
 commands."python3 builds/meson/parse_modules_cfg.py --format=aux-modules modules.cfg" = { stdout = "cache\ngzip\nlzw\nbzip2\npsaux\npsnames\n" }
 commands."python3 builds/meson/parse_modules_cfg.py --format=base-extensions-list modules.cfg" = { stdout = "ftbbox.c\nftbdf.c\nftbitmap.c\nftcid.c\nftfstype.c\nftgasp.c\nftglyph.c\nftgxval.c\nftmm.c\nftotval.c\nftpatent.c\nftpfr.c\nftstroke.c\nftsynth.c\nfttype1.c\nftwinfnt.c\n" }
-# brotli/harfbuzz are still-unimported dependencies; zlib, bzip2, and libpng
-# are already imported, so route through the plain `dependency('zlib')` path
-# ("system") rather than the `subproject('zlib').get_variable('zlib_dep')`
-# fallback path ("external"), which needs a Dep-object subproject variable
-# decay cannot answer yet. bzip2's own `dependency('bzip2', required: false)`
-# finds nothing (no project here provides a pkg-config `bzip2`), so it falls
-# through to `cc.find_library('bz2', has_headers: ['bzlib.h'])`, which
-# resolves against the bzip2 project's own `bz2` target the same way any
-# other same-project `cc.find_library()` match does. png's own
-# `dependency('libpng', ..., fallback: 'libpng')` resolves directly against
-# the libpng project by name, no `cc.find_library()` detour needed.
-options = { brotli = "disabled", bzip2 = "enabled", harfbuzz = "disabled", mmap = "auto", png = "enabled", tests = "disabled", zlib = "system", error_strings = true }
-depends = ["zlib", "bzip2", "libpng"]
+# harfbuzz is still an unimported dependency; zlib, bzip2, libpng, and
+# google-brotli are already imported, so route through the plain
+# `dependency('zlib')` path ("system") rather than the
+# `subproject('zlib').get_variable('zlib_dep')` fallback path ("external"),
+# which needs a Dep-object subproject variable decay cannot answer yet.
+# bzip2's own `dependency('bzip2', required: false)` finds nothing (no
+# project here provides a pkg-config `bzip2`), so it falls through to
+# `cc.find_library('bz2', has_headers: ['bzlib.h'])`, which resolves against
+# the bzip2 project's own `bz2` target the same way any other same-project
+# `cc.find_library()` match does. png's own `dependency('libpng', ...,
+# fallback: 'libpng')` resolves directly against the libpng project by name.
+# brotli's own `dependency('libbrotlidec', ...)` has no `fallback:`, but
+# google-brotli's meson.build calls `meson.override_dependency('libbrotlidec',
+# brotli_decoder_dep)` itself, which resolves the same way libpng's fallback
+# does — an explicit override always wins over name-matching.
+options = { brotli = "enabled", bzip2 = "enabled", harfbuzz = "disabled", mmap = "auto", png = "enabled", tests = "disabled", zlib = "system", error_strings = true }
+depends = ["zlib", "bzip2", "libpng", "google-brotli"]
 
 [[project]]
 wrap = "pixman"
