@@ -603,15 +603,30 @@ fn referenced_files(graph: &Graph) -> (Vec<String>, Vec<String>) {
         // A `raw_include_roots` target is compiled with `-I` pointing straight
         // at these directories in the fetched tree, so each needs its own
         // sub-target projection. Always a real checked-in directory, never a
-        // wrap overlay's own concern, so this always goes to `origin`.
+        // wrap overlay's own concern, so this always goes to `origin`. Mirrors
+        // `render_target`'s own `roots` exactly, including the same
+        // generated-file-package auto-injection (fontconfig's `fccase.h` is
+        // generated from `fc-case/meson.build`, putting `fc-case` on the
+        // include path the same way a real `include_directories('fc-case')`
+        // would) — the two must agree, or a `-I` flag here points at a
+        // sub-target that was never registered.
         if target.attrs.raw_include_roots {
-            for root in target
+            let mut roots: Vec<PathBuf> = target
                 .attrs
                 .include_dirs
                 .iter()
                 .map(|e| e.value.clone())
                 .chain(std::iter::once(target.package.clone()))
-            {
+                .collect();
+            for entry in target.attrs.srcs.iter().chain(target.attrs.headers.iter()) {
+                if let Source::Generated(id, _) = &entry.value {
+                    let dir = graph.target(*id).package.clone();
+                    if !dir.as_os_str().is_empty() && !roots.contains(&dir) {
+                        roots.push(dir);
+                    }
+                }
+            }
+            for root in roots {
                 if !root.as_os_str().is_empty() {
                     origin.insert(root.display().to_string());
                 }

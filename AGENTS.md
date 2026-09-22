@@ -339,14 +339,22 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     project-generated header under the checked-in path a consumer expects
     even when that differs from where the `custom_target()` regenerating it
     actually runs (`freetype2-dep`'s `ftconfig.h`/`ftoption.h`/`ftmodule.h` —
-    see `shadow_target`/`exported_source` in `decay_buck2`). Still short of a
-    full `buck2 build`: `fontconfig`'s own `fcstr.c` does
-    `#include "../fc-case/fccase.h"`, a `..`-relative quoted
-    include decay only detects (to compile against real `-I` roots instead
-    of the flat header dict a `..` cannot walk out of) by scanning a
-    target's *headers*, not its compiled *sources* — `raw_include_roots` in
-    `decay_meson_eval/src/builtins.rs` needs the same scan extended to
-    `srcs`. Not yet wired into `cairo`'s `xlib`/`freetype`/`fontconfig`
+    see `shadow_target`/`exported_source` in `decay_buck2`). `raw_include_roots`
+    detection now also scans a target's compiled *sources*, not just its
+    *headers*, for a `..`-relative quoted include (glib's `gobject-2.0` and
+    pcre2 both turn out to need this too — no regression, just previously
+    undetected). Still short of a full `buck2 build`: `fontconfig`'s own
+    `fcstr.c` does `#include "../fc-case/fccase.h"` — `fccase.h` is not a
+    checked-in file `raw_include_roots`'s real `-I` compile can reach (only
+    `fccase.tmpl.h`, its template, is), it is a `custom_target()` output that
+    lives in a completely different buck-out location than the fetched
+    checkout `-I` points into. Meson satisfies this via its own build-dir
+    mirror (a generated file always lands where its logical source position
+    says, alongside real checked-in siblings); buck2 has no equivalent for a
+    `cxx_library`'s `srcs` — unlike a `genrule` (`preprocess_cmd`'s own
+    `_pp_include` scratch-copy trick), there is no hook to stage a file
+    before compiling. Needs its own design, not a small follow-up. Not yet
+    wired into `cairo`'s `xlib`/`freetype`/`fontconfig`
     options or pango's FreeType backend.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several

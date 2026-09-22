@@ -605,13 +605,15 @@ impl<'a, S: Solver> Interp<'a, S> {
         compile_args.extend(inline_compile_args);
         sibling_headers.extend(inline_sibling_headers);
 
-        // A checked-in header doing `#include "../x"` relies on the real
-        // on-disk layout between headers, which the flat symlink tree decay
-        // stages cannot reproduce (the `..` walks out of it). Mark the target
-        // so the backend compiles it against real `-I` roots into the fetched
-        // tree. ponytail: any `..` trips this; no finer analysis needed —
-        // such an include is already unrepresentable in the flat tree.
-        let raw_include_roots = headers.variants().iter().any(|h| {
+        // A checked-in header — or compiled source (fontconfig's `fcstr.c`
+        // does `#include "../fc-case/fccase.h"`) — doing `#include "../x"`
+        // relies on the real on-disk layout between files, which the flat
+        // symlink tree decay stages cannot reproduce (the `..` walks out of
+        // it). Mark the target so the backend compiles it against real `-I`
+        // roots into the fetched tree. ponytail: any `..` trips this; no
+        // finer analysis needed — such an include is already unrepresentable
+        // in the flat tree.
+        let raw_include_roots = headers.variants().iter().chain(srcs.variants()).any(|h| {
             let Source::File(p) = &h.value else {
                 return false;
             };

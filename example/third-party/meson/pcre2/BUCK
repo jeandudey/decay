@@ -11,6 +11,7 @@ http_archive(
         "deps/sljit/sljit_src/sljitConfigCPU.h",
         "deps/sljit/sljit_src/sljitConfigInternal.h",
         "deps/sljit/sljit_src/sljitLir.h",
+        "src",
         "src/libpcre2-16.sym.in",
         "src/libpcre2-32.sym.in",
         "src/libpcre2-8.sym.in",
@@ -102,6 +103,14 @@ _srcs = [
     ":pcre2_chartables.c",
 ]
 _headers = {
+    "pcre2.h": ":pcre2.h",
+    "config.h": ":config.h",
+}
+_cppflags = [
+    "-I$(location :pcre2)",
+    "-I$(location :pcre2[src])",
+]
+_headers2 = {
     "vms/stdint.h": ":pcre2[vms/stdint.h]",
     "deps/sljit/sljit_src/sljitConfigCPU.h": ":pcre2[deps/sljit/sljit_src/sljitConfigCPU.h]",
     "deps/sljit/sljit_src/sljitLir.h": ":pcre2[deps/sljit/sljit_src/sljitLir.h]",
@@ -133,10 +142,6 @@ _headers = {
     "pcre2_util.h": ":pcre2[src/pcre2_util.h]",
     "src/pcre2posix.h": ":pcre2[src/pcre2posix.h]",
     "pcre2posix.h": ":pcre2[src/pcre2posix.h]",
-}
-_headers2 = {
-    "pcre2.h": ":pcre2.h",
-    "config.h": ":config.h",
 }
 
 # meson: dependency('threads') — the platform's threading support
@@ -472,8 +477,9 @@ cxx_library(
     name = "pcre2-8",
     srcs = _srcs,
     exported_headers = _headers,
-    headers = _headers2,
+    headers = _headers,
     header_namespace = "",
+    exported_preprocessor_flags = _cppflags,
     compiler_flags = [
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
@@ -487,8 +493,8 @@ cxx_library(
 
 cxx_library(
     name = "pcre2-dep",
-    exported_headers = _headers,
-    headers = _headers2,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":pcre2-8"],
     visibility = ["PUBLIC"],
@@ -520,8 +526,8 @@ cxx_library(
 # meson: pcre2-dep
 cxx_library(
     name = "pcre2-dep-2",
-    exported_headers = _headers,
-    headers = _headers2,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     compiler_flags = ["-DPCRE2POSIX_SHARED"],
     exported_deps = [":pcre2-posix"],
@@ -532,8 +538,9 @@ cxx_library(
     name = "pcre2-16",
     srcs = _srcs,
     exported_headers = _headers,
-    headers = _headers2,
+    headers = _headers,
     header_namespace = "",
+    exported_preprocessor_flags = _cppflags,
     compiler_flags = [
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
@@ -548,8 +555,8 @@ cxx_library(
 # meson: pcre2-dep
 cxx_library(
     name = "pcre2-dep-3",
-    exported_headers = _headers,
-    headers = _headers2,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":pcre2-16"],
     visibility = ["PUBLIC"],
@@ -559,8 +566,9 @@ cxx_library(
     name = "pcre2-32",
     srcs = _srcs,
     exported_headers = _headers,
-    headers = _headers2,
+    headers = _headers,
     header_namespace = "",
+    exported_preprocessor_flags = _cppflags,
     compiler_flags = [
         "-DHAVE_CONFIG_H",
         "-D_GNU_SOURCE",
@@ -575,8 +583,8 @@ cxx_library(
 # meson: pcre2-dep
 cxx_library(
     name = "pcre2-dep-4",
-    exported_headers = _headers,
-    headers = _headers2,
+    exported_headers = _headers2,
+    headers = _headers,
     header_namespace = "",
     exported_deps = [":pcre2-32"],
     visibility = ["PUBLIC"],
