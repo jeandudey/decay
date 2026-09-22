@@ -1137,7 +1137,28 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn fn_mkenums(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
         let tool_target = self.tool("glib-mkenums")?;
 
-        let id = self.one_string(args.at(0).ok_or_eyre("gnome.mkenums() needs a name")?)?;
+        // Meson forwards these straight through to `glib-mkenums` as
+        // `--flag value`; unlike `mkenums_simple()`, the rest of a real
+        // template's own boilerplate (`fhead`/`vhead`/...) lives in the
+        // `.tmpl` file text itself, not here.
+        let mut prefix = Vec::new();
+        for kwarg in [
+            "comments",
+            "eprod",
+            "fhead",
+            "fprod",
+            "ftail",
+            "identifier_prefix",
+            "symbol_prefix",
+            "vhead",
+            "vprod",
+            "vtail",
+        ] {
+            if let Some(v) = self.opt_string(args, kwarg)? {
+                prefix.push(CmdArg::Literal(format!("--{}", kwarg.replace('_', "-"))));
+                prefix.push(CmdArg::Literal(v.to_string()));
+            }
+        }
 
         let mut sources = Variational::empty();
         for arg in args.rest() {
@@ -1149,7 +1170,7 @@ impl<'a, S: Solver> Interp<'a, S> {
 
         let dir = self.cur_dir().to_path_buf();
         let mut outputs = Vec::new();
-        for (key, ext) in [("c_template", "c"), ("h_template", "h")] {
+        for key in ["c_template", "h_template"] {
             let Some(template_arg) = args.get(key) else {
                 continue;
             };
@@ -1157,19 +1178,51 @@ impl<'a, S: Solver> Interp<'a, S> {
             let Some(first) = templates.variants().first() else {
                 continue;
             };
-            let Source::File(template_path) = &first.value else {
-                bail!("gnome.mkenums('{id}')'s `{key}:` must be a real file");
+            // Meson names each output after the *template's* own basename
+            // with its last extension stripped (`hb-gobject-enums-tmp.h.tmpl`
+            // -> `hb-gobject-enums-tmp.h`), not after the call's own `id` —
+            // getting this wrong collides with a same-named real project
+            // header (harfbuzz's own checked-in `hb-gobject.h`, distinct
+            // from its `hb-gobject-enums.h.tmpl` template).
+            let (template_arg, template_name) = match &first.value {
+                Source::File(template_path) => (
+                    CmdArg::File(template_path.clone()),
+                    template_path
+                        .file_name()
+                        .map(|s| s.to_string_lossy().into_owned())
+                        .unwrap_or_default(),
+                ),
+                // A `configure_file(copy: true)`-produced template (harfbuzz's
+                // own `hb-gobject-enums.*.tmpl` staging) is still just the
+                // template text, one step removed — reference its generated
+                // output the same way any other generated file reaches a
+                // command line.
+                Source::Generated(gid, index) => (
+                    CmdArg::Target(*gid),
+                    self.graph
+                        .target(*gid)
+                        .attrs
+                        .outs
+                        .get(*index)
+                        .cloned()
+                        .unwrap_or_default(),
+                ),
+            };
+            let output = match template_name.rsplit_once('.') {
+                Some((stem, _ext)) => stem.to_owned(),
+                None => template_name,
             };
 
-            let cmd = [
-                CmdArg::Literal("--template".to_owned()),
-                CmdArg::File(template_path.clone()),
-                CmdArg::Inputs,
-                CmdArg::Literal(">".to_owned()),
-                CmdArg::Outputs,
-            ];
-            let target_id =
-                self.custom_run(&format!("{id}.{ext}"), &dir, tool_target, &sources, &cmd);
+            let mut cmd = prefix.clone();
+            cmd.push(CmdArg::Literal("--template".to_owned()));
+            cmd.push(template_arg);
+            cmd.push(CmdArg::Inputs);
+            let target_id = self.custom_run(&output, &dir, tool_target, &sources, &cmd);
+            // `glib-mkenums` writes to stdout; a literal `>` word would just
+            // be shell-quoted like any other argument, so the redirect has
+            // to go through `capture:`, the same as `custom_target(capture:
+            // true)`.
+            self.graph.target_mut(target_id).attrs.capture = true;
             outputs.push(Variant::new(self.pc, Value::Obj(Obj::Target(target_id))));
         }
 
@@ -1263,9 +1316,9 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .to_owned(),
         ));
         c_cmd.push(CmdArg::Inputs);
-        c_cmd.push(CmdArg::Literal(">".to_owned()));
-        c_cmd.push(CmdArg::Outputs);
         let c_id = self.custom_run(&format!("{id}.c"), &dir, tool_target, &sources, &c_cmd);
+        // `glib-mkenums` writes to stdout; see the comment in `fn_mkenums`.
+        self.graph.target_mut(c_id).attrs.capture = true;
 
         let mut header_prefix_line = header_prefix;
         if !header_prefix_line.is_empty() && !header_prefix_line.ends_with('\n') {
@@ -1290,9 +1343,8 @@ impl<'a, S: Solver> Interp<'a, S> {
         h_cmd.push(CmdArg::Literal("--ftail".to_owned()));
         h_cmd.push(CmdArg::Literal("\nG_END_DECLS".to_owned()));
         h_cmd.push(CmdArg::Inputs);
-        h_cmd.push(CmdArg::Literal(">".to_owned()));
-        h_cmd.push(CmdArg::Outputs);
         let h_id = self.custom_run(&format!("{id}.h"), &dir, tool_target, &sources, &h_cmd);
+        self.graph.target_mut(h_id).attrs.capture = true;
 
         Ok(self.pure(Value::list(vec![
             Variant::new(self.pc, Value::Obj(Obj::Target(c_id))),

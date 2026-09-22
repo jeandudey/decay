@@ -89,6 +89,7 @@ http_archive(
         "src/OT/glyf/loca.hh",
         "src/OT/glyf/path-builder.hh",
         "src/OT/name/name.hh",
+        "src/fix_get_types.py",
         "src/gen-def.py",
         "src/gen-harfbuzzcc.py",
         "src/gen-hb-version.py",
@@ -141,7 +142,9 @@ http_archive(
         "src/hb-buffer.h",
         "src/hb-buffer.hh",
         "src/hb-cache.hh",
+        "src/hb-cairo-utils.cc",
         "src/hb-cairo-utils.hh",
+        "src/hb-cairo.cc",
         "src/hb-cairo.h",
         "src/hb-cff-interp-common.hh",
         "src/hb-cff-interp-cs-common.hh",
@@ -190,6 +193,9 @@ http_archive(
         "src/hb-geometry.hh",
         "src/hb-glib.cc",
         "src/hb-glib.h",
+        "src/hb-gobject-enums.cc.tmpl",
+        "src/hb-gobject-enums.h.tmpl",
+        "src/hb-gobject-structs.cc",
         "src/hb-gobject-structs.h",
         "src/hb-gobject.h",
         "src/hb-graphite2.cc",
@@ -480,6 +486,10 @@ _headers = {
     "hb-features.h": ":hb-features.h",
     "src/hb-supported-features.h": ":hb-supported-features.h",
     "hb-supported-features.h": ":hb-supported-features.h",
+    "src/hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+    "hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+    "src/hb-gobject-enums.h": ":hb-gobject-enums.h",
+    "hb-gobject-enums.h": ":hb-gobject-enums.h",
     "config.h": ":config.h",
 }
 _cppflags = [
@@ -824,11 +834,15 @@ _headers2 = {
     "hb-aat-layout-kerx-table.hh": ":harfbuzz[src/hb-aat-layout-kerx-table.hh]",
     "hb-features.h": ":hb-features.h",
     "hb-supported-features.h": ":hb-supported-features.h",
+    "hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+    "hb-gobject-enums.h": ":hb-gobject-enums.h",
 }
 _headers3 = {
     "hb-version.h": ":hb-version.h",
     "hb-features.h": ":hb-features.h",
     "hb-supported-features.h": ":hb-supported-features.h",
+    "hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+    "hb-gobject-enums.h": ":hb-gobject-enums.h",
     "config.h": ":config.h",
 }
 
@@ -857,6 +871,14 @@ cxx_library(
 # in decay.toml, or edit it here.
 cxx_library(
     name = "icu-uc",
+    visibility = ["PUBLIC"],
+)
+
+# meson: dependency("cairo-ft") — resolved by pkg-config
+# Empty stub: map it to a real target with `dependencies.cairo-ft = "//some:target"`
+# in decay.toml, or edit it here.
+cxx_library(
+    name = "cairo-ft",
     visibility = ["PUBLIC"],
 )
 
@@ -899,7 +921,7 @@ genrule(
 genrule(
     name = "hb-features.h",
     out = "hb-features.h",
-    cmd = "sed" + " -e ''" + " '-es|@HB_HAS_CAIRO@||g' '-es|@HB_HAS_CORETEXT@||g' '-es|@HB_HAS_DIRECTWRITE@||g' '-es|@HB_HAS_FREETYPE@|1|g' '-es|@HB_HAS_GDI@||g' '-es|@HB_HAS_GLIB@||g' '-es|@HB_HAS_GOBJECT@||g' '-es|@HB_HAS_GRAPHITE@||g' '-es|@HB_HAS_ICU@||g' '-es|@HB_HAS_UNISCRIBE@||g' '-es|@HB_HAS_WASM@||g'" + " '-es|^#mesondefine[[:space:]]\\+HB_HAS_CAIRO\\>.*|/* #undef HB_HAS_CAIRO */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_CORETEXT\\>.*|/* #undef HB_HAS_CORETEXT */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_DIRECTWRITE\\>.*|/* #undef HB_HAS_DIRECTWRITE */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_FREETYPE\\>.*|#define HB_HAS_FREETYPE 1|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GDI\\>.*|/* #undef HB_HAS_GDI */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GLIB\\>.*|/* #undef HB_HAS_GLIB */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GOBJECT\\>.*|/* #undef HB_HAS_GOBJECT */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GRAPHITE\\>.*|/* #undef HB_HAS_GRAPHITE */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_ICU\\>.*|/* #undef HB_HAS_ICU */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_UNISCRIBE\\>.*|/* #undef HB_HAS_UNISCRIBE */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_WASM\\>.*|/* #undef HB_HAS_WASM */|'" + " $(location :harfbuzz[src/hb-features.h.in]) > $OUT",
+    cmd = "sed" + " -e ''" + " '-es|@HB_HAS_CAIRO@|1|g' '-es|@HB_HAS_CORETEXT@||g' '-es|@HB_HAS_DIRECTWRITE@||g' '-es|@HB_HAS_FREETYPE@|1|g' '-es|@HB_HAS_GDI@||g' '-es|@HB_HAS_GLIB@|1|g' '-es|@HB_HAS_GOBJECT@|1|g' '-es|@HB_HAS_GRAPHITE@||g' '-es|@HB_HAS_ICU@||g' '-es|@HB_HAS_UNISCRIBE@||g' '-es|@HB_HAS_WASM@||g'" + " '-es|^#mesondefine[[:space:]]\\+HB_HAS_CAIRO\\>.*|#define HB_HAS_CAIRO 1|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_CORETEXT\\>.*|/* #undef HB_HAS_CORETEXT */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_DIRECTWRITE\\>.*|/* #undef HB_HAS_DIRECTWRITE */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_FREETYPE\\>.*|#define HB_HAS_FREETYPE 1|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GDI\\>.*|/* #undef HB_HAS_GDI */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GLIB\\>.*|#define HB_HAS_GLIB 1|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GOBJECT\\>.*|#define HB_HAS_GOBJECT 1|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_GRAPHITE\\>.*|/* #undef HB_HAS_GRAPHITE */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_ICU\\>.*|/* #undef HB_HAS_ICU */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_UNISCRIBE\\>.*|/* #undef HB_HAS_UNISCRIBE */|' '-es|^#mesondefine[[:space:]]\\+HB_HAS_WASM\\>.*|/* #undef HB_HAS_WASM */|'" + " $(location :harfbuzz[src/hb-features.h.in]) > $OUT",
     visibility = ["PUBLIC"],
 )
 
@@ -913,7 +935,7 @@ genrule(
 genrule(
     name = "harfbuzz.def",
     out = "harfbuzz.def",
-    cmd = " python3 $(location :harfbuzz[src/gen-def.py]) $OUT $(location :harfbuzz[src/hb-aat-layout.h]) $(location :harfbuzz[src/hb-aat.h]) $(location :harfbuzz[src/hb-blob.h]) $(location :harfbuzz[src/hb-buffer.h]) $(location :harfbuzz[src/hb-common.h]) $(location :harfbuzz[src/hb-cplusplus.hh]) $(location :harfbuzz[src/hb-deprecated.h]) $(location :harfbuzz[src/hb-draw.h]) $(location :harfbuzz[src/hb-paint.h]) $(location :harfbuzz[src/hb-face.h]) $(location :harfbuzz[src/hb-font.h]) $(location :harfbuzz[src/hb-map.h]) $(location :harfbuzz[src/hb-ot-color.h]) $(location :harfbuzz[src/hb-ot-deprecated.h]) $(location :harfbuzz[src/hb-ot-font.h]) $(location :harfbuzz[src/hb-ot-layout.h]) $(location :harfbuzz[src/hb-ot-math.h]) $(location :harfbuzz[src/hb-ot-meta.h]) $(location :harfbuzz[src/hb-ot-metrics.h]) $(location :harfbuzz[src/hb-ot-name.h]) $(location :harfbuzz[src/hb-ot-shape.h]) $(location :harfbuzz[src/hb-ot-var.h]) $(location :harfbuzz[src/hb-ot.h]) $(location :harfbuzz[src/hb-script-list.h]) $(location :harfbuzz[src/hb-set.h]) $(location :harfbuzz[src/hb-shape-plan.h]) $(location :harfbuzz[src/hb-shape.h]) $(location :harfbuzz[src/hb-style.h]) $(location :harfbuzz[src/hb-unicode.h]) $(location :harfbuzz[src/hb.h]) $(location :hb-version.h) $(location :harfbuzz[src/hb-ft.h]) $(location :harfbuzz[src/hb-graphite2.h])",
+    cmd = " python3 $(location :harfbuzz[src/gen-def.py]) $OUT $(location :harfbuzz[src/hb-aat-layout.h]) $(location :harfbuzz[src/hb-aat.h]) $(location :harfbuzz[src/hb-blob.h]) $(location :harfbuzz[src/hb-buffer.h]) $(location :harfbuzz[src/hb-common.h]) $(location :harfbuzz[src/hb-cplusplus.hh]) $(location :harfbuzz[src/hb-deprecated.h]) $(location :harfbuzz[src/hb-draw.h]) $(location :harfbuzz[src/hb-paint.h]) $(location :harfbuzz[src/hb-face.h]) $(location :harfbuzz[src/hb-font.h]) $(location :harfbuzz[src/hb-map.h]) $(location :harfbuzz[src/hb-ot-color.h]) $(location :harfbuzz[src/hb-ot-deprecated.h]) $(location :harfbuzz[src/hb-ot-font.h]) $(location :harfbuzz[src/hb-ot-layout.h]) $(location :harfbuzz[src/hb-ot-math.h]) $(location :harfbuzz[src/hb-ot-meta.h]) $(location :harfbuzz[src/hb-ot-metrics.h]) $(location :harfbuzz[src/hb-ot-name.h]) $(location :harfbuzz[src/hb-ot-shape.h]) $(location :harfbuzz[src/hb-ot-var.h]) $(location :harfbuzz[src/hb-ot.h]) $(location :harfbuzz[src/hb-script-list.h]) $(location :harfbuzz[src/hb-set.h]) $(location :harfbuzz[src/hb-shape-plan.h]) $(location :harfbuzz[src/hb-shape.h]) $(location :harfbuzz[src/hb-style.h]) $(location :harfbuzz[src/hb-unicode.h]) $(location :harfbuzz[src/hb.h]) $(location :hb-version.h) $(location :harfbuzz[src/hb-ft.h]) $(location :harfbuzz[src/hb-glib.h]) $(location :harfbuzz[src/hb-graphite2.h])",
     visibility = ["PUBLIC"],
 )
 
@@ -977,6 +999,7 @@ cxx_library(
         ":harfbuzz[src/hb-ucd.cc]",
         ":harfbuzz[src/hb-unicode.cc]",
         ":harfbuzz[src/hb-ft.cc]",
+        ":harfbuzz[src/hb-glib.cc]",
         ":harfbuzz[src/hb-graphite2.cc]",
     ],
     exported_headers = _headers,
@@ -987,6 +1010,10 @@ cxx_library(
         "hb-features.h": ":hb-features.h",
         "src/hb-supported-features.h": ":hb-supported-features.h",
         "hb-supported-features.h": ":hb-supported-features.h",
+        "src/hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+        "hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+        "src/hb-gobject-enums.h": ":hb-gobject-enums.h",
+        "hb-gobject-enums.h": ":hb-gobject-enums.h",
         "config.h": ":config.h",
         "hb-static.cc": ":harfbuzz[src/hb-static.cc]",
     },
@@ -998,6 +1025,7 @@ cxx_library(
         ":threads",
         ":m",
         "//third-party/meson/freetype2:freetype2-dep",
+        "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/graphite2:graphite2-dep",
     ],
     preferred_linkage = "shared",
@@ -1014,6 +1042,7 @@ cxx_library(
         ":threads",
         ":m",
         "//third-party/meson/freetype2:freetype2-dep",
+        "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/graphite2:graphite2-dep",
     ],
     visibility = ["PUBLIC"],
@@ -1186,17 +1215,160 @@ genrule(
     visibility = ["PUBLIC"],
 )
 
+cxx_library(
+    name = "harfbuzz-cairo",
+    srcs = [
+        ":harfbuzz[src/hb-cairo.cc]",
+        ":harfbuzz[src/hb-cairo-utils.cc]",
+        ":harfbuzz[src/hb-static.cc]",
+    ],
+    exported_headers = _headers,
+    headers = _headers,
+    header_namespace = "",
+    exported_preprocessor_flags = _cppflags,
+    compiler_flags = _cflags,
+    linker_flags = ["-Bsymbolic-functions"],
+    deps = [
+        ":harfbuzz-2",
+        ":m",
+        "//third-party/meson/cairo:cairo-dep",
+    ],
+    preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+# meson: harfbuzz-dep
+cxx_library(
+    name = "harfbuzz-dep-5",
+    exported_headers = _headers2,
+    headers = _headers3,
+    header_namespace = "",
+    exported_deps = [
+        ":harfbuzz-cairo",
+        ":m",
+        "//third-party/meson/cairo:cairo-dep",
+    ],
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "harfbuzz-cairo.def",
+    out = "harfbuzz-cairo.def",
+    cmd = " python3 $(location :harfbuzz[src/gen-def.py]) $OUT $(location :harfbuzz[src/hb-cairo.h])",
+    visibility = ["PUBLIC"],
+)
+
 genrule(
     name = "harfbuzz-config.cmake",
     out = "harfbuzz-config.cmake",
-    cmd = "sed" + " -e ''" + " '-es|@PACKAGE_INIT@|\\nget_filename_component(PACKAGE_PREFIX_DIR \"${CMAKE_CURRENT_LIST_DIR}/../../..\" ABSOLUTE)\\n\\nmacro(set_and_check _var _file)\\n  set(${_var} \"${_file}\")\\n  if(NOT EXISTS \"${_file}\")\\n    message(FATAL_ERROR \"File or directory ${_file} referenced by variable ${_var} does not exist !\")\\n  endif()\\nendmacro()\\n\\nmacro(check_required_components _NAME)\\n  foreach(comp ${${_NAME}_FIND_COMPONENTS})\\n    if(NOT ${_NAME}_${comp}_FOUND)\\n      if(${_NAME}_FIND_REQUIRED_${comp})\\n        set(${_NAME}_FOUND FALSE)\\n      endif()\\n    endif()\\n  endforeach()\\nendmacro()\\n|g' '-es|@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@|${PACKAGE_PREFIX_DIR}/include|g' '-es|@PACKAGE_CMAKE_INSTALL_LIBDIR@|${PACKAGE_PREFIX_DIR}/lib|g' '-es|@PACKAGE_INCLUDE_INSTALL_DIR@|${PACKAGE_PREFIX_DIR}/include/harfbuzz|g' '-es|@HARFBUZZ_VERSION@|13.0.1|g' '-es|@HB_HAVE_GOBJECT@|NO|g' '-es|@HB_LIBRARY_TYPE@|SHARED|g' '-es|@HB_LIB_PREFIX@|${CMAKE_SHARED_LIBRARY_PREFIX}|g' '-es|@HB_LIB_SUFFIX@|${CMAKE_SHARED_LIBRARY_SUFFIX}.0.61301.0|g'" + " '-es|^#mesondefine[[:space:]]\\+PACKAGE_INIT\\>.*|#define PACKAGE_INIT \\nget_filename_component(PACKAGE_PREFIX_DIR \"${CMAKE_CURRENT_LIST_DIR}/../../..\" ABSOLUTE)\\n\\nmacro(set_and_check _var _file)\\n  set(${_var} \"${_file}\")\\n  if(NOT EXISTS \"${_file}\")\\n    message(FATAL_ERROR \"File or directory ${_file} referenced by variable ${_var} does not exist !\")\\n  endif()\\nendmacro()\\n\\nmacro(check_required_components _NAME)\\n  foreach(comp ${${_NAME}_FIND_COMPONENTS})\\n    if(NOT ${_NAME}_${comp}_FOUND)\\n      if(${_NAME}_FIND_REQUIRED_${comp})\\n        set(${_NAME}_FOUND FALSE)\\n      endif()\\n    endif()\\n  endforeach()\\nendmacro()\\n|' '-es|^#mesondefine[[:space:]]\\+PACKAGE_CMAKE_INSTALL_INCLUDEDIR\\>.*|#define PACKAGE_CMAKE_INSTALL_INCLUDEDIR ${PACKAGE_PREFIX_DIR}/include|' '-es|^#mesondefine[[:space:]]\\+PACKAGE_CMAKE_INSTALL_LIBDIR\\>.*|#define PACKAGE_CMAKE_INSTALL_LIBDIR ${PACKAGE_PREFIX_DIR}/lib|' '-es|^#mesondefine[[:space:]]\\+PACKAGE_INCLUDE_INSTALL_DIR\\>.*|#define PACKAGE_INCLUDE_INSTALL_DIR ${PACKAGE_PREFIX_DIR}/include/harfbuzz|' '-es|^#mesondefine[[:space:]]\\+HARFBUZZ_VERSION\\>.*|#define HARFBUZZ_VERSION 13.0.1|' '-es|^#mesondefine[[:space:]]\\+HB_HAVE_GOBJECT\\>.*|#define HB_HAVE_GOBJECT NO|' '-es|^#mesondefine[[:space:]]\\+HB_LIBRARY_TYPE\\>.*|#define HB_LIBRARY_TYPE SHARED|' '-es|^#mesondefine[[:space:]]\\+HB_LIB_PREFIX\\>.*|#define HB_LIB_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX}|' '-es|^#mesondefine[[:space:]]\\+HB_LIB_SUFFIX\\>.*|#define HB_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}.0.61301.0|'" + " $(location :harfbuzz[src/harfbuzz-config.cmake.in]) > $OUT",
+    cmd = "sed" + " -e ''" + " '-es|@PACKAGE_INIT@|\\nget_filename_component(PACKAGE_PREFIX_DIR \"${CMAKE_CURRENT_LIST_DIR}/../../..\" ABSOLUTE)\\n\\nmacro(set_and_check _var _file)\\n  set(${_var} \"${_file}\")\\n  if(NOT EXISTS \"${_file}\")\\n    message(FATAL_ERROR \"File or directory ${_file} referenced by variable ${_var} does not exist !\")\\n  endif()\\nendmacro()\\n\\nmacro(check_required_components _NAME)\\n  foreach(comp ${${_NAME}_FIND_COMPONENTS})\\n    if(NOT ${_NAME}_${comp}_FOUND)\\n      if(${_NAME}_FIND_REQUIRED_${comp})\\n        set(${_NAME}_FOUND FALSE)\\n      endif()\\n    endif()\\n  endforeach()\\nendmacro()\\n|g' '-es|@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@|${PACKAGE_PREFIX_DIR}/include|g' '-es|@PACKAGE_CMAKE_INSTALL_LIBDIR@|${PACKAGE_PREFIX_DIR}/lib|g' '-es|@PACKAGE_INCLUDE_INSTALL_DIR@|${PACKAGE_PREFIX_DIR}/include/harfbuzz|g' '-es|@HARFBUZZ_VERSION@|13.0.1|g' '-es|@HB_HAVE_GOBJECT@|YES|g' '-es|@HB_LIBRARY_TYPE@|SHARED|g' '-es|@HB_LIB_PREFIX@|${CMAKE_SHARED_LIBRARY_PREFIX}|g' '-es|@HB_LIB_SUFFIX@|${CMAKE_SHARED_LIBRARY_SUFFIX}.0.61301.0|g'" + " '-es|^#mesondefine[[:space:]]\\+PACKAGE_INIT\\>.*|#define PACKAGE_INIT \\nget_filename_component(PACKAGE_PREFIX_DIR \"${CMAKE_CURRENT_LIST_DIR}/../../..\" ABSOLUTE)\\n\\nmacro(set_and_check _var _file)\\n  set(${_var} \"${_file}\")\\n  if(NOT EXISTS \"${_file}\")\\n    message(FATAL_ERROR \"File or directory ${_file} referenced by variable ${_var} does not exist !\")\\n  endif()\\nendmacro()\\n\\nmacro(check_required_components _NAME)\\n  foreach(comp ${${_NAME}_FIND_COMPONENTS})\\n    if(NOT ${_NAME}_${comp}_FOUND)\\n      if(${_NAME}_FIND_REQUIRED_${comp})\\n        set(${_NAME}_FOUND FALSE)\\n      endif()\\n    endif()\\n  endforeach()\\nendmacro()\\n|' '-es|^#mesondefine[[:space:]]\\+PACKAGE_CMAKE_INSTALL_INCLUDEDIR\\>.*|#define PACKAGE_CMAKE_INSTALL_INCLUDEDIR ${PACKAGE_PREFIX_DIR}/include|' '-es|^#mesondefine[[:space:]]\\+PACKAGE_CMAKE_INSTALL_LIBDIR\\>.*|#define PACKAGE_CMAKE_INSTALL_LIBDIR ${PACKAGE_PREFIX_DIR}/lib|' '-es|^#mesondefine[[:space:]]\\+PACKAGE_INCLUDE_INSTALL_DIR\\>.*|#define PACKAGE_INCLUDE_INSTALL_DIR ${PACKAGE_PREFIX_DIR}/include/harfbuzz|' '-es|^#mesondefine[[:space:]]\\+HARFBUZZ_VERSION\\>.*|#define HARFBUZZ_VERSION 13.0.1|' '-es|^#mesondefine[[:space:]]\\+HB_HAVE_GOBJECT\\>.*|#define HB_HAVE_GOBJECT YES|' '-es|^#mesondefine[[:space:]]\\+HB_LIBRARY_TYPE\\>.*|#define HB_LIBRARY_TYPE SHARED|' '-es|^#mesondefine[[:space:]]\\+HB_LIB_PREFIX\\>.*|#define HB_LIB_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX}|' '-es|^#mesondefine[[:space:]]\\+HB_LIB_SUFFIX\\>.*|#define HB_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}.0.61301.0|'" + " $(location :harfbuzz[src/harfbuzz-config.cmake.in]) > $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "hb-gobject-enums-tmp.h.tmpl",
+    out = "hb-gobject-enums-tmp.h.tmpl",
+    cmd = "sed" + " -e ''" + " $(location :harfbuzz[src/hb-gobject-enums.h.tmpl]) > $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "hb-gobject-enums-tmp.cc.tmpl",
+    out = "hb-gobject-enums-tmp.cc.tmpl",
+    cmd = "sed" + " -e ''" + " $(location :harfbuzz[src/hb-gobject-enums.cc.tmpl]) > $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "hb-gobject-enums-tmp.cc",
+    out = "hb-gobject-enums-tmp.cc",
+    cmd = " $(exe //third-party/tools:glib-mkenums) '--identifier-prefix' 'hb_' '--symbol-prefix' 'hb_gobject' '--template' $(location :hb-gobject-enums-tmp.cc.tmpl) $(location :harfbuzz[src/hb-aat-layout.h]) $(location :harfbuzz[src/hb-aat.h]) $(location :harfbuzz[src/hb-blob.h]) $(location :harfbuzz[src/hb-buffer.h]) $(location :harfbuzz[src/hb-common.h]) $(location :harfbuzz[src/hb-cplusplus.hh]) $(location :harfbuzz[src/hb-deprecated.h]) $(location :harfbuzz[src/hb-draw.h]) $(location :harfbuzz[src/hb-paint.h]) $(location :harfbuzz[src/hb-face.h]) $(location :harfbuzz[src/hb-font.h]) $(location :harfbuzz[src/hb-map.h]) $(location :harfbuzz[src/hb-ot-color.h]) $(location :harfbuzz[src/hb-ot-deprecated.h]) $(location :harfbuzz[src/hb-ot-font.h]) $(location :harfbuzz[src/hb-ot-layout.h]) $(location :harfbuzz[src/hb-ot-math.h]) $(location :harfbuzz[src/hb-ot-meta.h]) $(location :harfbuzz[src/hb-ot-metrics.h]) $(location :harfbuzz[src/hb-ot-name.h]) $(location :harfbuzz[src/hb-ot-shape.h]) $(location :harfbuzz[src/hb-ot-var.h]) $(location :harfbuzz[src/hb-ot.h]) $(location :harfbuzz[src/hb-script-list.h]) $(location :harfbuzz[src/hb-set.h]) $(location :harfbuzz[src/hb-shape-plan.h]) $(location :harfbuzz[src/hb-shape.h]) $(location :harfbuzz[src/hb-style.h]) $(location :harfbuzz[src/hb-unicode.h]) $(location :harfbuzz[src/hb.h]) $(location :hb-version.h) $(location :harfbuzz[src/hb-ft.h]) $(location :harfbuzz[src/hb-glib.h]) $(location :harfbuzz[src/hb-graphite2.h])" + " > $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "hb-gobject-enums-tmp.h",
+    out = "hb-gobject-enums-tmp.h",
+    cmd = " $(exe //third-party/tools:glib-mkenums) '--identifier-prefix' 'hb_' '--symbol-prefix' 'hb_gobject' '--template' $(location :hb-gobject-enums-tmp.h.tmpl) $(location :harfbuzz[src/hb-aat-layout.h]) $(location :harfbuzz[src/hb-aat.h]) $(location :harfbuzz[src/hb-blob.h]) $(location :harfbuzz[src/hb-buffer.h]) $(location :harfbuzz[src/hb-common.h]) $(location :harfbuzz[src/hb-cplusplus.hh]) $(location :harfbuzz[src/hb-deprecated.h]) $(location :harfbuzz[src/hb-draw.h]) $(location :harfbuzz[src/hb-paint.h]) $(location :harfbuzz[src/hb-face.h]) $(location :harfbuzz[src/hb-font.h]) $(location :harfbuzz[src/hb-map.h]) $(location :harfbuzz[src/hb-ot-color.h]) $(location :harfbuzz[src/hb-ot-deprecated.h]) $(location :harfbuzz[src/hb-ot-font.h]) $(location :harfbuzz[src/hb-ot-layout.h]) $(location :harfbuzz[src/hb-ot-math.h]) $(location :harfbuzz[src/hb-ot-meta.h]) $(location :harfbuzz[src/hb-ot-metrics.h]) $(location :harfbuzz[src/hb-ot-name.h]) $(location :harfbuzz[src/hb-ot-shape.h]) $(location :harfbuzz[src/hb-ot-var.h]) $(location :harfbuzz[src/hb-ot.h]) $(location :harfbuzz[src/hb-script-list.h]) $(location :harfbuzz[src/hb-set.h]) $(location :harfbuzz[src/hb-shape-plan.h]) $(location :harfbuzz[src/hb-shape.h]) $(location :harfbuzz[src/hb-style.h]) $(location :harfbuzz[src/hb-unicode.h]) $(location :harfbuzz[src/hb.h]) $(location :hb-version.h) $(location :harfbuzz[src/hb-ft.h]) $(location :harfbuzz[src/hb-glib.h]) $(location :harfbuzz[src/hb-graphite2.h])" + " > $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "hb-gobject-enums.cc",
+    out = "hb-gobject-enums.cc",
+    cmd = " python3 $(location :harfbuzz[src/fix_get_types.py]) $(location :hb-gobject-enums-tmp.cc) $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "hb-gobject-enums.h",
+    out = "hb-gobject-enums.h",
+    cmd = " python3 $(location :harfbuzz[src/fix_get_types.py]) $(location :hb-gobject-enums-tmp.h) $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "harfbuzz-gobject.def",
+    out = "harfbuzz-gobject.def",
+    cmd = " python3 $(location :harfbuzz[src/gen-def.py]) $OUT $(location :harfbuzz[src/hb-gobject.h]) $(location :harfbuzz[src/hb-gobject-structs.h]) $(location :hb-gobject-enums.h)",
+    visibility = ["PUBLIC"],
+)
+
+cxx_library(
+    name = "harfbuzz-gobject",
+    srcs = [
+        ":harfbuzz[src/hb-gobject-structs.cc]",
+        ":hb-gobject-enums.cc",
+        ":hb-gobject-enums.cc",
+    ],
+    exported_headers = {
+        "src/hb-gobject-enums.h": ":hb-gobject-enums.h",
+        "hb-gobject-enums.h": ":hb-gobject-enums.h",
+        "src/hb-version.h": ":hb-version.h",
+        "hb-version.h": ":hb-version.h",
+        "src/hb-features.h": ":hb-features.h",
+        "hb-features.h": ":hb-features.h",
+        "src/hb-supported-features.h": ":hb-supported-features.h",
+        "hb-supported-features.h": ":hb-supported-features.h",
+        "src/hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+        "hb-gobject-enums-tmp.h": ":hb-gobject-enums-tmp.h",
+        "config.h": ":config.h",
+    },
+    headers = _headers,
+    header_namespace = "",
+    exported_preprocessor_flags = _cppflags,
+    compiler_flags = _cflags,
+    linker_flags = ["-Bsymbolic-functions"],
+    deps = [
+        ":harfbuzz-2",
+        "//third-party/meson/glib:glib-dep-3",
+        "//third-party/meson/glib:glib-dep-5",
+    ],
+    preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+# meson: harfbuzz-dep
+cxx_library(
+    name = "harfbuzz-dep-6",
+    exported_headers = _headers2,
+    headers = _headers3,
+    header_namespace = "",
+    exported_deps = [
+        ":harfbuzz-gobject",
+        "//third-party/meson/glib:glib-dep-3",
+        "//third-party/meson/glib:glib-dep-5",
+    ],
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define HAVE_GRAPHITE2 1' '#define HAVE_FREETYPE 1' '#define HAVE_FT_GET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_SET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_FT_GET_TRANSFORM 1' '#define HAVE_PTHREAD 1' '#define HAVE_STDBOOL_H 1'" + select({
+    cmd = "printf '%s\\n'" + " '#define HAVE_GLIB 1' '#define HAVE_GOBJECT 1' '#define HAVE_CAIRO 1' '#define HAVE_CAIRO_USER_FONT_FACE_SET_RENDER_COLOR_GLYPH_FUNC 1' '#define HAVE_CAIRO_FONT_OPTIONS_GET_CUSTOM_PALETTE_COLOR 1' '#define HAVE_CAIRO_USER_SCALED_FONT_GET_FOREGROUND_SOURCE 1' '#define HAVE_GRAPHITE2 1' '#define HAVE_FREETYPE 1' '#define HAVE_FT_GET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_SET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_FT_GET_TRANSFORM 1' '#define HAVE_PTHREAD 1' '#define HAVE_STDBOOL_H 1'" + select({
+        "//third-party/meson/constraints:cairo_ft[true]": " '#define HAVE_CAIRO_FT 1'",
+        "//third-party/meson/constraints:cairo_ft[false]": "",
+    }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
             "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",

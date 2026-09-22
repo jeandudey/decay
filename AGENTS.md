@@ -334,9 +334,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `dependency('freetype2', ..., default_options: ['harfbuzz=disabled'])` is
   how upstream avoids the cycle, and decay resolves that sibling dependency
   against freetype2 as already configured rather than re-running it),
-  `harfbuzz` (+ its bundled `harfbuzz-subset`; freetype2 and graphite2
-  shaper support wired in since both were already imported, `glib`/
-  `gobject`/`cairo`/`chafa`/`icu` integration and its `utilities` still off).
+  `harfbuzz` (+ its bundled `harfbuzz-subset`; freetype2, graphite2, glib/
+  gobject, and cairo (`harfbuzz-cairo`) integration all wired in since every
+  one was already imported — `chafa`/`icu` stay off since nothing here
+  provides either, and its `utilities` CLI tools stay off as out of scope).
   Still needed, in roughly the order a next attempt should reach for them:
   - `fontconfig` — imported (`example/third-party/meson/fontconfig/`),
     `buck2 build`s end to end. Not yet wired into `cairo`'s

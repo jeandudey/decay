@@ -445,20 +445,25 @@ depends = ["zlib", "bzip2", "libpng", "google-brotli"]
 
 [[project]]
 wrap = "harfbuzz"
-# freetype2 and graphite2 are already imported, so their optional shaper/font
-# backends resolve directly by name via `meson.override_dependency()`
-# (freetype2, harfbuzz-subset's own graphite2 dependency). Everything else
-# optional (glib, gobject, cairo, chafa, icu, fontations/harfrust/kbts, and
-# the Windows/Apple-only backends) is pinned off rather than left as an open
-# knob -- not needed by anything importing harfbuzz yet, and some of them
-# reach code decay cannot model at all if left open: `kbts` pulls in
+# freetype2, graphite2, glib, and cairo are all already imported, so every
+# optional backend one of them provides resolves directly by name via
+# `meson.override_dependency()`/`pkg.generate()` -- the same mechanism
+# google-brotli's `libbrotlidec` exercised: freetype2 and graphite2 shaper
+# support, glib/gobject unicode callbacks, and the `harfbuzz-cairo` drawing
+# backend (cairo's own `dependency('cairo', required: false)` probe finds
+# our sibling cairo before it would ever fall back to a hard
+# `required: get_option('cairo'))`, so `cairo-ft` -- which our cairo project
+# doesn't provide, since its own freetype backend is still off -- is never
+# required). chafa and icu stay off: nothing here imports either, so they'd
+# just be empty stubs. `fontations`/`harfrust`/`kbts` and the Windows/Apple-only
+# backends are pinned off rather than left as an open knob, since some of
+# them reach code decay cannot model at all if left open: `kbts` pulls in
 # `subproject('kbts').get_variable(...)` for a subproject nothing here
-# imports, `fontations`/`harfrust` add a `rust` language. `utilities` has to
-# stay off with gobject off too: hb-info's own `util/meson.build` references
-# `libharfbuzz_gobject_dep` unconditionally, which upstream only ever defines
-# inside the `HAVE_GOBJECT` branch.
-options = { freetype = "enabled", graphite2 = "enabled", graphite = "disabled", glib = "disabled", gobject = "disabled", cairo = "disabled", chafa = "disabled", icu = "disabled", icu_builtin = false, fontations = "disabled", gdi = "disabled", directwrite = "disabled", coretext = "disabled", harfrust = "disabled", kbts = "disabled", wasm = "disabled", raster = "enabled", vector = "enabled", subset = "enabled", introspection = "disabled", docs = "disabled", doc_tests = false, tests = "disabled", utilities = "disabled", benchmark = "disabled", with_libstdcxx = false, experimental_api = false, ragel_subproject = false }
-depends = ["freetype2", "graphite2"]
+# imports, `fontations`/`harfrust` add a `rust` language. `utilities` (the
+# hb-view/hb-shape/hb-info CLI tools) stays off too -- out of scope for a
+# library dependency, not needed by anything importing harfbuzz yet.
+options = { freetype = "enabled", graphite2 = "enabled", graphite = "disabled", glib = "enabled", gobject = "enabled", cairo = "enabled", chafa = "disabled", icu = "disabled", icu_builtin = false, fontations = "disabled", gdi = "disabled", directwrite = "disabled", coretext = "disabled", harfrust = "disabled", kbts = "disabled", wasm = "disabled", raster = "enabled", vector = "enabled", subset = "enabled", introspection = "disabled", docs = "disabled", doc_tests = false, tests = "disabled", utilities = "disabled", benchmark = "disabled", with_libstdcxx = false, experimental_api = false, ragel_subproject = false }
+depends = ["freetype2", "graphite2", "glib", "cairo"]
 
 [[project]]
 wrap = "pixman"
