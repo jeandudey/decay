@@ -330,32 +330,23 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `fontconfig` backends), `freetype2` (zlib support only — `brotli`/`bzip2`/
   `harfbuzz`/`png` off, none of those imported yet). Still needed, in
   roughly the order a next attempt should reach for them:
-  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`);
-    `fcobjshash.h` builds (real `cc.preprocess()`, see above), and
-    `fontconfig`/`fontconfig-dep` now see their real `dependencies:`/
-    `link_with:` (`library(..., kwargs: a_dict)` — how fontconfig's own
-    `library()` call actually passes them — is now read like any other
-    keyword argument). A `declare_dependency()` interface also now exports a
-    project-generated header under the checked-in path a consumer expects
-    even when that differs from where the `custom_target()` regenerating it
-    actually runs (`freetype2-dep`'s `ftconfig.h`/`ftoption.h`/`ftmodule.h` —
-    see `shadow_target`/`exported_source` in `decay_buck2`). `raw_include_roots`
-    detection now also scans a target's compiled *sources*, not just its
-    *headers*, for a `..`-relative quoted include (glib's `gobject-2.0` and
-    pcre2 both turn out to need this too — no regression, just previously
-    undetected). Still short of a full `buck2 build`: `fontconfig`'s own
-    `fcstr.c` does `#include "../fc-case/fccase.h"` — `fccase.h` is not a
-    checked-in file `raw_include_roots`'s real `-I` compile can reach (only
-    `fccase.tmpl.h`, its template, is), it is a `custom_target()` output that
-    lives in a completely different buck-out location than the fetched
-    checkout `-I` points into. Meson satisfies this via its own build-dir
-    mirror (a generated file always lands where its logical source position
-    says, alongside real checked-in siblings); buck2 has no equivalent for a
-    `cxx_library`'s `srcs` — unlike a `genrule` (`preprocess_cmd`'s own
-    `_pp_include` scratch-copy trick), there is no hook to stage a file
-    before compiling. Needs its own design, not a small follow-up. Not yet
-    wired into `cairo`'s `xlib`/`freetype`/`fontconfig`
-    options or pango's FreeType backend.
+  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`).
+    A source's `#include "../x"` reaching a *generated* file (not a checked-in
+    one) — `fcstr.c`'s `#include "../fc-case/fccase.h"`, a `custom_target()`
+    output with no on-disk file for `raw_include_roots`'s real `-I` compile to
+    walk `..` into — is staged by a small per-target `genrule`
+    (`dotdot_shadow_entries`/`render_dotdot_shadow` in `decay_buck2`): an
+    anchor directory at the including file's own directory, and a copy of the
+    generated header at the logical path its `..` walk resolves to, added as
+    an extra `-I`. Two unrelated gaps still block a full `buck2 build`:
+    `fcxml.c`'s `#include <libxml/xmlversion.h>` doesn't resolve through
+    `libxml2-dep`'s `exported_headers` from fontconfig as a consumer (the
+    same header exports fine within libxml2's own project — a cross-project
+    scoping bug, not yet diagnosed); and `fcstat.c` assumes
+    `struct statvfs.f_basetype` (BSD/Solaris-only — glibc has no such member,
+    only `f_type`), a wrong-default probe of the same shape as
+    `HAVE_FUTEX_TIME64` below. Not yet wired into `cairo`'s
+    `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via

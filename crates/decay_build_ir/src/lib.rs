@@ -245,6 +245,15 @@ pub struct Attrs {
     /// the on-disk layout such an include walks out of, so the target is
     /// compiled against real `-I` roots into the fetched source tree instead.
     pub raw_include_roots: bool,
+    /// Each `raw_include_roots`-triggering `#include "../x"` found: the
+    /// including file's own directory, and the literal include string.
+    /// Resolved at render time against the graph's generated targets, once
+    /// every target exists to search — a `..` walk can land on a
+    /// `custom_target()` output with no on-disk file at all (fontconfig's
+    /// `fcstr.c` reaching `fc-case/fccase.h`), which no real `-I` root into
+    /// the fetched tree can ever satisfy the same way a checked-in sibling
+    /// can.
+    pub dotdot_includes: Vec<(PathBuf, String)>,
     pub compile_args: Variational<Flag>,
     pub link_args: Variational<Flag>,
     pub deps: Variational<TargetId>,

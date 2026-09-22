@@ -512,14 +512,6 @@ _headers2 = {
     "config.h": ":config.h",
     "config-fixups.h": ":fontconfig.git[config-fixups.h]",
 }
-_cppflags = [
-    "-I$(location :fontconfig.git)",
-    "-I$(location :fontconfig.git[fc-lang])",
-    "-I$(location :fontconfig.git[fc-case])",
-    "-I$(location :fontconfig.git[fc-const])",
-    "-I$(location :fontconfig.git[fc-genericfamily])",
-    "-I$(location :fontconfig.git[src])",
-]
 _deps_os_cpu = [
     ":patternlib_internal",
     "//third-party/meson/freetype2:freetype2-dep",
@@ -871,16 +863,37 @@ cxx_binary(
     visibility = ["PUBLIC"],
 )
 
+genrule(
+    name = "fontconfig-dotdot-shadow",
+    out = "shadow",
+    cmd = "mkdir -p $OUT && mkdir -p $OUT/src && mkdir -p $OUT/fc-case && cp $(location :fccase.h) $OUT/fc-case/fccase.h",
+    visibility = ["PUBLIC"],
+)
+
 cxx_library(
     name = "fontconfig",
     srcs = _srcs,
     exported_headers = _headers,
     headers = _headers2,
     header_namespace = "",
-    exported_preprocessor_flags = _cppflags,
+    exported_preprocessor_flags = [
+        "-I$(location :fontconfig.git)",
+        "-I$(location :fontconfig.git[fc-lang])",
+        "-I$(location :fontconfig.git[fc-case])",
+        "-I$(location :fontconfig.git[fc-const])",
+        "-I$(location :fontconfig.git[fc-genericfamily])",
+        "-I$(location :fontconfig.git[src])",
+    ] + ["-I$(location :fontconfig-dotdot-shadow)/src"],
     compiler_flags = ["-DHAVE_CONFIG_H"],
     deps = _deps_os_cpu,
     preferred_linkage = "shared",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
+    name = "fontconfig-2-dotdot-shadow",
+    out = "shadow",
+    cmd = "mkdir -p $OUT && mkdir -p $OUT/src && mkdir -p $OUT/fc-case && cp $(location :fccase.h) $OUT/fc-case/fccase.h",
     visibility = ["PUBLIC"],
 )
 
@@ -891,7 +904,14 @@ cxx_library(
     exported_headers = _headers,
     headers = _headers2,
     header_namespace = "",
-    exported_preprocessor_flags = _cppflags,
+    exported_preprocessor_flags = [
+        "-I$(location :fontconfig.git)",
+        "-I$(location :fontconfig.git[fc-lang])",
+        "-I$(location :fontconfig.git[fc-case])",
+        "-I$(location :fontconfig.git[fc-const])",
+        "-I$(location :fontconfig.git[fc-genericfamily])",
+        "-I$(location :fontconfig.git[src])",
+    ] + ["-I$(location :fontconfig-2-dotdot-shadow)/src"],
     compiler_flags = ["-DHAVE_CONFIG_H"],
     deps = _deps_os_cpu,
     preferred_linkage = "static",

@@ -610,18 +610,28 @@ impl<'a, S: Solver> Interp<'a, S> {
         // relies on the real on-disk layout between files, which the flat
         // symlink tree decay stages cannot reproduce (the `..` walks out of
         // it). Mark the target so the backend compiles it against real `-I`
-        // roots into the fetched tree. ponytail: any `..` trips this; no
-        // finer analysis needed — such an include is already unrepresentable
-        // in the flat tree.
-        let raw_include_roots = headers.variants().iter().chain(srcs.variants()).any(|h| {
+        // roots into the fetched tree, and record each such include (with
+        // the including file's own directory) so the backend can also stage
+        // a small shadow root for the case where the walk lands on a
+        // generated file, not a checked-in one. ponytail: any `..` trips
+        // this; no finer analysis needed — such an include is already
+        // unrepresentable in the flat tree.
+        let mut dotdot_includes: Vec<(PathBuf, String)> = Vec::new();
+        for h in headers.variants().iter().chain(srcs.variants()) {
             let Source::File(p) = &h.value else {
-                return false;
+                continue;
             };
-            self.sources
-                .read(&self.root.join(p))
-                .map(|t| quoted_includes(&t).any(|inc| inc.contains("..")))
-                .unwrap_or(false)
-        });
+            let Ok(text) = self.sources.read(&self.root.join(p)) else {
+                continue;
+            };
+            let dir = p.parent().map(Path::to_path_buf).unwrap_or_default();
+            for inc in quoted_includes(&text) {
+                if inc.contains("..") {
+                    dotdot_includes.push((dir.clone(), inc.to_owned()));
+                }
+            }
+        }
+        let raw_include_roots = !dotdot_includes.is_empty();
 
         let mut link_args = Variational::empty();
         if let Some(v) = args.get("link_args") {
@@ -636,6 +646,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.headers = headers;
         target.attrs.sibling_headers = sibling_headers;
         target.attrs.raw_include_roots = raw_include_roots;
+        target.attrs.dotdot_includes = dotdot_includes;
         target.attrs.deps = deps;
         target.attrs.link_with = link_with;
         target.attrs.include_dirs = include_dirs;

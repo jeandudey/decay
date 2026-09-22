@@ -423,6 +423,14 @@ fn build_file<S: Solver>(
         if matches!(&rendered, Rendered::Raw(text) if text.is_empty()) {
             continue;
         }
+        let shadow_entries = dotdot_shadow_entries(logic, graph, target);
+        if !shadow_entries.is_empty() {
+            rules.push(Rendered::Raw(render_dotdot_shadow(
+                graph,
+                target,
+                &shadow_entries,
+            )));
+        }
         rules.push(rendered);
     }
 
@@ -1024,9 +1032,31 @@ fn render_target<S: Solver>(
                     .cloned()
                     .map(|(c, p)| Variant::new(c, p))
                     .collect();
-                let flags = selects.render_list(logic, &root_list, cond, 1, |r| {
+                let mut flags = selects.render_list(logic, &root_list, cond, 1, |r| {
                     format!("\"-I{}\"", root_location(graph, r))
                 });
+
+                // A real `-I` root above still cannot reach a `..` include
+                // that lands on a generated (not checked-in) file — add the
+                // small shadow `genrule` stages for those, one `-I` per
+                // distinct including directory. Unconditional, like
+                // `dotdot_includes` itself.
+                let shadow_entries = dotdot_shadow_entries(logic, graph, target);
+                if !shadow_entries.is_empty() {
+                    let label = dotdot_shadow_label(target);
+                    let mut parents: Vec<&Path> = Vec::new();
+                    for (parent, _, _, _) in &shadow_entries {
+                        if !parents.contains(&parent.as_path()) {
+                            parents.push(parent);
+                        }
+                    }
+                    let extra = parents
+                        .iter()
+                        .map(|p| format!("\"-I$(location :{label})/{}\"", p.display()))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    flags = format!("{flags} + [{extra}]");
+                }
                 attrs.push((key, flags));
             }
 
@@ -1754,6 +1784,113 @@ fn depends_on(graph: &Graph, from: TargetId, to: TargetId) -> bool {
 /// Whether a target turns into a rule a dependent can name.
 fn has_rule(target: &Target) -> bool {
     !matches!(target.kind, Kind::External(External::Program { .. }))
+}
+
+/// Collapse a relative path's own `.`/`..` components lexically (`src/../
+/// fc-case` -> `fc-case`), the way a shell or the compiler's own literal
+/// path concatenation would, without touching the filesystem.
+fn normalize_relative(path: &Path) -> PathBuf {
+    let mut out: Vec<std::path::Component> = Vec::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            std::path::Component::CurDir => {}
+            other => out.push(other),
+        }
+    }
+    out.into_iter().collect()
+}
+
+/// The name of the small directory-shaped `genrule` [`render_dotdot_shadow`]
+/// emits for a target with a non-empty [`decay_build_ir::Attrs::dotdot_includes`].
+fn dotdot_shadow_label(target: &Target) -> String {
+    format!("{}-dotdot-shadow", target.name)
+}
+
+/// Each of a target's [`decay_build_ir::Attrs::dotdot_includes`] resolved
+/// against a generated header target whose package + output exactly matches
+/// the `..`-walked logical path: `(the including file's own directory, the
+/// resolved logical path, the generating target, its output index)`.
+///
+/// A `..` include a checked-in file elsewhere already answers (`roots`'s own
+/// real `-I` flags) or that resolves to nothing decay's graph produces is
+/// left alone — this only fires for the specific case real `-I` roots into
+/// the fetched tree cannot reach on their own: a walk that lands on a
+/// `custom_target()`/`configure_file()` output, which has no file in the
+/// checkout for a `..` to find. Deduplicated by the resolved logical path,
+/// since two sources reaching the same generated header only need it staged
+/// once.
+fn dotdot_shadow_entries<S: Solver>(
+    logic: &mut Logic<S>,
+    graph: &Graph,
+    target: &Target,
+) -> Vec<(PathBuf, PathBuf, TargetId, usize)> {
+    let cond = target.cond;
+    let mut out: Vec<(PathBuf, PathBuf, TargetId, usize)> = Vec::new();
+    for (parent, inc) in &target.attrs.dotdot_includes {
+        let logical = normalize_relative(&parent.join(inc));
+        if out.iter().any(|(_, l, _, _)| *l == logical) {
+            continue;
+        }
+        let found = graph.targets.iter().find_map(|t| {
+            if !is_config_header(t)
+                || !logic.entails(cond, t.cond)
+                || depends_on(graph, t.id, target.id)
+            {
+                return None;
+            }
+            let index = t
+                .attrs
+                .outs
+                .iter()
+                .position(|o| t.package.join(o) == logical)?;
+            Some((t.id, index))
+        });
+        if let Some((id, index)) = found {
+            out.push((parent.clone(), logical, id, index));
+        }
+    }
+    out
+}
+
+/// The `genrule` that stages [`dotdot_shadow_entries`] for one target: a
+/// small directory holding an (empty) anchor at each including file's own
+/// directory and a copy of each generated header at the logical path its
+/// `..` include walks to, so the real `..` string concatenation a compiler's
+/// quote-include search performs lands on a real file. The same trick
+/// `preprocess_cmd`'s own `_pp_include` scratch copy uses, as its own rule —
+/// a `cxx_library`'s sources compile through buck2's own C++ rule, not a
+/// shell script this crate writes, so there is no single `cmd` to stage them
+/// inline the way a `genrule`-backed preprocess can.
+fn render_dotdot_shadow(
+    graph: &Graph,
+    target: &Target,
+    entries: &[(PathBuf, PathBuf, TargetId, usize)],
+) -> String {
+    let mut cmd = String::from("mkdir -p $OUT");
+    let mut parents: Vec<&Path> = Vec::new();
+    for (parent, logical, id, index) in entries {
+        if !parents.contains(&parent.as_path()) {
+            let _ = write!(cmd, " && mkdir -p $OUT/{}", parent.display());
+            parents.push(parent);
+        }
+        if let Some(dir) = logical.parent().filter(|p| !p.as_os_str().is_empty()) {
+            let _ = write!(cmd, " && mkdir -p $OUT/{}", dir.display());
+        }
+        let _ = write!(
+            cmd,
+            " && cp $(location :{}) $OUT/{}",
+            generated_label(graph, *id, *index),
+            logical.display()
+        );
+    }
+    format!(
+        "genrule(\n    name = {:?},\n    out = \"shadow\",\n    cmd = {:?},\n    visibility = [\"PUBLIC\"],\n)\n",
+        dotdot_shadow_label(target),
+        cmd,
+    )
 }
 
 fn source(graph: &Graph, source: &Source) -> String {
