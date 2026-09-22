@@ -305,14 +305,6 @@ genrule(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("libpng") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.libpng = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "libpng",
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency("libbrotlidec") — resolved by pkg-config
 # Empty stub: map it to a real target with `dependencies.libbrotlidec = "//some:target"`
 # in decay.toml, or edit it here.
@@ -324,7 +316,7 @@ cxx_library(
 genrule(
     name = "ftoption.h",
     out = "ftoption.h",
-    cmd = " $(exe //third-party/tools:python3) $(location :freetype2[builds/meson/process_ftoption_h.py]) $(location :freetype2[include/freetype/config/ftoption.h]) '--output='$OUT '--enable=FT_CONFIG_OPTION_USE_ZLIB' '--enable=FT_CONFIG_OPTION_SYSTEM_ZLIB' '--enable=FT_CONFIG_OPTION_USE_BZIP2' '--enable=FT_CONFIG_OPTION_ERROR_STRINGS'",
+    cmd = " $(exe //third-party/tools:python3) $(location :freetype2[builds/meson/process_ftoption_h.py]) $(location :freetype2[include/freetype/config/ftoption.h]) '--output='$OUT '--enable=FT_CONFIG_OPTION_USE_ZLIB' '--enable=FT_CONFIG_OPTION_SYSTEM_ZLIB' '--enable=FT_CONFIG_OPTION_USE_BZIP2' '--enable=FT_CONFIG_OPTION_USE_PNG' '--enable=FT_CONFIG_OPTION_ERROR_STRINGS'",
     visibility = ["PUBLIC"],
 )
 
@@ -1815,6 +1807,7 @@ cxx_library(
     deps = [
         "//third-party/meson/zlib:zlib-dep",
         "//third-party/meson/bzip2:bzip2-dep",
+        "//third-party/meson/libpng:libpng-dep",
     ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],

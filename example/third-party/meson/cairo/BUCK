@@ -507,14 +507,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("libpng") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.libpng = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "libpng",
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency("xcb") — resolved by pkg-config
 # Empty stub: map it to a real target with `dependencies.xcb = "//some:target"`
 # in decay.toml, or edit it here.

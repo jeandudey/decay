@@ -294,15 +294,15 @@ _deps_glib_2_0_openmp_compiler = [
         "//third-party/meson/pixman/constraints:libpng[disabled]": [],
         "DEFAULT": select({
             "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": [":libpng16"],
+            "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
         }),
     }),
     "//third-party/meson/constraints:libpng16[false]": [],
 }) + select({
     "//third-party/meson/constraints:libpng[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[enabled]": [":libpng"],
+        "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
         "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "//third-party/meson/pixman/constraints:libpng[auto]": [":libpng"],
+        "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
     }),
     "//third-party/meson/constraints:libpng[false]": [],
 })
@@ -950,15 +950,15 @@ _deps_pthreadVCE2_os_cpu = [
         "//third-party/meson/pixman/constraints:libpng[disabled]": [],
         "DEFAULT": select({
             "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": [":libpng16"],
+            "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
         }),
     }),
     "//third-party/meson/constraints:libpng16[false]": [],
 }) + select({
     "//third-party/meson/constraints:libpng[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[enabled]": [":libpng"],
+        "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
         "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "//third-party/meson/pixman/constraints:libpng[auto]": [":libpng"],
+        "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
     }),
     "//third-party/meson/constraints:libpng[false]": [],
 })
@@ -995,23 +995,6 @@ cxx_library(
 # in decay.toml, or edit it here.
 cxx_library(
     name = "gtk_-3.0",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("libpng") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.libpng = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "libpng",
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("libpng16")
-cxx_library(
-    name = "libpng16",
-    exported_linker_flags = [
-        "-llibpng16",
-    ],
     visibility = ["PUBLIC"],
 )
 
@@ -2760,15 +2743,15 @@ cxx_library(
             "//third-party/meson/pixman/constraints:libpng[disabled]": [],
             "DEFAULT": select({
                 "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": [":libpng16"],
+                "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
             }),
         }),
         "//third-party/meson/constraints:libpng16[false]": [],
     }) + select({
         "//third-party/meson/constraints:libpng[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[enabled]": [":libpng"],
+            "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
             "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "//third-party/meson/pixman/constraints:libpng[auto]": [":libpng"],
+            "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
         }),
         "//third-party/meson/constraints:libpng[false]": [],
     }),
@@ -2920,15 +2903,15 @@ cxx_library(
             "//third-party/meson/pixman/constraints:libpng[disabled]": [],
             "DEFAULT": select({
                 "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": [":libpng16"],
+                "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
             }),
         }),
         "//third-party/meson/constraints:libpng16[false]": [],
     }) + select({
         "//third-party/meson/constraints:libpng[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[enabled]": [":libpng"],
+            "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
             "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "//third-party/meson/pixman/constraints:libpng[auto]": [":libpng"],
+            "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
         }),
         "//third-party/meson/constraints:libpng[false]": [],
     }) + select({
@@ -3758,15 +3741,15 @@ cxx_binary(
             "//third-party/meson/pixman/constraints:libpng[disabled]": [],
             "DEFAULT": select({
                 "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": [":libpng16"],
+                "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
             }),
         }),
         "//third-party/meson/constraints:libpng16[false]": [],
     }) + select({
         "//third-party/meson/constraints:libpng[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[enabled]": [":libpng"],
+            "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
             "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "//third-party/meson/pixman/constraints:libpng[auto]": [":libpng"],
+            "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
         }),
         "//third-party/meson/constraints:libpng[false]": [],
     }),

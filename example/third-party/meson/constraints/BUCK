@@ -888,14 +888,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:libpng`: `libpng` is available
-constraint(
-    name = "libpng",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:test for ASM leading underscore`: `test for ASM leading underscore` is available to the c compiler
 constraint(
     name = "links_test_for_ASM_leading_underscore",
@@ -923,6 +915,14 @@ constraint(
 # external dependency `dep:glib-2.0`: `glib-2.0` is available
 constraint(
     name = "glib_2_0",
+    values = ["true", "false"],
+    default = "false",
+    visibility = ["PUBLIC"],
+)
+
+# external dependency `dep:libpng`: `libpng` is available
+constraint(
+    name = "libpng",
     values = ["true", "false"],
     default = "false",
     visibility = ["PUBLIC"],
