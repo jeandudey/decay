@@ -744,6 +744,91 @@ impl<'a, S: Solver> Interp<'a, S> {
         Ok(self.pure(Value::Obj(Obj::Target(id))))
     }
 
+    /// `cc.preprocess(*sources, output:, include_directories:, ...)`. A real
+    /// genrule runs one command line, so only the common case of a single,
+    /// unconditional source gets a real translation — `output:`'s template
+    /// (default `@PLAINNAME@`) named by a genrule that actually shells out
+    /// to the C preprocessor. Anything wider (several sources, one only
+    /// present in some configurations — libffi's per-arch `foreach`-built
+    /// assembly list under `is_msvc`) falls back to the old passthrough:
+    /// fine where nothing reads the macro-expanded result, wrong where it
+    /// does (fontconfig's `fcobjshash.gperf.h` — AGENTS.md).
+    pub(crate) fn fn_cc_preprocess(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
+        let mut srcs = Variational::empty();
+        let mut single_source = true;
+        for arg in &args.pos {
+            match self.sources(arg) {
+                Ok(s) => srcs.extend(s),
+                Err(_) => single_source = false,
+            }
+        }
+
+        if single_source && let [entry] = srcs.variants() {
+            let source = entry.value.clone();
+
+            let template = match args.get("output") {
+                Some(v) => self.one_string(v)?.to_string(),
+                None => "@PLAINNAME@".to_owned(),
+            };
+            let plainname = self.source_plainname(&source);
+            let out_name = if template.contains("@BASENAME@") {
+                let stem = Path::new(&plainname)
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| plainname.clone());
+                template.replace("@BASENAME@", &stem)
+            } else {
+                template.replace("@PLAINNAME@", &plainname)
+            };
+
+            let dir = self.cur_dir().to_path_buf();
+            let id = self.graph.add(&out_name, &dir, self.pc, Kind::Preprocess);
+
+            let mut include_dirs = Variational::empty();
+            if let Some(v) = args.get("include_directories") {
+                include_dirs.extend(self.include_dirs(v)?);
+            }
+
+            let target = self.graph.target_mut(id);
+            target.attrs.srcs = srcs;
+            target.attrs.outs = vec![out_name];
+            target.attrs.include_dirs = include_dirs;
+            // A real `cc -E` needs `-I` into the actual fetched tree, not
+            // decay's flat symlink dict (which has no notion of a
+            // directory) — the same machinery a checked-in header's `..`
+            // include already turns on for a compiled target.
+            target.attrs.raw_include_roots = true;
+
+            return Ok(self.pure(Value::Obj(Obj::Target(id))));
+        }
+
+        warn!("cc.preprocess() does not preprocess; sources pass through unchanged");
+        let mut items = Vec::new();
+        for arg in &args.pos {
+            items.extend(self.flat(arg));
+        }
+        Ok(self.pure(Value::list(items)))
+    }
+
+    /// The name meson's `@PLAINNAME@`/`@BASENAME@` output template
+    /// substitutes: a source's own file name, checked-in or generated.
+    fn source_plainname(&self, source: &Source) -> String {
+        match source {
+            Source::File(path) => path
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            Source::Generated(id, index) => self
+                .graph
+                .target(*id)
+                .attrs
+                .outs
+                .get(*index)
+                .cloned()
+                .unwrap_or_else(|| self.graph.target(*id).name.clone()),
+        }
+    }
+
     fn fn_configure_file(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
         let output = self
             .opt_string(args, "output")?

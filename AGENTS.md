@@ -302,17 +302,19 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   - A mingw-w64 `.def`-name source for Windows *OS* libs the link probe
     misses (same shape as the glibc `abilists` read).
 
-- **`cc.preprocess()` is a no-op.** `sources` pass through unchanged instead
-  of being run through the real C preprocessor (`methods.rs`'s `"preprocess"`
-  arm, `decay_meson_eval/src/methods.rs`) — fine where nothing reads the
-  macro-expanded output, wrong where a project relies on the expansion
-  itself: fontconfig's `fcobjshash.gperf.h` has `#define FC_OBJECT(...) ...`
-  / `#include "fcobjs.h"` / `#undef` *after* its gperf `%%` marker, which
-  only real preprocessing turns into the keyword lines gperf needs — decay
-  passes the raw directives through, so gperf sees none and refuses ("No
-  keywords in input file!"). Needs a real genrule that shells out to a C
-  preprocessor (`-E`) with the call's `include_directories:` (and probably
-  the zig-cc path a compile probe already uses), not a passthrough.
+- **`cc.preprocess()` only handles a single, unconditional source.** The
+  common case is a real genrule that shells out to the real C preprocessor
+  (`cc -E -P -x c`, plus the call's `include_directories:` and the same
+  generated-header broadcast a compiled target gets for free — `preprocess_cmd`
+  in `decay_buck2`; construction is `fn_cc_preprocess` in
+  `decay_meson_eval/src/builtins.rs`): fontconfig's `fcobjshash.gperf.h`
+  (needs its `#include "fcobjs.h"` actually expanded for gperf to see
+  keywords) and libffi's `libffi.map` (a linker version-script) both build
+  from it now. Several sources, or one only present in some configurations
+  (libffi's per-arch `foreach`-built MSVC assembly list), still fall back to
+  the old passthrough — fine where nothing reads the macro-expanded result,
+  wrong where it does. `compile_args:`/`dependencies:` on the call are not
+  read either.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
   smoke test for decay — currently exercises 10 of wrapdb's ~250+ projects in
@@ -328,12 +330,17 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `fontconfig` backends), `freetype2` (zlib support only — `brotli`/`bzip2`/
   `harfbuzz`/`png` off, none of those imported yet). Still needed, in
   roughly the order a next attempt should reach for them:
-  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`), but
-    the `fontconfig`/`fontconfig-dep` targets don't `buck2 build` yet:
-    `fcobjshash.h` needs real `cc.preprocess()` (see above). Everything else
-    in the package (`alias_headers`/`ft_alias_headers`, `fcgenericfamily.h`,
-    `fccase_h`, ...) builds clean. Not yet wired into `cairo`'s
-    `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
+  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`);
+    `fcobjshash.h` now builds (real `cc.preprocess()`, see above). The
+    `fontconfig`/`fontconfig-dep` targets themselves still don't `buck2
+    build`: `fcint.h` pulls in `<config.h>`, whose *generated* content
+    quote-includes `config-fixups.h` — nothing stages that for the
+    `fontconfig` library the way a checked-in source's own quoted include
+    already is, so the compile fails with `config-fixups.h: No such file or
+    directory` (`patternlib_internal`, a different target in the same
+    package that declares the header directly, is unaffected and builds
+    fine). Not yet wired into `cairo`'s `xlib`/`freetype`/`fontconfig`
+    options or pango's FreeType backend.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via

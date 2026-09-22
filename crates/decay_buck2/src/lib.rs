@@ -776,6 +776,7 @@ fn render_target<S: Solver>(
         }
         Kind::Custom => "genrule",
         Kind::ConfigHeader => "genrule",
+        Kind::Preprocess => "genrule",
         Kind::Executable => "cxx_binary",
         Kind::WindowsResource => "windows_resource",
         _ => "cxx_library",
@@ -811,6 +812,13 @@ fn render_target<S: Solver>(
                 format!("{:?}", a.outs.first().cloned().unwrap_or_default()),
             ));
             attrs.push(("cmd", config_header_cmd(graph, logic, selects, target)));
+        }
+        Kind::Preprocess => {
+            attrs.push((
+                "out",
+                format!("{:?}", a.outs.first().cloned().unwrap_or_default()),
+            ));
+            attrs.push(("cmd", preprocess_cmd(graph, logic, target)));
         }
         Kind::WindowsResource => {
             // ponytail: srcs only. A `.rc` that `#include`s a project header
@@ -986,12 +994,7 @@ fn render_target<S: Solver>(
                     .map(|(c, p)| Variant::new(c, p))
                     .collect();
                 let flags = selects.render_list(logic, &root_list, cond, 1, |r| {
-                    let loc = if r.as_os_str().is_empty() {
-                        format!("$(location :{})", repo_target(graph))
-                    } else {
-                        format!("$(location :{}[{}])", repo_target(graph), r.display())
-                    };
-                    format!("\"-I{loc}\"")
+                    format!("\"-I{}\"", root_location(graph, r))
                 });
                 attrs.push((key, flags));
             }
@@ -1721,6 +1724,27 @@ fn file_arg(graph: &Graph, path: &Path) -> String {
     format!("$(location :{})", source_address(graph, path))
 }
 
+/// A real directory in the project's fetched tree, addressed the way
+/// `git_fetch`/`http_archive`'s `sub_targets` name a checked-in path — an
+/// empty path names the checkout root itself.
+fn root_location(graph: &Graph, root: &Path) -> String {
+    if root.as_os_str().is_empty() {
+        format!("$(location :{})", repo_target(graph))
+    } else {
+        format!("$(location :{}[{}])", repo_target(graph), root.display())
+    }
+}
+
+/// A [`Source`] addressed on a shell command line via `$(location …)`.
+fn source_location(graph: &Graph, source: &Source) -> String {
+    match source {
+        Source::File(path) => file_arg(graph, path),
+        Source::Generated(id, index) => {
+            format!("$(location :{})", generated_label(graph, *id, *index))
+        }
+    }
+}
+
 /// A `compiler_flags`/`exported_linker_flags` entry, as a quoted Starlark
 /// string literal: a plain flag unchanged, or one with a `$(location ...)`
 /// macro spliced into its literal prefix in place of the reference `Flag::File`
@@ -2088,6 +2112,86 @@ fn config_header_cmd<S: Solver>(
     parts.extend(lines);
     parts.push("\" > $OUT\"".to_owned());
     join(&parts)
+}
+
+/// `cc.preprocess()`: run the real C preprocessor over the target's one
+/// source.
+///
+/// Meson mirrors the whole build tree onto a preprocess's include path the
+/// same as any compile, so an angle-bracket `#include` of another target's
+/// generated header (fontconfig's own `fcobjshash.gperf.h` reaching
+/// `<fontconfig/fontconfig.h>`) resolves for free. A genrule has no such
+/// mirror, so this stages the same broadcast a compiled target gets
+/// automatically ([`is_config_header`]) into a private scratch tree first,
+/// `-I`-ed ahead of the call's own `include_directories:`. Only a header
+/// unconditionally present whenever this target is stays in scope — one
+/// that is itself configuration-dependent is left out; nothing in
+/// `example/` needs that yet (AGENTS.md).
+fn preprocess_cmd<S: Solver>(graph: &Graph, logic: &mut Logic<S>, target: &Target) -> String {
+    let a = &target.attrs;
+    let cond = target.cond;
+
+    let Some(input) = a.srcs.variants().first().map(|v| &v.value) else {
+        return format!("{:?}", "true".to_owned());
+    };
+
+    let roots = include_roots(logic, &a.include_dirs, &target.package);
+
+    let headers: Variational<Source> = graph
+        .targets
+        .iter()
+        .filter(|t| is_config_header(t))
+        .filter(|t| logic.entails(cond, t.cond))
+        .filter(|t| !depends_on(graph, t.id, target.id))
+        .map(|t| Variant::new(Pc::TRUE, Source::Generated(t.id, 0)))
+        .collect();
+    let staged: Vec<(String, Source)> = header_aliases(logic, graph, &headers, &roots)
+        .variants()
+        .iter()
+        .filter(|entry| logic.entails(cond, entry.cond))
+        .map(|entry| entry.value.clone())
+        .collect();
+
+    let mut script = String::new();
+    let mut include_flags = String::new();
+    if !staged.is_empty() {
+        script.push_str("mkdir -p _pp_include");
+        for (key, source) in &staged {
+            if let Some(parent) = Path::new(key)
+                .parent()
+                .filter(|p| !p.as_os_str().is_empty())
+            {
+                let _ = write!(script, " && mkdir -p _pp_include/{}", parent.display());
+            }
+            let _ = write!(
+                script,
+                " && cp {} _pp_include/{key}",
+                source_location(graph, source)
+            );
+        }
+        script.push_str(" && ");
+        include_flags.push_str("-I_pp_include ");
+    }
+
+    for (root_cond, root) in &roots {
+        if !logic.entails(cond, *root_cond) {
+            continue;
+        }
+        let _ = write!(include_flags, "-I{} ", root_location(graph, root));
+    }
+
+    let _ = write!(
+        script,
+        // `-x c`: a source named by meson's `output:` template rather than a
+        // real extension (libffi's `libffi.map.in`, a linker version-script
+        // template, not `.c`/`.h`) would otherwise make `cc` guess from the
+        // extension it doesn't recognize and skip preprocessing it as a
+        // linker input instead.
+        "cc -E -P -x c {include_flags}{} -o $OUT",
+        source_location(graph, input)
+    );
+
+    format!("{script:?}")
 }
 
 /// Wrap a line so a shell passes it through untouched.

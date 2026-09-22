@@ -998,6 +998,14 @@ genrule(
     visibility = ["PUBLIC"],
 )
 
+genrule(
+    name = "libffi.map",
+    out = "libffi.map",
+    cmd = "mkdir -p _pp_include && cp $(location :fficonfig.h) _pp_include/fficonfig.h && mkdir -p _pp_include/include && cp $(location :ffi.h) _pp_include/include/ffi.h && cp $(location :ffi.h) _pp_include/ffi.h && cc -E -P -x c -I_pp_include -I$(location :libffi) -I$(location :libffi[include]) -I$(location :libffi[src]) $(location :libffi[libffi.map.in]) -o $OUT",
+    target_compatible_with = ["//third-party/meson/libffi/constraints:ffi_build_versioned[true]"],
+    visibility = ["PUBLIC"],
+)
+
 cxx_library(
     name = "ffi",
     srcs = [
@@ -1187,7 +1195,7 @@ cxx_library(
         "//third-party/meson/constraints:compiler[msvc]": [],
     }) + ["-DFFI_BUILDING_DLL"],
     linker_flags = select({
-        "//third-party/meson/libffi/constraints:ffi_build_versioned[true]": ["-Wl,--version-script=$(location :libffi[libffi.map.in])"],
+        "//third-party/meson/libffi/constraints:ffi_build_versioned[true]": ["-Wl,--version-script=$(location :libffi.map)"],
         "//third-party/meson/libffi/constraints:ffi_build_versioned[false]": [],
     }),
     preferred_linkage = "shared",

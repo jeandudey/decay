@@ -1224,7 +1224,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             .unwrap_or(normalized.as_str());
 
         let mut generated = self.graph.targets.iter().filter(|t| {
-            matches!(t.kind, Kind::Custom | Kind::ConfigHeader)
+            matches!(t.kind, Kind::Custom | Kind::ConfigHeader | Kind::Preprocess)
                 && t.attrs.outs.iter().any(|o| o == basename)
         });
         // Two targets declaring the same output name is not something this

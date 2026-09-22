@@ -166,6 +166,8 @@ pub enum Kind {
     Custom,
     /// `configure_file()` with a `configuration:` — a generated header.
     ConfigHeader,
+    /// `cc.preprocess()`: run the real C preprocessor over one source.
+    Preprocess,
     /// `declare_dependency()`: no build action, only usage requirements.
     Interface,
     /// A `.rc` resource script. buck2 will not compile a `.rc` inside a

@@ -38,10 +38,7 @@ use {
         rc::Rc,
         str::FromStr, //
     },
-    tracing::{
-        debug,
-        warn, //
-    },
+    tracing::debug,
 };
 
 /// Function attribute names `cc.has_function_attribute()` recognizes —
@@ -442,6 +439,21 @@ impl<'a, S: Solver> Interp<'a, S> {
                 // directory on the include path of anything compiling it
                 // (libglvnd's `MAPI_ABI_HEADER`).
                 let v = self.graph.target(*id).name.clone();
+                Ok(self.pure(Value::from(v)))
+            }
+            (Obj::Output(id, index), "full_path" | "path") => {
+                // Same as `Obj::Target`'s arm above, but for one specific
+                // output of a multi-output target (`custom_target()[i]`) —
+                // `cc.preprocess(...)`[0].full_path()`, libffi's own
+                // version-script generator.
+                let v = self
+                    .graph
+                    .target(*id)
+                    .attrs
+                    .outs
+                    .get(*index)
+                    .cloned()
+                    .unwrap_or_else(|| self.graph.target(*id).name.clone());
                 Ok(self.pure(Value::from(v)))
             }
             (Obj::Target(id), "name") => {
@@ -1129,20 +1141,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(self.bool_value(cond))
             }
 
-            // `cc.preprocess(*sources, output:, ...)`. The importer does not
-            // run the preprocessor, so this is not a real translation, just
-            // enough to keep evaluation alive: each source passes through
-            // unchanged rather than becoming its `output:`-named file. Fine
-            // where nothing reads the macro-expanded result; wrong where it
-            // does (fontconfig's `fcobjshash.gperf.h` — AGENTS.md).
-            "preprocess" => {
-                warn!("cc.preprocess() does not preprocess; sources pass through unchanged");
-                let mut items = Vec::new();
-                for arg in &args.pos {
-                    items.extend(self.flat(arg));
-                }
-                Ok(self.pure(Value::list(items)))
-            }
+            "preprocess" => self.fn_cc_preprocess(args),
 
             // Which compiler is active decides the answer, so this does not
             // fold into the generic `probe_cond` path above.

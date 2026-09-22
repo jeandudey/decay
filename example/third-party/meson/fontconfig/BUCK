@@ -771,9 +771,16 @@ cxx_library(
 )
 
 genrule(
+    name = "fcobjshash.gperf.h",
+    out = "fcobjshash.gperf.h",
+    cmd = "mkdir -p _pp_include && cp $(location :fcstdint.h) _pp_include/fcstdint.h && mkdir -p _pp_include/fontconfig && cp $(location :fontconfig.h) _pp_include/fontconfig/fontconfig.h && cp $(location :alias_headers[fcalias.h]) _pp_include/fcalias.h && cp $(location :ft_alias_headers[fcftalias.h]) _pp_include/fcftalias.h && mkdir -p _pp_include/fc-case && cp $(location :fccase.h) _pp_include/fc-case/fccase.h && mkdir -p _pp_include/fc-lang && cp $(location :fclang.h) _pp_include/fc-lang/fclang.h && cp $(location :fclang.h) _pp_include/fclang.h && mkdir -p _pp_include/fc-const && cp $(location :fcconst.h) _pp_include/fc-const/fcconst.h && mkdir -p _pp_include/fc-genericfamily && cp $(location :fcgenericfamily.h) _pp_include/fc-genericfamily/fcgenericfamily.h && cp $(location :meson-config.h) _pp_include/meson-config.h && cp $(location :config.h) _pp_include/config.h && cc -E -P -x c -I_pp_include -I$(location :fontconfig.git) -I$(location :fontconfig.git[fc-lang]) -I$(location :fontconfig.git[src]) $(location :fontconfig.git[src/fcobjshash.gperf.h]) -o $OUT",
+    visibility = ["PUBLIC"],
+)
+
+genrule(
     name = "custom_target",
     out = "fcobjshash.gperf",
-    cmd = " $(location :fontconfig.git[src/cutout.py]) $(location :fontconfig.git[src/fcobjshash.gperf.h]) $OUT",
+    cmd = " $(location :fontconfig.git[src/cutout.py]) $(location :fcobjshash.gperf.h) $OUT",
     visibility = ["PUBLIC"],
 )
 
