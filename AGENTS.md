@@ -318,10 +318,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   read either.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay — currently exercises 13 of wrapdb's ~250+ projects in
+  smoke test for decay — currently exercises 14 of wrapdb's ~250+ projects in
   `example/decay.toml` (`zlib`, `bzip2`, `libpng`, `google-brotli`, `pcre2`,
   `libxext`, `libffi`, `fribidi`, `graphite2`, `pixman`, `cairo`, `freetype2`,
-  `fontconfig`).
+  `harfbuzz`, `fontconfig`).
 
   **GTK4 end-to-end — what's still missing.** Checked against gtk's own
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
@@ -330,17 +330,17 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `libxext`, `fribidi`, `graphite2`, `pixman`, `cairo` (core: image/tee
   surfaces + `cairo-gobject`, not yet the `xlib`/`xcb`/`png`/`freetype`/
   `fontconfig` backends), `freetype2` (zlib + bzip2 + libpng + brotli
-  support; `harfbuzz` still off, not imported yet). Still needed, in
-  roughly the order a next attempt should reach for them:
+  support; `harfbuzz` stays off in freetype2 itself — harfbuzz's own
+  `dependency('freetype2', ..., default_options: ['harfbuzz=disabled'])` is
+  how upstream avoids the cycle, and decay resolves that sibling dependency
+  against freetype2 as already configured rather than re-running it),
+  `harfbuzz` (+ its bundled `harfbuzz-subset`; freetype2 and graphite2
+  shaper support wired in since both were already imported, `glib`/
+  `gobject`/`cairo`/`chafa`/`icu` integration and its `utilities` still off).
+  Still needed, in roughly the order a next attempt should reach for them:
   - `fontconfig` — imported (`example/third-party/meson/fontconfig/`),
     `buck2 build`s end to end. Not yet wired into `cairo`'s
     `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
-  - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
-    fribidi and graphite2 were imported first. A C++ wrap with several
-    optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via
-    `dependency(..., required: false)` — the likeliest place to hit the same
-    "configuration-varying dependency name" gap that stopped gdk-pixbuf
-    (see "`declare_dependency()` provide heuristic is narrow" above).
   - `pango` (+ `pangocairo`, `pangoft2`) — text layout, depends on harfbuzz,
     fribidi, cairo, fontconfig, and freetype all being in place first.
   - `gdk-pixbuf-2.0` — blocked today on the `dependency()`

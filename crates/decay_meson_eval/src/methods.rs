@@ -16,6 +16,7 @@ use {
             SizeAnswer,
             SizeQuery, //
         },
+        relative_path,
         val::Value,
     },
     decay_build_ir::Package,
@@ -510,6 +511,27 @@ impl<'a, S: Solver> Interp<'a, S> {
                         _ => ".".to_owned(),
                     },
                 };
+                Ok(self.pure(Value::from(out)))
+            }
+            (Obj::Module(Module::Fs), "is_absolute") => {
+                let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
+                Ok(self.bool_value(if path.starts_with('/') {
+                    self.pc
+                } else {
+                    Pc::FALSE
+                }))
+            }
+            (Obj::Module(Module::Fs), "relative_to") => {
+                let a = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
+                let b = self.one_string(args.at(1).ok_or_eyre("expected a path")?)?;
+                let to_path = |p: &str| {
+                    if p.starts_with('/') {
+                        p.to_owned()
+                    } else {
+                        self.resolve(p)
+                    }
+                };
+                let out = relative_path(&to_path(&a), &to_path(&b));
                 Ok(self.pure(Value::from(out)))
             }
             (Obj::Module(Module::I18n), "gettext") => {

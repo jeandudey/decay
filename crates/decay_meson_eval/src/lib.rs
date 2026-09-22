@@ -1470,3 +1470,47 @@ pub(crate) fn normalize_path(path: &Path) -> String {
         .collect::<Vec<_>>()
         .join("/")
 }
+
+/// `fs.relative_to(to, from)`: the path to `to`, written relative to `from`.
+/// Lexical only, matching meson's own `os.path.relpath`; neither path need
+/// exist.
+pub(crate) fn relative_path(to: &str, from: &str) -> String {
+    fn parts(p: &str) -> Vec<&str> {
+        Path::new(p)
+            .components()
+            .filter_map(|c| match c {
+                std::path::Component::Normal(s) => s.to_str(),
+                _ => None,
+            })
+            .collect()
+    }
+    let to_parts = parts(to);
+    let from_parts = parts(from);
+    let common = to_parts
+        .iter()
+        .zip(from_parts.iter())
+        .take_while(|(a, b)| a == b)
+        .count();
+    let mut out: Vec<&str> = vec![".."; from_parts.len() - common];
+    out.extend(&to_parts[common..]);
+    if out.is_empty() {
+        ".".to_owned()
+    } else {
+        out.join("/")
+    }
+}
+
+#[cfg(test)]
+mod path_tests {
+    use super::relative_path;
+
+    #[test]
+    fn relative_path_goes_up_and_back_down() {
+        assert_eq!(
+            relative_path("/usr/local", "/usr/local/lib/cmake/harfbuzz"),
+            "../../.."
+        );
+        assert_eq!(relative_path("/a/b/c", "/a/x/y"), "../../b/c");
+        assert_eq!(relative_path("/a/b", "/a/b"), ".");
+    }
+}

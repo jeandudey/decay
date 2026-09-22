@@ -130,6 +130,9 @@ egl = "//third-party/system:EGL"
 "void *" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "void*" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
 "size_t" = { "prelude//cpu/constraints:cpu[x86_64]" = 8, "prelude//cpu/constraints:cpu[arm64]" = 8, "prelude//cpu/constraints:cpu[arm32]" = 4, "prelude//cpu/constraints:cpu[x86_32]" = 4 }
+# A struct with a single `char` member has no reason to be over-aligned on
+# any real ABI; its alignment is always that of `char` itself.
+"struct { char c; }" = 1
 
 [options]
 buildtype = "release"
@@ -416,7 +419,13 @@ commands."python3 builds/meson/extract_libtool_version.py builds/unix/configure.
 commands."python3 builds/meson/parse_modules_cfg.py --format=main-modules modules.cfg" = { stdout = "truetype\ntype1\ncff\ncid\npfr\ntype42\nwinfonts\npcf\nbdf\nsfnt\nautofit\npshinter\nsmooth\nraster\nsvg\nsdf\n" }
 commands."python3 builds/meson/parse_modules_cfg.py --format=aux-modules modules.cfg" = { stdout = "cache\ngzip\nlzw\nbzip2\npsaux\npsnames\n" }
 commands."python3 builds/meson/parse_modules_cfg.py --format=base-extensions-list modules.cfg" = { stdout = "ftbbox.c\nftbdf.c\nftbitmap.c\nftcid.c\nftfstype.c\nftgasp.c\nftglyph.c\nftgxval.c\nftmm.c\nftotval.c\nftpatent.c\nftpfr.c\nftstroke.c\nftsynth.c\nfttype1.c\nftwinfnt.c\n" }
-# harfbuzz is still an unimported dependency; zlib, bzip2, libpng, and
+# harfbuzz is now imported too (below), but stays off here deliberately:
+# harfbuzz's own `dependency('freetype2', ..., default_options:
+# ['harfbuzz=disabled'])` is how upstream itself avoids a freetype2<->harfbuzz
+# cycle, and decay resolves that sibling dependency against this project as
+# already configured rather than re-running it with different options, so
+# this project's own harfbuzz option has to stay "disabled" to match what
+# harfbuzz's build already assumes of it. zlib, bzip2, libpng, and
 # google-brotli are already imported, so route through the plain
 # `dependency('zlib')` path ("system") rather than the
 # `subproject('zlib').get_variable('zlib_dep')` fallback path ("external"),
@@ -433,6 +442,23 @@ commands."python3 builds/meson/parse_modules_cfg.py --format=base-extensions-lis
 # does — an explicit override always wins over name-matching.
 options = { brotli = "enabled", bzip2 = "enabled", harfbuzz = "disabled", mmap = "auto", png = "enabled", tests = "disabled", zlib = "system", error_strings = true }
 depends = ["zlib", "bzip2", "libpng", "google-brotli"]
+
+[[project]]
+wrap = "harfbuzz"
+# freetype2 and graphite2 are already imported, so their optional shaper/font
+# backends resolve directly by name via `meson.override_dependency()`
+# (freetype2, harfbuzz-subset's own graphite2 dependency). Everything else
+# optional (glib, gobject, cairo, chafa, icu, fontations/harfrust/kbts, and
+# the Windows/Apple-only backends) is pinned off rather than left as an open
+# knob -- not needed by anything importing harfbuzz yet, and some of them
+# reach code decay cannot model at all if left open: `kbts` pulls in
+# `subproject('kbts').get_variable(...)` for a subproject nothing here
+# imports, `fontations`/`harfrust` add a `rust` language. `utilities` has to
+# stay off with gobject off too: hb-info's own `util/meson.build` references
+# `libharfbuzz_gobject_dep` unconditionally, which upstream only ever defines
+# inside the `HAVE_GOBJECT` branch.
+options = { freetype = "enabled", graphite2 = "enabled", graphite = "disabled", glib = "disabled", gobject = "disabled", cairo = "disabled", chafa = "disabled", icu = "disabled", icu_builtin = false, fontations = "disabled", gdi = "disabled", directwrite = "disabled", coretext = "disabled", harfrust = "disabled", kbts = "disabled", wasm = "disabled", raster = "enabled", vector = "enabled", subset = "enabled", introspection = "disabled", docs = "disabled", doc_tests = false, tests = "disabled", utilities = "disabled", benchmark = "disabled", with_libstdcxx = false, experimental_api = false, ragel_subproject = false }
+depends = ["freetype2", "graphite2"]
 
 [[project]]
 wrap = "pixman"
