@@ -928,37 +928,48 @@ fn render_target<S: Solver>(
                 .flat_map(|t| t.attrs.sibling_headers.iter().cloned())
                 .collect();
 
+            // The broadcast above is otherwise private to this project — fine
+            // for a config header nothing outside it ever `#include`s, wrong
+            // for one that *is* the point of a
+            // `declare_dependency(include_directories:)` a consumer depends
+            // on (libffi's own `ffi_dep` exports `../include`, where its
+            // generated `ffi.h` lands; a consumer's `#include <ffi.h>`
+            // otherwise falls through to a system libffi's, paired against
+            // this project's own checked-out `ffitarget.h` via the exported
+            // `-I` roots below — two different libffi's headers that don't
+            // agree; libxml2-dep's own generated `xmlversion.h`, `#include`d
+            // by its checked-in, exported `parser.h`, similarly has to reach
+            // a consumer with no compile of its own to see the private
+            // broadcast the way `xml2`'s real sources do). Only a broadcast
+            // header whose package sits under one of this target's own
+            // declared roots is promoted (`xmlversion.h`'s own
+            // `include/libxml/meson.build` runs one directory below
+            // libxml2-dep's own declared `include` root) — the same
+            // reachability a real meson build-dir mirror would give a
+            // consumer through that `include_directories()`, not every
+            // config header in the project.
+            let exported_private = private.iter().filter(|e| {
+                matches!(&e.value, Source::Generated(id, _)
+                    if roots.iter().any(|(_, p)| graph.target(*id).package.starts_with(p)))
+            });
+
             // A `raw_include_roots` target is compiled against real `-I` roots
             // into the fetched tree (below), so its checked-in headers must
             // NOT also go into the flat symlink tree — a `..` include resolved
             // through that tree escapes it. Generated headers have no file in
             // the tree and stay.
             let own_headers: Variational<Source> = if a.raw_include_roots {
-                // The broadcast above is otherwise private to this project —
-                // fine for a config header nothing outside it ever
-                // `#include`s, wrong for one that *is* the point of a
-                // `declare_dependency(include_directories:)` a consumer
-                // depends on (libffi's own `ffi_dep` exports `../include`,
-                // where its generated `ffi.h` lands; a consumer's `#include
-                // <ffi.h>` otherwise falls through to a system libffi's,
-                // paired against this project's own checked-out
-                // `ffitarget.h` via the exported `-I` roots below — two
-                // different libffi's headers that don't agree). Only a
-                // broadcast header whose package is one of this target's own
-                // declared roots is promoted — the same reachability a real
-                // meson build-dir mirror would give a consumer through that
-                // `include_directories()`, not every config header in the
-                // project.
-                let exported_private = private.iter().filter(|e| {
-                    matches!(&e.value, Source::Generated(id, _)
-                        if roots.iter().any(|(_, p)| *p == graph.target(*id).package))
-                });
                 a.headers
                     .iter()
                     .filter(|e| matches!(e.value, Source::Generated(..)))
                     .chain(exported_private)
                     .cloned()
                     .collect()
+            } else if is_interface {
+                // An interface has no compile of its own to see a private
+                // header through — the only way one of its consumers ever
+                // reaches a broadcast config header is if it is exported.
+                a.headers.iter().chain(exported_private).cloned().collect()
             } else {
                 a.headers.clone()
             };

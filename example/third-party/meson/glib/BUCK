@@ -1858,6 +1858,20 @@ _headers2 = {
     "girepository/giobjectinfo.h": ":glib.git[girepository/giobjectinfo.h]",
     "girepository/gienuminfo.h": ":glib.git[girepository/gienuminfo.h]",
     "gthread/gthread.def": ":glib.git[gthread/gthread.def]",
+    "glib/glibconfig.h": ":glibconfig.h",
+    "glibconfig.h": ":glibconfig.h",
+    "gobject/gobject-visibility.h": ":custom_target-3",
+    "gobject/glib-enumtypes.h": ":glib_enumtypes_h",
+    "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+    "gmodule/gmodule-visibility.h": ":custom_target-4",
+    "gio/gnetworking.h": ":gnetworking.h",
+    "gio/xdp-dbus.h": ":xdp-dbus[xdp-dbus.h]",
+    "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated[gdbus-daemon-generated.h]",
+    "gio/gio-visibility.h": ":custom_target-5",
+    "gio/gioenumtypes.h": ":gioenumtypes_h",
+    "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+    "girepository/gi-visibility.h": ":custom_target-6",
+    "config.h": ":config.h",
 }
 _headers3 = {
     "glib/glibconfig.h": ":glibconfig.h",
@@ -2885,6 +2899,7 @@ _headers9 = {
     "girnode-private.h": ":glib.git[girepository/girnode-private.h]",
     "giobjectinfo.h": ":glib.git[girepository/giobjectinfo.h]",
     "gienuminfo.h": ":glib.git[girepository/gienuminfo.h]",
+    "gi-visibility.h": ":custom_target-6",
 }
 _headers10 = {
     "glib/glibconfig.h": ":glibconfig.h",
@@ -6982,6 +6997,18 @@ cxx_library(
         "glib-enumtypes.h": ":glib_enumtypes_h",
         "gobject/gobject-visibility.h": ":custom_target-3",
         "gobject-visibility.h": ":custom_target-3",
+        "glib/glibconfig.h": ":glibconfig.h",
+        "glib/gversionmacros.h": ":custom_target",
+        "glib/glib-visibility.h": ":custom_target-2",
+        "gmodule/gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule/gmodule-visibility.h": ":custom_target-4",
+        "gio/gnetworking.h": ":gnetworking.h",
+        "gio/xdp-dbus.h": ":xdp-dbus[xdp-dbus.h]",
+        "gio/gdbus-daemon-generated.h": ":gdbus-daemon-generated[gdbus-daemon-generated.h]",
+        "gio/gio-visibility.h": ":custom_target-5",
+        "gio/gioenumtypes.h": ":gioenumtypes_h",
+        "gio/gconstructor_as_data.h": ":gconstructor_as_data.h",
+        "girepository/gi-visibility.h": ":custom_target-6",
         "config.h": ":config.h",
     },
     headers = {
@@ -8019,6 +8046,7 @@ cxx_library(
     exported_headers = {
         "gmodule-visibility.h": ":custom_target-4",
         "gmodule.h": ":glib.git[gmodule/gmodule.h]",
+        "gmoduleconf.h": ":gmoduleconf.h",
     },
     headers = _headers5,
     header_namespace = "",
@@ -8028,6 +8056,10 @@ cxx_library(
 # meson: glib-dep
 cxx_library(
     name = "glib-dep-8",
+    exported_headers = {
+        "gmoduleconf.h": ":gmoduleconf.h",
+        "gmodule-visibility.h": ":custom_target-4",
+    },
     headers = _headers5,
     header_namespace = "",
     exported_deps = [
@@ -9063,6 +9095,11 @@ cxx_library(
         "gioenumtypes.h": ":gioenumtypes_h",
         "glib-enumtypes.h": ":glib_enumtypes_h",
         "gio-visibility.h": ":custom_target-5",
+        "gobject-visibility.h": ":custom_target-3",
+        "gnetworking.h": ":gnetworking.h",
+        "xdp-dbus.h": ":xdp-dbus[xdp-dbus.h]",
+        "gdbus-daemon-generated.h": ":gdbus-daemon-generated[gdbus-daemon-generated.h]",
+        "gconstructor_as_data.h": ":gconstructor_as_data.h",
     },
     headers = {
         "glib/glibconfig.h": ":glibconfig.h",
@@ -11534,6 +11571,12 @@ cxx_library(
         "gpermission.h": ":glib.git[gio/gpermission.h]",
         "gdbusutils.h": ":glib.git[gio/gdbusutils.h]",
         "gdbusobject.h": ":glib.git[gio/gdbusobject.h]",
+        "gnetworking.h": ":gnetworking.h",
+        "xdp-dbus.h": ":xdp-dbus[xdp-dbus.h]",
+        "gdbus-daemon-generated.h": ":gdbus-daemon-generated[gdbus-daemon-generated.h]",
+        "gio-visibility.h": ":custom_target-5",
+        "gioenumtypes.h": ":gioenumtypes_h",
+        "gconstructor_as_data.h": ":gconstructor_as_data.h",
     },
     headers = _headers6,
     header_namespace = "",

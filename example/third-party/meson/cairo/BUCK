@@ -927,6 +927,7 @@ cxx_library(
         "cairo-box-inline.h": ":cairo[src/cairo-box-inline.h]",
         "cairo-surface-observer-private.h": ":cairo[src/cairo-surface-observer-private.h]",
         "cairo-backend-private.h": ":cairo[src/cairo-backend-private.h]",
+        "cairo-features.h": ":cairo-features.h",
     },
     headers = {
         "cairo-features.h": ":cairo-features.h",
@@ -1008,9 +1009,7 @@ cxx_library(
         ":cairo[util/cairo-gobject/cairo-gobject-enums.c]",
         ":cairo[util/cairo-gobject/cairo-gobject-structs.c]",
     ],
-    exported_headers = {
-        "config.h": ":config.h",
-    },
+    exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
     exported_preprocessor_flags = [
@@ -1054,9 +1053,7 @@ cxx_library(
         ":cairo[util/cairo-script/cairo-script-scanner.c]",
         ":cairo[util/cairo-script/cairo-script-stack.c]",
     ],
-    exported_headers = {
-        "config.h": ":config.h",
-    },
+    exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
     exported_preprocessor_flags = _cppflags,
@@ -2282,6 +2279,7 @@ genrule(
 # meson: cairo-dep
 cxx_library(
     name = "cairo-dep-5",
+    exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
     exported_deps = _deps,
@@ -2291,6 +2289,7 @@ cxx_library(
 # meson: cairo-dep
 cxx_library(
     name = "cairo-dep-6",
+    exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
     exported_deps = _deps,
@@ -2300,6 +2299,7 @@ cxx_library(
 # meson: cairo-dep
 cxx_library(
     name = "cairo-dep-7",
+    exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
     exported_deps = _deps,
@@ -2309,6 +2309,7 @@ cxx_library(
 # meson: cairo-dep
 cxx_library(
     name = "cairo-dep-8",
+    exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
     exported_deps = [":cairo-dep"],

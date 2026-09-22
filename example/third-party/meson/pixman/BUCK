@@ -2626,6 +2626,8 @@ cxx_library(
         "pixman-inlines.h": ":pixman[pixman/pixman-inlines.h]",
         "pixman-accessor.h": ":pixman[pixman/pixman-accessor.h]",
         "pixman-arm-simd-asm.h": ":pixman[pixman/pixman-arm-simd-asm.h]",
+        "pixman-config.h": ":pixman-config.h",
+        "pixman-version.h": ":pixman-version.h",
     },
     headers = _headers,
     header_namespace = "",

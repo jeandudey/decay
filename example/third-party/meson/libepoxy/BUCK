@@ -230,6 +230,7 @@ cxx_library(
         "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
         "wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
         "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
+        "config.h": ":config.h",
     },
     headers = _headers,
     header_namespace = "",

@@ -993,6 +993,9 @@ cxx_library(
         "GL/glxproto.h": ":xorgproto.git[include/GL/glxproto.h]",
         "glxproto.h": ":xorgproto.git[include/GL/glxproto.h]",
         "include/GL/glxproto.h": ":xorgproto.git[include/GL/glxproto.h]",
+        "X11/Xpoll.h": ":Xpoll.h",
+        "Xpoll.h": ":Xpoll.h",
+        "include/X11/Xpoll.h": ":Xpoll.h",
     },
     headers = {
         "X11/Xpoll.h": ":Xpoll.h",

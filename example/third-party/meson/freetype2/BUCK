@@ -2039,6 +2039,8 @@ cxx_library(
         "include/dlg/dlg.h": ":freetype2[include/dlg/dlg.h]",
         "ft2build.h": ":freetype2[include/ft2build.h]",
         "include/ft2build.h": ":freetype2[include/ft2build.h]",
+        "ftmodule.h": ":ftmodule.h",
+        "ftoption.h": ":ftoption.h",
     },
     headers = {
         "ftmodule.h": ":ftmodule.h",

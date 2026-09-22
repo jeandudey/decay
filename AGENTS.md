@@ -330,19 +330,8 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `fontconfig` backends), `freetype2` (zlib support only — `brotli`/`bzip2`/
   `harfbuzz`/`png` off, none of those imported yet). Still needed, in
   roughly the order a next attempt should reach for them:
-  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`).
-    A source's `#include "../x"` reaching a *generated* file (not a checked-in
-    one) — `fcstr.c`'s `#include "../fc-case/fccase.h"`, a `custom_target()`
-    output with no on-disk file for `raw_include_roots`'s real `-I` compile to
-    walk `..` into — is staged by a small per-target `genrule`
-    (`dotdot_shadow_entries`/`render_dotdot_shadow` in `decay_buck2`): an
-    anchor directory at the including file's own directory, and a copy of the
-    generated header at the logical path its `..` walk resolves to, added as
-    an extra `-I`. Two unrelated gaps still block a full `buck2 build`:
-    `fcxml.c`'s `#include <libxml/xmlversion.h>` doesn't resolve through
-    `libxml2-dep`'s `exported_headers` from fontconfig as a consumer (the
-    same header exports fine within libxml2's own project — a cross-project
-    scoping bug, not yet diagnosed); and `fcstat.c` assumes
+  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`). One
+    gap left blocks a full `buck2 build`: `fcstat.c` assumes
     `struct statvfs.f_basetype` (BSD/Solaris-only — glibc has no such member,
     only `f_type`), a wrong-default probe of the same shape as
     `HAVE_FUTEX_TIME64` below. Not yet wired into `cairo`'s

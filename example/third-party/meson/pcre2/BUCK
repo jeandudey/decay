@@ -142,6 +142,8 @@ _headers2 = {
     "pcre2_util.h": ":pcre2[src/pcre2_util.h]",
     "src/pcre2posix.h": ":pcre2[src/pcre2posix.h]",
     "pcre2posix.h": ":pcre2[src/pcre2posix.h]",
+    "pcre2.h": ":pcre2.h",
+    "config.h": ":config.h",
 }
 
 # meson: dependency('threads') — the platform's threading support

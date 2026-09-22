@@ -872,6 +872,7 @@ cxx_library(
         "fribidi-bidi-types-list.h": ":fribidi[lib/fribidi-bidi-types-list.h]",
         "lib/fribidi-types.h": ":fribidi[lib/fribidi-types.h]",
         "fribidi-types.h": ":fribidi[lib/fribidi-types.h]",
+        "config.h": ":config.h",
     },
     headers = {
         "config.h": ":config.h",

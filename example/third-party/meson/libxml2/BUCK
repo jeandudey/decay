@@ -343,9 +343,7 @@ cxx_library(
         ":libxml2.git[xlink.c]",
         ":libxml2.git[xpointer.c]",
     ],
-    exported_headers = {
-        "config.h": ":config.h",
-    },
+    exported_headers = _headers,
     headers = _headers,
     header_namespace = "",
     exported_preprocessor_flags = _cppflags,
@@ -531,6 +529,9 @@ cxx_library(
         "include/libxml/tree.h": ":libxml2.git[include/libxml/tree.h]",
         "libxml/xmlsave.h": ":libxml2.git[include/libxml/xmlsave.h]",
         "include/libxml/xmlsave.h": ":libxml2.git[include/libxml/xmlsave.h]",
+        "libxml/xmlversion.h": ":xmlversion.h",
+        "include/libxml/xmlversion.h": ":xmlversion.h",
+        "config.h": ":config.h",
     },
     headers = {
         "libxml/xmlversion.h": ":xmlversion.h",
@@ -579,9 +580,7 @@ cxx_binary(
 cxx_library(
     name = "testdso",
     srcs = [":libxml2.git[testdso.c]"],
-    exported_headers = {
-        "config.h": ":config.h",
-    },
+    exported_headers = _headers,
     headers = _headers,
     header_namespace = "",
     exported_preprocessor_flags = _cppflags,

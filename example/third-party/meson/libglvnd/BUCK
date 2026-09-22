@@ -2890,6 +2890,7 @@ cxx_library(
         "libglxthread.h": ":glvnd.git[src/GLX/libglxthread.h]",
         "libglxabipriv.h": ":glvnd.git[src/GLX/libglxabipriv.h]",
         "libglxcurrent.h": ":glvnd.git[src/GLX/libglxcurrent.h]",
+        "g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
     },
     headers = {
         "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
