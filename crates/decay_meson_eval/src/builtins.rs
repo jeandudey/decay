@@ -2360,6 +2360,18 @@ impl<'a, S: Solver> Interp<'a, S> {
         })
     }
 
+    /// Unlike [`Self::shadowed_by_generated_header`]'s other call site
+    /// (a compiled source's own sibling `#include`, which just drops a
+    /// shadowed name and relies on the private config-header broadcast to
+    /// cover it within the same project), a `declare_dependency()`'s own
+    /// `exported_headers` has no such broadcast to fall back on — an
+    /// external consumer needs the checked-in path's own spelling to
+    /// actually resolve. So list the checked-in file here regardless of
+    /// shadowing; `decay_buck2::source()` is what redirects a shadowed
+    /// path's *value* to the fresh generated target while this keeps its
+    /// *key* exactly where the checked-in file really sits (freetype2's
+    /// `include/freetype/config/ftconfig.h`, not wherever in the project the
+    /// `custom_target()` regenerating it happens to be called from).
     fn list_headers(
         &mut self,
         include_dirs: &Variational<PathBuf>,
@@ -2375,10 +2387,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                     .variants()
                     .iter()
                     .any(|h| matches!(&h.value, Source::File(p) if *p == path));
-                let shadowed = path
-                    .file_name()
-                    .is_some_and(|n| self.shadowed_by_generated_header(n));
-                if !already_listed && !shadowed {
+                if !already_listed {
                     headers.push(Variant::new(variant.cond, Source::File(path)));
                 }
             }

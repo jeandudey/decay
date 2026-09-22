@@ -37,6 +37,7 @@ use {
             BTreeMap,
             BTreeSet, //
         },
+        ffi::OsStr,
         fmt::Write as _,
         fs,
         path::{
@@ -947,7 +948,7 @@ fn render_target<S: Solver>(
                     attrs.push((
                         "exported_headers",
                         selects.render_dict(logic, &aliases, cond, 1, |(key, s)| {
-                            (key.clone(), source(graph, s))
+                            (key.clone(), exported_source(graph, target.id, s))
                         }),
                     ));
                 }
@@ -1529,6 +1530,32 @@ fn logical_path(graph: &Graph, source: &Source) -> PathBuf {
     }
 }
 
+/// The [`Kind::Custom`]/[`Kind::ConfigHeader`] target (and output index)
+/// that regenerates a header under this exact basename somewhere in the
+/// project, if any.
+///
+/// A release tarball can ship a pre-generated copy of a header the
+/// project's own `meson.build` also regenerates at build time (freetype2's
+/// checked-in `include/freetype/config/ftconfig.h`, alongside a
+/// `custom_target()` of the same basename called from the project root;
+/// fribidi's `lib/fribidi-unicode-version.h`, similarly) — meson's own
+/// build-dir search path always shadows the checked-in copy with the fresh
+/// one, so a reference to the checked-in path resolves to the generated
+/// target instead, in [`source`] below.
+fn shadow_target(graph: &Graph, basename: &OsStr) -> Option<(TargetId, usize)> {
+    graph.targets.iter().find_map(|t| {
+        if !matches!(t.kind, Kind::Custom | Kind::ConfigHeader) {
+            return None;
+        }
+        let index = t
+            .attrs
+            .outs
+            .iter()
+            .position(|o| Path::new(o.as_str()).file_name() == Some(basename))?;
+        Some((t.id, index))
+    })
+}
+
 /// The `out`/`outs` attrs for a `genrule`'s declared outputs: a single `out`
 /// for the overwhelming common case, matching every existing single-output
 /// reference exactly as before, or buck2's multi-output `outs = {...}` +
@@ -1616,12 +1643,30 @@ fn header_aliases<S: Solver>(
     roots: &[(Pc, PathBuf)],
 ) -> Variational<(String, Source)> {
     let mut out = Variational::empty();
+    // Two different sources can independently resolve to the same
+    // `#include` spelling — a checked-in header `list_headers()`
+    // auto-discovers under one root, already reachable another way via a
+    // project-generated target with the same basename (fribidi's checked-in
+    // `lib/fribidi-unicode-version.h`, alongside its own `custom_target()`
+    // of the same name). A single rendered dict cannot repeat a key, so the
+    // earlier (more specific) resolution wins outright and a later one only
+    // fills in whatever configuration the earlier one leaves uncovered.
+    let mut claimed: BTreeMap<String, Pc> = BTreeMap::new();
     for entry in sources {
         for (root_cond, key) in include_paths(graph, &entry.value, roots) {
-            let cond = logic.and(entry.cond, root_cond);
+            let mut cond = logic.and(entry.cond, root_cond);
             if cond.is_false() {
                 continue;
             }
+            if let Some(prior) = claimed.get(&key) {
+                let leftover = logic.not(*prior);
+                cond = logic.and(cond, leftover);
+                if cond.is_false() {
+                    continue;
+                }
+            }
+            let claim = claimed.entry(key.clone()).or_insert(Pc::FALSE);
+            *claim = logic.or(*claim, cond);
             out.push(Variant::new(cond, (key, entry.value.clone())));
         }
     }
@@ -1699,6 +1744,37 @@ fn has_rule(target: &Target) -> bool {
 fn source(graph: &Graph, source: &Source) -> String {
     match source {
         Source::File(path) => format!("\":{}\"", source_address(graph, path)),
+        Source::Generated(id, index) => format!("\":{}\"", generated_label(graph, *id, *index)),
+    }
+}
+
+/// Like [`source`], but a checked-in file shadowed by a project-generated
+/// header of the same basename (see [`shadow_target`]) redirects to that
+/// fresh target instead of the stale checked-in copy.
+///
+/// Scoped to a `declare_dependency()`/library interface's own
+/// `exported_headers` specifically — the one place with no other way to
+/// reach a generated header whose build location does not match the
+/// checked-in path a consumer expects (freetype2-dep's
+/// `include/freetype/config/ftconfig.h`, generated from freetype2's project
+/// root but expected at that nested path). Applying it any more broadly
+/// risks a cycle a single `consumer` check cannot rule out: fribidi's
+/// several tool-building `cxx_binary`s each auto-list every checked-in
+/// `.tab.i` fallback copy under their shared `gen.tab` directory as
+/// headers, including ones only a *different* tool actually regenerates —
+/// redirecting those would make each tool depend on a `custom_target()`
+/// that itself depends on some other tool, a cycle no pairwise check on one
+/// `consumer` catches. `consumer` still guards the direct case (a target
+/// depending on the very `custom_target()` that would shadow one of its own
+/// checked-in headers).
+fn exported_source(graph: &Graph, consumer: TargetId, source: &Source) -> String {
+    match source {
+        Source::File(path) => match path.file_name().and_then(|n| shadow_target(graph, n)) {
+            Some((id, index)) if !depends_on(graph, id, consumer) => {
+                format!("\":{}\"", generated_label(graph, id, index))
+            }
+            _ => format!("\":{}\"", source_address(graph, path)),
+        },
         Source::Generated(id, index) => format!("\":{}\"", generated_label(graph, *id, *index)),
     }
 }

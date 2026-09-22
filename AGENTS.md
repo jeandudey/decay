@@ -335,17 +335,19 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     `fontconfig`/`fontconfig-dep` now see their real `dependencies:`/
     `link_with:` (`library(..., kwargs: a_dict)` — how fontconfig's own
     `library()` call actually passes them — is now read like any other
-    keyword argument). Still short of a full `buck2 build`: `freetype2-dep`
-    does not export its own generated `ftconfig.h` (a `custom_target()`, not
-    a checked-in file) under the `freetype/config/ftconfig.h` path
-    `ft2build.h` expects — the config-header broadcast that makes a
-    generated header reachable within its own project only feeds a compiled
-    target's private `headers`, not a bare `declare_dependency()`
-    interface's `exported_headers`, so any *external* consumer that
-    `#include`s FreeType through `freetype2-dep` (fontconfig's `fcfreetype.c`
-    is the first one decay has tried) hits `freetype/config/ftconfig.h: No
-    such file or directory`. Not yet wired into `cairo`'s
-    `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
+    keyword argument). A `declare_dependency()` interface also now exports a
+    project-generated header under the checked-in path a consumer expects
+    even when that differs from where the `custom_target()` regenerating it
+    actually runs (`freetype2-dep`'s `ftconfig.h`/`ftoption.h`/`ftmodule.h` —
+    see `shadow_target`/`exported_source` in `decay_buck2`). Still short of a
+    full `buck2 build`: `fontconfig`'s own `fcstr.c` does
+    `#include "../fc-case/fccase.h"`, a `..`-relative quoted
+    include decay only detects (to compile against real `-I` roots instead
+    of the flat header dict a `..` cannot walk out of) by scanning a
+    target's *headers*, not its compiled *sources* — `raw_include_roots` in
+    `decay_meson_eval/src/builtins.rs` needs the same scan extended to
+    `srcs`. Not yet wired into `cairo`'s `xlib`/`freetype`/`fontconfig`
+    options or pango's FreeType backend.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via

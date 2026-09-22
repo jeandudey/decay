@@ -15,6 +15,8 @@ http_archive(
         "include/ffi_common.h",
         "include/tramp.h",
         "libffi.map.in",
+        "msvc_build/aarch64/aarch64_include/ffi.h",
+        "msvc_build/aarch64/aarch64_include/fficonfig.h",
         "src",
         "src/aarch64",
         "src/aarch64/ffi.c",
@@ -1206,6 +1208,8 @@ cxx_library(
     name = "libffi-dep",
     exported_headers = select({
         "prelude//cpu/constraints:cpu[arm32]": {
+            "msvc_build/aarch64/aarch64_include/fficonfig.h": ":fficonfig.h",
+            "msvc_build/aarch64/aarch64_include/ffi.h": ":ffi.h",
             "testsuite/libffi.closures/ffitest.h": ":libffi[testsuite/libffi.closures/ffitest.h]",
             "testsuite/libffi.go/ffitest.h": ":libffi[testsuite/libffi.go/ffitest.h]",
             "testsuite/libffi.go/static-chain.h": ":libffi[testsuite/libffi.go/static-chain.h]",
@@ -1329,6 +1333,8 @@ cxx_library(
             "ffi_common.h": ":libffi[include/ffi_common.h]",
         },
         "prelude//cpu/constraints:cpu[arm64]": {
+            "msvc_build/aarch64/aarch64_include/fficonfig.h": ":fficonfig.h",
+            "msvc_build/aarch64/aarch64_include/ffi.h": ":ffi.h",
             "testsuite/libffi.closures/ffitest.h": ":libffi[testsuite/libffi.closures/ffitest.h]",
             "testsuite/libffi.go/ffitest.h": ":libffi[testsuite/libffi.go/ffitest.h]",
             "testsuite/libffi.go/static-chain.h": ":libffi[testsuite/libffi.go/static-chain.h]",
@@ -1452,6 +1458,8 @@ cxx_library(
             "ffi_common.h": ":libffi[include/ffi_common.h]",
         },
         "prelude//cpu/constraints:cpu[riscv64]": {
+            "msvc_build/aarch64/aarch64_include/fficonfig.h": ":fficonfig.h",
+            "msvc_build/aarch64/aarch64_include/ffi.h": ":ffi.h",
             "testsuite/libffi.closures/ffitest.h": ":libffi[testsuite/libffi.closures/ffitest.h]",
             "testsuite/libffi.go/ffitest.h": ":libffi[testsuite/libffi.go/ffitest.h]",
             "testsuite/libffi.go/static-chain.h": ":libffi[testsuite/libffi.go/static-chain.h]",
@@ -1575,6 +1583,8 @@ cxx_library(
             "ffi_common.h": ":libffi[include/ffi_common.h]",
         },
         "DEFAULT": {
+            "msvc_build/aarch64/aarch64_include/fficonfig.h": ":fficonfig.h",
+            "msvc_build/aarch64/aarch64_include/ffi.h": ":ffi.h",
             "testsuite/libffi.closures/ffitest.h": ":libffi[testsuite/libffi.closures/ffitest.h]",
             "testsuite/libffi.go/ffitest.h": ":libffi[testsuite/libffi.go/ffitest.h]",
             "testsuite/libffi.go/static-chain.h": ":libffi[testsuite/libffi.go/static-chain.h]",
