@@ -15,6 +15,7 @@ use {
         ops::join_paths,
         oracle::Pinned,
         string_arg,
+        strings::text_of,
         val::Value,
     },
     decay_build_ir::{
@@ -987,7 +988,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             self.pc,
             match input_source {
                 Source::File(path) => CmdArg::File(path),
-                Source::Generated(gid) => CmdArg::Target(gid),
+                Source::Generated(gid, _) => CmdArg::Target(gid),
             },
         ));
 
@@ -1420,12 +1421,21 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     fn command(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<CmdArg>> {
         let mut out = Variational::empty();
-        for variant in self.flat(v) {
+        for (index, variant) in self.flat(v).into_iter().enumerate() {
             let arg = match &variant.value {
                 Value::Str(s) => match &**s {
                     "@INPUT@" => CmdArg::Inputs,
                     "@OUTPUT@" => CmdArg::Outputs,
                     "@OUTDIR@" => CmdArg::OutDir,
+                    // A bare string in `command:`'s own first slot resolves
+                    // the way `find_program()` does: meson checks the
+                    // current source directory for a matching script before
+                    // falling back to a PATH search. Only the first slot
+                    // gets this -- fontconfig's `command: ['cutout.py',
+                    // '@INPUT@', '@OUTPUT@']` never wraps it in
+                    // `find_program()`/`files()`, but every later element is
+                    // a plain argument, not a program name.
+                    other if index == 0 => self.command_program(other),
                     other => CmdArg::Literal(other.to_owned()),
                 },
                 Value::Obj(Obj::Program(p)) => CmdArg::Target(p.target),
@@ -1439,6 +1449,18 @@ impl<'a, S: Solver> Interp<'a, S> {
             out.push(Variant::new(variant.cond, arg));
         }
         Ok(out)
+    }
+
+    /// [`Self::command`]'s special case for a bare-string program name in
+    /// `command:`'s own first slot: a real file relative to the current
+    /// `meson.build`'s directory is a checked-in script meson would run
+    /// directly, not a literal PATH-searched name.
+    fn command_program(&mut self, name: &str) -> CmdArg {
+        let candidate = self.cur_dir().join(name);
+        if self.sources.exists(&self.root.join(&candidate)) {
+            return CmdArg::File(candidate);
+        }
+        CmdArg::Literal(name.to_owned())
     }
 
     fn fn_declare_dependency(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
@@ -1504,12 +1526,12 @@ impl<'a, S: Solver> Interp<'a, S> {
             for variant in compiled {
                 let name = match &variant.value {
                     Source::File(path) => path.clone(),
-                    Source::Generated(id) => PathBuf::from(
+                    Source::Generated(id, index) => PathBuf::from(
                         self.graph
                             .target(*id)
                             .attrs
                             .outs
-                            .first()
+                            .get(*index)
                             .cloned()
                             .unwrap_or_default(),
                     ),
@@ -2066,15 +2088,18 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     fn fn_join_paths(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
-        let mut segments: Vec<Variational<Rc<str>>> = Vec::new();
-        for arg in &args.pos {
-            segments.push(self.strings(arg)?);
-        }
-
-        // Each segment may itself differ between configurations, so the join is
-        // taken over the product of the segments that can co-occur.
-        let mut out: Variational<String> = Variant::new(self.pc, String::new()).into();
-        for segment in &segments {
+        let mut segments = args.pos.iter();
+        // Seeded from the first segment's own value, not an empty string,
+        // so a leading `meson.current_source_dir()` (fontconfig's
+        // `join_paths(meson.current_source_dir(), 'src')`, handed to a
+        // `custom_target()` `command:`) keeps its file reference through
+        // every later join instead of decaying into a plain string that
+        // means nothing once the build runs elsewhere.
+        let Some(first) = segments.next() else {
+            return Ok(self.pure(Value::str("")));
+        };
+        let mut out = first.clone();
+        for segment in segments {
             let mut next = Variational::empty();
             for base in out.variants() {
                 for part in segment.variants() {
@@ -2082,19 +2107,14 @@ impl<'a, S: Solver> Interp<'a, S> {
                     if cond.is_false() {
                         continue;
                     }
-                    next.push(Variant::new(
-                        cond,
-                        join_paths([base.value.as_str(), &part.value]),
-                    ));
+                    next.push(Variant::new(cond, join_path_pair(&base.value, &part.value)?));
                 }
             }
             next.normalize(&mut self.logic);
             out = next;
         }
-
-        let mut values = out.map(Value::from);
-        values.normalize(&mut self.logic);
-        Ok(values)
+        out.normalize(&mut self.logic);
+        Ok(out)
     }
 
     // -- structure --------------------------------------------------------
@@ -2261,9 +2281,9 @@ impl<'a, S: Solver> Interp<'a, S> {
         for variant in srcs {
             let name = match &variant.value {
                 Source::File(path) => path.clone(),
-                Source::Generated(id) => {
+                Source::Generated(id, index) => {
                     let target = self.graph.target(*id);
-                    PathBuf::from(target.attrs.outs.first().cloned().unwrap_or_default())
+                    PathBuf::from(target.attrs.outs.get(*index).cloned().unwrap_or_default())
                 }
             };
             if is_header_file(&name) {
@@ -2296,9 +2316,9 @@ impl<'a, S: Solver> Interp<'a, S> {
         for variant in srcs {
             let name = match &variant.value {
                 Source::File(path) => path.clone(),
-                Source::Generated(id) => {
+                Source::Generated(id, index) => {
                     let target = self.graph.target(*id);
-                    PathBuf::from(target.attrs.outs.first().cloned().unwrap_or_default())
+                    PathBuf::from(target.attrs.outs.get(*index).cloned().unwrap_or_default())
                 }
             };
             if is_resource_file(&name) {
@@ -2467,6 +2487,21 @@ fn quoted_includes(text: &str) -> impl Iterator<Item = &str> {
 /// its own `windows_resource` rule rather than inside a `cxx_library`.
 fn is_resource_file(path: &Path) -> bool {
     path.extension().and_then(|e| e.to_str()) == Some("rc")
+}
+
+/// One `join_paths()` fold step. A source-tree path as the running total
+/// stays a reference (matching the `/` operator's own `Obj::File / Str`
+/// case in `ops.rs`); anything else falls back to a plain string join.
+fn join_path_pair(base: &Value, part: &Value) -> eyre::Result<Value> {
+    if let Value::Obj(Obj::File(a)) = base {
+        let b = text_of(part)?;
+        return Ok(Value::Obj(Obj::File(Rc::from(
+            join_paths([&**a, &b]).as_str(),
+        ))));
+    }
+    let a = text_of(base)?;
+    let b = text_of(part)?;
+    Ok(Value::str(join_paths([&*a, &*b])))
 }
 
 /// Whether a path is a translation unit a C/C++/ObjC toolchain compiles —

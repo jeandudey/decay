@@ -281,8 +281,13 @@ pub struct Attrs {
 pub enum Source {
     /// A path relative to the project root.
     File(PathBuf),
-    /// Every output of another target.
-    Generated(TargetId),
+    /// One output of another target, by its index into that target's own
+    /// `outs` — `0` for a target with exactly one output (the overwhelming
+    /// common case), matching meson's own `custom_target()[i]` indexing. A
+    /// multi-output target added to `sources:`/etc. without indexing (meson
+    /// then means every one of its outputs) lowers to one `Generated` per
+    /// index rather than losing all but the first.
+    Generated(TargetId, usize),
 }
 
 /// One word of a [`Kind::Custom`] command line.

@@ -302,10 +302,22 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   - A mingw-w64 `.def`-name source for Windows *OS* libs the link probe
     misses (same shape as the glibc `abilists` read).
 
+- **`cc.preprocess()` is a no-op.** `sources` pass through unchanged instead
+  of being run through the real C preprocessor (`methods.rs`'s `"preprocess"`
+  arm, `decay_meson_eval/src/methods.rs`) — fine where nothing reads the
+  macro-expanded output, wrong where a project relies on the expansion
+  itself: fontconfig's `fcobjshash.gperf.h` has `#define FC_OBJECT(...) ...`
+  / `#include "fcobjs.h"` / `#undef` *after* its gperf `%%` marker, which
+  only real preprocessing turns into the keyword lines gperf needs — decay
+  passes the raw directives through, so gperf sees none and refuses ("No
+  keywords in input file!"). Needs a real genrule that shells out to a C
+  preprocessor (`-E`) with the call's `include_directories:` (and probably
+  the zig-cc path a compile probe already uses), not a passthrough.
+
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay — currently exercises 9 of wrapdb's ~250+ projects in
+  smoke test for decay — currently exercises 10 of wrapdb's ~250+ projects in
   `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`,
-  `graphite2`, `pixman`, `cairo`, `freetype2`).
+  `graphite2`, `pixman`, `cairo`, `freetype2`, `fontconfig`).
 
   **GTK4 end-to-end — what's still missing.** Checked against gtk's own
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
@@ -316,15 +328,12 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `fontconfig` backends), `freetype2` (zlib support only — `brotli`/`bzip2`/
   `harfbuzz`/`png` off, none of those imported yet). Still needed, in
   roughly the order a next attempt should reach for them:
-  - `fontconfig` — needed to turn `cairo`'s `xlib`/`freetype`/`fontconfig`
-    options on (cairo's X11 surface — `cairo-xlib-screen.c` — needs
-    fontconfig unconditionally, not just its own `fontconfig`
-    cairo-font-backend option) and by pango's FreeType backend. Already
-    noted above as blocked on `run_command` support — two of its three
-    `run_command()` calls are a deterministic `gperf -L ANSI-C ...`
-    toolchain probe (answerable with a canned `commands` entry, the
-    libffi/freetype2 pattern) and a doc-only script (skippable via the
-    `docs` option); untried since freetype2 was the priority.
+  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`), but
+    the `fontconfig`/`fontconfig-dep` targets don't `buck2 build` yet:
+    `fcobjshash.h` needs real `cc.preprocess()` (see above). Everything else
+    in the package (`alias_headers`/`ft_alias_headers`, `fcgenericfamily.h`,
+    `fccase_h`, ...) builds clean. Not yet wired into `cairo`'s
+    `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several
     optional deps (`freetype`, `glib`, `graphite2`, `icu`) probed via

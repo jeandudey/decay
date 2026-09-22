@@ -18,10 +18,33 @@ impl<'a, S: Solver> Interp<'a, S> {
     ///
     /// A hole filled by a value that differs between configurations makes the
     /// whole string differ, so the result is variational too.
+    ///
+    /// A template that is *only* one hole (`f'@dir@'`, `'@0@'.format(dir)`)
+    /// is meson's idiom for passing a value through unchanged — most often
+    /// `meson.current_source_dir()` as a `command:` argument (fontconfig's
+    /// `'@0@'.format(meson.current_source_dir())`, handed to a script's
+    /// `-d` flag). `stringify()` below has to degrade an `Obj::File`/
+    /// `Obj::PrefixedFile` to its bare path text (there is no way to splice
+    /// a build-graph reference into an arbitrary position of a general
+    /// template), which a `command:` argument can no longer resolve once the
+    /// build runs elsewhere — so this case returns the value itself,
+    /// preserving the reference `command()` already knows how to handle.
     pub(crate) fn format_string(&mut self, template: &str) -> eyre::Result<Variational<Value>> {
+        let pieces = split_holes(template);
+        if let [Piece::Hole(name)] = pieces.as_slice() {
+            let value = self
+                .lookup(name)?
+                .ok_or_else(|| eyre::eyre!("`@{name}@` names an undefined variable"))?;
+            if let [variant] = value.variants()
+                && matches!(variant.value, Value::Obj(Obj::File(_) | Obj::PrefixedFile(..)))
+            {
+                return Ok(value);
+            }
+        }
+
         let mut out = Variational::from(Variant::new(self.pc, String::new()));
 
-        for piece in split_holes(template) {
+        for piece in pieces {
             let addition: Variational<Rc<str>> = match piece {
                 Piece::Literal(text) => {
                     Variant::new(self.pc, Rc::from(text)).into() //
@@ -54,14 +77,32 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     /// `'...@0@...'.format(a, b)`, where the holes are positional.
+    ///
+    /// See [`Self::format_string`]'s doc comment: a lone `'@0@'.format(x)`
+    /// gets the same pass-through treatment for a `File`/`PrefixedFile` `x`.
     pub(crate) fn format_positional(
         &mut self,
         template: &str,
         args: &[Variational<Value>],
     ) -> eyre::Result<Variational<Value>> {
+        let pieces = split_holes(template);
+        if let [Piece::Hole(name)] = pieces.as_slice() {
+            let index: usize = name
+                .parse()
+                .map_err(|_| eyre::eyre!("`@{name}@` is not a positional hole"))?;
+            let arg = args
+                .get(index)
+                .ok_or_else(|| eyre::eyre!("`@{index}@` has no matching argument"))?;
+            if let [variant] = arg.variants()
+                && matches!(variant.value, Value::Obj(Obj::File(_) | Obj::PrefixedFile(..)))
+            {
+                return Ok(arg.clone());
+            }
+        }
+
         let mut out = Variational::from(Variant::new(self.pc, String::new()));
 
-        for piece in split_holes(template) {
+        for piece in pieces {
             let addition: Variational<Rc<str>> = match piece {
                 Piece::Literal(text) => Variant::new(self.pc, Rc::from(text)).into(),
                 Piece::Hole(name) => {
@@ -101,21 +142,24 @@ impl<'a, S: Solver> Interp<'a, S> {
     ) -> eyre::Result<Variational<Rc<str>>> {
         let mut out = Variational::empty();
         for variant in v.variants() {
-            let text: Rc<str> = match &variant.value {
-                Value::Str(s) => s.clone(),
-                Value::Int(i) => Rc::from(i.to_string().as_str()),
-                Value::Bool(b) => Rc::from(if *b { "true" } else { "false" }),
-                // A source-tree path interpolated into a plain string (a
-                // compiler flag, say) has no build-graph reference to become;
-                // this at least keeps the path meson would have produced,
-                // same as before it was tracked instead of being a string.
-                Value::Obj(Obj::File(p)) => p.clone(),
-                other => bail!("cannot interpolate a {}", other.type_name()),
-            };
-            out.push(Variant::new(variant.cond, text));
+            out.push(Variant::new(variant.cond, text_of(&variant.value)?));
         }
         Ok(out)
     }
+}
+
+/// A value interpolated into a plain string (a compiler flag, `join_paths()`
+/// segment, ...). A source-tree path has no build-graph reference to become
+/// once it lands here, so this at least keeps the path meson would have
+/// produced, same as before it was tracked instead of being a string.
+pub(crate) fn text_of(value: &Value) -> eyre::Result<Rc<str>> {
+    Ok(match value {
+        Value::Str(s) => s.clone(),
+        Value::Int(i) => Rc::from(i.to_string().as_str()),
+        Value::Bool(b) => Rc::from(if *b { "true" } else { "false" }),
+        Value::Obj(Obj::File(p)) => p.clone(),
+        other => bail!("cannot interpolate a {}", other.type_name()),
+    })
 }
 
 enum Piece<'a> {

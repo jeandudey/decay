@@ -816,6 +816,54 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
+# toolchain probe `probe:c:has_member:struct statvfs`: `struct statvfs` is available to the c compiler
+constraint(
+    name = "has_member_struct_statvfs",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_member:struct statfs`: `struct statfs` is available to the c compiler
+constraint(
+    name = "has_member_struct_statfs",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:has_member:struct stat`: `struct stat` is available to the c compiler
+constraint(
+    name = "has_member_struct_stat",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:stdatomic.h atomics`: `stdatomic.h atomics` is available to the c compiler
+constraint(
+    name = "links_stdatomic_h_atomics",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:Intel atomics`: `Intel atomics` is available to the c compiler
+constraint(
+    name = "links_Intel_atomics",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:links:Solaris atomic ops`: `Solaris atomic ops` is available to the c compiler
+constraint(
+    name = "links_Solaris_atomic_ops",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
 # toolchain probe `probe:c:links:__builtin_unreachable`: `__builtin_unreachable` is available to the c compiler
 constraint(
     name = "links_builtin_unreachable",

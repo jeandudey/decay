@@ -134,8 +134,16 @@ impl Packages {
                                     path.display()
                                 )
                             }
-                            Source::Generated(id) => {
-                                format!("//{package}:{}", graph.target(*id).name)
+                            Source::Generated(id, index) => {
+                                let t = graph.target(*id);
+                                match t.attrs.outs.len() {
+                                    0 | 1 => format!("//{package}:{}", t.name),
+                                    _ => format!(
+                                        "//{package}:{}[{}]",
+                                        t.name,
+                                        t.attrs.outs.get(*index).cloned().unwrap_or_default()
+                                    ),
+                                }
                             }
                         })
                         .collect()

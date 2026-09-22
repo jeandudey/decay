@@ -787,10 +787,7 @@ fn render_target<S: Solver>(
         Kind::Custom => {
             // Inputs reach the command through `$(location ...)`, which already
             // makes them dependencies of the rule.
-            attrs.push((
-                "out",
-                format!("{:?}", a.outs.first().cloned().unwrap_or_default()),
-            ));
+            attrs.extend(out_attrs(&a.outs));
             // Generated `depends:` files that have to sit at their meson
             // build-tree paths (a script reading its own package by a relative
             // path) are staged under `$SRCDIR` instead.
@@ -856,7 +853,7 @@ fn render_target<S: Solver>(
             // (its `MAPI_ABI_HEADER`), both resolve without the header being
             // named against an `include_directories()` root.
             for entry in a.srcs.iter().chain(a.headers.iter()) {
-                if let Source::Generated(id) = &entry.value {
+                if let Source::Generated(id, _) = &entry.value {
                     let dir = graph.target(*id).package.clone();
                     if !dir.as_os_str().is_empty() && !roots.iter().any(|(_, p)| *p == dir) {
                         roots.push((entry.cond, dir));
@@ -881,7 +878,7 @@ fn render_target<S: Solver>(
                 // a tool this project builds) must not be broadcast back onto
                 // it — that would close a dependency cycle.
                 .filter(|t| !depends_on(graph, t.id, target.id))
-                .map(|t| Variant::new(Pc::TRUE, Source::Generated(t.id)))
+                .map(|t| Variant::new(Pc::TRUE, Source::Generated(t.id, 0)))
                 .collect();
 
             // A `raw_include_roots` target is compiled against real `-I` roots
@@ -906,12 +903,12 @@ fn render_target<S: Solver>(
                 // `include_directories()`, not every config header in the
                 // project.
                 let exported_private = private.iter().filter(|e| {
-                    matches!(&e.value, Source::Generated(id)
+                    matches!(&e.value, Source::Generated(id, _)
                         if roots.iter().any(|(_, p)| *p == graph.target(*id).package))
                 });
                 a.headers
                     .iter()
-                    .filter(|e| matches!(e.value, Source::Generated(_)))
+                    .filter(|e| matches!(e.value, Source::Generated(..)))
                     .chain(exported_private)
                     .cloned()
                     .collect()
@@ -1501,16 +1498,58 @@ fn include_roots<S: Solver>(
 fn logical_path(graph: &Graph, source: &Source) -> PathBuf {
     match source {
         Source::File(path) => path.clone(),
-        Source::Generated(id) => {
+        Source::Generated(id, index) => {
             let target = graph.target(*id);
             let name = target
                 .attrs
                 .outs
-                .first()
+                .get(*index)
                 .cloned()
                 .unwrap_or_else(|| target.name.clone());
             target.package.join(name)
         }
+    }
+}
+
+/// The `out`/`outs` attrs for a `genrule`'s declared outputs: a single `out`
+/// for the overwhelming common case, matching every existing single-output
+/// reference exactly as before, or buck2's multi-output `outs = {...}` +
+/// `default_outs` -- addressed as `name[out]` by [`generated_label`] --
+/// when a target declares more than one (fontconfig's `alias_headers`).
+fn out_attrs(outs: &[String]) -> Vec<(&'static str, String)> {
+    match outs {
+        [] => vec![("out", format!("{:?}", ""))],
+        [single] => vec![("out", format!("{single:?}"))],
+        multiple => {
+            let mut dict = String::from("{\n");
+            for out in multiple {
+                let _ = writeln!(dict, "        {out:?}: [{out:?}],");
+            }
+            dict.push_str("    }");
+            vec![
+                ("outs", dict),
+                ("default_outs", format!("[{:?}]", multiple[0])),
+            ]
+        }
+    }
+}
+
+/// The buck2 label a `Source::Generated(id, index)` addresses: the target's
+/// bare name when it has (at most) one output, matching every existing
+/// single-output `genrule`/`configure_file` reference exactly as before, or
+/// `name[out]` -- the same bracket addressing an `http_archive`'s
+/// `sub_targets` already use -- for one specific output of a target whose
+/// `outs = {...}` declares more than one (fontconfig's `alias_headers`,
+/// which yields both `fcalias.h` and `fcaliastail.h`).
+fn generated_label(graph: &Graph, id: TargetId, index: usize) -> String {
+    let target = graph.target(id);
+    match target.attrs.outs.len() {
+        0 | 1 => target.name.clone(),
+        _ => format!(
+            "{}[{}]",
+            target.name,
+            target.attrs.outs.get(index).cloned().unwrap_or_default()
+        ),
     }
 }
 
@@ -1615,7 +1654,7 @@ fn depends_on(graph: &Graph, from: TargetId, to: TargetId) -> bool {
             .chain(a.headers.iter())
             .chain(a.sibling_headers.iter())
         {
-            if let Source::Generated(gid) = &entry.value {
+            if let Source::Generated(gid, _) = &entry.value {
                 stack.push(*gid);
             }
         }
@@ -1627,7 +1666,7 @@ fn depends_on(graph: &Graph, from: TargetId, to: TargetId) -> bool {
                 stack.push(*tid);
             }
         }
-        if let Some(Source::Generated(gid)) = &a.template {
+        if let Some(Source::Generated(gid, _)) = &a.template {
             stack.push(*gid);
         }
     }
@@ -1642,7 +1681,7 @@ fn has_rule(target: &Target) -> bool {
 fn source(graph: &Graph, source: &Source) -> String {
     match source {
         Source::File(path) => format!("\":{}\"", source_address(graph, path)),
-        Source::Generated(id) => format!("\":{}\"", graph.target(*id).name),
+        Source::Generated(id, index) => format!("\":{}\"", generated_label(graph, *id, *index)),
     }
 }
 
@@ -1693,7 +1732,9 @@ fn flag(graph: &Graph, flag: &Flag) -> String {
         Flag::File(prefix, source) => {
             let reference = match source {
                 Source::File(path) => file_arg(graph, path),
-                Source::Generated(id) => format!("$(location :{})", graph.target(*id).name),
+                Source::Generated(id, index) => {
+                    format!("$(location :{})", generated_label(graph, *id, *index))
+                }
             };
             format!("{:?}", format!("{prefix}{reference}"))
         }
@@ -1725,10 +1766,21 @@ fn command<S: Solver>(
         .iter()
         .map(|s| match &s.value {
             Source::File(path) => file_arg(graph, path),
-            Source::Generated(id) => staged_path(*id)
-                .unwrap_or_else(|| format!("$(location :{})", graph.target(*id).name)),
+            Source::Generated(id, index) => staged_path(*id).unwrap_or_else(|| {
+                format!("$(location :{})", generated_label(graph, *id, *index))
+            }),
         })
         .collect();
+
+    // `$OUT` is the genrule's single output *file* when it declares one
+    // (`out = ...`), but the output *directory* itself once it declares more
+    // than one (`outs = {...}`) -- `@OUTDIR@` has to match whichever buck2
+    // actually hands the command.
+    let out_dir = if target.attrs.outs.len() > 1 {
+        "$OUT"
+    } else {
+        OUT_DIR
+    };
 
     let mut words = selects.render_words(logic, &target.attrs.cmd, target.cond, 1, " ", |arg| {
         match arg {
@@ -1738,7 +1790,7 @@ fn command<S: Solver>(
             // one argument, not word-split by the shell, while any
             // `@OUTPUT@`-style marker embedded in it (`--outputdir=@OUTDIR@`,
             // say) still expands.
-            CmdArg::Literal(text) => substitute(text, &inputs),
+            CmdArg::Literal(text) => substitute(text, &inputs, out_dir),
             CmdArg::Target(id) => {
                 let dep = graph.target(*id);
                 match &dep.kind {
@@ -1787,8 +1839,21 @@ fn command<S: Solver>(
             CmdArg::File(path) => file_arg(graph, path),
             CmdArg::PrefixedFile(prefix, path) => format!("{prefix}{}", file_arg(graph, path)),
             CmdArg::Inputs => inputs.join(" "),
-            CmdArg::Outputs => "$OUT".to_owned(),
-            CmdArg::OutDir => OUT_DIR.to_owned(),
+            // `$OUT` is the single output file when the genrule declares one,
+            // but the output *directory* once it declares more than one —
+            // meson's own `@OUTPUT@` for a multi-output `custom_target`
+            // expands to every one of its output paths (fontconfig's
+            // `makealias.py <srcdir> @OUTPUT@ @INPUT@`, i.e. `head tail`
+            // positional args), each now `$OUT/<name>`.
+            CmdArg::Outputs => match target.attrs.outs.as_slice() {
+                [] | [_] => "$OUT".to_owned(),
+                outs => outs
+                    .iter()
+                    .map(|o| format!("$OUT/{o}"))
+                    .collect::<Vec<_>>()
+                    .join(" "),
+            },
+            CmdArg::OutDir => out_dir.to_owned(),
         }
     });
 
@@ -1817,7 +1882,7 @@ fn join(parts: &[String]) -> String {
 /// shell to act on, not become the literal characters quoting it would
 /// leave behind. The two are stitched back together the way a shell allows
 /// adjacent quoted and unquoted text to run together as one word.
-fn substitute(text: &str, inputs: &[String]) -> String {
+fn substitute(text: &str, inputs: &[String], out_dir: &str) -> String {
     let mut out = String::new();
     let mut rest = text;
     while let Some(at) = rest.find('@') {
@@ -1827,7 +1892,7 @@ fn substitute(text: &str, inputs: &[String]) -> String {
         };
         let close = at + 1 + end_rel;
         let token = &rest[at + 1..close];
-        match marker_value(token, inputs) {
+        match marker_value(token, inputs, out_dir) {
             Some(replacement) => {
                 if at > 0 {
                     out.push_str(&shell_quote(&rest[..at]));
@@ -1850,13 +1915,15 @@ fn substitute(text: &str, inputs: &[String]) -> String {
 }
 
 /// What a meson command placeholder (`@INPUT@`, `@INPUT0@`, `@OUTPUT@`,
-/// `@OUTDIR@`, `@BASENAME@`) expands to inside a genrule. `@INPUT<n>@` /
-/// `@OUTPUT<n>@` name the n-th input / output; decay's genrule model has one
-/// output, so every `@OUTPUT…@` is `$OUT`.
-fn marker_value(token: &str, inputs: &[String]) -> Option<String> {
+/// `@OUTDIR@`, `@BASENAME@`) expands to when embedded inside a literal
+/// argument (a whole-argument `@OUTPUT@`/`@OUTDIR@` is a distinct `CmdArg` —
+/// see [`command`] — since meson expands each of those to more than one
+/// shell word for a multi-output target; this only ever fills one).
+/// `@INPUT<n>@` names the n-th input.
+fn marker_value(token: &str, inputs: &[String], out_dir: &str) -> Option<String> {
     match token {
         "INPUT" => Some(inputs.join(" ")),
-        "OUTDIR" => Some(OUT_DIR.to_owned()),
+        "OUTDIR" => Some(out_dir.to_owned()),
         "BASENAME" => Some("${OUT##*/}".to_owned()),
         _ if token == "OUTPUT" || token.strip_prefix("OUTPUT").is_some_and(is_index) => {
             Some("$OUT".to_owned())
@@ -1984,7 +2051,9 @@ fn config_header_cmd<S: Solver>(
 
         let input = match template {
             Source::File(path) => file_arg(graph, path),
-            Source::Generated(id) => format!("$(location :{})", graph.target(*id).name),
+            Source::Generated(id, index) => {
+                format!("$(location :{})", generated_label(graph, *id, *index))
+            }
         };
 
         // An empty, always-present `-e` comes first so the command stays

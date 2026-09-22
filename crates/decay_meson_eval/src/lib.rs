@@ -1232,7 +1232,13 @@ impl<'a, S: Solver> Interp<'a, S> {
         // would risk linking the wrong file in silently; leave it a literal
         // instead, same as no match at all.
         if let (Some(target), None) = (generated.next(), generated.next()) {
-            return Flag::File(prefix.to_owned(), Source::Generated(target.id));
+            let index = target
+                .attrs
+                .outs
+                .iter()
+                .position(|o| o == basename)
+                .unwrap_or(0);
+            return Flag::File(prefix.to_owned(), Source::Generated(target.id, index));
         }
         if self.sources.exists(&self.root.join(&normalized)) {
             return Flag::File(prefix.to_owned(), Source::File(PathBuf::from(normalized)));
@@ -1332,17 +1338,31 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn sources(&mut self, v: &Variational<Value>) -> eyre::Result<Variational<Source>> {
         let mut out = Variational::empty();
         for variant in self.flat(v) {
-            let src = match &variant.value {
+            match &variant.value {
                 // A bare string in a source list is relative to the directory
                 // that mentioned it.
-                Value::Str(s) => Source::File(PathBuf::from(self.resolve(s))),
-                Value::Obj(Obj::File(path)) => Source::File(PathBuf::from(&**path)),
-                Value::Obj(Obj::Target(id)) | Value::Obj(Obj::Output(id, _)) => {
-                    Source::Generated(*id)
+                Value::Str(s) => out.push(Variant::new(
+                    variant.cond,
+                    Source::File(PathBuf::from(self.resolve(s))),
+                )),
+                Value::Obj(Obj::File(path)) => out.push(Variant::new(
+                    variant.cond,
+                    Source::File(PathBuf::from(&**path)),
+                )),
+                // A specific output, chosen by `target[i]` indexing.
+                Value::Obj(Obj::Output(id, i)) => {
+                    out.push(Variant::new(variant.cond, Source::Generated(*id, *i)));
+                }
+                // The whole (possibly multi-output) target, unindexed --
+                // meson then means every one of its outputs.
+                Value::Obj(Obj::Target(id)) => {
+                    let count = self.graph.target(*id).attrs.outs.len().max(1);
+                    for i in 0..count {
+                        out.push(Variant::new(variant.cond, Source::Generated(*id, i)));
+                    }
                 }
                 other => bail!("cannot use a {} as a source", other.type_name()),
             };
-            out.push(Variant::new(variant.cond, src));
         }
         Ok(out)
     }

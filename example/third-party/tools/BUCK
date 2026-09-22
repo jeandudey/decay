@@ -29,3 +29,9 @@ sh_binary(
     main = "glib-genmarshal.sh",
     visibility = ["PUBLIC"],
 )
+
+sh_binary(
+    name = "gperf",
+    main = "gperf.sh",
+    visibility = ["PUBLIC"],
+)

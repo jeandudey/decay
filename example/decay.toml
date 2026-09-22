@@ -306,10 +306,70 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 #repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
 #rev = "1.29.2"
 
-# TODO: Needs run_command.
-# [[project]]
-# repo = "https://gitlab.freedesktop.org/fontconfig/fontconfig"
-# rev = "2.18.3"
+[[project]]
+repo = "https://gitlab.freedesktop.org/fontconfig/fontconfig"
+tag = "2.18.3"
+depends = ["freetype2", "libxml2"]
+options = { doc = "disabled", "doc-txt" = "disabled", "doc-man" = "disabled", "doc-pdf" = "disabled", "doc-html" = "disabled", nls = "disabled", tests = "disabled", "tests-bwrap" = "disabled", "tests-external-fonts" = "disabled", tools = "enabled", "cache-build" = "enabled", iconv = "disabled", "xml-backend" = "libxml2", fontations = "disabled", "default-hinting" = "slight", "default-sub-pixel-rendering" = "none", "bitmap-conf" = "no-except-emoji", "default-fonts-dirs" = ["yes"], "additional-fonts-dirs" = ["yes"], "cache-dir" = "default", "template-dir" = "default", "baseconfig-dir" = "default", "config-dir" = "default", "xml-dir" = "default" }
+# `gperf -L ANSI-C meson-cc-tests/gperf.txt` picks the `in_word_set()` `len`
+# parameter type (size_t vs unsigned) gperf's own codegen used for this
+# machine's gperf -- deterministic given the pinned gperf release and input,
+# same shape as freetype2's version-extraction scripts. The `Command-line:`
+# comment normally embeds this machine's own checkout path; harmless to
+# canonicalize since it feeds a compile probe, not something compared
+# byte-for-byte.
+commands."gperf -L ANSI-C meson-cc-tests/gperf.txt" = { stdout = """
+/* ANSI-C code produced by gperf version 3.3 */
+/* Command-line: gperf -L ANSI-C meson-cc-tests/gperf.txt  */
+/* Computed positions: -k'' */
+
+
+#define TOTAL_KEYWORDS 1
+#define MIN_WORD_LENGTH 3
+#define MAX_WORD_LENGTH 3
+#define MIN_HASH_VALUE 0
+#define MAX_HASH_VALUE 0
+/* maximum key range = 1, duplicates = 0 */
+
+#ifdef __GNUC__
+__inline
+#else
+#ifdef __cplusplus
+inline
+#endif
+#endif
+/*ARGSUSED*/
+static unsigned int
+hash (register const char *str, register size_t len)
+{
+  (void) str;
+  (void) len;
+  return 0;
+}
+
+const char *
+in_word_set (register const char *str, register size_t len)
+{
+  static const char * wordlist[] =
+    {
+      "foo"
+    };
+
+  if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
+    {
+      register unsigned int key = hash (str, len);
+
+      if (key <= MAX_HASH_VALUE)
+        {
+          register const char *s = wordlist[key];
+
+          if (*str == *s && !strcmp (str + 1, s + 1))
+            return s;
+        }
+    }
+  return (const char *) 0;
+}
+""" }
 
 [[project]]
 wrap = "zlib"

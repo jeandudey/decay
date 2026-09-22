@@ -1129,14 +1129,12 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(self.bool_value(cond))
             }
 
-            // `cc.preprocess(*sources, output:, ...)`: MSVC-only (masm
-            // needs its `.asm` sources preprocessed first), reached only
-            // under `compiler[msvc]` — a branch no `[systems]` entry can
-            // build today regardless (msvc has no probeable toolchain here).
-            // The importer does not run the preprocessor, so this is not a
-            // real translation, just enough to keep evaluation alive: each
-            // source passes through unchanged rather than becoming its
-            // `output:`-named `.i`/`.masm` file.
+            // `cc.preprocess(*sources, output:, ...)`. The importer does not
+            // run the preprocessor, so this is not a real translation, just
+            // enough to keep evaluation alive: each source passes through
+            // unchanged rather than becoming its `output:`-named file. Fine
+            // where nothing reads the macro-expanded result; wrong where it
+            // does (fontconfig's `fcobjshash.gperf.h` — AGENTS.md).
             "preprocess" => {
                 warn!("cc.preprocess() does not preprocess; sources pass through unchanged");
                 let mut items = Vec::new();
