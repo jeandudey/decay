@@ -21,6 +21,16 @@ pub struct Packages {
     /// `declare_dependency()`/`pkg.generate()` anything to still answer
     /// `subproject(name).get_variable()`).
     subprojects: BTreeMap<String, Vec<(String, String)>>,
+    /// `meson.override_find_program()` calls, keyed by the name a sibling
+    /// project's own `find_program()` looks up — a ready `$(exe ...)`/
+    /// `python3 $(location ...)` invocation, not a bare label: unlike a
+    /// `decay.toml` `[programs]` entry (always a real binary target by
+    /// convention), the target this resolves to is whatever the project
+    /// itself built (glib's `glib-mkenums`/`glib-genmarshal` are a plain
+    /// `configure_file()`-substituted script, not a `sh_binary` — no promise
+    /// about its execute bit, the same reason an in-tree `.py` `find_program`
+    /// result is handed to an interpreter rather than executed directly).
+    programs: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +90,19 @@ impl Packages {
         })
     }
 
+    /// Whether an earlier project's own `meson.override_find_program()`
+    /// already answers a `find_program(name)` lookup.
+    pub fn has_program(&self, name: &str) -> bool {
+        self.programs.contains_key(name)
+    }
+
+    /// Every `meson.override_find_program()`-provided name, as `(name,
+    /// invocation)` — see the field's own doc comment for why the value is a
+    /// ready invocation rather than a bare label.
+    pub fn programs(&self) -> impl Iterator<Item = (String, String)> + '_ {
+        self.programs.iter().map(|(k, v)| (k.clone(), v.clone()))
+    }
+
     /// Every provided name that contributes copylib `.c` sources, as
     /// `(name, refs)`.
     pub fn source_groups(&self) -> impl Iterator<Item = (String, Vec<String>)> + '_ {
@@ -97,6 +120,22 @@ impl Packages {
     pub fn register(&mut self, package: &str, graph: &Graph) {
         self.subprojects
             .insert(graph.project.name.clone(), graph.project.variables.clone());
+
+        for (name, id) in &graph.programs_provided {
+            let t = graph.target(*id);
+            let label = format!("//{package}:{}", t.name);
+            // A project's own compiled tool (`Kind::Executable`) is run the
+            // same way any other one is; anything else is a generated file
+            // with no promise about its execute bit, so it needs an
+            // interpreter -- always python3 here, the only kind of generator
+            // script a project has ever registered this way so far.
+            let invocation = if matches!(t.kind, Kind::Executable) {
+                format!("$(exe {label})")
+            } else {
+                format!("python3 $(location {label})")
+            };
+            self.programs.insert(name.clone(), invocation);
+        }
 
         // A project's root `declare_dependency()` is registered under the
         // project's own name and carries the include dirs every `.pc` this

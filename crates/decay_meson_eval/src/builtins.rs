@@ -2164,7 +2164,16 @@ impl<'a, S: Solver> Interp<'a, S> {
             },
         );
 
-        let found = if in_tree || self.oracle.has_program(name) {
+        // `self.program_overrides` first: a same-project `find_program()`
+        // has to see this project's own `override_find_program()`, even
+        // though the cross-project registry (`self.oracle.has_program()`,
+        // built from every *earlier* project's finished graph) will not know
+        // about it until the next project starts.
+        let has_override = self
+            .program_overrides
+            .iter()
+            .any(|(n, _)| n.as_str() == name);
+        let found = if in_tree || has_override || self.oracle.has_program(name) {
             Pc::TRUE
         } else {
             // Not a configuration knob: nothing a platform could set would make

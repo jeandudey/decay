@@ -435,7 +435,11 @@ impl Oracle for ConfigOracle<'_> {
     }
 
     fn has_program(&self, name: &str) -> bool {
-        self.config.programs.contains_key(name)
+        // Found if either answers: a sibling project's own
+        // `override_find_program()`, or a configured system tool. Which
+        // label actually gets used when both do is decided in
+        // `build_labels()`, where an explicit `decay.toml` entry wins.
+        self.packages.has_program(name) || self.config.programs.contains_key(name)
     }
 
     fn dependency_variables(&self, name: &str) -> Vec<(String, String)> {

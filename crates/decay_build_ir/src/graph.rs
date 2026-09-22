@@ -35,6 +35,14 @@ pub struct Graph {
     pub installs: Vec<Install>,
     /// `pkg-config` modules the project makes available to others.
     pub provides: Vec<Package>,
+    /// `meson.override_find_program(name, program)` calls: a sibling project
+    /// resolving `find_program(name)` finds this project's own compiled or
+    /// generated tool instead of needing a `decay.toml` `[programs]` entry
+    /// (glib's `gobject/meson.build` builds `glib-mkenums`/`glib-genmarshal`
+    /// from its own `.in` templates and registers them this way, precisely
+    /// so a project that bootstraps against it — anything using
+    /// `gnome.mkenums()`/`gnome.genmarshal()` — never needs a system copy).
+    pub programs_provided: Vec<(String, TargetId)>,
     /// Names already handed out, so generated names stay unique.
     used_names: HashMap<String, u32>,
 }

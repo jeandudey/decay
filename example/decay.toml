@@ -71,9 +71,12 @@ nm = "//third-party/tools:nm"
 cargo = "//third-party/tools:cargo"
 cp = "//third-party/tools:cp"
 gperf = "//third-party/tools:gperf"
-"glib-compile-resources" = "//third-party/tools:glib-compile-resources"
-"glib-mkenums" = "//third-party/tools:glib-mkenums"
-"glib-genmarshal" = "//third-party/tools:glib-genmarshal"
+# glib-compile-resources/glib-mkenums/glib-genmarshal are NOT listed here:
+# glib's own `gobject/meson.build`/`gio/meson.build` build all three from
+# its own `.in` templates and `meson.override_find_program()`s them, so a
+# consumer (harfbuzz's `gnome.mkenums()`) resolves against glib's own tool
+# the same way an unlisted `dependency()` name resolves against a sibling
+# project's `pkg.generate()` -- no system copy needed.
 
 # Meson looks these up outside the build. Only a dependency the build truly
 # cannot reach itself needs an entry: a system library nothing here provides,

@@ -259,9 +259,45 @@ impl<'a, S: Solver> Interp<'a, S> {
                 | "add_dist_script"
                 | "add_postconf_script"
                 | "add_devenv"
-                | "install_dependency_manifest"
-                | "override_find_program",
+                | "install_dependency_manifest",
             ) => {
+                self.warn_unsupported(&format!("`meson.{name}()`"), loc);
+                Ok(self.pure(Value::Unset))
+            }
+            // `find_program(name)` resolving against this project's own tool
+            // instead of a `decay.toml` `[programs]` entry — glib builds
+            // `glib-mkenums`/`glib-genmarshal` from its own `.in` templates
+            // and registers them this way specifically so nothing consuming
+            // them (including glib's own later codegen, in the same
+            // evaluation) needs a pre-existing system copy. Recorded in
+            // `Interp::program_overrides`: checked immediately (unlike
+            // `override_dependency()`, since a project's own later
+            // `find_program()` call has to see it), and also merged into
+            // `graph.programs_provided` in `finish()` for a sibling project
+            // evaluated afterward. Only a plain `configure_file()`/
+            // `custom_target()` result or another `find_program()` call is
+            // modelled; anything else falls back to a `decay.toml` entry.
+            (Obj::Meson, "override_find_program") => {
+                let prog_name = self.one_string(
+                    args.at(0)
+                        .ok_or_eyre("override_find_program() needs a name")?,
+                )?;
+                let program = args
+                    .at(1)
+                    .ok_or_eyre("override_find_program() needs a program")?;
+                if let [variant] = program.variants()
+                    && variant.cond.is_true()
+                {
+                    let target = match &variant.value {
+                        Value::Obj(Obj::Target(id)) => Some(*id),
+                        Value::Obj(Obj::Program(p)) => Some(p.target),
+                        _ => None,
+                    };
+                    if let Some(id) = target {
+                        self.program_overrides.push((prog_name.to_string(), id));
+                        return Ok(self.pure(Value::Unset));
+                    }
+                }
                 self.warn_unsupported(&format!("`meson.{name}()`"), loc);
                 Ok(self.pure(Value::Unset))
             }

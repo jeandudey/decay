@@ -208,6 +208,14 @@ pub struct Interp<'a, S: Solver> {
     /// collision by last-in-vec, the same way a second `declare_dependency()`
     /// already does.
     pub(crate) dependency_overrides: Vec<Package>,
+    /// `meson.override_find_program(name, program)` calls, collected here
+    /// and merged into `graph.programs_provided` in [`Self::finish`] — see
+    /// that field's own doc comment. Unlike `dependency_overrides`, also
+    /// consulted immediately (`Self::program_override`), since a project can
+    /// register its own tool and use it on itself later in the same
+    /// evaluation (glib registers `glib-mkenums` this way specifically so it
+    /// never needs a pre-existing system copy to build its own enums).
+    pub(crate) program_overrides: Vec<(String, TargetId)>,
 }
 
 impl<'a, S: Solver> Interp<'a, S> {
@@ -242,6 +250,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             project_args: Variational::empty(),
             project_link_args: Variational::empty(),
             dependency_overrides: Vec::new(),
+            program_overrides: Vec::new(),
         }
     }
 
@@ -302,6 +311,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         // with whatever `pkg.generate()` already registered, regardless of
         // which ran first during evaluation.
         graph.provides.extend(self.dependency_overrides);
+        graph.programs_provided = self.program_overrides;
 
         // `add_project_arguments()` reaches every target the project
         // compiles, not just ones declared after the call, so it is applied

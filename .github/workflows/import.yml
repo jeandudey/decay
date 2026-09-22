@@ -21,7 +21,11 @@ jobs:
       # else (glib, its codegen tools, zlib, ...) is imported from source.
       # gperf: //third-party/tools:gperf execs the system copy at build time
       # (fontconfig's fcobjshash.h/fcgenericfamily.h codegen), same shape as
-      # python3/glib-mkenums/etc there.
+      # python3 there. glib-mkenums/glib-genmarshal/glib-compile-resources
+      # need no system package: glib builds all three from its own source
+      # and registers them via `meson.override_find_program()`, so a
+      # consumer (harfbuzz-gobject's `gnome.mkenums()` codegen) resolves
+      # against glib's own buck2-built tool instead.
       # gcc-14: the runner default (13) has no <stdckdint.h>, which glib 2.88
       # includes; make 14 the `gcc`/`g++` the buck2 toolchain picks up.
       - run: |
@@ -34,18 +38,6 @@ jobs:
             gcc-14 g++-14
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
-
-      # //third-party/tools:glib-mkenums/:glib-genmarshal exec the system
-      # copies at build time (harfbuzz-gobject's gnome.mkenums() codegen),
-      # same shape as gperf/python3 above. Debian/Ubuntu moved these from
-      # libglib2.0-dev-bin into libgio-2.0-dev-bin around glib 2.80; try both
-      # names so this keeps working across runner images either side of that
-      # split, then fail loudly here rather than deep inside a genrule if
-      # neither provides the tools.
-      - run: |
-          sudo apt-get install -y libglib2.0-dev-bin || true
-          sudo apt-get install -y libgio-2.0-dev-bin || true
-          which glib-mkenums glib-genmarshal
 
       # decay's import-time compile/link probes. Official tarball, not a distro
       # package (which strips the bundled cross-libc headers). 0.15.2 is what

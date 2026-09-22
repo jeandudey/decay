@@ -3,30 +3,17 @@
 # `find_program()` onto these, so the generated build calls a real target
 # instead of failing to configure at all.
 #
-# Each one just execs the system copy: there is no hermetic build of GLib's
-# own tools here, only a pointer at whatever this machine already has.
+# Each one just execs the system copy: there is no hermetic build of it in
+# this repo, and nothing already imported provides it either -- unlike
+# glib-compile-resources/glib-mkenums/glib-genmarshal, which glib's own
+# `gobject/meson.build`/`gio/meson.build` build from source and register via
+# `meson.override_find_program()`, so a consumer (harfbuzz's own
+# `gnome.mkenums()`) resolves against glib's own tool automatically and
+# needs no wrapper here at all.
 
 sh_binary(
     name = "python3",
     main = "python3.sh",
-    visibility = ["PUBLIC"],
-)
-
-sh_binary(
-    name = "glib-compile-resources",
-    main = "glib-compile-resources.sh",
-    visibility = ["PUBLIC"],
-)
-
-sh_binary(
-    name = "glib-mkenums",
-    main = "glib-mkenums.sh",
-    visibility = ["PUBLIC"],
-)
-
-sh_binary(
-    name = "glib-genmarshal",
-    main = "glib-genmarshal.sh",
     visibility = ["PUBLIC"],
 )
 

@@ -403,6 +403,20 @@ fn build_labels(config: &Config, packages: &Packages) -> Labels {
             )
             .collect(),
         dependency_sources: packages.source_groups().collect(),
-        programs: config.programs.clone(),
+        // A sibling project's own `override_find_program()` first, same
+        // order as `dependencies` above; an explicit `decay.toml` entry
+        // still wins a name collision. `Packages::programs()` already
+        // carries a ready invocation (see its own doc comment); a
+        // `decay.toml` entry is always a real binary target by convention,
+        // so it is wrapped the same way here rather than at render time.
+        programs: packages
+            .programs()
+            .chain(
+                config
+                    .programs
+                    .iter()
+                    .map(|(k, v)| (k.clone(), format!("$(exe {v})"))),
+            )
+            .collect(),
     }
 }

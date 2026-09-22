@@ -213,7 +213,9 @@ pub struct Labels {
     /// by the dependency name — spliced into the `srcs` of any target that
     /// depends on it, since meson compiles those sources into each consumer.
     pub dependency_sources: BTreeMap<String, Vec<String>>,
-    /// Binary targets for the tools the build runs, keyed the same way.
+    /// A ready invocation for each tool the build runs (`$(exe ...)`, or
+    /// `python3 $(location ...)` for a resolved target with no promise about
+    /// its execute bit), keyed by the name `find_program()` looked up.
     pub programs: BTreeMap<String, String>,
 }
 
@@ -2086,10 +2088,14 @@ fn command<S: Solver>(
                     }
                     // A tool is run, not linked or copied, so it is named as
                     // an executable rather than by its output path — and it
-                    // never becomes a target of this build.
+                    // never becomes a target of this build. `known.programs`
+                    // already carries a ready invocation (`$(exe ...)`, or
+                    // `python3 $(location ...)` when the resolved target
+                    // makes no promise about its execute bit), not a bare
+                    // label — see `Packages::programs`'s own doc comment.
                     Kind::External(External::Program { name, .. }) => {
                         match known.programs.get(name) {
-                            Some(label) => format!("$(exe {label})"),
+                            Some(invocation) => invocation.clone(),
                             None => name.clone(),
                         }
                     }
