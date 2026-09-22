@@ -2302,8 +2302,12 @@ fn config_header_cmd<S: Solver>(
                     DefineValue::Undef => String::new(),
                 };
                 // `|` is the delimiter, so a value containing one would end the
-                // expression early.
-                let value = value.replace('|', "\\|");
+                // expression early. A literal newline (fontconfig's
+                // `FC_DEFAULT_FONTS`, a multi-line `<dir>...</dir>` default)
+                // would otherwise end the `-e` script itself ("unterminated
+                // 's' command"); GNU sed's replacement text accepts `\n` as
+                // an escape for one instead.
+                let value = value.replace('|', "\\|").replace('\n', "\\n");
                 shell_quote(&format!("-es|@{}@|{value}|g", define.name))
             },
         );
@@ -2318,7 +2322,8 @@ fn config_header_cmd<S: Solver>(
                     DefineValue::Flag => format!("#define {}", define.name),
                     DefineValue::Undef => format!("/* #undef {} */", define.name),
                 }
-                .replace('|', "\\|");
+                .replace('|', "\\|")
+                .replace('\n', "\\n");
                 shell_quote(&format!(
                     "-es|^#mesondefine[[:space:]]\\+{}\\>.*|{line}|",
                     define.name

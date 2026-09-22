@@ -3217,7 +3217,7 @@ genrule(
         "//third-party/meson/constraints:endian[big]": " '-es|@g_byte_order@|G_BIG_ENDIAN|g' '-es|@g_bs_native@|BE|g' '-es|@g_bs_alien@|LE|g'",
     }) + select({
         "//third-party/meson/constraints:run_va_lists_can_be_copied_as_values[true]": " '-es|@glib_vacopy@||g'",
-        "//third-party/meson/constraints:run_va_lists_can_be_copied_as_values[false]": " '-es|@glib_vacopy@|\n#define G_VA_COPY_AS_ARRAY 1|g'",
+        "//third-party/meson/constraints:run_va_lists_can_be_copied_as_values[false]": " '-es|@glib_vacopy@|\\n#define G_VA_COPY_AS_ARRAY 1|g'",
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": " '-es|@G_ATOMIC_LOCK_FREE@|1|g'",
         "DEFAULT": select({
@@ -3261,7 +3261,7 @@ genrule(
         "//third-party/meson/constraints:endian[big]": " '-es|^#mesondefine[[:space:]]\\+g_byte_order\\>.*|#define g_byte_order G_BIG_ENDIAN|' '-es|^#mesondefine[[:space:]]\\+g_bs_native\\>.*|#define g_bs_native BE|' '-es|^#mesondefine[[:space:]]\\+g_bs_alien\\>.*|#define g_bs_alien LE|'",
     }) + select({
         "//third-party/meson/constraints:run_va_lists_can_be_copied_as_values[true]": " '-es|^#mesondefine[[:space:]]\\+glib_vacopy\\>.*|#define glib_vacopy |'",
-        "//third-party/meson/constraints:run_va_lists_can_be_copied_as_values[false]": " '-es|^#mesondefine[[:space:]]\\+glib_vacopy\\>.*|#define glib_vacopy \n#define G_VA_COPY_AS_ARRAY 1|'",
+        "//third-party/meson/constraints:run_va_lists_can_be_copied_as_values[false]": " '-es|^#mesondefine[[:space:]]\\+glib_vacopy\\>.*|#define glib_vacopy \\n#define G_VA_COPY_AS_ARRAY 1|'",
     }) + select({
         "//third-party/meson/constraints:compiler[msvc]": " '-es|^#mesondefine[[:space:]]\\+G_ATOMIC_LOCK_FREE\\>.*|#define G_ATOMIC_LOCK_FREE|'",
         "DEFAULT": select({

@@ -2641,6 +2641,6 @@ genrule(
 genrule(
     name = "fonts.conf",
     out = "fonts.conf",
-    cmd = "sed" + " -e ''" + " '-es|@FC_DEFAULT_FONTS@|\t<dir>/usr/share/fonts</dir>\n\t<dir>/usr/local/share/fonts</dir>\n|g' '-es|@FC_FONTPATH@||g' '-es|@FC_CACHEDIR@|/usr/local/var/cache/fontconfig|g' '-es|@CONFIGDIR@|conf.d|g'" + " '-es|^#mesondefine[[:space:]]\\+FC_DEFAULT_FONTS\\>.*|#define FC_DEFAULT_FONTS \t<dir>/usr/share/fonts</dir>\n\t<dir>/usr/local/share/fonts</dir>\n|' '-es|^#mesondefine[[:space:]]\\+FC_FONTPATH\\>.*|#define FC_FONTPATH |' '-es|^#mesondefine[[:space:]]\\+FC_CACHEDIR\\>.*|#define FC_CACHEDIR /usr/local/var/cache/fontconfig|' '-es|^#mesondefine[[:space:]]\\+CONFIGDIR\\>.*|#define CONFIGDIR conf.d|'" + " $(location :fontconfig.git[fonts.conf.in]) > $OUT",
+    cmd = "sed" + " -e ''" + " '-es|@FC_DEFAULT_FONTS@|\t<dir>/usr/share/fonts</dir>\\n\t<dir>/usr/local/share/fonts</dir>\\n|g' '-es|@FC_FONTPATH@||g' '-es|@FC_CACHEDIR@|/usr/local/var/cache/fontconfig|g' '-es|@CONFIGDIR@|conf.d|g'" + " '-es|^#mesondefine[[:space:]]\\+FC_DEFAULT_FONTS\\>.*|#define FC_DEFAULT_FONTS \t<dir>/usr/share/fonts</dir>\\n\t<dir>/usr/local/share/fonts</dir>\\n|' '-es|^#mesondefine[[:space:]]\\+FC_FONTPATH\\>.*|#define FC_FONTPATH |' '-es|^#mesondefine[[:space:]]\\+FC_CACHEDIR\\>.*|#define FC_CACHEDIR /usr/local/var/cache/fontconfig|' '-es|^#mesondefine[[:space:]]\\+CONFIGDIR\\>.*|#define CONFIGDIR conf.d|'" + " $(location :fontconfig.git[fonts.conf.in]) > $OUT",
     visibility = ["PUBLIC"],
 )
