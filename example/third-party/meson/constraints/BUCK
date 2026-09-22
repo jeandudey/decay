@@ -46,17 +46,25 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:run:-mtls-dialect=gnu2`: `-mtls-dialect=gnu2` is available to the c compiler
+# toolchain probe `probe:c:has_member:fd_set:fds_bits`: `fd_set:fds_bits` is available to the c compiler
 constraint(
-    name = "run_mtls_dialect_gnu2",
+    name = "has_member_fd_set_fds_bits",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
 )
 
-# toolchain probe `probe:c:has_member:struct dirent`: `struct dirent` is available to the c compiler
+# toolchain probe `probe:c:has_member:fd_set:__fds_bits`: `fd_set:__fds_bits` is available to the c compiler
 constraint(
-    name = "has_member_struct_dirent",
+    name = "c_has_member_fd_set_fds_bits",
+    values = ["true", "false"],
+    default = "true",
+    visibility = ["PUBLIC"],
+)
+
+# toolchain probe `probe:c:run:-mtls-dialect=gnu2`: `-mtls-dialect=gnu2` is available to the c compiler
+constraint(
+    name = "run_mtls_dialect_gnu2",
     values = ["true", "false"],
     default = "true",
     visibility = ["PUBLIC"],
@@ -813,30 +821,6 @@ constraint(
     name = "FuzzingEngine",
     values = ["true", "false"],
     default = "false",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_member:struct statvfs`: `struct statvfs` is available to the c compiler
-constraint(
-    name = "has_member_struct_statvfs",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_member:struct statfs`: `struct statfs` is available to the c compiler
-constraint(
-    name = "has_member_struct_statfs",
-    values = ["true", "false"],
-    default = "true",
-    visibility = ["PUBLIC"],
-)
-
-# toolchain probe `probe:c:has_member:struct stat`: `struct stat` is available to the c compiler
-constraint(
-    name = "has_member_struct_stat",
-    values = ["true", "false"],
-    default = "true",
     visibility = ["PUBLIC"],
 )
 

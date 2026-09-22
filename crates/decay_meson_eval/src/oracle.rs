@@ -281,6 +281,12 @@ pub enum CompileProbeKind {
     HeaderSymbol { header: String, symbol: String },
     /// `cc.has_type('t', prefix: p)` with no `dependencies:`.
     Type { name: String, prefix: String },
+    /// `cc.has_member('t', 'm', prefix: p)` with no `dependencies:`.
+    Member {
+        struct_name: String,
+        member: String,
+        prefix: String,
+    },
     /// `cc.compiles(code, prefix: p)` with no `dependencies:`.
     Compiles { prefix: String, code: String },
 }
@@ -299,6 +305,14 @@ impl CompileProbe {
             CompileProbeKind::Type { name, prefix } => {
                 format!("{prefix}\nvoid _decay_probe(void) {{ sizeof({name}); }}\n")
             }
+            // Mirrors meson's own `has_member`/`has_members` test.
+            CompileProbeKind::Member {
+                struct_name,
+                member,
+                prefix,
+            } => format!(
+                "{prefix}\nvoid _decay_probe(void) {{\n    {struct_name} foo;\n    (void) (foo.{member});\n    (void) foo;\n}}\n"
+            ),
             CompileProbeKind::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
         }
     }

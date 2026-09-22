@@ -278,8 +278,14 @@ _cflags_cpu_compiler_x11 = select({
     }),
     "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
 }) + select({
-    "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-    "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+    "prelude//os/constraints:os[netbsd]": select({
+        "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+        "DEFAULT": [],
+    }),
+    "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
 })
 _headers = {
     "trace.h": ":glvnd.git[src/util/trace.h]",
@@ -711,8 +717,14 @@ _cflags_cpu_compiler_run_mtls_dialect_gnu2 = select({
     }),
     "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
 }) + select({
-    "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-    "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+    "prelude//os/constraints:os[netbsd]": select({
+        "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+        "DEFAULT": [],
+    }),
+    "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
 })
 _headers6 = {
     "src/generate/glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
@@ -1567,8 +1579,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     deps = [":glvnd-dep-3"],
     preferred_linkage = "static",
@@ -1756,8 +1774,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -1954,8 +1978,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -2152,8 +2182,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -2350,8 +2386,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -2724,8 +2766,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     linker_flags = ["-Wl,-Bsymbolic"],
     deps = [
@@ -3299,8 +3347,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     deps = [
         ":patchentrypoints",
@@ -3445,8 +3499,14 @@ cxx_library(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     deps = [
         ":patchentrypoints",
@@ -3655,8 +3715,14 @@ cxx_binary(
         }),
         "DEFAULT": ["-DHAVE_RTLD_NOLOAD"],
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": ["-DHAVE_DIRENT_DTYPE"],
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": [],
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["-DHAVE_DIRENT_DTYPE"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["-DHAVE_DIRENT_DTYPE"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["-DHAVE_DIRENT_DTYPE"],
     }),
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [

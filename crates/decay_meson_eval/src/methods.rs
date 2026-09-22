@@ -901,6 +901,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
             }
             "has_type" => CompileProbeKind::Type { name: arg0, prefix },
+            "has_member" => {
+                let member = self.one_string(args.at(1)?).ok()?.to_string();
+                if member.is_empty()
+                    || !member
+                        .bytes()
+                        .all(|b| b == b'_' || b.is_ascii_alphanumeric())
+                    || member.as_bytes()[0].is_ascii_digit()
+                {
+                    return None;
+                }
+                CompileProbeKind::Member {
+                    struct_name: arg0,
+                    member,
+                    prefix,
+                }
+            }
             "compiles" => CompileProbeKind::Compiles { prefix, code: arg0 },
             _ => return None,
         };
@@ -1023,11 +1039,12 @@ impl<'a, S: Solver> Interp<'a, S> {
                     Some(v) => self.one_string(v).unwrap_or_else(|_| Rc::from("expr")),
                     None => Rc::from("expr"),
                 };
-                // `has_header_symbol` takes two arguments; fold the symbol
-                // into the probe key so `('x.h', 'A')` and `('x.h', 'B')` do
-                // not collide on one knob.
+                // `has_header_symbol`/`has_member` take two arguments; fold
+                // the second into the probe key so `('x.h', 'A')` and
+                // `('x.h', 'B')` — or `('struct s', 'a')` and
+                // `('struct s', 'b')` — do not collide on one knob.
                 let what = match (name, args.at(1)) {
-                    ("has_header_symbol", Some(v)) => {
+                    ("has_header_symbol" | "has_member", Some(v)) => {
                         let sym = self.one_string(v).unwrap_or_else(|_| Rc::from("expr"));
                         Rc::from(format!("{what}:{sym}"))
                     }

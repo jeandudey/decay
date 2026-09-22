@@ -104,8 +104,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   harmless on `abi[gnu]`, and no `example/` platform exercises `abi[musl]`.
 
 - **Compile/link probes resolved by `zig cc` at import time.** `cc.has_header`,
-  `cc.has_type`, `cc.has_header_symbol`, and `cc.compiles` — none with
-  `dependencies:` (a `pkg-config` answer the importer cannot reconstruct) —
+  `cc.has_type`, `cc.has_header_symbol`, `cc.has_member`, and `cc.compiles` —
+  none with `dependencies:` (a `pkg-config` answer the importer cannot
+  reconstruct) —
   are answered by linking against `zig cc -target <triple>` per `(os, cpu,
   abi)` in decay's configured matrix (`src/probe.rs`,
   `oracle::Probe::Matrix`); compiles everywhere → plain `true`, compiles
@@ -330,11 +331,8 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `fontconfig` backends), `freetype2` (zlib support only — `brotli`/`bzip2`/
   `harfbuzz`/`png` off, none of those imported yet). Still needed, in
   roughly the order a next attempt should reach for them:
-  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`). One
-    gap left blocks a full `buck2 build`: `fcstat.c` assumes
-    `struct statvfs.f_basetype` (BSD/Solaris-only — glibc has no such member,
-    only `f_type`), a wrong-default probe of the same shape as
-    `HAVE_FUTEX_TIME64` below. Not yet wired into `cairo`'s
+  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`),
+    `buck2 build`s end to end. Not yet wired into `cairo`'s
     `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
   - `harfbuzz` (+ its bundled `harfbuzz-subset`) — text shaping; the reason
     fribidi and graphite2 were imported first. A C++ wrap with several

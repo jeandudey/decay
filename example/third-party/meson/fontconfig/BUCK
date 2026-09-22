@@ -2572,17 +2572,35 @@ genrule(
         }),
         "DEFAULT": " '#define HAVE_MKOSTEMP 1'",
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_statvfs[true]": " '#define HAVE_STRUCT_STATVFS_F_BASETYPE 1' '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
-        "//third-party/meson/constraints:has_member_struct_statvfs[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": "",
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_statfs[true]": " '#define HAVE_STRUCT_STATFS_F_FLAGS 1' '#define HAVE_STRUCT_STATFS_F_FSTYPENAME 1'",
-        "//third-party/meson/constraints:has_member_struct_statfs[false]": "",
+        "prelude//os/constraints:os[linux]": " '#define HAVE_STRUCT_STATFS_F_FLAGS 1'",
+        "DEFAULT": "",
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_stat[true]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
-        "//third-party/meson/constraints:has_member_struct_stat[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
     }) + select({
-        "//third-party/meson/constraints:has_member_struct_dirent[true]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
-        "//third-party/meson/constraints:has_member_struct_dirent[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_VOID_P 4' '#define ALIGNOF_VOID_P 4'",
         "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_VOID_P 4' '#define ALIGNOF_VOID_P 4'",
