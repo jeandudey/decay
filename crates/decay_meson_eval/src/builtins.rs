@@ -2107,7 +2107,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                     if cond.is_false() {
                         continue;
                     }
-                    next.push(Variant::new(cond, join_path_pair(&base.value, &part.value)?));
+                    next.push(Variant::new(
+                        cond,
+                        join_path_pair(&base.value, &part.value)?,
+                    ));
                 }
             }
             next.normalize(&mut self.logic);

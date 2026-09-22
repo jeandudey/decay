@@ -36,7 +36,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .lookup(name)?
                 .ok_or_else(|| eyre::eyre!("`@{name}@` names an undefined variable"))?;
             if let [variant] = value.variants()
-                && matches!(variant.value, Value::Obj(Obj::File(_) | Obj::PrefixedFile(..)))
+                && matches!(
+                    variant.value,
+                    Value::Obj(Obj::File(_) | Obj::PrefixedFile(..))
+                )
             {
                 return Ok(value);
             }
@@ -94,7 +97,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .get(index)
                 .ok_or_else(|| eyre::eyre!("`@{index}@` has no matching argument"))?;
             if let [variant] = arg.variants()
-                && matches!(variant.value, Value::Obj(Obj::File(_) | Obj::PrefixedFile(..)))
+                && matches!(
+                    variant.value,
+                    Value::Obj(Obj::File(_) | Obj::PrefixedFile(..))
+                )
             {
                 return Ok(arg.clone());
             }

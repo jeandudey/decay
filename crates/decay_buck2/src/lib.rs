@@ -1766,9 +1766,8 @@ fn command<S: Solver>(
         .iter()
         .map(|s| match &s.value {
             Source::File(path) => file_arg(graph, path),
-            Source::Generated(id, index) => staged_path(*id).unwrap_or_else(|| {
-                format!("$(location :{})", generated_label(graph, *id, *index))
-            }),
+            Source::Generated(id, index) => staged_path(*id)
+                .unwrap_or_else(|| format!("$(location :{})", generated_label(graph, *id, *index))),
         })
         .collect();
 
