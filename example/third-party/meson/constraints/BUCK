@@ -888,14 +888,6 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# external dependency `dep:cairo-ft`: `cairo-ft` is available
-constraint(
-    name = "cairo_ft",
-    values = ["true", "false"],
-    default = "false",
-    visibility = ["PUBLIC"],
-)
-
 # toolchain probe `probe:c:links:test for ASM leading underscore`: `test for ASM leading underscore` is available to the c compiler
 constraint(
     name = "links_test_for_ASM_leading_underscore",

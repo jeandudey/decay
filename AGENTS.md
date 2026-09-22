@@ -327,21 +327,22 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
   dependency graph" into a concrete list. Already imported: `glib`/
   `gobject`/`gio`/`gmodule` (as `glib`), `epoxy`, `graphene`, `xorgproto`,
-  `libxext`, `fribidi`, `graphite2`, `pixman`, `cairo` (core: image/tee
-  surfaces + `cairo-gobject`, not yet the `xlib`/`xcb`/`png`/`freetype`/
-  `fontconfig` backends), `freetype2` (zlib + bzip2 + libpng + brotli
-  support; `harfbuzz` stays off in freetype2 itself — harfbuzz's own
-  `dependency('freetype2', ..., default_options: ['harfbuzz=disabled'])` is
-  how upstream avoids the cycle, and decay resolves that sibling dependency
-  against freetype2 as already configured rather than re-running it),
-  `harfbuzz` (+ its bundled `harfbuzz-subset`; freetype2, graphite2, glib/
-  gobject, and cairo (`harfbuzz-cairo`) integration all wired in since every
-  one was already imported — `chafa`/`icu` stay off since nothing here
-  provides either, and its `utilities` CLI tools stay off as out of scope).
+  `libxext`, `fribidi`, `graphite2`, `pixman`, `cairo` (freetype + fontconfig
+  font backends and `cairo-gobject` wired in, since both were already
+  imported; still not the `xlib`/`xcb`/`png` surface backends — `xlib`/`xcb`
+  need real X11, `png` needs libpng wired in too, next), `fontconfig`
+  (`buck2 build`s end to end; not yet wired into pango's FreeType backend,
+  the only other place gtk's own `meson.build` names it), `freetype2` (zlib +
+  bzip2 + libpng + brotli support; `harfbuzz` stays off in freetype2 itself —
+  harfbuzz's own `dependency('freetype2', ..., default_options:
+  ['harfbuzz=disabled'])` is how upstream avoids the cycle, and decay
+  resolves that sibling dependency against freetype2 as already configured
+  rather than re-running it), `harfbuzz` (+ its bundled `harfbuzz-subset`;
+  freetype2, graphite2, glib/gobject, and cairo (`harfbuzz-cairo`)
+  integration all wired in since every one was already imported —
+  `chafa`/`icu` stay off since nothing here provides either, and its
+  `utilities` CLI tools stay off as out of scope).
   Still needed, in roughly the order a next attempt should reach for them:
-  - `fontconfig` — imported (`example/third-party/meson/fontconfig/`),
-    `buck2 build`s end to end. Not yet wired into `cairo`'s
-    `xlib`/`freetype`/`fontconfig` options or pango's FreeType backend.
   - `pango` (+ `pangocairo`, `pangoft2`) — text layout, depends on harfbuzz,
     fribidi, cairo, fontconfig, and freetype all being in place first.
   - `gdk-pixbuf-2.0` — blocked today on the `dependency()`

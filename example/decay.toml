@@ -473,15 +473,22 @@ wrap = "pixman"
 
 [[project]]
 wrap = "cairo"
-depends = ["pixman", "zlib", "glib"]
+depends = ["pixman", "zlib", "glib", "freetype2", "fontconfig"]
 commands."version.py" = { stdout = "1.18.4" }
 commands."ln -sfn test ./srcdir" = { returncode = 0 }
-# fontconfig/freetype/png are still-unimported dependencies (see AGENTS.md's
-# GTK4 roadmap) -- disabled here to get a minimal, real cairo building first.
-# xlib is also off: cairo-xlib-screen.c unconditionally `#include`s
-# cairo-fontconfig-private.h regardless of cairo's own `fontconfig` option
-# (Xft font-matching defaults are baked into the X11 surface, not gated by
-# it), so the xlib/xcb backends need fontconfig imported first too.
+# freetype2 and fontconfig are both already imported, so cairo's FreeType
+# font backend and its fontconfig font-matching resolve directly by name
+# against them, the same as harfbuzz's own freetype/graphite2 support.
+# Enabled together, not independently: `cairo-ft.h` itself `#include`s
+# `fontconfig.h` (cairo's own comment -- "cairo-ft.h includes fontconfig.h
+# so it needs its cflags"), so a FreeType-only build still needs fontconfig's
+# usage requirements on the include path.
+# png is still an unimported-here dependency for this option (libpng is
+# imported, but cairo's own `png` option pulls in libpng *and* wires the
+# FreeType/fontconfig-backed surfaces to it -- next, not bundled with this
+# step). xlib/xcb still need actual X11 (`cairo-xlib-screen.c`
+# unconditionally `#include`s `cairo-fontconfig-private.h`, but the X11
+# surface itself is the reason they're still off, not fontconfig anymore).
 # dwrite/quartz are Windows/macOS only, neither a configured system. glib is
 # on for cairo-gobject, one of GTK4's own direct `dependency()`s.
-options = { dwrite = "disabled", fontconfig = "disabled", freetype = "disabled", png = "disabled", quartz = "disabled", tee = "enabled", xcb = "disabled", xlib = "disabled", "xlib-xcb" = "disabled", zlib = "enabled", tests = "disabled", lzo = "disabled", "gtk2-utils" = "disabled", glib = "enabled", spectre = "disabled", "symbol-lookup" = "disabled", gtk_doc = false }
+options = { dwrite = "disabled", fontconfig = "enabled", freetype = "enabled", png = "disabled", quartz = "disabled", tee = "enabled", xcb = "disabled", xlib = "disabled", "xlib-xcb" = "disabled", zlib = "enabled", tests = "disabled", lzo = "disabled", "gtk2-utils" = "disabled", glib = "enabled", spectre = "disabled", "symbol-lookup" = "disabled", gtk_doc = false }

@@ -874,14 +874,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("cairo-ft") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.cairo-ft = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "cairo-ft",
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency("chafa") — resolved by pkg-config
 # Empty stub: map it to a real target with `dependencies.chafa = "//some:target"`
 # in decay.toml, or edit it here.
@@ -1365,10 +1357,7 @@ cxx_library(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define HAVE_GLIB 1' '#define HAVE_GOBJECT 1' '#define HAVE_CAIRO 1' '#define HAVE_CAIRO_USER_FONT_FACE_SET_RENDER_COLOR_GLYPH_FUNC 1' '#define HAVE_CAIRO_FONT_OPTIONS_GET_CUSTOM_PALETTE_COLOR 1' '#define HAVE_CAIRO_USER_SCALED_FONT_GET_FOREGROUND_SOURCE 1' '#define HAVE_GRAPHITE2 1' '#define HAVE_FREETYPE 1' '#define HAVE_FT_GET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_SET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_FT_GET_TRANSFORM 1' '#define HAVE_PTHREAD 1' '#define HAVE_STDBOOL_H 1'" + select({
-        "//third-party/meson/constraints:cairo_ft[true]": " '#define HAVE_CAIRO_FT 1'",
-        "//third-party/meson/constraints:cairo_ft[false]": "",
-    }) + select({
+    cmd = "printf '%s\\n'" + " '#define HAVE_GLIB 1' '#define HAVE_GOBJECT 1' '#define HAVE_CAIRO 1' '#define HAVE_CAIRO_USER_FONT_FACE_SET_RENDER_COLOR_GLYPH_FUNC 1' '#define HAVE_CAIRO_FONT_OPTIONS_GET_CUSTOM_PALETTE_COLOR 1' '#define HAVE_CAIRO_USER_SCALED_FONT_GET_FOREGROUND_SOURCE 1' '#define HAVE_CAIRO_FT 1' '#define HAVE_GRAPHITE2 1' '#define HAVE_FREETYPE 1' '#define HAVE_FT_GET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_SET_VAR_BLEND_COORDINATES 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_FT_GET_TRANSFORM 1' '#define HAVE_PTHREAD 1' '#define HAVE_STDBOOL_H 1'" + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
             "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",

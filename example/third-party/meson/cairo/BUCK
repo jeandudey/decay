@@ -57,6 +57,7 @@ http_archive(
         "src/cairo-clip-tor-scan-converter.c",
         "src/cairo-clip.c",
         "src/cairo-color.c",
+        "src/cairo-colr-glyph-render.c",
         "src/cairo-combsort-inline.h",
         "src/cairo-compiler-private.h",
         "src/cairo-composite-rectangles-private.h",
@@ -94,6 +95,7 @@ http_archive(
         "src/cairo-freelist-private.h",
         "src/cairo-freelist-type-private.h",
         "src/cairo-freelist.c",
+        "src/cairo-ft-font.c",
         "src/cairo-ft-private.h",
         "src/cairo-ft.h",
         "src/cairo-gstate-private.h",
@@ -219,6 +221,7 @@ http_archive(
         "src/cairo-surface-wrapper-private.h",
         "src/cairo-surface-wrapper.c",
         "src/cairo-surface.c",
+        "src/cairo-svg-glyph-render.c",
         "src/cairo-svg-surface-private.h",
         "src/cairo-svg.h",
         "src/cairo-tag-attributes-private.h",
@@ -401,6 +404,8 @@ _cppflags = [
 _deps_os_abi_cpu = [
     ":m",
     "//third-party/meson/zlib:zlib-dep",
+    "//third-party/meson/fontconfig:fontconfig",
+    "//third-party/meson/freetype2:freetype2-dep",
     "//third-party/meson/pixman:pixman-dep",
     ":cairo-dep",
     ":cairo-dep-4",
@@ -434,6 +439,14 @@ _deps_os_abi_cpu = [
         "DEFAULT": [],
     }),
 })
+_deps = [
+    ":m",
+    ":dl",
+    "//third-party/meson/zlib:zlib-dep",
+    "//third-party/meson/fontconfig:fontconfig",
+    "//third-party/meson/freetype2:freetype2-dep",
+    "//third-party/meson/pixman:pixman-dep",
+]
 _needs = ["//third-party/meson/constraints:links_pthreads[true]"] + select({
     "prelude//os/constraints:os[linux]": select({
         "prelude//abi/constraints:abi[gnu]": select({
@@ -464,7 +477,7 @@ _needs = ["//third-party/meson/constraints:links_pthreads[true]"] + select({
         "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
     }),
 })
-_deps = [
+_deps2 = [
     ":cairo-dep",
     "//third-party/meson/zlib:zlib-dep",
 ]
@@ -680,6 +693,9 @@ cxx_library(
         ":cairo[src/cairo-tag-attributes.c]",
         ":cairo[src/cairo-tag-stack.c]",
         ":cairo[src/cairo-deflate-stream.c]",
+        ":cairo[src/cairo-ft-font.c]",
+        ":cairo[src/cairo-colr-glyph-render.c]",
+        ":cairo[src/cairo-svg-glyph-render.c]",
         ":cairo[src/cairo-script-surface.c]",
         ":cairo[src/cairo-ps-surface.c]",
         ":cairo[src/cairo-pdf-surface.c]",
@@ -748,6 +764,8 @@ cxx_library(
     deps = [
         ":m",
         "//third-party/meson/zlib:zlib-dep",
+        "//third-party/meson/fontconfig:fontconfig",
+        "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/pixman:pixman-dep",
     ] + select({
         "prelude//os/constraints:os[linux]": select({
@@ -786,7 +804,7 @@ cxx_library(
 genrule(
     name = "cairo-features.h",
     out = "cairo-features.h",
-    cmd = "printf '%s\\n'" + " '#define CAIRO_HAS_GOBJECT_FUNCTIONS 1' '#define CAIRO_HAS_SCRIPT_SURFACE 1' '#define CAIRO_HAS_PS_SURFACE 1' '#define CAIRO_HAS_PDF_SURFACE 1' '#define CAIRO_HAS_IMAGE_SURFACE 1' '#define CAIRO_FEATURES_H' '#define CAIRO_HAS_USER_FONT 1' '#define CAIRO_HAS_MIME_SURFACE 1' '#define CAIRO_HAS_RECORDING_SURFACE 1' '#define CAIRO_HAS_OBSERVER_SURFACE 1' '#define CAIRO_HAS_TEE_SURFACE 1'" + " > $OUT",
+    cmd = "printf '%s\\n'" + " '#define CAIRO_HAS_FC_FONT 1' '#define CAIRO_HAS_FT_FONT 1' '#define CAIRO_HAS_GOBJECT_FUNCTIONS 1' '#define CAIRO_HAS_SCRIPT_SURFACE 1' '#define CAIRO_HAS_PS_SURFACE 1' '#define CAIRO_HAS_PDF_SURFACE 1' '#define CAIRO_HAS_IMAGE_SURFACE 1' '#define CAIRO_FEATURES_H' '#define CAIRO_HAS_USER_FONT 1' '#define CAIRO_HAS_MIME_SURFACE 1' '#define CAIRO_HAS_RECORDING_SURFACE 1' '#define CAIRO_HAS_OBSERVER_SURFACE 1' '#define CAIRO_HAS_TEE_SURFACE 1'" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
@@ -930,6 +948,8 @@ cxx_library(
         ":cairo-2",
         ":m",
         "//third-party/meson/zlib:zlib-dep",
+        "//third-party/meson/fontconfig:fontconfig",
+        "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/pixman:pixman-dep",
     ] + select({
         "prelude//os/constraints:os[linux]": select({
@@ -1054,6 +1074,8 @@ cxx_library(
     deps = [
         ":m",
         "//third-party/meson/zlib:zlib-dep",
+        "//third-party/meson/fontconfig:fontconfig",
+        "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/pixman:pixman-dep",
         ":cairo-dep",
     ] + select({
@@ -1202,12 +1224,7 @@ cxx_library(
         "-Wl,-Bsymbolic-functions",
         "-lpthread",
     ],
-    deps = [
-        ":m",
-        ":dl",
-        "//third-party/meson/zlib:zlib-dep",
-        "//third-party/meson/pixman:pixman-dep",
-    ],
+    deps = _deps,
     preferred_linkage = "shared",
     target_compatible_with = _needs,
     visibility = ["PUBLIC"],
@@ -1238,12 +1255,7 @@ cxx_library(
         "-Wl,-Bsymbolic-functions",
         "-lpthread",
     ],
-    deps = [
-        ":m",
-        ":dl",
-        "//third-party/meson/zlib:zlib-dep",
-        "//third-party/meson/pixman:pixman-dep",
-    ],
+    deps = _deps,
     preferred_linkage = "shared",
     target_compatible_with = _needs,
     visibility = ["PUBLIC"],
@@ -1294,7 +1306,7 @@ genrule(
             "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_DLSYM 1'",
             "DEFAULT": "",
         }),
-    }) + " '#define HAVE_ZLIB 1' '#define CAIRO_HAS_INTERPRETER 1' '#define HAS_PIXMAN_GLYPHS 1' '#define SIZEOF_INT 4' '#define SIZEOF_LONG_LONG 8' '#define HAVE_STDINT_H 1' '#define HAVE_UINT64_T 1'" + select({
+    }) + " '#define HAVE_ZLIB 1' '#define HAVE_FCINIT 1' '#define HAVE_FCFINI 1' '#define CAIRO_HAS_INTERPRETER 1' '#define HAS_PIXMAN_GLYPHS 1' '#define SIZEOF_INT 4' '#define SIZEOF_LONG_LONG 8' '#define HAVE_STDINT_H 1' '#define HAVE_UINT64_T 1'" + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_VOID_P 4' '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4'",
         "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_VOID_P 4' '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4'",
         "DEFAULT": "",
@@ -2274,7 +2286,10 @@ cxx_library(
     exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
-    exported_deps = _deps,
+    exported_deps = [
+        ":cairo-dep",
+        "//third-party/meson/fontconfig:fontconfig",
+    ],
     visibility = ["PUBLIC"],
 )
 
@@ -2284,7 +2299,11 @@ cxx_library(
     exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
-    exported_deps = _deps,
+    exported_deps = [
+        ":cairo-dep",
+        "//third-party/meson/freetype2:freetype2-dep",
+        "//third-party/meson/fontconfig:fontconfig",
+    ],
     visibility = ["PUBLIC"],
 )
 
@@ -2294,13 +2313,33 @@ cxx_library(
     exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",
-    exported_deps = _deps,
+    exported_deps = _deps2,
     visibility = ["PUBLIC"],
 )
 
 # meson: cairo-dep
 cxx_library(
     name = "cairo-dep-8",
+    exported_headers = _headers2,
+    headers = _headers2,
+    header_namespace = "",
+    exported_deps = _deps2,
+    visibility = ["PUBLIC"],
+)
+
+# meson: cairo-dep
+cxx_library(
+    name = "cairo-dep-9",
+    exported_headers = _headers2,
+    headers = _headers2,
+    header_namespace = "",
+    exported_deps = _deps2,
+    visibility = ["PUBLIC"],
+)
+
+# meson: cairo-dep
+cxx_library(
+    name = "cairo-dep-10",
     exported_headers = _headers2,
     headers = _headers2,
     header_namespace = "",

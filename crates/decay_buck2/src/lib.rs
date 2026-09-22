@@ -1935,13 +1935,37 @@ fn source(graph: &Graph, source: &Source) -> String {
 fn exported_source(graph: &Graph, consumer: TargetId, source: &Source) -> String {
     match source {
         Source::File(path) => match path.file_name().and_then(|n| shadow_target(graph, n)) {
-            Some((id, index)) if !depends_on(graph, id, consumer) => {
+            Some((id, index)) if !depends_on(graph, id, consumer) && !is_installed(graph, path) => {
                 format!("\":{}\"", generated_label(graph, id, index))
             }
             _ => format!("\":{}\"", source_address(graph, path)),
         },
         Source::Generated(id, index) => format!("\":{}\"", generated_label(graph, *id, *index)),
     }
+}
+
+/// Whether the project's own `install_headers()` names this exact checked-in
+/// path.
+///
+/// A checked-in header shadowed by a project-generated one of the same
+/// basename (see [`shadow_target`]) is not automatically the stale copy: a
+/// project can `install_headers()` the checked-in file itself as the one a
+/// real consumer gets, keeping a same-named `custom_target()` strictly
+/// internal to its own compilation (freetype2's `declare_dependency()` only
+/// ever exposes `include_directories('include')`, the checked-in tree — its
+/// `custom_target()`'d `ftconfig.h` feeds only `ft2_lib`'s own `sources`,
+/// shadowing the checked-in copy through meson's build-dir-first search
+/// order for that target alone, never through the dependency interface).
+/// `ftoption.h`/`ftmodule.h` have no such competing `install_headers()`
+/// entry, so they still redirect to their generated target as before.
+fn is_installed(graph: &Graph, path: &Path) -> bool {
+    graph.installs.iter().any(|install| {
+        install
+            .files
+            .variants()
+            .iter()
+            .any(|v| matches!(&v.value, Source::File(p) if p == path))
+    })
 }
 
 /// The `target[path]` address `path` (relative to the project root) is
