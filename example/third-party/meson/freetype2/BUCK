@@ -173,6 +173,7 @@ http_archive(
         "src/bdf/bdf.c",
         "src/bdf/bdfdrivr.c",
         "src/bdf/bdflib.c",
+        "src/bzip2/ftbzip2.c",
         "src/cache/ftcache.c",
         "src/cache/ftcbasic.c",
         "src/cache/ftccache.c",
@@ -304,23 +305,6 @@ genrule(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("bzip2") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.bzip2 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "bzip2",
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("bz2")
-cxx_library(
-    name = "bz2",
-    exported_linker_flags = [
-        "-lbz2",
-    ],
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency("libpng") — resolved by pkg-config
 # Empty stub: map it to a real target with `dependencies.libpng = "//some:target"`
 # in decay.toml, or edit it here.
@@ -340,7 +324,7 @@ cxx_library(
 genrule(
     name = "ftoption.h",
     out = "ftoption.h",
-    cmd = " $(exe //third-party/tools:python3) $(location :freetype2[builds/meson/process_ftoption_h.py]) $(location :freetype2[include/freetype/config/ftoption.h]) '--output='$OUT '--enable=FT_CONFIG_OPTION_USE_ZLIB' '--enable=FT_CONFIG_OPTION_SYSTEM_ZLIB' '--enable=FT_CONFIG_OPTION_ERROR_STRINGS'",
+    cmd = " $(exe //third-party/tools:python3) $(location :freetype2[builds/meson/process_ftoption_h.py]) $(location :freetype2[include/freetype/config/ftoption.h]) '--output='$OUT '--enable=FT_CONFIG_OPTION_USE_ZLIB' '--enable=FT_CONFIG_OPTION_SYSTEM_ZLIB' '--enable=FT_CONFIG_OPTION_USE_BZIP2' '--enable=FT_CONFIG_OPTION_ERROR_STRINGS'",
     visibility = ["PUBLIC"],
 )
 
@@ -404,6 +388,7 @@ cxx_library(
         ":freetype2[src/base/fttype1.c]",
         ":freetype2[src/base/ftwinfnt.c]",
         ":freetype2[src/base/ftdebug.c]",
+        ":freetype2[src/bzip2/ftbzip2.c]",
     ] + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": [":freetype2[builds/unix/ftsystem.c]"],
@@ -1827,7 +1812,10 @@ cxx_library(
         }),
         "DEFAULT": ["-DFT_CONFIG_CONFIG_H=<ftconfig.h>"],
     }),
-    deps = ["//third-party/meson/zlib:zlib-dep"],
+    deps = [
+        "//third-party/meson/zlib:zlib-dep",
+        "//third-party/meson/bzip2:bzip2-dep",
+    ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )

@@ -318,9 +318,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   read either.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay — currently exercises 10 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `pcre2`, `libxext`, `libffi`, `fribidi`,
-  `graphite2`, `pixman`, `cairo`, `freetype2`, `fontconfig`).
+  smoke test for decay — currently exercises 11 of wrapdb's ~250+ projects in
+  `example/decay.toml` (`zlib`, `bzip2`, `pcre2`, `libxext`, `libffi`,
+  `fribidi`, `graphite2`, `pixman`, `cairo`, `freetype2`, `fontconfig`).
 
   **GTK4 end-to-end — what's still missing.** Checked against gtk's own
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
@@ -328,8 +328,8 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `gobject`/`gio`/`gmodule` (as `glib`), `epoxy`, `graphene`, `xorgproto`,
   `libxext`, `fribidi`, `graphite2`, `pixman`, `cairo` (core: image/tee
   surfaces + `cairo-gobject`, not yet the `xlib`/`xcb`/`png`/`freetype`/
-  `fontconfig` backends), `freetype2` (zlib support only — `brotli`/`bzip2`/
-  `harfbuzz`/`png` off, none of those imported yet). Still needed, in
+  `fontconfig` backends), `freetype2` (zlib + bzip2 support; `brotli`/
+  `harfbuzz`/`png` still off, none of those imported yet). Still needed, in
   roughly the order a next attempt should reach for them:
   - `fontconfig` — imported (`example/third-party/meson/fontconfig/`),
     `buck2 build`s end to end. Not yet wired into `cairo`'s
