@@ -280,7 +280,12 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 - **Adding meson specific buck2 rules.** A config-header template
   (`#mesondefine`) is emitted as a `genrule` shelling out to `sed`, not a
   native buck2 rule — the emitted `BUCK` should read like a config-header
-  rule a person would reach for.
+  rule a person would reach for. The `sed` approach breaks outright when a
+  substituted value itself contains a literal newline (fontconfig's
+  `fonts.conf.in` → `fonts.conf`, whose `@FC_DEFAULT_FONTS@` is a multi-line
+  `<dir>...</dir>` default): the replacement text embeds an unescaped
+  newline inside a single `s|...|...|` command, and `sed` reports
+  `unterminated 's' command`.
 
 - **add_test_setup.** Matched now, but a no-op stub (`warn_unsupported()`
   then `Value::Unset`) — the warning spam is gone, but the test-setup data

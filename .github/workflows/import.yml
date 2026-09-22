@@ -127,7 +127,10 @@ jobs:
             //third-party/meson/cairo:cairo-dep \
             //third-party/meson/cairo:cairo-gobject \
             //third-party/meson/freetype2:freetype \
-            //third-party/meson/freetype2:freetype2-dep
+            //third-party/meson/freetype2:freetype2-dep \
+            //third-party/meson/fontconfig:fontconfig \
+            //third-party/meson/fontconfig:fontconfig-2 \
+            //third-party/meson/fontconfig:fontconfig-dep
 
       - name: Stop buck2 daemon
         if: always()
