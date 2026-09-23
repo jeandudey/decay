@@ -68,21 +68,19 @@ jobs:
           key: decay-cache-${{ hashFiles('example/decay.toml') }}
           restore-keys: decay-cache-
 
+      # zig's own cache: the libc it builds per target the first time a link
+      # probe runs for it (musl, glibc and BSD stubs), minutes when cold.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/zig
+          key: zig-cache-0.15.2-${{ hashFiles('example/decay.toml') }}
+          restore-keys: zig-cache-0.15.2-
+
       - run: cargo build --release --bin decay
 
       # Run the importer (reads ./decay.toml + ./decay.lock, writes the BUCK
       # tree in place). decay.lock is gitignored and re-resolved each run.
       - run: cd example && ../target/release/decay
-
-      # The generated tree is committed; any drift from decay's output fails
-      # the run. Regenerate with `cd example && decay` and commit the result.
-      # On failure the full diff is in the log.
-      - name: Golden tree unchanged
-        run: |
-          if ! git diff --stat --exit-code -- example/; then
-            git diff -- example/
-            exit 1
-          fi
 
       # buck2 publishes no versioned releases -- only a `latest` tag that is
       # force-updated in place, sometimes several times a day, so it cannot be
@@ -139,6 +137,17 @@ jobs:
             //third-party/meson/google-brotli/... \
             //third-party/meson/harfbuzz/... \
             //third-party/meson/pango/...
+
+      # The generated tree is committed; any drift from decay's output fails
+      # the run. Regenerate with `cd example && decay` and commit the result.
+      # On failure the full diff is in the log. Checked after `buck2 build`,
+      # so one run reports both.
+      - name: Golden tree unchanged
+        run: |
+          if ! git diff --stat --exit-code -- example/; then
+            git diff -- example/
+            exit 1
+          fi
 
       - name: Stop buck2 daemon
         if: always()

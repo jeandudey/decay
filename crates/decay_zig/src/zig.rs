@@ -154,17 +154,31 @@ pub fn compiles(code: &str, target: &str, flags: &[&str]) -> bool {
 /// on a clean link; `Err` carries the linker's stderr verbatim so a caller
 /// can scrape `undefined symbol:` lines out of a deliberate failure.
 pub fn link(code: &str, target: &str, libs: &[&str]) -> Result<(), String> {
+    let flags: Vec<String> = libs.iter().map(|lib| format!("-l{lib}")).collect();
+    let flags: Vec<&str> = flags.iter().map(String::as_str).collect();
+    link_with(code, target, &flags)
+}
+
+/// Whether `code` compiles and links into an executable for `-target
+/// <target>`, with `flags` (compiler flags and `-l…`) spliced on verbatim.
+pub fn links(code: &str, target: &str, flags: &[&str]) -> bool {
+    link_with(code, target, flags).is_ok()
+}
+
+fn link_with(code: &str, target: &str, flags: &[&str]) -> Result<(), String> {
     let stem = tmp_stem("decay-zig-ld");
     let src = stem.with_extension("c");
     let out = stem.with_extension("out");
     write_src(&src, code);
-    let mut cmd = Command::new("zig");
-    cmd.args(["cc", "-target", target, "-w"]).arg(&src);
-    for lib in libs {
-        cmd.arg(format!("-l{lib}"));
-    }
-    cmd.arg("-o").arg(&out).stdout(Stdio::null());
-    let output = spawn(&mut cmd);
+    let output = spawn(
+        Command::new("zig")
+            .args(["cc", "-target", target, "-w"])
+            .arg(&src)
+            .args(flags)
+            .arg("-o")
+            .arg(&out)
+            .stdout(Stdio::null()),
+    );
     let _ = fs::remove_file(&src);
     let _ = fs::remove_file(&out);
     if output.status.success() {

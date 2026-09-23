@@ -927,10 +927,11 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     /// The condition for a compiler probe having succeeded.
     ///
-    /// Most probes become a knob of their own, because the importer cannot run
-    /// the compiler. One the configuration ties to the operating system asks
-    /// the machine instead, so the generated build selects on the system it
-    /// already knows rather than on a second, redundant constraint.
+    /// An explicit `decay.toml` answer wins. Otherwise a probe decay can
+    /// rebuild is built with `zig` for every target in the matrix, once per
+    /// region of the configuration space its inputs are constant in (glib
+    /// grows its `prefix:` one `#define` per detected header, so the text
+    /// differs by system). Only a probe decay cannot rebuild becomes a knob.
     fn probe_cond(
         &mut self,
         lang: Lang,
@@ -938,88 +939,211 @@ impl<'a, S: Solver> Interp<'a, S> {
         what: &str,
         args: &CallArgs,
     ) -> eyre::Result<Pc> {
-        let answer = match self.oracle.probe(name, what) {
-            Some(a) => Some(a),
-            None => self.compile_probe_answer(name, args),
-        };
         let key = format!("probe:{}:{name}:{what}", lang.as_str());
         let description = format!("`{what}` is available to the {} compiler", lang.as_str());
-        self.resolve_probe(answer, &key, description)
+        if let Some(answer) = self.oracle.probe(name, what) {
+            return self.resolve_probe(Some(answer), &key, description);
+        }
+        let Some(regions) = self.compile_probes(name, args) else {
+            debug!("`{key}` cannot be rebuilt with zig; left open");
+            return Ok(self.probe(&key, description));
+        };
+        let single = regions.len() == 1;
+        let mut cond = Pc::from_bool(false);
+        for (region, probe) in regions {
+            let answer = self.oracle.compile_probe(&probe);
+            let holds = self.resolve_probe(answer, &key, description.clone())?;
+            let here = if single {
+                holds
+            } else {
+                self.logic.and(region, holds)
+            };
+            cond = self.logic.or(cond, here);
+        }
+        Ok(cond)
     }
 
-    /// Turn a `cc.has_header` / `cc.has_type` / `cc.compiles` call into a
-    /// [`CompileProbe`] and let the oracle answer it by compiling — for the
-    /// shapes it can reproduce faithfully. `dependencies:` pulls in flags and
-    /// include paths from a `pkg-config` answer the importer cannot
-    /// reconstruct, so it always stays an open knob; `args:` is replayed on
-    /// the `zig cc` line only when every element is a plain compiler flag
-    /// ([`is_replayable_cflag`]) — an arch `-m…`, a `-D…`, a `-std=…`.
-    fn compile_probe_answer(&mut self, name: &str, args: &CallArgs) -> Option<Probe> {
-        if args.get("dependencies").is_some() {
+    /// The [`CompileProbe`] a `cc.has_header` / `cc.has_type` / `cc.compiles`
+    /// / `cc.links` / … call builds, per region of the current condition its
+    /// inputs are constant in. `None` when the call carries something decay
+    /// cannot replay: an `args:` entry that is not a plain flag, a
+    /// `dependencies:` entry other than `threads` or a system library, a code
+    /// argument that is a file, or too many regions.
+    fn compile_probes(&mut self, name: &str, args: &CallArgs) -> Option<Vec<(Pc, CompileProbe)>> {
+        let name = match name {
+            "check_header" => "has_header",
+            other => other,
+        };
+        if name == "symbols_have_underscore_prefix" {
+            let probe = CompileProbe {
+                kind: CompileProbeKind::Compiles {
+                    prefix: String::new(),
+                    code: USER_LABEL_PREFIX_PROBE.to_owned(),
+                },
+                args: Vec::new(),
+            };
+            return Some(vec![(self.pc, probe)]);
+        }
+        let two_args = matches!(name, "has_header_symbol" | "has_member");
+        if !two_args && !matches!(name, "has_header" | "has_type" | "compiles" | "links") {
             return None;
         }
-        let extra_args = match args.get("args") {
-            None => Vec::new(),
-            Some(v) => {
-                let mut flags: Vec<String> = Vec::new();
-                for variant in self.strings(v).ok()?.variants() {
-                    let flag = variant.value.to_string();
-                    if !is_replayable_cflag(&flag) {
-                        return None;
-                    }
-                    if !flags.contains(&flag) {
-                        flags.push(flag);
-                    }
+        let link = name == "links";
+
+        let arg0 = self.strings(args.at(0)?).ok()?;
+        let arg1 = match two_args {
+            true => self.strings(args.at(1)?).ok()?,
+            false => Variational::empty(),
+        };
+        let prefix = match args.get("prefix") {
+            Some(v) => self.strings(v).ok()?,
+            None => Variational::empty(),
+        };
+        let mut flags = match args.get("args") {
+            Some(v) => self.strings(v).ok()?,
+            None => Variational::empty(),
+        };
+        if !flags
+            .variants()
+            .iter()
+            .all(|f| is_replayable_cflag(&f.value))
+        {
+            return None;
+        }
+        for flag in self.probe_dependency_flags(args, link)?.into_variants() {
+            flags.push(flag);
+        }
+
+        let mut conds: Vec<Pc> = Vec::new();
+        for list in [&arg0, &arg1, &prefix, &flags] {
+            for v in list.variants() {
+                if !conds.contains(&v.cond) {
+                    conds.push(v.cond);
                 }
-                flags
             }
-        };
-        let prefix = match self.opt_string(args, "prefix") {
-            Ok(p) => p.map(|s| s.to_string()).unwrap_or_default(),
-            Err(_) => return None,
-        };
-        let arg0 = self.one_string(args.at(0)?).ok()?.to_string();
-        let kind = match name {
-            "has_header" if prefix.is_empty() => CompileProbeKind::Header { header: arg0 },
-            "has_header_symbol" if prefix.is_empty() => {
-                let symbol = self.one_string(args.at(1)?).ok()?.to_string();
-                if symbol.is_empty()
-                    || !symbol
-                        .bytes()
-                        .all(|b| b == b'_' || b.is_ascii_alphanumeric())
-                    || symbol.as_bytes()[0].is_ascii_digit()
-                {
-                    return None;
+        }
+        let regions = self.split_regions(&conds)?;
+
+        let mut out = Vec::with_capacity(regions.len());
+        for region in regions {
+            let arg0 = self.only_in(region, &arg0)?;
+            let arg1 = match two_args {
+                true => Some(self.only_in(region, &arg1)?),
+                false => None,
+            };
+            let prefix = self.all_in(region, &prefix).join("\n");
+            let mut args: Vec<String> = Vec::new();
+            for flag in self.all_in(region, &flags) {
+                if !args.contains(&flag) {
+                    args.push(flag);
                 }
-                CompileProbeKind::HeaderSymbol {
+            }
+            let kind = match (name, arg1) {
+                ("has_header", _) => CompileProbeKind::Header {
                     header: arg0,
-                    symbol,
-                }
-            }
-            "has_type" => CompileProbeKind::Type { name: arg0, prefix },
-            "has_member" => {
-                let member = self.one_string(args.at(1)?).ok()?.to_string();
-                if member.is_empty()
-                    || !member
-                        .bytes()
-                        .all(|b| b == b'_' || b.is_ascii_alphanumeric())
-                    || member.as_bytes()[0].is_ascii_digit()
-                {
-                    return None;
-                }
-                CompileProbeKind::Member {
-                    struct_name: arg0,
-                    member,
                     prefix,
+                },
+                ("has_header_symbol", Some(symbol)) if is_c_identifier(&symbol) => {
+                    CompileProbeKind::HeaderSymbol {
+                        header: arg0,
+                        symbol,
+                        prefix,
+                    }
+                }
+                ("has_type", _) => CompileProbeKind::Type { name: arg0, prefix },
+                ("has_member", Some(member)) if is_c_identifier(&member) => {
+                    CompileProbeKind::Member {
+                        struct_name: arg0,
+                        member,
+                        prefix,
+                    }
+                }
+                ("compiles", _) => CompileProbeKind::Compiles { prefix, code: arg0 },
+                ("links", _) => CompileProbeKind::Links { code: arg0 },
+                _ => return None,
+            };
+            out.push((region, CompileProbe { kind, args }));
+        }
+        Some(out)
+    }
+
+    /// The flags a probe's `dependencies:` add, each under the condition the
+    /// dependency is found in: `-pthread` for `threads`, `-l<name>` for a
+    /// system library when the probe links. `None` for any other dependency,
+    /// whose flags come from somewhere decay cannot replay.
+    fn probe_dependency_flags(
+        &mut self,
+        args: &CallArgs,
+        link: bool,
+    ) -> Option<Variational<Rc<str>>> {
+        let mut out = Variational::empty();
+        let Some(deps) = args.get("dependencies") else {
+            return Some(out);
+        };
+        for variant in self.flat(deps) {
+            let Value::Obj(Obj::Dep(dep)) = &variant.value else {
+                return None;
+            };
+            let found = self.logic.and(variant.cond, dep.found);
+            if !self.logic.is_sat(found) {
+                continue;
+            }
+            match dep.type_name {
+                "threads" => out.push(Variant::new(found, Rc::from("-pthread"))),
+                "library" if !link => {}
+                // Builtin `iconv`/`intl` live in libc on most systems; which
+                // `-l` a link needs is not a single flag.
+                "library" if !matches!(dep.name.as_str(), "iconv" | "intl") => {
+                    out.push(Variant::new(found, Rc::from(format!("-l{}", dep.name))));
+                }
+                _ => return None,
+            }
+        }
+        Some(out)
+    }
+
+    /// Split the current condition into the regions where every one of
+    /// `conds` either holds throughout or fails throughout. `None` past
+    /// [`MAX_PROBE_REGIONS`].
+    fn split_regions(&mut self, conds: &[Pc]) -> Option<Vec<Pc>> {
+        let mut regions = vec![self.pc];
+        for &cond in conds {
+            let not = self.logic.not(cond);
+            let mut next = Vec::with_capacity(regions.len());
+            for &region in &regions {
+                for side in [cond, not] {
+                    let part = self.logic.and(region, side);
+                    if self.logic.is_sat(part) {
+                        next.push(part);
+                    }
                 }
             }
-            "compiles" => CompileProbeKind::Compiles { prefix, code: arg0 },
-            _ => return None,
-        };
-        self.oracle.compile_probe(&CompileProbe {
-            kind,
-            args: extra_args,
-        })
+            if next.len() > MAX_PROBE_REGIONS {
+                return None;
+            }
+            regions = next;
+        }
+        Some(regions)
+    }
+
+    /// Every value of `list` present in `region`, in order.
+    fn all_in(&mut self, region: Pc, list: &Variational<Rc<str>>) -> Vec<String> {
+        let mut out = Vec::new();
+        for v in list.variants() {
+            let both = self.logic.and(region, v.cond);
+            if self.logic.is_sat(both) {
+                out.push(v.value.to_string());
+            }
+        }
+        out
+    }
+
+    /// The one value of `value` present in `region`.
+    fn only_in(&mut self, region: Pc, value: &Variational<Rc<str>>) -> Option<String> {
+        match self.all_in(region, value).as_slice() {
+            [only] => Some(only.clone()),
+            _ => None,
+        }
     }
 
     /// Turn an [`Oracle`] answer into a condition, the way [`Self::probe_cond`]
@@ -1115,7 +1239,8 @@ impl<'a, S: Solver> Interp<'a, S> {
     ) -> eyre::Result<Variational<Value>> {
         match name {
             "get_id" | "get_linker_id" => self.compiler_id(lang),
-            "get_argument_syntax" => self.compiler_id(lang),
+            // gcc and clang both take gcc-style arguments.
+            "get_argument_syntax" => Ok(self.pure(Value::str("gcc"))),
             "version" => Ok(self.pure(Value::str("0"))),
             "cmd_array" => {
                 let pc = self.pc;
@@ -1362,7 +1487,7 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// The condition under which the active `lang` compiler accepts `flag`,
     /// ANDed onto `base`. A flag gcc and clang disagree on is tied to the
     /// `compiler` constraint; anything else (portable `-W…`, every `-Wno-…`,
-    /// `-f…`, msvc `/…`) is taken as accepted — the generated build's real
+    /// `-f…`) is taken as accepted — the generated build's real
     /// toolchain has the final say either way. See [`GCC_ONLY_WARNING_ARGS`].
     fn arg_supported_cond(&mut self, lang: Lang, flag: &str, base: Pc) -> eyre::Result<Pc> {
         let restrict = if GCC_ONLY_WARNING_ARGS.contains(&flag) {
@@ -1379,11 +1504,8 @@ impl<'a, S: Solver> Interp<'a, S> {
     }
 
     /// `cc.has_function_attribute()`: gcc and clang accept every attribute in
-    /// [`FUNC_ATTRIBUTES`]; msvc has no `__attribute__` syntax at all and
-    /// recognizes only `dllimport`/`dllexport`, via `__declspec` instead —
-    /// mirrors `clike.has_func_attribute` / `visualstudio.has_func_attribute`
-    /// in meson's own source, since the importer cannot compile anything to
-    /// check for real.
+    /// [`FUNC_ATTRIBUTES`], `dllimport`/`dllexport` only on Windows — mirrors
+    /// `clike.has_func_attribute` in meson's own source.
     fn function_attribute_cond(&mut self, lang: Lang, name: &str) -> eyre::Result<Pc> {
         if !FUNC_ATTRIBUTES.contains(&name) {
             bail!(
@@ -1393,21 +1515,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                 lang.as_str()
             );
         }
-
-        let windows_only = name == "dllimport" || name == "dllexport";
-        let gnu = self.compiler_is(lang, &["gcc", "clang"])?;
-        let gnu_holds = if windows_only {
-            let windows = self.is_windows_target()?;
-            self.logic.and(gnu, windows)
-        } else {
-            gnu
-        };
-        let msvc_holds = if windows_only {
-            self.compiler_is(lang, &["msvc"])?
-        } else {
-            Pc::from_bool(false)
-        };
-        Ok(self.logic.or(gnu_holds, msvc_holds))
+        if name == "dllimport" || name == "dllexport" {
+            return self.is_windows_target();
+        }
+        Ok(Pc::from_bool(true))
     }
 
     // -- configuration data -----------------------------------------------
@@ -1912,6 +2023,23 @@ impl<'a, S: Solver> Interp<'a, S> {
 /// separator, or unexpanded `@…@` placeholder. Admits `-mfpu=neon`, `-msse2`,
 /// `-D_GNU_SOURCE`, `-std=c99`; rejects `-I@0@/gen`, `-I../include`,
 /// `/abs/path`, a bare `foo.c`.
+/// Most probes past this many regions have lost all structure; leave them
+/// open rather than build hundreds of variants.
+const MAX_PROBE_REGIONS: usize = 32;
+
+/// Compiles only where the target prefixes C symbols with `_` (Mach-O, 32-bit
+/// Windows): clang's own `__USER_LABEL_PREFIX__`, which is what meson reads.
+const USER_LABEL_PREFIX_PROBE: &str = "#define DECAY_STR2(x) #x\n\
+#define DECAY_STR(x) DECAY_STR2(x)\n\
+_Static_assert(sizeof(DECAY_STR(__USER_LABEL_PREFIX__)) > 1, \"no prefix\");";
+
+/// A C identifier: what a `has_member` / `has_header_symbol` name must be to
+/// splice into a probe.
+fn is_c_identifier(name: &str) -> bool {
+    name.bytes().next().is_some_and(|b| !b.is_ascii_digit())
+        && name.bytes().all(|b| b == b'_' || b.is_ascii_alphanumeric())
+}
+
 fn is_replayable_cflag(flag: &str) -> bool {
     flag.starts_with('-') && flag.is_ascii() && !flag.contains([' ', '\t', '/', '@'])
 }

@@ -29,15 +29,22 @@ pub const CPU_SETTING: &str = "prelude//cpu/constraints:cpu";
 pub struct ProbeCache(HashMap<(String, String), bool>);
 
 impl ProbeCache {
-    fn compiles(&mut self, triple: &str, snippet: &str, extra: &[&str]) -> bool {
+    /// Whether `snippet` builds for `triple` — compiled to an object, or
+    /// linked into an executable when `link` is set.
+    fn builds(&mut self, triple: &str, snippet: &str, extra: &[&str], link: bool) -> bool {
+        let mode = if link { "link" } else { "cc" };
         let key = (
             triple.to_owned(),
-            format!("{snippet}\u{0}{}", extra.join(" ")),
+            format!("{mode}\u{0}{snippet}\u{0}{}", extra.join(" ")),
         );
         if let Some(hit) = self.0.get(&key) {
             return *hit;
         }
-        let ok = zig::compiles(snippet, triple, extra);
+        let ok = if link {
+            zig::links(snippet, triple, extra)
+        } else {
+            zig::compiles(snippet, triple, extra)
+        };
         self.0.insert(key, ok);
         ok
     }
@@ -65,9 +72,8 @@ impl ProbeCache {
 /// the `(abi buck2 value, zig -target triple)` list to try for it. `""` abi
 /// means "every abi on this system". A system not here — `illumos`,
 /// `openbsd`, `android`, `fuchsia` — has no bundled zig libc and must be
-/// answered from `decay.toml` instead. `windows` probes only `gnu` (zig has
-/// no MSVC libc); the caller decides whether a `gnu` hit also covers
-/// `abi[msvc]`.
+/// answered from `decay.toml` instead. `windows` means mingw: decay does not
+/// support MSVC.
 pub fn system_link_targets(system: &str) -> Option<Vec<(&'static str, &'static str)>> {
     let targets = match system {
         "linux" => vec![("", "x86_64-linux-gnu"), ("", "x86_64-linux-musl")],
@@ -100,19 +106,22 @@ pub const PROBE_SYSTEMS: [&str; 3] = ["linux", "freebsd", "netbsd"];
 /// probe against a specific newer gcc.
 const GNUC_VERSION: &str = "-fgnuc-version=10.5.0";
 
+/// glibc's aarch64 `<bits/math-vector.h>` names GCC's builtin NEON types
+/// once `__GNUC__ >= 9`, which [`GNUC_VERSION`] claims but clang does not
+/// provide: every `#include <math.h>` would fail. Spell them the way the
+/// header's own clang branch does.
+const AARCH64_GLIBC_VECTOR_TYPES: [&str; 2] = [
+    "-D__Float32x4_t=__attribute__((__neon_vector_type__(4))) float",
+    "-D__Float64x2_t=__attribute__((__neon_vector_type__(2))) double",
+];
+
 /// The `(abi buck2 value, zig `-target` triple)` pairs decay probes for a
 /// CPU on `system`. `""` abi means the system has no glibc/musl-style split.
 /// Mirrors `decay_zig`'s own arch/abi spelling (arm32 is hard-float EABI
 /// either way).
 fn probe_targets(system: &str, cpu: Cpu) -> Vec<(&'static str, String)> {
     match system {
-        "linux" => vec![
-            (
-                "gnu",
-                format!("{}-linux-{}", cpu.zig_arch(), cpu.glibc_abi()),
-            ),
-            ("musl", cpu.musl_target()),
-        ],
+        "linux" => vec![("gnu", cpu.glibc_target()), ("musl", cpu.musl_target())],
         "freebsd" => vec![("", format!("{}-freebsd", cpu.zig_arch()))],
         "netbsd" => vec![("", format!("{}-netbsd", cpu.zig_arch()))],
         _ => Vec::new(),
@@ -134,7 +143,11 @@ pub fn probe_rows(cache: &mut ProbeCache, probe: &CompileProbe, system: &str) ->
         let mut flags = vec![GNUC_VERSION];
         flags.extend(flags_for_arch(probe.args(), arch));
         for (abi, triple) in probe_targets(system, cpu) {
-            if cache.compiles(&triple, &snippet, &flags) {
+            let mut flags = flags.clone();
+            if abi == "gnu" && cpu == Cpu::Arm64 {
+                flags.extend(AARCH64_GLIBC_VECTOR_TYPES);
+            }
+            if cache.builds(&triple, &snippet, &flags, probe.links()) {
                 rows.push(match abi {
                     "" => vec![cpu.buck2_value().to_owned()],
                     _ => vec![abi.to_owned(), cpu.buck2_value().to_owned()],
@@ -199,6 +212,7 @@ mod tests {
         let present = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Header {
+                prefix: String::new(),
                 header: "stdio.h".to_owned(),
             }),
             "linux",
@@ -212,11 +226,45 @@ mod tests {
         let absent = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Header {
+                prefix: String::new(),
                 header: "decay_no_such_header_xyz.h".to_owned(),
             }),
             "linux",
         );
         assert!(absent.is_empty(), "a bogus header compiles nowhere");
+    }
+
+    #[test]
+    fn math_h_compiles_on_every_linux_target() {
+        let mut cache = ProbeCache::default();
+        let rows = probe_rows(
+            &mut cache,
+            &probe(CompileProbeKind::Header {
+                prefix: String::new(),
+                header: "math.h".to_owned(),
+            }),
+            "linux",
+        );
+        assert_eq!(rows.len(), Cpu::ALL.len() * 2, "{rows:?}");
+    }
+
+    #[test]
+    fn a_link_probe_sees_the_newest_glibc() {
+        // `pidfd_open` landed in glibc 2.36; musl has none.
+        let mut cache = ProbeCache::default();
+        let rows = probe_rows(
+            &mut cache,
+            &probe(CompileProbeKind::Links {
+                code: "#include <sys/pidfd.h>\nint main(void) { return pidfd_open(0, 0); }"
+                    .to_owned(),
+            }),
+            "linux",
+        );
+        assert!(
+            rows.contains(&vec!["gnu".to_owned(), "x86_64".to_owned()]),
+            "{rows:?}"
+        );
+        assert!(rows.iter().all(|row| row[0] == "gnu"), "{rows:?}");
     }
 
     #[test]
@@ -327,6 +375,7 @@ int main (void) { return 0; }
         let rows = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Header {
+                prefix: String::new(),
                 header: "stdio.h".to_owned(),
             }),
             "freebsd",
@@ -339,6 +388,7 @@ int main (void) { return 0; }
         let absent = probe_rows(
             &mut cache,
             &probe(CompileProbeKind::Header {
+                prefix: String::new(),
                 header: "sys/epoll.h".to_owned(),
             }),
             "netbsd",

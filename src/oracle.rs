@@ -205,14 +205,6 @@ impl<'a> ConfigOracle<'a> {
             decay_zig::has_library(decay_zig::Libc::Glibc, cpu, name)
                 || decay_zig::has_library(decay_zig::Libc::Musl, cpu, name)
         });
-        // MSVC ships no standalone `.lib` for a C-runtime-split library (the
-        // fact `dependency('threads')` / `is_crt_provided_lib` already
-        // encode), nor for `atomic` (a compiler-runtime library it covers
-        // with intrinsics). A mingw hit for one of these must not also claim
-        // `abi[msvc]`. ponytail: `atomic` is the one name not derivable from
-        // the libc DB; revisit when a real Windows-SDK library list lands.
-        let msvc_lacks = db_linux_ok || name == "atomic";
-
         let mut found: Vec<(String, Vec<String>)> = Vec::new();
         let mut confirmed = false;
 
@@ -233,16 +225,7 @@ impl<'a> ConfigOracle<'a> {
                         continue;
                     }
                     confirmed = true;
-                    // `windows` was probed under `gnu` (mingw) only. A
-                    // C-runtime library there is a mingw stub MSVC has no
-                    // equivalent for → `gnu` only; any other library is a
-                    // real Win32 import lib the Windows SDK also ships →
-                    // both abis.
-                    if system == "windows" && msvc_lacks {
-                        found.push((system.clone(), vec!["gnu".to_owned()]));
-                    } else {
-                        found.push((system.clone(), Vec::new()));
-                    }
+                    found.push((system.clone(), Vec::new()));
                 }
                 None => {
                     // zig cannot host this system; only `decay.toml` can say.
@@ -266,9 +249,7 @@ impl<'a> ConfigOracle<'a> {
         // Must match the `abi` axis domain `linux_abi_cpu_axes` builds — the
         // `constraint:abi` variable is shared and its first declaration wins,
         // so a different domain here would silently misindex the other
-        // caller's `select()` values. `windows` rows only ever name `gnu`;
-        // `msvc` never needs to be an explicit value (an abi that is not
-        // `gnu` simply falls through to not-found).
+        // caller's `select()` values.
         let abi_domain = self
             .linux_abi_cpu_axes()
             .into_iter()
@@ -332,9 +313,8 @@ impl<'a> ConfigOracle<'a> {
     /// time this is reached (see [`Oracle::probe`]).
     fn compile_probe_answer(&self, probe: &CompileProbe) -> Option<Probe> {
         let header = match &probe.kind {
-            CompileProbeKind::Header { header } | CompileProbeKind::HeaderSymbol { header, .. } => {
-                Some(header)
-            }
+            CompileProbeKind::Header { header, .. }
+            | CompileProbeKind::HeaderSymbol { header, .. } => Some(header),
             _ => None,
         };
         if let Some(header) = header
@@ -518,7 +498,7 @@ impl Oracle for ConfigOracle<'_> {
 
     fn compilers(&self) -> Vec<String> {
         if self.config.compilers.is_empty() {
-            return ["gcc", "clang", "msvc"].map(str::to_owned).to_vec();
+            return ["gcc", "clang"].map(str::to_owned).to_vec();
         }
         self.config.compilers.keys().cloned().collect()
     }

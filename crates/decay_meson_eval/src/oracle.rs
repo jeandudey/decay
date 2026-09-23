@@ -40,9 +40,10 @@ pub trait Oracle {
     fn systems(&self) -> Vec<String>;
 
     /// The compiler identities a build may use, used as the domain of
-    /// `compiler.get_id()` when it is left open.
+    /// `compiler.get_id()` when it is left open. MSVC is not supported: every
+    /// probe is answered by `zig cc`, a gcc-compatible driver.
     fn compilers(&self) -> Vec<String> {
-        ["gcc", "clang", "msvc"].map(str::to_owned).to_vec()
+        ["gcc", "clang"].map(str::to_owned).to_vec()
     }
 
     /// The answer to a toolchain probe, when it follows from something the
@@ -285,9 +286,10 @@ pub struct MatrixSystem {
 
 /// A compiler probe the importer can answer by building it, once per target
 /// in its configured matrix. Carries everything needed to reconstruct the
-/// translation unit meson would have compiled, plus the call's `args:` when
-/// they are plain compiler flags the importer can replay (`Vec::new()`
-/// otherwise — a probe carrying anything it cannot replay never reaches here).
+/// translation unit meson would have compiled, plus the flags to replay: the
+/// call's `args:` when they are plain compiler flags, and what its
+/// `dependencies:` add when decay knows that exactly (`-pthread`, `-l…`). A
+/// probe carrying anything it cannot replay never reaches here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompileProbe {
     pub kind: CompileProbeKind,
@@ -296,32 +298,43 @@ pub struct CompileProbe {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompileProbeKind {
-    /// `cc.has_header('h')` with no `prefix:`/`dependencies:`.
-    Header { header: String },
-    /// `cc.has_header_symbol('h', 'SYM')` with no `prefix:`/`dependencies:`.
-    HeaderSymbol { header: String, symbol: String },
-    /// `cc.has_type('t', prefix: p)` with no `dependencies:`.
+    /// `cc.has_header('h', prefix: p)` or `cc.check_header(...)`.
+    Header { header: String, prefix: String },
+    /// `cc.has_header_symbol('h', 'SYM', prefix: p)`.
+    HeaderSymbol {
+        header: String,
+        symbol: String,
+        prefix: String,
+    },
+    /// `cc.has_type('t', prefix: p)`.
     Type { name: String, prefix: String },
-    /// `cc.has_member('t', 'm', prefix: p)` with no `dependencies:`.
+    /// `cc.has_member('t', 'm', prefix: p)`.
     Member {
         struct_name: String,
         member: String,
         prefix: String,
     },
-    /// `cc.compiles(code, prefix: p)` with no `dependencies:`.
+    /// `cc.compiles(code)`.
     Compiles { prefix: String, code: String },
+    /// `cc.links(code)`: built into an executable, not just an object.
+    Links { code: String },
 }
 
 impl CompileProbe {
-    /// The C translation unit to compile (`zig cc -c`; presence is "does it
-    /// compile", never "does it link").
+    /// The C translation unit to build.
     pub fn snippet(&self) -> String {
         match &self.kind {
-            CompileProbeKind::Header { header } => format!("#include <{header}>\n"),
+            CompileProbeKind::Header { header, prefix } => {
+                format!("{prefix}\n#include <{header}>\n")
+            }
             // Mirrors meson's own `has_header_symbol` test: include the
             // header, then use the name as a symbol when it is not a macro.
-            CompileProbeKind::HeaderSymbol { header, symbol } => format!(
-                "#include <{header}>\nint main(void) {{\n#ifndef {symbol}\n    (void) {symbol};\n#endif\n    return 0;\n}}\n"
+            CompileProbeKind::HeaderSymbol {
+                header,
+                symbol,
+                prefix,
+            } => format!(
+                "{prefix}\n#include <{header}>\nint main(void) {{\n#ifndef {symbol}\n    (void) {symbol};\n#endif\n    return 0;\n}}\n"
             ),
             CompileProbeKind::Type { name, prefix } => {
                 format!("{prefix}\nvoid _decay_probe(void) {{ sizeof({name}); }}\n")
@@ -335,7 +348,13 @@ impl CompileProbe {
                 "{prefix}\nvoid _decay_probe(void) {{\n    {struct_name} foo;\n    (void) (foo.{member});\n    (void) foo;\n}}\n"
             ),
             CompileProbeKind::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
+            CompileProbeKind::Links { code } => format!("{code}\n"),
         }
+    }
+
+    /// Whether the probe must link, not just compile.
+    pub fn links(&self) -> bool {
+        matches!(self.kind, CompileProbeKind::Links { .. })
     }
 
     /// The call's `args:`, replayed on the `zig cc` line.
