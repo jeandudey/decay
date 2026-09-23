@@ -58,9 +58,9 @@ cxx_binary(
 cxx_library(
     name = "bzip2-dep",
     exported_headers = {
-        "libbz2.def": ":bzip2[libbz2.def]",
-        "bzlib_private.h": ":bzip2[bzlib_private.h]",
         "bzlib.h": ":bzip2[bzlib.h]",
+        "bzlib_private.h": ":bzip2[bzlib_private.h]",
+        "libbz2.def": ":bzip2[libbz2.def]",
     },
     header_namespace = "",
     exported_deps = [":bz2"],

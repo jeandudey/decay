@@ -1,0 +1,173 @@
+[[project]]
+repo = "https://gitlab.gnome.org/GNOME/libxml2"
+tag = "v2.15.4"
+resolved = "9fac185ccc0b719eb647db902d5c13c3aaa96263"
+
+[[project]]
+repo = "https://gitlab.gnome.org/GNOME/glib.git"
+tag = "2.88.3"
+resolved = "8861fc77046a6b2218f49fe10c0a12d9f70de52e"
+
+[[project]]
+repo = "https://gitlab.freedesktop.org/xorg/proto/xorgproto"
+tag = "xorgproto-2025.1"
+resolved = "ee7bb05bf46cda290a213eeffb407c4b0f1c94cf"
+
+[[project]]
+repo = "https://github.com/NVIDIA/libglvnd"
+tag = "v1.7.0"
+resolved = "faa23f21fc677af5792825dc30cb1ccef4bf33a6"
+
+[[project]]
+repo = "https://github.com/anholt/libepoxy"
+tag = "1.5.10"
+resolved = "70a20c62fa0d095c386a5eb62eaf9ebf7cc4cb38"
+
+[[project]]
+repo = "https://gitlab.freedesktop.org/xdg/shared-mime-info"
+tag = "2.5.1"
+resolved = "fd8ab89c20093f1bfba8fa9e302ba584fffd0fd7"
+
+[[project]]
+repo = "https://gitlab.freedesktop.org/gstreamer/gstreamer"
+rev = "1.29.2"
+resolved = "dc05e38bade289e45830cf3c58498a50ad958554"
+
+[[project]]
+repo = "https://gitlab.freedesktop.org/fontconfig/fontconfig"
+tag = "2.18.3"
+resolved = "06009a87a8ff2d7978c6032cf55d514d4ee303b1"
+
+[[project]]
+repo = "https://gitlab.gnome.org/GNOME/pango.git"
+tag = "1.58.2"
+resolved = "76b9566e76ee1abf6198609d8576c83b92583310"
+
+[[wrap]]
+name = "pcre2"
+version = "10.48-1"
+wrapdb_rev = "800371885f99f897374636f4e7d69da97f53f98d"
+patch_directory = "pcre2"
+source_url = "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.48/pcre2-10.48.tar.bz2"
+source_filename = "pcre2-10.48.tar.bz2"
+source_hash = "b6c68fdf6f3ac31388b50aa89ff0fc49c00c987c16e7b5146491d12003f2c8ed"
+
+[[wrap]]
+name = "libffi"
+version = "3.8.0-1"
+wrapdb_rev = "02bf44fba922c5f0ad6564f1bcb7ffeba2d14b18"
+patch_directory = "libffi"
+source_url = "https://github.com/libffi/libffi/releases/download/v3.8.0/libffi-3.8.0.tar.gz"
+source_filename = "libffi-3.8.0.tar.gz"
+source_hash = "7da3e2d9a171eb0a038f592ecad3ff2bb2550f3496d87b3b29ad0cf4430c0db4"
+
+[[wrap]]
+name = "zlib"
+version = "1.3.2-1"
+wrapdb_rev = "2fea68ae392cc7091c83940f59f8c7e439fa57d1"
+patch_directory = "zlib"
+source_url = "https://zlib.net/zlib-1.3.2.tar.xz"
+source_filename = "zlib-1.3.2.tar.xz"
+source_hash = "d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3"
+
+[[wrap]]
+name = "libxext"
+version = "1.3.7-1"
+wrapdb_rev = "b9b3a060c23c01e68c634c9a19c11fd7dc01f5be"
+patch_directory = "libXext"
+source_url = "https://xorg.freedesktop.org/releases/individual/lib/libXext-1.3.7.tar.xz"
+source_filename = "libXext-1.3.7.tar.xz"
+source_hash = "6c643c7035cdacf67afd68f25d01b90ef889d546c9fcd7c0adf7c2cf91e3a32d"
+
+[[wrap]]
+name = "icu"
+version = "78.2-1"
+wrapdb_rev = "6b9454e4f094d2a088abca9c416a06854ec6ef75"
+patch_directory = "icu"
+source_url = "https://github.com/unicode-org/icu/releases/download/release-78.2/icu4c-78.2-sources.tgz"
+source_filename = "icu4c-78.2-sources.tgz"
+source_hash = "3e99687b5c435d4b209630e2d2ebb79906c984685e78635078b672e03c89df35"
+
+[[wrap]]
+name = "fribidi"
+version = "1.0.16-1"
+wrapdb_rev = "7b45e240e8a05f15c59f9bf29e320a7d35092299"
+source_url = "https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz"
+source_filename = "fribidi-1.0.16.tar.xz"
+source_hash = "1b1cde5b235d40479e91be2f0e88a309e3214c8ab470ec8a2744d82a5a9ea05c"
+
+[[wrap]]
+name = "graphite2"
+version = "1.3.14-1"
+wrapdb_rev = "a7620d7123f37dfa59baf7eae2f1a65cfab50007"
+patch_directory = "graphite2"
+source_url = "https://github.com/silnrsi/graphite/releases/download/1.3.14/graphite2-1.3.14.tgz"
+source_filename = "graphite2-1.3.14.tgz"
+source_hash = "f99d1c13aa5fa296898a181dff9b82fb25f6cc0933dbaa7a475d8109bd54209d"
+
+[[wrap]]
+name = "pixman"
+version = "0.46.4-1"
+wrapdb_rev = "c443d1675b718dcf6cfc26367b09ff002bc75031"
+source_url = "https://www.cairographics.org/releases/pixman-0.46.4.tar.gz"
+source_filename = "pixman-0.46.4.tar.gz"
+source_hash = "d09c44ebc3bd5bee7021c79f922fe8fb2fb57f7320f55e97ff9914d2346a591c"
+
+[[wrap]]
+name = "cairo"
+version = "1.18.4-2"
+wrapdb_rev = "393459b4ccf29afdf22253dfe69587f7656ae05b"
+source_url = "https://www.cairographics.org/releases/cairo-1.18.4.tar.xz"
+source_filename = "cairo-1.18.4.tar.xz"
+source_hash = "445ed8208a6e4823de1226a74ca319d3600e83f6369f99b14265006599c32ccb"
+
+[[wrap]]
+name = "freetype2"
+version = "2.14.3-1"
+wrapdb_rev = "a63290bbceab006febe43761356fe1a6b2e2eaa9"
+source_url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.14.3.tar.xz"
+source_filename = "freetype-2.14.3.tar.xz"
+source_hash = "36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f"
+
+[[wrap]]
+name = "bzip2"
+version = "1.0.8-2"
+wrapdb_rev = "601a77630c697f37ab53cd148c5dd5d4b3d53cb5"
+patch_directory = "bzip2"
+source_url = "https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz"
+source_filename = "bzip2-1.0.8.tar.gz"
+source_hash = "ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269"
+
+[[wrap]]
+name = "libpng"
+version = "1.6.58-1"
+wrapdb_rev = "1dee4f28ac34bd8c98fd314f8719286d9a21254f"
+patch_directory = "libpng"
+source_url = "https://github.com/pnggroup/libpng/archive/v1.6.58.tar.gz"
+source_filename = "libpng-1.6.58.tar.gz"
+source_hash = "a9d4df463d36a6e5f9c29bd6f4967312d17e996c1854f3511f833924eb1993cf"
+
+[[wrap]]
+name = "google-brotli"
+version = "1.1.0-3"
+wrapdb_rev = "b649d3172e9271a65f1d4125d802da70127a7544"
+patch_directory = "google-brotli"
+source_url = "https://github.com/google/brotli/archive/v1.1.0.tar.gz"
+source_filename = "brotli-1.1.0.tar.gz"
+source_hash = "e720a6ca29428b803f4ad165371771f5398faba397edf6778837a18599ea13ff"
+
+[[wrap]]
+name = "harfbuzz"
+version = "13.0.1-1"
+wrapdb_rev = "821ea0b37488d3932fcae17b3770da549f969022"
+source_url = "https://github.com/harfbuzz/harfbuzz/releases/download/13.0.1/harfbuzz-13.0.1.tar.xz"
+source_filename = "harfbuzz-13.0.1.tar.xz"
+source_hash = "3553d943401c34ab9b8c75f35cdb8452ca660233b0e9d4a22395ce5245484bd7"
+
+[[wrap]]
+name = "pango"
+version = "1.56.4-1"
+wrapdb_rev = "ba3bb5b3eaf2398adfdde9995f43eab8e8625859"
+source_url = "https://download.gnome.org/sources/pango/1.56/pango-1.56.4.tar.xz"
+source_filename = "pango-1.56.4.tar.xz"
+source_hash = "17065e2fcc5f5a5bdbffc884c956bfc7c451a96e8c4fb2f8ad837c6413cb5a01"
