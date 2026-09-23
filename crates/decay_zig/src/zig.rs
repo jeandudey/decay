@@ -65,6 +65,11 @@ fn check_verdict(output: &std::process::Output, src: &std::path::Path) {
         "Unknown Clang option",
         "unsupported option",
         "unknown argument",
+        // An ISA flag the target lacks (`-mssse3` on aarch64).
+        "has no LLVM CPU feature named",
+        "unsupported argument",
+        "unknown target CPU",
+        "is not supported for target",
         "unable to find dynamic system library",
         "unable to find library",
         "undefined symbol",
@@ -198,6 +203,11 @@ mod tests {
             "x86_64-linux-gnu",
             &[]
         ));
+    }
+
+    #[test]
+    fn an_isa_flag_the_target_lacks_is_a_verdict() {
+        assert!(!compiles("int x;\n", "aarch64-linux-gnu", &["-mssse3"]));
     }
 
     #[test]
