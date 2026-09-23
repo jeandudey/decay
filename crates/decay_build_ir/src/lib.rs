@@ -8,6 +8,7 @@
 
 use {
     decay_meson_logic::{
+        Formula,
         Pc,
         Var,
         Variational, //
@@ -401,6 +402,13 @@ pub struct Package {
     /// `pkg-config` variables resolved to their actual value, wherever the
     /// value does not itself depend on the configuration.
     pub variables: Vec<(String, String)>,
+    /// The configurations the project provides it in, in the project's own
+    /// arena.
+    pub cond: Pc,
+    /// [`Self::cond`] lifted out of that arena, for a sibling project's
+    /// `dependency()` to read back. Filled in by the importer once evaluation
+    /// is done; [`Formula::TRUE`] until then.
+    pub found: Formula,
 }
 
 /// A configuration variable the executor had to leave open, mirrored out of the

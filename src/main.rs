@@ -26,6 +26,7 @@ use {
     },
     decay_meson_logic::{
         Logic,
+        VarKind,
         Z3Solver, //
     },
     eyre::{
@@ -42,7 +43,10 @@ use {
         thread,
         time::Instant, //
     },
-    tracing::info,
+    tracing::{
+        info,
+        warn, //
+    },
     tracing_subscriber::{
         EnvFilter,
         fmt::format::FmtSpan, //
@@ -228,7 +232,7 @@ pub(crate) fn execute(
     let oracle = ConfigOracle::new(config, project, packages, &dir);
     let sources = CountingSources::new(&DiskSources);
     let eval_start = Instant::now();
-    let (mut graph, logic) = decay_meson_eval::eval(&oracle, &sources, &dir)
+    let (mut graph, mut logic) = decay_meson_eval::eval(&oracle, &sources, &dir)
         .wrap_err_with(|| format!("Failed to execute `{name}`"))?;
     let eval_ms = eval_start.elapsed().as_millis();
     let parse_ms = sources.parse_time().as_millis();
@@ -246,6 +250,26 @@ pub(crate) fn execute(
     if graph.project.wrapdb_overlay.is_some() {
         let wrapdb_target = graph.project.wrapdb_target();
         graph.avoid_name_collision(&wrapdb_target);
+    }
+
+    // What a sibling's `dependency()` will read back. Only meson's own
+    // variables mean the same thing in another project; this project's own
+    // options do not exist there, so a provide gated on one counts as present
+    // wherever some setting of it would provide it.
+    for provide in &mut graph.provides {
+        let (found, dropped) = logic
+            .arena_mut()
+            .export(provide.cond, |var| var.kind != VarKind::Option);
+        if !dropped.is_empty() {
+            warn!(
+                project = %graph.project.name,
+                provide = %provide.name,
+                options = ?dropped,
+                "provided only under some settings of this project's own options; \
+                 a sibling's `dependency()` treats it as present under all of them",
+            );
+        }
+        provide.found = found;
     }
 
     info!(

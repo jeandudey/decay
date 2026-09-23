@@ -477,8 +477,11 @@ impl Oracle for ConfigOracle<'_> {
     fn dependency_found(&self, name: &str) -> Option<Probe> {
         // Not a probe about the environment: decay is building this either
         // way, because it is another project it already imported.
-        if self.packages.get(name).is_some() {
-            return Some(Probe::Fixed(true));
+        if let Some(pkg) = self.packages.get(name) {
+            return Some(match pkg.found.is_true() {
+                true => Probe::Fixed(true),
+                false => Probe::Formula(pkg.found.clone()),
+            });
         }
         // A `[dependencies]` entry is the configuration asserting the
         // dependency is satisfied — unconditionally, or only where a

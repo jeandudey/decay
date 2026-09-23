@@ -1,4 +1,5 @@
 mod arena;
+mod formula;
 mod logic;
 mod solver;
 pub mod stats;
@@ -14,6 +15,7 @@ pub use {
         VarId,
         VarKind, //
     },
+    formula::Formula,
     logic::Logic,
     solver::{
         Solver,

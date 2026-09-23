@@ -37,6 +37,7 @@ use {
         ProjectOptionKind, //
     },
     decay_meson_logic::{
+        Formula,
         Pc,
         Solver,
         Variant,
@@ -952,6 +953,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 target: None,
                 requires: Vec::new(),
                 variables,
+                cond: self.pc,
+                found: Formula::TRUE,
             });
         }
 
@@ -1043,7 +1046,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 for variant in self.flat(v) {
                     match &variant.value {
                         Value::Obj(Obj::File(p)) => source_dirs.push(p.to_string()),
-                        Value::Str(s) => source_dirs.push(self.resolve(s)),
+                        Value::Str(s) => source_dirs.push(self.resolve(s)?),
                         other => bail!(
                             "`source_dir:` expects a string, found a {}",
                             other.type_name()
@@ -1513,6 +1516,8 @@ impl<'a, S: Solver> Interp<'a, S> {
             target: library_target,
             requires,
             variables,
+            cond: self.pc,
+            found: Formula::TRUE,
         });
 
         Ok(self.pure(Value::Unset))
@@ -1753,6 +1758,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 target: Some(id),
                 requires: Vec::new(),
                 variables,
+                cond: self.pc,
+                found: Formula::TRUE,
             });
         }
 
@@ -2226,9 +2233,10 @@ impl<'a, S: Solver> Interp<'a, S> {
     pub(crate) fn resolve_program(&mut self, name: &str, required: Pc) -> eyre::Result<Value> {
         // A program named by a path inside the project is a file, not something
         // to go looking for on the build machine.
-        let candidate = self.resolve(name);
-        let in_tree = self.sources.exists(&self.root.join(&candidate));
-        let path = in_tree.then(|| PathBuf::from(&candidate));
+        let path = self
+            .resolve_in_tree(name)
+            .filter(|candidate| self.sources.exists(&self.root.join(candidate)))
+            .map(PathBuf::from);
 
         let key = format!("prog:{name}");
         let target = self.external(
@@ -2249,7 +2257,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             .program_overrides
             .iter()
             .any(|(n, _)| n.as_str() == name);
-        let found = if in_tree || has_override || self.oracle.has_program(name) {
+        let found = if path.is_some() || has_override || self.oracle.has_program(name) {
             Pc::TRUE
         } else {
             // Not a configuration knob: nothing a platform could set would make
@@ -2280,7 +2288,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         let mut items = Vec::new();
         for arg in &args.pos {
             for variant in self.strings(arg)?.into_variants() {
-                let path = self.resolve(&variant.value);
+                let path = self.resolve(&variant.value)?;
                 if !self.sources.exists(&self.root.join(&path)) {
                     warn!(%path, "files() names a path that is not in the source tree");
                 }
@@ -2309,7 +2317,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             for variant in self.flat(arg) {
                 let value = match &variant.value {
                     Value::Str(s) => {
-                        let path = self.resolve(s);
+                        let path = self.resolve(s)?;
                         if !self.sources.exists(&self.root.join(&path)) {
                             warn!(%path, "windows.compile_resources() names a path that is not in the source tree");
                         }
@@ -2335,7 +2343,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         let mut dirs = Vec::new();
         for arg in &args.pos {
             for variant in self.strings(arg)?.into_variants() {
-                dirs.push((variant.cond, self.resolve(&variant.value)));
+                dirs.push((variant.cond, self.resolve(&variant.value)?));
             }
         }
         Ok(self.pure(Value::Obj(Obj::IncludeDirs(Rc::new(dirs)))))
@@ -2384,7 +2392,7 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     fn fn_subdir(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
         let name = self.one_string(args.at(0).ok_or_eyre("subdir() needs a directory")?)?;
-        let dir = PathBuf::from(self.resolve(&name));
+        let dir = PathBuf::from(self.resolve(&name)?);
         self.subdir(&dir)?;
         Ok(self.pure(Value::Unset))
     }
@@ -2540,12 +2548,21 @@ impl<'a, S: Solver> Interp<'a, S> {
                     continue;
                 }
                 let path = variant.value.join(&rel);
-                let already_listed = headers
+                // Listed explicitly only under some configurations, it still
+                // needs listing under the rest of this include dir's: widen
+                // the existing entry rather than adding a second one.
+                let listed = headers
                     .variants()
                     .iter()
-                    .any(|h| matches!(&h.value, Source::File(p) if *p == path));
-                if !already_listed {
-                    headers.push(Variant::new(variant.cond, Source::File(path)));
+                    .position(|h| matches!(&h.value, Source::File(p) if *p == path));
+                match listed {
+                    None => headers.push(Variant::new(variant.cond, Source::File(path))),
+                    Some(i) if headers.variants()[i].cond.is_true() => {}
+                    Some(i) => {
+                        let mut all: Vec<_> = std::mem::take(headers).into_variants().collect();
+                        all[i].cond = self.logic.or(all[i].cond, variant.cond);
+                        headers.extend(all);
+                    }
                 }
             }
         }

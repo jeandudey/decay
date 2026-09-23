@@ -34,6 +34,14 @@ fn tmp_stem(prefix: &str) -> PathBuf {
     ))
 }
 
+/// Write a probe's source, panicking on failure: a probe that never ran is
+/// not a probe that failed.
+fn write_src(src: &std::path::Path, code: &str) {
+    if let Err(e) = fs::write(src, code) {
+        panic!("could not write zig probe source `{}`: {e}", src.display());
+    }
+}
+
 fn spawn(cmd: &mut Command) -> std::process::Output {
     cmd.output().unwrap_or_else(|e| {
         panic!(
@@ -41,6 +49,41 @@ fn spawn(cmd: &mut Command) -> std::process::Output {
              (decay is developed against {EXPECTED_VERSION})"
         )
     })
+}
+
+/// Panic unless a failed `zig cc` run failed because of what it was asked to
+/// build. A probe reads a non-zero exit as "absent", so zig itself failing
+/// (an unwritable cache, a crash, a signal) must not be mistaken for one:
+/// that would quietly turn every header and library off.
+///
+/// A real verdict names the probe's own source (a diagnostic anchored in
+/// it), or is one of the few driver/linker refusals that are about the
+/// request itself: a flag clang does not take, a missing library, an
+/// unresolved symbol, a target zig has no libc for.
+fn check_verdict(output: &std::process::Output, src: &std::path::Path) {
+    const VERDICTS: &[&str] = &[
+        "Unknown Clang option",
+        "unsupported option",
+        "unknown argument",
+        "unable to find dynamic system library",
+        "unable to find library",
+        "undefined symbol",
+        "unable to provide libc",
+    ];
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let names_src = src
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|n| stderr.contains(n));
+    if output.status.code().is_some() && (names_src || VERDICTS.iter().any(|v| stderr.contains(v)))
+    {
+        return;
+    }
+    panic!(
+        "`zig cc` failed for a reason unrelated to the probe ({}); refusing to read it as \
+         \"absent\":\n{stderr}",
+        output.status
+    );
 }
 
 /// `zig version`, trimmed.
@@ -70,9 +113,7 @@ pub fn compiles(code: &str, target: &str, flags: &[&str]) -> bool {
     let stem = tmp_stem("decay-zig-cc");
     let src = stem.with_extension("c");
     let obj = stem.with_extension("o");
-    if fs::write(&src, code).is_err() {
-        return false;
-    }
+    write_src(&src, code);
     let output = spawn(
         Command::new("zig")
             .args(["cc", "-target", target, "-w", "-c"])
@@ -80,14 +121,16 @@ pub fn compiles(code: &str, target: &str, flags: &[&str]) -> bool {
             .arg(&src)
             .arg("-o")
             .arg(&obj)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null()),
+            .stdout(Stdio::null()),
     );
     let _ = fs::remove_file(&src);
     let _ = fs::remove_file(&obj);
     // A `-target` zig has no headers for also exits non-zero — that
     // combination is simply not one decay supports, so "did not compile"
     // is the right answer either way.
+    if !output.status.success() {
+        check_verdict(&output, &src);
+    }
     output.status.success()
 }
 
@@ -98,9 +141,7 @@ pub fn link(code: &str, target: &str, libs: &[&str]) -> Result<(), String> {
     let stem = tmp_stem("decay-zig-ld");
     let src = stem.with_extension("c");
     let out = stem.with_extension("out");
-    if let Err(e) = fs::write(&src, code) {
-        return Err(format!("could not write probe source: {e}"));
-    }
+    write_src(&src, code);
     let mut cmd = Command::new("zig");
     cmd.args(["cc", "-target", target, "-w"]).arg(&src);
     for lib in libs {
@@ -113,6 +154,7 @@ pub fn link(code: &str, target: &str, libs: &[&str]) -> Result<(), String> {
     if output.status.success() {
         Ok(())
     } else {
+        check_verdict(&output, &src);
         Err(String::from_utf8_lossy(&output.stderr).into_owned())
     }
 }
@@ -143,4 +185,24 @@ pub fn ast_dump(code: &str, target: &str) -> String {
     );
     let _ = fs::remove_file(&src);
     String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_missing_header_is_a_verdict() {
+        assert!(!compiles(
+            "#include <decay_no_such_header.h>\n",
+            "x86_64-linux-gnu",
+            &[]
+        ));
+    }
+
+    #[test]
+    #[should_panic(expected = "unrelated to the probe")]
+    fn zig_failing_on_its_own_is_not_absent() {
+        compiles("int x;\n", "bogus-triple", &[]);
+    }
 }
