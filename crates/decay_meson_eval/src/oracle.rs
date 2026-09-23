@@ -1,5 +1,6 @@
 use {
     crate::obj::Machine,
+    decay_meson_logic::Formula,
     std::rc::Rc, //
 };
 
@@ -262,6 +263,10 @@ pub enum Probe {
     /// exports on `arm64` but glibc does not must not round up to `abi ∈
     /// {gnu, musl}` ANDed with `cpu ∈ {arm64}` and also claim `gnu`+`arm64`.
     Matrix(Vec<MatrixSystem>),
+    /// True exactly where a sibling project's own condition holds, lifted out
+    /// of that project's arena: a `pkg.generate()` it only runs on some
+    /// systems is found only on those.
+    Formula(Formula),
 }
 
 /// One operating system's slice of a [`Probe::Matrix`] answer: the

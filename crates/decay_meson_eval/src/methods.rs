@@ -23,6 +23,7 @@ use {
     decay_meson_ast::Loc,
     decay_meson_logic::{
         ANY_OTHER,
+        Formula,
         Pc,
         Solver,
         Var,
@@ -39,7 +40,10 @@ use {
         rc::Rc,
         str::FromStr, //
     },
-    tracing::debug,
+    tracing::{
+        debug,
+        warn, //
+    },
 };
 
 /// Function attribute names `cc.has_function_attribute()` recognizes —
@@ -331,11 +335,14 @@ impl<'a, S: Solver> Interp<'a, S> {
                     && variant.cond.is_true()
                     && let Value::Obj(Obj::Dep(d)) = &variant.value
                 {
+                    let cond = self.logic.and(self.pc, d.found);
                     self.dependency_overrides.push(Package {
                         name: dep_name.to_string(),
                         target: Some(d.target),
                         requires: Vec::new(),
                         variables: d.variables.clone(),
+                        cond,
+                        found: Formula::TRUE,
                     });
                 } else {
                     self.warn_unsupported(&format!("`meson.{name}()`"), loc);
@@ -535,14 +542,26 @@ impl<'a, S: Solver> Interp<'a, S> {
             (Obj::Module(Module::GNOME), "genmarshal") => self.fn_genmarshal(args),
             (Obj::Module(Module::Fs), "exists" | "is_file" | "is_dir") => {
                 let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
-                let resolved = self.resolve(&path);
-                let exists = self.sources.exists(&self.root.join(&resolved));
+                // A path outside the checkout asks about the machine running
+                // meson (fontconfig's `/usr/X11R6/lib/X11/fonts`), which the
+                // generated build never sees: it is not there for the build.
+                let exists = match self.resolve_in_tree(&path) {
+                    Some(resolved) => self.sources.exists(&self.root.join(resolved)),
+                    None => {
+                        warn!(
+                            at = %self.here(loc),
+                            "`fs.{name}('{path}')` asks about the host outside the project; \
+                             answering false"
+                        );
+                        false
+                    }
+                };
                 Ok(self.bool_value(if exists { self.pc } else { Pc::FALSE }))
             }
             (Obj::Module(Module::Fs), "copyfile") => self.fn_fs_copyfile(args),
             (Obj::Module(Module::Fs), "read") => {
                 let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
-                let resolved = self.resolve(&path);
+                let resolved = self.resolve(&path)?;
                 let content = self.sources.read(&self.root.join(&resolved))?;
                 Ok(self.pure(Value::from(content)))
             }
@@ -579,14 +598,14 @@ impl<'a, S: Solver> Interp<'a, S> {
             (Obj::Module(Module::Fs), "relative_to") => {
                 let a = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
                 let b = self.one_string(args.at(1).ok_or_eyre("expected a path")?)?;
-                let to_path = |p: &str| {
+                let to_path = |p: &str| -> eyre::Result<String> {
                     if p.starts_with('/') {
-                        p.to_owned()
+                        Ok(p.to_owned())
                     } else {
                         self.resolve(p)
                     }
                 };
-                let out = relative_path(&to_path(&a), &to_path(&b));
+                let out = relative_path(&to_path(&a)?, &to_path(&b)?);
                 Ok(self.pure(Value::from(out)))
             }
             (Obj::Module(Module::I18n), "gettext") => {
@@ -1061,6 +1080,10 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let open_elsewhere = self.logic.and(elsewhere, open);
                 Ok(self.logic.or(settled, open_elsewhere))
             }
+            Some(Probe::Formula(formula)) => self
+                .logic
+                .import(&formula)
+                .map_err(|e| eyre::eyre!("`{key}`: {e}")),
             None => Ok(self.probe(key, description)),
         }
     }

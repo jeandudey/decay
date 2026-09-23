@@ -379,9 +379,23 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     /// Resolve a path written in the current `meson.build` against the project
     /// root, which is how every path reaches the build graph.
-    pub(crate) fn resolve(&self, path: &str) -> String {
-        let joined = self.cur_dir().join(path);
-        normalize_path(&joined)
+    ///
+    /// An absolute path, or one whose `..`s climb out of the project, names
+    /// something outside the checkout the generated build fetches, so it is
+    /// an error rather than silently rewritten into a project path.
+    pub(crate) fn resolve(&self, path: &str) -> eyre::Result<String> {
+        self.resolve_in_tree(path).ok_or_else(|| {
+            eyre::eyre!(
+                "`{path}` (from `{}`) points outside the project; decay can only refer to files \
+                 inside the checkout it fetches",
+                self.cur_dir().join("meson.build").display()
+            )
+        })
+    }
+
+    /// [`Self::resolve`], with `None` for a path outside the project.
+    pub(crate) fn resolve_in_tree(&self, path: &str) -> Option<String> {
+        in_tree_path(&self.cur_dir().join(path))
     }
 
     pub(crate) fn subdir(&mut self, dir: &Path) -> eyre::Result<()> {
@@ -1355,7 +1369,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 // that mentioned it.
                 Value::Str(s) => out.push(Variant::new(
                     variant.cond,
-                    Source::File(PathBuf::from(self.resolve(s))),
+                    Source::File(PathBuf::from(self.resolve(s)?)),
                 )),
                 Value::Obj(Obj::File(path)) => out.push(Variant::new(
                     variant.cond,
@@ -1420,7 +1434,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                     }
                 }
                 Value::Str(s) => {
-                    out.push(Variant::new(variant.cond, PathBuf::from(self.resolve(s))))
+                    out.push(Variant::new(variant.cond, PathBuf::from(self.resolve(s)?)))
                 }
                 other => bail!("cannot use a {} as an include directory", other.type_name()),
             }
@@ -1481,6 +1495,29 @@ pub(crate) fn normalize_path(path: &Path) -> String {
         .map(|c| c.to_string_lossy())
         .collect::<Vec<_>>()
         .join("/")
+}
+
+/// [`normalize_path`] for a path that must stay inside the project: `None`
+/// when it is absolute or its `..`s climb above the project root.
+pub(crate) fn in_tree_path(path: &Path) -> Option<String> {
+    let mut out: Vec<&std::ffi::OsStr> = Vec::new();
+    for comp in path.components() {
+        use std::path::Component::*;
+        match comp {
+            CurDir => {}
+            ParentDir => {
+                out.pop()?;
+            }
+            Normal(c) => out.push(c),
+            RootDir | Prefix(_) => return None,
+        }
+    }
+    Some(
+        out.iter()
+            .map(|c| c.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join("/"),
+    )
 }
 
 /// `fs.relative_to(to, from)`: the path to `to`, written relative to `from`.

@@ -34,6 +34,14 @@ fn tmp_stem(prefix: &str) -> PathBuf {
     ))
 }
 
+/// Write a probe's source, panicking on failure: a probe that never ran is
+/// not a probe that failed.
+fn write_src(src: &std::path::Path, code: &str) {
+    if let Err(e) = fs::write(src, code) {
+        panic!("could not write zig probe source `{}`: {e}", src.display());
+    }
+}
+
 fn spawn(cmd: &mut Command) -> std::process::Output {
     cmd.output().unwrap_or_else(|e| {
         panic!(
@@ -41,6 +49,57 @@ fn spawn(cmd: &mut Command) -> std::process::Output {
              (decay is developed against {EXPECTED_VERSION})"
         )
     })
+}
+
+/// Panic when a failed `zig cc` run failed because of zig itself rather than
+/// the probe. A probe reads a non-zero exit as "absent", so an unwritable
+/// cache, a crash or a signal must not be mistaken for one: that would
+/// quietly turn every header and library off.
+///
+/// Clang's refusals take too many shapes to list (a diagnostic in the source,
+/// in `<inline asm>`, a driver or linker complaint), so this recognises zig's
+/// own failures instead.
+fn check_verdict(output: &std::process::Output) {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if is_zig_failure(output.status.code(), &stderr) {
+        panic!(
+            "`zig cc` failed for a reason unrelated to the probe ({}); refusing to read it \
+             as \"absent\":\n{stderr}",
+            output.status
+        );
+    }
+}
+
+/// Whether a failed run's exit code and stderr point at zig itself: killed
+/// by a signal, nothing said at all, zig panicking, a target triple it cannot
+/// parse, or one of zig's own error names (`...: NotDir`, `...: OutOfMemory`)
+/// closing an `error:` line.
+fn is_zig_failure(code: Option<i32>, stderr: &str) -> bool {
+    if code.is_none() || stderr.trim().is_empty() {
+        return true;
+    }
+    stderr.lines().any(|line| {
+        let line = line.trim();
+        line.starts_with("thread ") && line.contains("panic")
+            || line.starts_with("panic:")
+            || line.starts_with("error: unknown architecture")
+            || line.starts_with("error: unknown operating system")
+            || line.starts_with("error:")
+                && line
+                    .rsplit_once(": ")
+                    .is_some_and(|(_, last)| is_zig_error_name(last))
+    })
+}
+
+/// `NotDir`, `AccessDenied`, `OutOfMemory`: an identifier in zig's error-set
+/// spelling, which clang never uses for a diagnostic.
+fn is_zig_error_name(word: &str) -> bool {
+    let mut chars = word.chars();
+    chars.next().is_some_and(|c| c.is_ascii_uppercase())
+        && word.len() > 2
+        && word.chars().all(|c| c.is_ascii_alphanumeric())
+        && word.chars().skip(1).any(|c| c.is_ascii_lowercase())
+        && word.chars().skip(1).any(|c| c.is_ascii_uppercase())
 }
 
 /// `zig version`, trimmed.
@@ -70,9 +129,7 @@ pub fn compiles(code: &str, target: &str, flags: &[&str]) -> bool {
     let stem = tmp_stem("decay-zig-cc");
     let src = stem.with_extension("c");
     let obj = stem.with_extension("o");
-    if fs::write(&src, code).is_err() {
-        return false;
-    }
+    write_src(&src, code);
     let output = spawn(
         Command::new("zig")
             .args(["cc", "-target", target, "-w", "-c"])
@@ -80,14 +137,16 @@ pub fn compiles(code: &str, target: &str, flags: &[&str]) -> bool {
             .arg(&src)
             .arg("-o")
             .arg(&obj)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null()),
+            .stdout(Stdio::null()),
     );
     let _ = fs::remove_file(&src);
     let _ = fs::remove_file(&obj);
     // A `-target` zig has no headers for also exits non-zero — that
     // combination is simply not one decay supports, so "did not compile"
     // is the right answer either way.
+    if !output.status.success() {
+        check_verdict(&output);
+    }
     output.status.success()
 }
 
@@ -98,9 +157,7 @@ pub fn link(code: &str, target: &str, libs: &[&str]) -> Result<(), String> {
     let stem = tmp_stem("decay-zig-ld");
     let src = stem.with_extension("c");
     let out = stem.with_extension("out");
-    if let Err(e) = fs::write(&src, code) {
-        return Err(format!("could not write probe source: {e}"));
-    }
+    write_src(&src, code);
     let mut cmd = Command::new("zig");
     cmd.args(["cc", "-target", target, "-w"]).arg(&src);
     for lib in libs {
@@ -113,6 +170,7 @@ pub fn link(code: &str, target: &str, libs: &[&str]) -> Result<(), String> {
     if output.status.success() {
         Ok(())
     } else {
+        check_verdict(&output);
         Err(String::from_utf8_lossy(&output.stderr).into_owned())
     }
 }
@@ -143,4 +201,66 @@ pub fn ast_dump(code: &str, target: &str) -> String {
     );
     let _ = fs::remove_file(&src);
     String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_missing_header_is_a_verdict() {
+        assert!(!compiles(
+            "#include <decay_no_such_header.h>\n",
+            "x86_64-linux-gnu",
+            &[]
+        ));
+    }
+
+    #[test]
+    fn an_isa_flag_the_target_lacks_is_a_verdict() {
+        assert!(!compiles("int x;\n", "aarch64-linux-gnu", &["-mssse3"]));
+    }
+
+    #[test]
+    fn inline_asm_rejection_is_a_verdict() {
+        let code = "int main(void) { __asm__(\".func meson_test\\n.endfunc\"); return 0; }\n";
+        assert!(!compiles(code, "aarch64-linux-gnu", &[]));
+    }
+
+    #[test]
+    fn classifies_zig_failures() {
+        let zig = [
+            "error: unable to open global cache directory 'x': NotDir",
+            "error: unable to create compilation: OutOfMemory",
+            "thread 1234 panic: reached unreachable code",
+            "error: unknown architecture: 'bogus'",
+            "",
+        ];
+        for stderr in zig {
+            assert!(is_zig_failure(Some(1), stderr), "{stderr:?}");
+        }
+        assert!(is_zig_failure(
+            None,
+            "b.c:1:10: fatal error: 'x.h' file not found"
+        ));
+
+        let verdicts = [
+            "b.c:1:10: fatal error: 'nope.h' file not found",
+            "<inline asm>:1:1: error: unknown directive",
+            "error: Unknown Clang option: '-fbogus'",
+            "error: target architecture aarch64 has no LLVM CPU feature named 'ssse3'",
+            "zig: error: unsupported option '-mfpu=' for target 'x86_64-linux-gnu'",
+            "error: unable to find dynamic system library 'nope' using strategy 'paths_first'",
+            "ld.lld: error: undefined symbol: f",
+        ];
+        for stderr in verdicts {
+            assert!(!is_zig_failure(Some(1), stderr), "{stderr:?}");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "unrelated to the probe")]
+    fn zig_failing_on_its_own_is_not_absent() {
+        compiles("int x;\n", "bogus-triple", &[]);
+    }
 }

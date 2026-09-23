@@ -94,10 +94,20 @@ impl Solver for Z3Solver {
     fn is_sat(&mut self, t: &Self::Term) -> bool {
         stats::bump(&stats::Z3_CHECK_CALLS);
         let start = Instant::now();
-        let sat = matches!(
-            self.solver.check_assumptions(std::slice::from_ref(t)),
-            SatResult::Sat //
-        );
+        // `Unknown` is neither answer: reading it as unsat would silently
+        // prune reachable configurations, reading it as sat would keep dead
+        // ones. There is no timeout set, so it means z3 gave up (resource
+        // limit, interrupt); stop the import rather than guess.
+        let sat = match self.solver.check_assumptions(std::slice::from_ref(t)) {
+            SatResult::Sat => true,
+            SatResult::Unsat => false,
+            SatResult::Unknown => panic!(
+                "z3 could not decide a presence condition: {}",
+                self.solver
+                    .get_reason_unknown()
+                    .unwrap_or_else(|| "no reason given".to_owned())
+            ),
+        };
         stats::add(&stats::Z3_CHECK_NANOS, start.elapsed().as_nanos() as u64);
         sat
     }

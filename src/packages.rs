@@ -1,5 +1,6 @@
 use {
     decay_build_ir::{Graph, Kind, Source},
+    decay_meson_logic::Formula,
     std::collections::BTreeMap,
 };
 
@@ -47,6 +48,9 @@ pub struct Package {
     /// for an ordinary library provider.
     pub sources: Vec<String>,
     pub variables: Vec<(String, String)>,
+    /// The configurations the providing project provides it in, over meson's
+    /// own variables only (see `execute`).
+    pub found: Formula,
 }
 
 impl Packages {
@@ -195,6 +199,7 @@ impl Packages {
                     requires: provide.requires.clone(),
                     sources,
                     variables: provide.variables.clone(),
+                    found: provide.found.clone(),
                 },
             );
         }

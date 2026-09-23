@@ -214,15 +214,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   Still open: config-dependent (`select()`-keyed) output is not modelled;
   the allowlist is a fixed set.
 
-- **End-to-end import test — not yet strict.**
-  `.github/workflows/import.yml` `buck2 build`s the documented targets and
-  diffs the result against a committed golden tree, but that diff step is
-  `continue-on-error: true` — decay emits some header/source dicts in
-  filesystem-walk order, so the tree differs between machines. Flip it to a
-  hard failure once that ordering is deterministic; until then an evaluator
-  regression that changes generated output without breaking a `buck2 build`
-  can still slip through.
-
 - **`declare_dependency()` provide heuristic is narrow.** A sibling
   `dependency('x')` resolves against a `pkg.generate()`/`declare_dependency()`
   in project `x` only when `Packages::register` can match it by name: the
@@ -254,6 +245,15 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   (`Oracle::subproject_variable_names`) — the only shape reconstructed so
   far, since a consumer has only ever read the `name` field back out as a
   membership test.
+
+- **A provide gated on the provider's own options reads as present.** A
+  sibling's `dependency()` sees the provider's presence condition over
+  meson's shared variables (system, probes, builtin options), so one only
+  built on linux is found only on linux (`Arena::export`, `Probe::Formula`).
+  The provider's own project options are not visible to the consumer and are
+  quantified out: a `pkg.generate()` behind an open `option('x')` counts as
+  present under every setting (decay warns). Carrying them needs the
+  consumer to select on the provider's own constraint labels.
 
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
