@@ -113,6 +113,10 @@ impl Sources for DiskSources {
     fn list_dir(&self, dir: &Path) -> Vec<PathBuf> {
         let mut out = Vec::new();
         walk(dir, dir, &mut out);
+        // `read_dir` order is whatever the filesystem hands back, and this
+        // listing ends up in emitted header dicts; sort so the same checkout
+        // generates the same build files on every machine.
+        out.sort();
         out
     }
 }

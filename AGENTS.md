@@ -180,13 +180,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   match — two targets declaring the same output name — is left as a plain
   literal rather than disambiguated.
 
-- **Conditional `continue` in a `foreach` over a static list.** `break` now
-  splits the remaining iterations under its negation (`Flow::Break(Pc)` in
-  `decay_meson_eval/src/lib.rs`); `continue` still bails ("has no static
-  translation") when it is partial. It needs the same treatment — the
-  statements after a `continue` should run under the complement of the
-  condition it fired under.
-
 - **`windows.compile_resources` / `fs.copyfile` are minimal.**
   `compile_resources` drops `args:` (resource-compiler flags) and
   `include_directories:` (RC search paths); `fs.copyfile` emits a `cp`
