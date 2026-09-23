@@ -147,6 +147,9 @@ jobs:
         run: |
           if ! git diff --stat --exit-code -- example/; then
             git diff -- example/
+            # Short enough to read from the log's tail.
+            git diff --stat -- example/
+            grep -h '^# [a-z ]*`' example/third-party/meson/constraints/BUCK | cut -c1-160
             exit 1
           fi
 
