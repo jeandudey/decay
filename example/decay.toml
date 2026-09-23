@@ -21,12 +21,6 @@ netbsd = "prelude//os/constraints:os[netbsd]"
 # `KHR/khrplatform.h`, for instance, ships with the Khronos headers rather than
 # with any libc or OS, so it stays a build-time choice.
 [probes]
-# The one-argument `pthread_setname_np(const char *)` is the macOS/iOS
-# spelling; every other platform takes a thread argument. Without this glib's
-# `cc.links()` probe for it defaults present and picks the Darwin code path.
-# (`crt_externs.h` needs no entry now — the compile probe settles it absent on
-# every configured system, since none is Apple.)
-"links:pthread_setname_np(const char*)" = false
 # `__NR_futex_time64` is a libc/kernel-header vintage question with no
 # constraint decay tracks, and glib's probe for it defaults present then fails
 # to compile on a host whose <sys/syscall.h> predates it. Settle it off; glib
@@ -37,32 +31,10 @@ netbsd = "prelude//os/constraints:os[netbsd]"
 # to — settle it off and glib uses the `res_nclose()` fallback (universally
 # available).
 "links:res_ndestroy()" = false
-# glib reimplements `has_member` as a `cc.compiles()` whose prefix is
-# configuration-dependent, so decay cannot zig-probe it and the knob defaults
-# present. Settle the BSD/macOS/Solaris-only struct members off for a glibc
-# target; Linux's own (`st_*tim.tv_nsec`, `st_blksize`/`st_blocks`,
-# `statfs.f_bavail`, `statvfs.f_type`, `dirent.d_type`, `tm.tm_gmtoff`) keep
-# the default.
-'compiles:type "struct statfs" has member "f_fstypename"' = false
-'compiles:type "struct statvfs" has member "f_fstypename"' = false
-'compiles:type "struct statvfs" has member "f_basetype"' = false
-'compiles:type "struct stat" has member "st_mtimensec"' = false
-'compiles:type "struct stat" has member "st_atimensec"' = false
-'compiles:type "struct stat" has member "st_ctimensec"' = false
-'compiles:type "struct stat" has member "st_birthtime"' = false
-'compiles:type "struct stat" has member "st_birthtimensec"' = false
-'compiles:type "struct stat" has member "st_birthtim"' = false
-'compiles:type "struct stat" has member "st_birthtim.tv_nsec"' = false
-'compiles:type "struct tm" has member "__tm_gmtoff"' = false
-# `XATTR_NOFOLLOW` and 6-arg `getxattr`/`setxattr` are the macOS xattr API;
-# Linux's <sys/xattr.h> has neither. Defaults present → macOS call shapes.
-"compiles:XATTR_NOFOLLOW" = false
-# `dlopen()`/`dlsym()` resolve straight out of libc on every glibc/musl/BSD
-# `[systems]` entry decay's own `has_function` abilists confirm them on —
-# `cc.links()` (not `cc.has_function()`) can't be zig-probed (see the
-# `cc.links` gap) so this is a genuine open knob otherwise, and it feeds
-# gdk-pixbuf's `subproject('glib').get_variable('g_module_impl')`, which
-# needs a settled answer, not a `select()`, to resolve at all.
+# `dlopen()`/`dlsym()` resolve straight out of libc on every `[systems]`
+# entry. The `cc.links()` probe settles that per system, but it feeds
+# gdk-pixbuf's `subproject('glib').get_variable('g_module_impl')`, which needs
+# one plain answer, not a per-system condition, to resolve at all.
 "links:dlopen() and dlsym() in system libraries" = true
 
 [programs]
@@ -243,9 +215,9 @@ options = { tests = false, default_library = "both" }
 repo = "https://gitlab.gnome.org/GNOME/glib.git"
 tag = "2.88.3"
 depends = ["gvdb", "zlib"]
-# force_posix_threads: POSIX threads under a GNU toolchain (mingw), win32
-# threads under MSVC. On non-Windows glib always uses POSIX threads anyway.
-options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_assert = true, glib_debug = "disabled", glib_checks = true, tests = false, libelf = "auto", multiarch = false, force_posix_threads = { "prelude//abi/constraints:abi[gnu]" = true, "DEFAULT" = false }, xattr = true }
+# force_posix_threads: POSIX threads under mingw too. On non-Windows glib
+# always uses POSIX threads anyway.
+options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_assert = true, glib_debug = "disabled", glib_checks = true, tests = false, libelf = "auto", multiarch = false, force_posix_threads = true, xattr = true }
 
 # TODO: Fails with
 #   Error: Failed to import `glycin`
@@ -280,11 +252,12 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 #       crates/decay_meson_eval/src/lib.rs:1236:18
 #
 # `dependency(is_msvc_like ? 'png' : 'libpng', required: false)` — the name
-# itself is configuration-dependent (`compiler` is left open across
-# gcc/clang/msvc, so `is_msvc_like` is too), and `fn_dependency`
-# (decay_meson_eval/src/builtins.rs) assumes a single fixed name throughout:
-# one `External::PkgConfig` target, one `Packages` lookup. Supporting this
-# needs `fn_dependency` to loop over the name's variants and produce a
+# was configuration-dependent while `compiler` was left open across
+# gcc/clang/msvc. decay no longer supports msvc, so this may now pass; untried.
+# A name that still varies hits `fn_dependency`
+# (decay_meson_eval/src/builtins.rs), which assumes a single fixed name
+# throughout: one `External::PkgConfig` target, one `Packages` lookup.
+# Supporting that needs `fn_dependency` to loop over the name's variants and produce a
 # `Variational<Value>` of `Obj::Dep`s, each under its own condition — a real
 # rewrite of that function's threading model, not a narrow fix. (Got here via
 # two real, kept fixes: `dependency()`'s cross-project resolutions now report

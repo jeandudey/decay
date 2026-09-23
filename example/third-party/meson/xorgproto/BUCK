@@ -1010,17 +1010,17 @@ genrule(
     name = "Xpoll.h",
     out = "Xpoll.h",
     cmd = "sed" + " -e ''" + select({
-        "//third-party/meson/constraints:has_member_fd_set_fds_bits[true]": " '-es|@USE_FDS_BITS@|fds_bits|g'",
-        "//third-party/meson/constraints:has_member_fd_set_fds_bits[false]": select({
-            "//third-party/meson/constraints:c_has_member_fd_set_fds_bits[true]": " '-es|@USE_FDS_BITS@|__fds_bits|g'",
-            "//third-party/meson/constraints:c_has_member_fd_set_fds_bits[false]": " '-es|@USE_FDS_BITS@|fds_bits|g'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '-es|@USE_FDS_BITS@|__fds_bits|g'",
+            "DEFAULT": " '-es|@USE_FDS_BITS@|fds_bits|g'",
         }),
+        "DEFAULT": " '-es|@USE_FDS_BITS@|fds_bits|g'",
     }) + select({
-        "//third-party/meson/constraints:has_member_fd_set_fds_bits[true]": " '-es|^#mesondefine[[:space:]]\\+USE_FDS_BITS\\>.*|#define USE_FDS_BITS fds_bits|'",
-        "//third-party/meson/constraints:has_member_fd_set_fds_bits[false]": select({
-            "//third-party/meson/constraints:c_has_member_fd_set_fds_bits[true]": " '-es|^#mesondefine[[:space:]]\\+USE_FDS_BITS\\>.*|#define USE_FDS_BITS __fds_bits|'",
-            "//third-party/meson/constraints:c_has_member_fd_set_fds_bits[false]": " '-es|^#mesondefine[[:space:]]\\+USE_FDS_BITS\\>.*|#define USE_FDS_BITS fds_bits|'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+USE_FDS_BITS\\>.*|#define USE_FDS_BITS __fds_bits|'",
+            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+USE_FDS_BITS\\>.*|#define USE_FDS_BITS fds_bits|'",
         }),
+        "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+USE_FDS_BITS\\>.*|#define USE_FDS_BITS fds_bits|'",
     }) + " $(location :xorgproto.git[include/X11/Xpoll.h.in]) > $OUT",
     visibility = ["PUBLIC"],
 )

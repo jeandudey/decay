@@ -110,6 +110,36 @@ pub fn has_library(libc: Libc, cpu: Cpu, name: &str) -> bool {
     }
 }
 
+/// The newest glibc release zig's bundled `abilists` describes, as
+/// `major.minor`. Compile and link probes pin their `-gnu` targets to it, so
+/// they see the same glibc [`has_function`] reads.
+pub fn newest_glibc() -> &'static str {
+    static VERSION: OnceLock<String> = OnceLock::new();
+    VERSION.get_or_init(|| {
+        let data = abilists("glibc");
+        newest_version(data)
+            .unwrap_or_else(|| panic!("the zig install's glibc abilists is malformed"))
+    })
+}
+
+/// The last `(major, minor, patch)` of an abilist's version table.
+fn newest_version(data: &[u8]) -> Option<String> {
+    let mut idx = 0usize;
+    let n_libs = *data.get(idx)? as usize;
+    idx += 1;
+    for _ in 0..n_libs {
+        idx += data.get(idx..)?.iter().position(|&b| b == 0)? + 1;
+    }
+    let n_versions = *data.get(idx)? as usize;
+    idx += 1;
+    let last = idx + n_versions.checked_sub(1)? * 3;
+    let (major, minor, patch) = (*data.get(last)?, *data.get(last + 1)?, *data.get(last + 2)?);
+    Some(match patch {
+        0 => format!("{major}.{minor}"),
+        _ => format!("{major}.{minor}.{patch}"),
+    })
+}
+
 // ---------------------------------------------------------------------------
 // glibc / BSD: parse `abilists` from the zig install (one binary format)
 // ---------------------------------------------------------------------------
@@ -498,7 +528,14 @@ fn library_link_probe(cpu: Cpu) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cpu, Libc, has_function, has_library};
+    use super::{Cpu, Libc, has_function, has_library, newest_glibc};
+
+    #[test]
+    fn newest_glibc_is_a_real_release() {
+        let (major, minor) = newest_glibc().split_once('.').unwrap();
+        assert_eq!(major, "2");
+        assert!(minor.parse::<u32>().unwrap() >= 38, "{}", newest_glibc());
+    }
 
     #[test]
     fn crt_split_libraries_resolve_on_every_arch() {

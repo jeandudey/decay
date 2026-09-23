@@ -35,7 +35,7 @@ pub struct Config {
     #[serde(default)]
     pub systems: BTreeMap<String, String>,
     /// The compilers a build may use, mapped the same way. Left empty, the
-    /// importer generates its own constraints.
+    /// importer generates its own `gcc`/`clang` constraint. `msvc` is refused.
     #[serde(default)]
     pub compilers: BTreeMap<String, String>,
     /// Targets that already provide a dependency the meson build looks up
@@ -113,6 +113,13 @@ impl Config {
     }
 
     fn check(&mut self) -> eyre::Result<()> {
+        if self.compilers.contains_key("msvc") {
+            return Err(eyre!(
+                "`[compilers]` lists `msvc`, which decay does not support yet: its probes \
+                 are answered by `zig cc`, a gcc-compatible driver"
+            ));
+        }
+
         for project in &mut self.projects {
             for (key, val) in &self.options {
                 project
@@ -811,6 +818,12 @@ mod tests {
         let mut cfg: Config = toml::from_str(&toml)?;
         cfg.check()?;
         Ok(cfg)
+    }
+
+    #[test]
+    fn msvc_is_refused() {
+        let err = config("[compilers]\nmsvc = \"//c:msvc\"\n").unwrap_err();
+        assert!(format!("{err}").contains("msvc"), "{err}");
     }
 
     #[test]

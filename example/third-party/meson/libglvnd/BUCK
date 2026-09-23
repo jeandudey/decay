@@ -150,7 +150,7 @@ git_fetch(
 
 # Values shared by several of the rules below, named so that each rule
 # says what it is rather than how it was configured.
-_cflags_cpu_compiler_x11 = select({
+_cflags_cpu_x11_run_mtls_dialect_gnu2 = select({
     "prelude//cpu/constraints:cpu[x86_64]": [],
     "prelude//cpu/constraints:cpu[arm32]": [],
     "prelude//cpu/constraints:cpu[arm64]": [],
@@ -161,12 +161,9 @@ _cflags_cpu_compiler_x11 = select({
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+        "DEFAULT": [],
     }),
     "DEFAULT": [],
 }) + select({
@@ -179,17 +176,15 @@ _cflags_cpu_compiler_x11 = select({
 }) + [
     "-DHAVE_TYPEOF",
     "-DGLDISPATCH_USE_TLS",
+    "-DUSE_ATTRIBUTE_CONSTRUCTOR",
     "-DHAVE_SYNC_INTRINSICS",
     "-DGLDISPATCH_ENABLE_PATCHING",
     "-DEGL_NO_X11",
 ] + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+        "DEFAULT": [],
     }),
     "prelude//cpu/constraints:cpu[riscv64]": [],
     "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -220,10 +215,6 @@ _cflags_cpu_compiler_x11 = select({
         }),
         "DEFAULT": [],
     }),
-}) + select({
-    "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-    "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-    "//third-party/meson/constraints:compiler[msvc]": [],
 }) + select({
     "prelude//os/constraints:os[netbsd]": select({
         "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -342,14 +333,11 @@ _headers3 = {
     "glvnd_list.h": ":glvnd.git[include/glvnd_list.h]",
     "lkdhash.h": ":glvnd.git[include/lkdhash.h]",
 }
-_srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select({
+_srcs_cpu_os_abi = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+        "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+        "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
     }),
     "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
     "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
@@ -405,21 +393,18 @@ _srcs_cpu_compiler_os = [":glvnd.git[src/GLdispatch/vnd-glapi/stub.c]"] + select
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-            "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+        "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+        "DEFAULT": [],
     }),
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_aarch64_tsd.c]"],
     "DEFAULT": [],
 })
-_headers_cpu_compiler = select({
+_headers_cpu = select({
     "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": {
+        "prelude//cpu/constraints:cpu[arm32]": {
             "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
             "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
             "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
@@ -434,52 +419,35 @@ _headers_cpu_compiler = select({
             "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
             "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
         },
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": {
-                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-                "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-            },
-            "prelude//cpu/constraints:cpu[arm64]": {
-                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-                "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-            },
-            "DEFAULT": {
-                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-            },
-        }),
+        "prelude//cpu/constraints:cpu[arm64]": {
+            "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+            "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+            "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+            "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+            "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+            "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+            "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
+            "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
+        },
+        "DEFAULT": {
+            "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+            "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+            "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+            "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+            "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+            "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+            "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+            "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+            "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+            "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+            "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+            "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
+        },
     }),
     "prelude//cpu/constraints:cpu[riscv64]": {
         "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
@@ -592,7 +560,7 @@ _needs = select({
     "//third-party/meson/libglvnd/constraints:x11[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
     "//third-party/meson/libglvnd/constraints:x11[auto]": [],
 })
-_cflags_cpu_compiler_run_mtls_dialect_gnu2 = select({
+_cflags_cpu_run_mtls_dialect_gnu2_os = select({
     "prelude//cpu/constraints:cpu[x86_64]": [],
     "prelude//cpu/constraints:cpu[arm32]": [],
     "prelude//cpu/constraints:cpu[arm64]": [],
@@ -603,12 +571,9 @@ _cflags_cpu_compiler_run_mtls_dialect_gnu2 = select({
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+        "DEFAULT": [],
     }),
     "DEFAULT": [],
 }) + select({
@@ -618,17 +583,15 @@ _cflags_cpu_compiler_run_mtls_dialect_gnu2 = select({
     "-DENABLE_EGL_X11",
     "-DHAVE_TYPEOF",
     "-DGLDISPATCH_USE_TLS",
+    "-DUSE_ATTRIBUTE_CONSTRUCTOR",
     "-DHAVE_SYNC_INTRINSICS",
     "-DGLDISPATCH_ENABLE_PATCHING",
     "-DEGL_NO_X11",
 ] + select({
     "prelude//cpu/constraints:cpu[arm32]": select({
-        "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+        "DEFAULT": [],
     }),
     "prelude//cpu/constraints:cpu[riscv64]": [],
     "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -659,10 +622,6 @@ _cflags_cpu_compiler_run_mtls_dialect_gnu2 = select({
         }),
         "DEFAULT": [],
     }),
-}) + select({
-    "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-    "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-    "//third-party/meson/constraints:compiler[msvc]": [],
 }) + select({
     "prelude//os/constraints:os[netbsd]": select({
         "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -905,38 +864,28 @@ _deps = [":EGL"] + select({
 })
 
 # meson: find_library("dl")
-# `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "dl",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-ldl"],
-    }),
+    exported_linker_flags = [
+        "-ldl",
+    ],
     visibility = ["PUBLIC"],
 )
 
 # meson: find_library("m")
-# `m` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "m",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-lm"],
-    }),
+    exported_linker_flags = [
+        "-lm",
+    ],
     visibility = ["PUBLIC"],
 )
 
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
-    exported_preprocessor_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
+    exported_preprocessor_flags = ["-pthread"],
+    exported_linker_flags = ["-pthread"],
     visibility = ["PUBLIC"],
 )
 
@@ -954,7 +903,7 @@ cxx_library(
         "glvnd_pthread.h": ":glvnd.git[src/util/glvnd_pthread.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": [":dl"],
@@ -986,7 +935,7 @@ cxx_library(
         "app_error_check.h": ":glvnd.git[src/util/app_error_check.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1014,7 +963,7 @@ cxx_library(
         "utils_misc.h": ":glvnd.git[src/util/utils_misc.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1043,7 +992,7 @@ cxx_library(
         "utils_misc.h": ":glvnd.git[src/util/utils_misc.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1117,7 +1066,7 @@ cxx_library(
         "glvnd_pthread.h": ":glvnd.git[src/util/glvnd_pthread.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1164,7 +1113,7 @@ cxx_library(
         "cJSON.h": ":glvnd.git[src/util/cJSON.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1244,12 +1193,9 @@ cxx_library(
         ":glvnd.git[src/GLdispatch/vnd-glapi/u_current_tls.c]",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-                "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
-                "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+            "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
+            "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
         "DEFAULT": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.c]"],
@@ -1305,12 +1251,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-                "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+            "prelude//cpu/constraints:cpu[arm64]": [":glvnd.git[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -1353,7 +1296,7 @@ cxx_library(
     },
     headers = select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": {
+            "prelude//cpu/constraints:cpu[arm32]": {
                 "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
                 "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
                 "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
@@ -1369,54 +1312,36 @@ cxx_library(
                 "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
                 "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
             },
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": {
-                    "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                    "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                    "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                    "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                    "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                    "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                    "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-                    "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                    "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                    "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                    "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                    "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                    "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-                    "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-                },
-                "prelude//cpu/constraints:cpu[arm64]": {
-                    "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                    "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                    "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                    "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                    "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                    "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                    "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-                    "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                    "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                    "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                    "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                    "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                    "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
-                    "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
-                },
-                "DEFAULT": {
-                    "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                    "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                    "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                    "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                    "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                    "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                    "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
-                    "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
-                    "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
-                    "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
-                    "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
-                    "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                },
-            }),
+            "prelude//cpu/constraints:cpu[arm64]": {
+                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+                "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
+                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+                "entry_common.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry_common.h]",
+                "u_macros.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_macros.h]",
+            },
+            "DEFAULT": {
+                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
+                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
+                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
+                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
+                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
+                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
+                "glapi.h": ":glvnd.git[src/GLdispatch/vnd-glapi/glapi.h]",
+                "u_current.h": ":glvnd.git[src/GLdispatch/vnd-glapi/u_current.h]",
+                "table.h": ":glvnd.git[src/GLdispatch/vnd-glapi/table.h]",
+                "stub.h": ":glvnd.git[src/GLdispatch/vnd-glapi/stub.h]",
+                "entry.h": ":glvnd.git[src/GLdispatch/vnd-glapi/entry.h]",
+                "mapi_tmp.h": ":glvnd.git[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
+            },
         }),
         "prelude//cpu/constraints:cpu[riscv64]": {
             "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
@@ -1461,12 +1386,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -1479,18 +1401,16 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
         "-DMAPI_ABI_HEADER=\"glapi_mapi_tmp.h\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -1521,10 +1441,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -1595,7 +1511,7 @@ cxx_library(
 
 cxx_library(
     name = "glapi_gl",
-    srcs = _srcs_cpu_compiler_os,
+    srcs = _srcs_cpu_os_abi,
     exported_headers = {
         "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
@@ -1642,7 +1558,7 @@ cxx_library(
         "utils_misc.h": ":glvnd.git[src/util/utils_misc.h]",
         "winsys_dispatch.h": ":glvnd.git[src/util/winsys_dispatch.h]",
     },
-    headers = _headers_cpu_compiler,
+    headers = _headers_cpu,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -1655,12 +1571,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -1673,6 +1586,7 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
@@ -1680,12 +1594,9 @@ cxx_library(
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_gl_tmp.h\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -1716,10 +1627,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -1799,7 +1706,7 @@ cxx_library(
 
 cxx_library(
     name = "glapi_opengl",
-    srcs = _srcs_cpu_compiler_os,
+    srcs = _srcs_cpu_os_abi,
     exported_headers = {
         "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
@@ -1846,7 +1753,7 @@ cxx_library(
         "utils_misc.h": ":glvnd.git[src/util/utils_misc.h]",
         "winsys_dispatch.h": ":glvnd.git[src/util/winsys_dispatch.h]",
     },
-    headers = _headers_cpu_compiler,
+    headers = _headers_cpu,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -1859,12 +1766,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -1877,6 +1781,7 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
@@ -1884,12 +1789,9 @@ cxx_library(
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_opengl_tmp.h\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -1920,10 +1822,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -2003,7 +1901,7 @@ cxx_library(
 
 cxx_library(
     name = "glapi_glesv1",
-    srcs = _srcs_cpu_compiler_os,
+    srcs = _srcs_cpu_os_abi,
     exported_headers = {
         "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
@@ -2050,7 +1948,7 @@ cxx_library(
         "utils_misc.h": ":glvnd.git[src/util/utils_misc.h]",
         "winsys_dispatch.h": ":glvnd.git[src/util/winsys_dispatch.h]",
     },
-    headers = _headers_cpu_compiler,
+    headers = _headers_cpu,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -2063,12 +1961,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -2081,6 +1976,7 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
@@ -2088,12 +1984,9 @@ cxx_library(
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv1_tmp.h\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -2124,10 +2017,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -2207,7 +2096,7 @@ cxx_library(
 
 cxx_library(
     name = "glapi_glesv2",
-    srcs = _srcs_cpu_compiler_os,
+    srcs = _srcs_cpu_os_abi,
     exported_headers = {
         "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
         "EGL/egl.h": ":glvnd.git[include/EGL/egl.h]",
@@ -2254,7 +2143,7 @@ cxx_library(
         "utils_misc.h": ":glvnd.git[src/util/utils_misc.h]",
         "winsys_dispatch.h": ":glvnd.git[src/util/winsys_dispatch.h]",
     },
-    headers = _headers_cpu_compiler,
+    headers = _headers_cpu,
     header_namespace = "",
     compiler_flags = select({
         "prelude//cpu/constraints:cpu[x86_64]": [],
@@ -2267,12 +2156,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -2285,6 +2171,7 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
@@ -2292,12 +2179,9 @@ cxx_library(
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv2_tmp.h\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -2328,10 +2212,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -2474,7 +2354,7 @@ cxx_library(
         "GLdispatchPrivate.h": ":glvnd.git[src/GLdispatch/GLdispatchPrivate.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = [
         "-Wl,--version-script",
         "$(location :glvnd.git[src/GLdispatch/export_list_tls.ver])",
@@ -2520,7 +2400,7 @@ cxx_library(
     exported_headers = _headers5,
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -2531,7 +2411,7 @@ cxx_library(
     exported_headers = _headers5,
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     deps = [
         ":glvnd-dep-11",
         ":glvnd-dep-8",
@@ -2602,7 +2482,7 @@ cxx_library(
         "libeglerror.h": ":glvnd.git[src/EGL/libeglerror.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     deps = select({
         "//third-party/meson/libglvnd/constraints:x11[enabled]": ["//third-party/system:X11"],
         "//third-party/meson/libglvnd/constraints:x11[disabled]": [],
@@ -2648,12 +2528,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -2666,18 +2543,16 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
         "-DDEFAULT_EGL_VENDOR_CONFIG_DIRS=\"/usr/local/etc/glvnd/egl_vendor.d:/usr/local/share/glvnd/egl_vendor.d\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -2708,10 +2583,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -2875,7 +2746,7 @@ cxx_library(
         "glvnd_genentry.h": ":glvnd.git[src/GLX/glvnd_genentry.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
@@ -2972,7 +2843,7 @@ cxx_library(
         "src/GLX/g_glx_dispatch_stub_list.h": ":g_glx_dispatch_stub_list.h",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
@@ -3014,7 +2885,7 @@ cxx_library(
     exported_headers = _headers5,
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     deps = [
         ":glvnd-dep-11",
         ":glvnd-dep-3",
@@ -3040,7 +2911,7 @@ cxx_library(
     exported_headers = _headers5,
     headers = _headers2,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     deps = [
         ":glvnd-dep-11",
         ":glvnd-dep-3",
@@ -3129,7 +3000,7 @@ cxx_library(
         "patchentrypoints.h": ":glvnd.git[tests/dummy/patchentrypoints.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -3200,7 +3071,7 @@ cxx_library(
         "patchentrypoints.h": ":glvnd.git[tests/dummy/patchentrypoints.h]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     deps = [
         ":patchentrypoints",
         ":glvnd-dep-4",
@@ -3229,12 +3100,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -3247,18 +3115,16 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
         "-DDUMMY_VENDOR_NAME=\"dummy0\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -3289,10 +3155,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -3381,12 +3243,9 @@ cxx_library(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -3399,18 +3258,16 @@ cxx_library(
     }) + [
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
         "-DDUMMY_VENDOR_NAME=\"dummy1\"",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -3441,10 +3298,6 @@ cxx_library(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -3521,7 +3374,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testgldispatch.c]"],
     headers = _headers7,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
@@ -3538,7 +3391,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testgldispatchthread.c]"],
     headers = _headers7,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glvnd-dep-11",
@@ -3555,7 +3408,7 @@ cxx_binary(
     ],
     headers = _headers8,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
@@ -3571,7 +3424,7 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers8,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
@@ -3600,12 +3453,9 @@ cxx_binary(
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
+            "DEFAULT": [],
         }),
         "DEFAULT": [],
     }) + select({
@@ -3615,18 +3465,16 @@ cxx_binary(
         "-DENABLE_EGL_X11",
         "-DHAVE_TYPEOF",
         "-DGLDISPATCH_USE_TLS",
+        "-DUSE_ATTRIBUTE_CONSTRUCTOR",
         "-DHAVE_SYNC_INTRINSICS",
         "-DGLDISPATCH_ENABLE_PATCHING",
         "-DEGL_NO_X11",
         "-DUSE_PTHREADS=1",
     ] + select({
         "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[msvc]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-                "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-                "DEFAULT": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
+            "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
@@ -3657,10 +3505,6 @@ cxx_binary(
             }),
             "DEFAULT": [],
         }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[clang]": ["-DUSE_ATTRIBUTE_CONSTRUCTOR"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": ["-DHAVE_PTHREAD_RWLOCK"],
@@ -3742,7 +3586,7 @@ cxx_binary(
     srcs = _srcs,
     headers = _headers8,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":GL",
@@ -3759,7 +3603,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxgetprocaddress.c]"],
     headers = _headers9,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         "//third-party/system:X11",
@@ -3775,7 +3619,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxgetprocaddress_genentry.c]"],
     headers = _headers9,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         "//third-party/system:X11",
@@ -3790,7 +3634,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxgetclientstr.c]"],
     headers = _headers9,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
@@ -3808,7 +3652,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testglxqueryversion.c]"],
     headers = _headers9,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_run_mtls_dialect_gnu2,
+    compiler_flags = _cflags_cpu_run_mtls_dialect_gnu2_os,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":OpenGL",
@@ -3827,7 +3671,7 @@ cxx_binary(
     ],
     headers = _headers10,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
@@ -3841,7 +3685,7 @@ cxx_binary(
     ],
     headers = _headers10,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
@@ -3855,7 +3699,7 @@ cxx_binary(
     ],
     headers = _headers10,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
@@ -3869,7 +3713,7 @@ cxx_binary(
     ],
     headers = _headers10,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":EGL",
@@ -3890,7 +3734,7 @@ cxx_binary(
     ],
     headers = _headers10,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":EGL",
@@ -3910,7 +3754,7 @@ cxx_binary(
     ],
     headers = _headers10,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
@@ -3924,7 +3768,7 @@ cxx_binary(
     ],
     headers = _headers10,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps,
     visibility = ["PUBLIC"],
@@ -3935,7 +3779,7 @@ cxx_binary(
     srcs = [":glvnd.git[tests/testeglcurrentcleanup.c]"],
     headers = _headers7,
     header_namespace = "",
-    compiler_flags = _cflags_cpu_compiler_x11,
+    compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":EGL",

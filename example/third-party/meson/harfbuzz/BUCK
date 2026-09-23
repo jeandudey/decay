@@ -496,15 +496,7 @@ _cppflags = [
     "-I$(location :harfbuzz)",
     "-I$(location :harfbuzz[src])",
 ]
-_cflags = select({
-    "//third-party/meson/constraints:cpp_compiler[gcc]": [],
-    "//third-party/meson/constraints:cpp_compiler[clang]": [],
-    "//third-party/meson/constraints:cpp_compiler[msvc]": [
-        "/wd4244",
-        "/bigobj",
-        "/utf-8",
-    ],
-}) + [
+_cflags = [
     "-fno-exceptions",
     "-fno-rtti",
     "-fno-threadsafe-statics",
@@ -847,13 +839,11 @@ _headers3 = {
 }
 
 # meson: find_library("m")
-# `m` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "m",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-lm"],
-    }),
+    exported_linker_flags = [
+        "-lm",
+    ],
     visibility = ["PUBLIC"],
 )
 
@@ -885,14 +875,8 @@ cxx_library(
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
-    exported_preprocessor_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
+    exported_preprocessor_flags = ["-pthread"],
+    exported_linker_flags = ["-pthread"],
     visibility = ["PUBLIC"],
 )
 

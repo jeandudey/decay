@@ -66,6 +66,17 @@ impl Cpu {
         }
     }
 
+    /// The full `-target` triple `zig cc` builds glibc for this arch with,
+    /// pinned to [`crate::newest_glibc`].
+    pub fn glibc_target(self) -> String {
+        format!(
+            "{}-linux-{}.{}",
+            self.zig_arch(),
+            self.glibc_abi(),
+            crate::newest_glibc()
+        )
+    }
+
     /// The abi component a BSD `abilists` triple names this arch with. Every
     /// column is `none` except arm32, which both FreeBSD and NetBSD ship
     /// only as hard-float EABI (`arm-<os>-eabihf`).

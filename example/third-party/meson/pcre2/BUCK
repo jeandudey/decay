@@ -149,14 +149,8 @@ _headers2 = {
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
-    exported_preprocessor_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
+    exported_preprocessor_flags = ["-pthread"],
+    exported_linker_flags = ["-pthread"],
     visibility = ["PUBLIC"],
 )
 
@@ -177,11 +171,7 @@ genrule(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define LINK_SIZE 2' '#define HEAP_LIMIT 20000000' '#define MATCH_LIMIT 10000000' '#define MATCH_LIMIT_DEPTH MATCH_LIMIT' '#define NEWLINE_DEFAULT 2' '#define PARENS_NEST_LIMIT 250' '#define PCRE2GREP_BUFSIZE 20480' '#define PCRE2GREP_MAX_BUFSIZE 1048576' '#define MAX_NAME_SIZE 128' '#define MAX_NAME_COUNT 10000' '#define MAX_VARLOOKBEHIND 255' '#define SUPPORT_JIT 1' '#define SLJIT_PROT_EXECUTABLE_ALLOCATOR 1' '#define HAVE_ATTRIBUTE_UNINITIALIZED 1' '#define SUPPORT_PCRE2_8 1' '#define SUPPORT_PCRE2_16 1' '#define SUPPORT_PCRE2_32 1' '#define SUPPORT_UNICODE 1'" + select({
-        "//third-party/meson/constraints:compiler[gcc]": " '#define PCRE2_EXPORT __attribute__ ((visibility (\"default\")))'",
-        "//third-party/meson/constraints:compiler[clang]": " '#define PCRE2_EXPORT __attribute__ ((visibility (\"default\")))'",
-        "//third-party/meson/constraints:compiler[msvc]": " '#define PCRE2_EXPORT '",
-    }) + select({
+    cmd = "printf '%s\\n'" + " '#define LINK_SIZE 2' '#define HEAP_LIMIT 20000000' '#define MATCH_LIMIT 10000000' '#define MATCH_LIMIT_DEPTH MATCH_LIMIT' '#define NEWLINE_DEFAULT 2' '#define PARENS_NEST_LIMIT 250' '#define PCRE2GREP_BUFSIZE 20480' '#define PCRE2GREP_MAX_BUFSIZE 1048576' '#define MAX_NAME_SIZE 128' '#define MAX_NAME_COUNT 10000' '#define MAX_VARLOOKBEHIND 255' '#define PCRE2_EXPORT __attribute__ ((visibility (\"default\")))' '#define SUPPORT_JIT 1' '#define SLJIT_PROT_EXECUTABLE_ALLOCATOR 1' '#define HAVE_ATTRIBUTE_UNINITIALIZED 1' '#define SUPPORT_PCRE2_8 1' '#define SUPPORT_PCRE2_16 1' '#define SUPPORT_PCRE2_32 1' '#define SUPPORT_UNICODE 1'" + select({
         "prelude//os/constraints:os[netbsd]": select({
             "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STAT_H 1'",
             "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_STAT_H 1'",
@@ -435,14 +425,23 @@ genrule(
             "DEFAULT": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:links_builtin_unreachable[true]": " '#define HAVE_BUILTIN_UNREACHABLE 1'",
-        "//third-party/meson/constraints:links_builtin_unreachable[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_BUILTIN_UNREACHABLE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_BUILTIN_UNREACHABLE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_BUILTIN_UNREACHABLE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_BUILTIN_UNREACHABLE 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_BUILTIN_UNREACHABLE 1'",
     }) + select({
-        "//third-party/meson/constraints:links_builtin_mul_overflow[true]": " '#define HAVE_BUILTIN_MUL_OVERFLOW 1'",
-        "//third-party/meson/constraints:links_builtin_mul_overflow[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:links_assume[true]": " '#define HAVE_BUILTIN_ASSUME 1'",
-        "//third-party/meson/constraints:links_assume[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_BUILTIN_MUL_OVERFLOW 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_BUILTIN_MUL_OVERFLOW 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_BUILTIN_MUL_OVERFLOW 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_BUILTIN_MUL_OVERFLOW 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_BUILTIN_MUL_OVERFLOW 1'",
     }) + " > $OUT",
     visibility = ["PUBLIC"],
 )

@@ -85,7 +85,6 @@ http_archive(
         "src/x86/internal.h",
         "src/x86/internal64.h",
         "src/x86/sysv.S",
-        "src/x86/sysv_intel.S",
         "src/x86/unix64.S",
         "src/x86/win64.S",
         "src/xtensa/ffitarget.h",
@@ -127,7 +126,7 @@ git_fetch(
 genrule(
     name = "fficonfig.h",
     out = "fficonfig.h",
-    cmd = "sed" + " -e ''" + " '-es|@VERSION@|\"3.8.0\"|g' '-es|@HAVE_STDINT_H@|1|g' '-es|@SIZEOF_DOUBLE@|8|g' '-es|@HAVE_AS_CFI_PSEUDO_OP@|1|g' '-es|@HAVE_HIDDEN_VISIBILITY_ATTRIBUTE@|1|g' '-es|@AC_APPLE_UNIVERSAL_BUILD@||g' '-es|@FFI_EXEC_TRAMPOLINE_TABLE@||g' '-es|@HAVE_ARM64E_PTRAUTH@||g' '-es|@HAVE_AS_REGISTER_PSEUDO_OP@||g' '-es|@HAVE_AS_S390_ZARCH@||g' '-es|@HAVE_AS_SPARC_UA_PCREL@||g' '-es|@HAVE_LONG_DOUBLE_VARIANT@||g' '-es|@HAVE_SYS_MEMFD_H@||g'" + select({
+    cmd = "sed" + " -e ''" + " '-es|@VERSION@|\"3.8.0\"|g' '-es|@HAVE_STDINT_H@|1|g' '-es|@SIZEOF_DOUBLE@|8|g' '-es|@HAVE_AS_CFI_PSEUDO_OP@|1|g' '-es|@HAVE_RO_EH_FRAME@|1|g' '-es|@EH_FRAME_FLAGS@|\"a\"|g' '-es|@HAVE_HIDDEN_VISIBILITY_ATTRIBUTE@|1|g' '-es|@AC_APPLE_UNIVERSAL_BUILD@||g' '-es|@FFI_EXEC_TRAMPOLINE_TABLE@||g' '-es|@HAVE_ARM64E_PTRAUTH@||g' '-es|@HAVE_AS_REGISTER_PSEUDO_OP@||g' '-es|@HAVE_AS_S390_ZARCH@||g' '-es|@HAVE_AS_SPARC_UA_PCREL@||g' '-es|@HAVE_LONG_DOUBLE_VARIANT@||g' '-es|@HAVE_SYS_MEMFD_H@||g' '-es|@SYMBOL_UNDERSCORE@||g'" + select({
         "prelude//cpu/constraints:cpu[arm32]": " '-es|@SIZEOF_SIZE_T@|4|g'",
         "prelude//cpu/constraints:cpu[x86_32]": " '-es|@SIZEOF_SIZE_T@|4|g'",
         "DEFAULT": "",
@@ -318,9 +317,6 @@ genrule(
         "//third-party/meson/libffi/constraints:pax_emutramp[true]": " '-es|@FFI_MMAP_EXEC_EMUTRAMP_PAX@|1|g'",
         "//third-party/meson/libffi/constraints:pax_emutramp[false]": "",
     }) + select({
-        "//third-party/meson/constraints:symbols_have_underscore_prefix_expr[true]": " '-es|@SYMBOL_UNDERSCORE@|1|g'",
-        "//third-party/meson/constraints:symbols_have_underscore_prefix_expr[false]": "",
-    }) + select({
         "prelude//os/constraints:os[linux]": "",
         "prelude//os/constraints:os[netbsd]": "",
         "DEFAULT": " '-es|@FFI_MMAP_EXEC_WRIT@|1|g'",
@@ -347,10 +343,6 @@ genrule(
             "DEFAULT": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": " '-es|@HAVE_RO_EH_FRAME@|1|g' '-es|@EH_FRAME_FLAGS@|\"a\"|g'",
-        "//third-party/meson/constraints:compiler[clang]": "",
-        "//third-party/meson/constraints:compiler[msvc]": "",
-    }) + select({
         "//third-party/meson/libffi/constraints:ffi_debug[true]": " '-es|@FFI_DEBUG@|1|g'",
         "//third-party/meson/libffi/constraints:ffi_debug[false]": "",
     }) + select({
@@ -368,7 +360,7 @@ genrule(
     }) + select({
         "//third-party/meson/libffi/constraints:purify_safety[true]": " '-es|@USING_PURIFY@|1|g'",
         "//third-party/meson/libffi/constraints:purify_safety[false]": "",
-    }) + " '-es|^#mesondefine[[:space:]]\\+VERSION\\>.*|#define VERSION \"3.8.0\"|' '-es|^#mesondefine[[:space:]]\\+HAVE_STDINT_H\\>.*|#define HAVE_STDINT_H 1|' '-es|^#mesondefine[[:space:]]\\+SIZEOF_DOUBLE\\>.*|#define SIZEOF_DOUBLE 8|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_CFI_PSEUDO_OP\\>.*|#define HAVE_AS_CFI_PSEUDO_OP 1|' '-es|^#mesondefine[[:space:]]\\+HAVE_HIDDEN_VISIBILITY_ATTRIBUTE\\>.*|#define HAVE_HIDDEN_VISIBILITY_ATTRIBUTE 1|' '-es|^#mesondefine[[:space:]]\\+AC_APPLE_UNIVERSAL_BUILD\\>.*|/* #undef AC_APPLE_UNIVERSAL_BUILD */|' '-es|^#mesondefine[[:space:]]\\+FFI_EXEC_TRAMPOLINE_TABLE\\>.*|/* #undef FFI_EXEC_TRAMPOLINE_TABLE */|' '-es|^#mesondefine[[:space:]]\\+HAVE_ARM64E_PTRAUTH\\>.*|/* #undef HAVE_ARM64E_PTRAUTH */|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_REGISTER_PSEUDO_OP\\>.*|/* #undef HAVE_AS_REGISTER_PSEUDO_OP */|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_S390_ZARCH\\>.*|/* #undef HAVE_AS_S390_ZARCH */|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_SPARC_UA_PCREL\\>.*|/* #undef HAVE_AS_SPARC_UA_PCREL */|' '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE_VARIANT\\>.*|/* #undef HAVE_LONG_DOUBLE_VARIANT */|' '-es|^#mesondefine[[:space:]]\\+HAVE_SYS_MEMFD_H\\>.*|/* #undef HAVE_SYS_MEMFD_H */|'" + select({
+    }) + " '-es|^#mesondefine[[:space:]]\\+VERSION\\>.*|#define VERSION \"3.8.0\"|' '-es|^#mesondefine[[:space:]]\\+HAVE_STDINT_H\\>.*|#define HAVE_STDINT_H 1|' '-es|^#mesondefine[[:space:]]\\+SIZEOF_DOUBLE\\>.*|#define SIZEOF_DOUBLE 8|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_CFI_PSEUDO_OP\\>.*|#define HAVE_AS_CFI_PSEUDO_OP 1|' '-es|^#mesondefine[[:space:]]\\+HAVE_RO_EH_FRAME\\>.*|#define HAVE_RO_EH_FRAME 1|' '-es|^#mesondefine[[:space:]]\\+EH_FRAME_FLAGS\\>.*|#define EH_FRAME_FLAGS \"a\"|' '-es|^#mesondefine[[:space:]]\\+HAVE_HIDDEN_VISIBILITY_ATTRIBUTE\\>.*|#define HAVE_HIDDEN_VISIBILITY_ATTRIBUTE 1|' '-es|^#mesondefine[[:space:]]\\+AC_APPLE_UNIVERSAL_BUILD\\>.*|/* #undef AC_APPLE_UNIVERSAL_BUILD */|' '-es|^#mesondefine[[:space:]]\\+FFI_EXEC_TRAMPOLINE_TABLE\\>.*|/* #undef FFI_EXEC_TRAMPOLINE_TABLE */|' '-es|^#mesondefine[[:space:]]\\+HAVE_ARM64E_PTRAUTH\\>.*|/* #undef HAVE_ARM64E_PTRAUTH */|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_REGISTER_PSEUDO_OP\\>.*|/* #undef HAVE_AS_REGISTER_PSEUDO_OP */|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_S390_ZARCH\\>.*|/* #undef HAVE_AS_S390_ZARCH */|' '-es|^#mesondefine[[:space:]]\\+HAVE_AS_SPARC_UA_PCREL\\>.*|/* #undef HAVE_AS_SPARC_UA_PCREL */|' '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE_VARIANT\\>.*|/* #undef HAVE_LONG_DOUBLE_VARIANT */|' '-es|^#mesondefine[[:space:]]\\+HAVE_SYS_MEMFD_H\\>.*|/* #undef HAVE_SYS_MEMFD_H */|' '-es|^#mesondefine[[:space:]]\\+SYMBOL_UNDERSCORE\\>.*|/* #undef SYMBOL_UNDERSCORE */|'" + select({
         "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+SIZEOF_SIZE_T\\>.*|#define SIZEOF_SIZE_T 4|'",
         "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+SIZEOF_SIZE_T\\>.*|#define SIZEOF_SIZE_T 4|'",
         "DEFAULT": "",
@@ -559,9 +551,6 @@ genrule(
         "//third-party/meson/libffi/constraints:pax_emutramp[true]": " '-es|^#mesondefine[[:space:]]\\+FFI_MMAP_EXEC_EMUTRAMP_PAX\\>.*|#define FFI_MMAP_EXEC_EMUTRAMP_PAX 1|'",
         "//third-party/meson/libffi/constraints:pax_emutramp[false]": "",
     }) + select({
-        "//third-party/meson/constraints:symbols_have_underscore_prefix_expr[true]": " '-es|^#mesondefine[[:space:]]\\+SYMBOL_UNDERSCORE\\>.*|#define SYMBOL_UNDERSCORE 1|'",
-        "//third-party/meson/constraints:symbols_have_underscore_prefix_expr[false]": "",
-    }) + select({
         "prelude//os/constraints:os[linux]": "",
         "prelude//os/constraints:os[netbsd]": "",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+FFI_MMAP_EXEC_WRIT\\>.*|#define FFI_MMAP_EXEC_WRIT 1|'",
@@ -588,10 +577,6 @@ genrule(
             "DEFAULT": "",
         }),
     }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": " '-es|^#mesondefine[[:space:]]\\+HAVE_RO_EH_FRAME\\>.*|#define HAVE_RO_EH_FRAME 1|' '-es|^#mesondefine[[:space:]]\\+EH_FRAME_FLAGS\\>.*|#define EH_FRAME_FLAGS \"a\"|'",
-        "//third-party/meson/constraints:compiler[clang]": "",
-        "//third-party/meson/constraints:compiler[msvc]": "",
-    }) + select({
         "//third-party/meson/libffi/constraints:ffi_debug[true]": " '-es|^#mesondefine[[:space:]]\\+FFI_DEBUG\\>.*|#define FFI_DEBUG 1|'",
         "//third-party/meson/libffi/constraints:ffi_debug[false]": "",
     }) + select({
@@ -609,10 +594,6 @@ genrule(
     }) + select({
         "//third-party/meson/libffi/constraints:purify_safety[true]": " '-es|^#mesondefine[[:space:]]\\+USING_PURIFY\\>.*|#define USING_PURIFY 1|'",
         "//third-party/meson/libffi/constraints:purify_safety[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": "",
-        "//third-party/meson/constraints:compiler[clang]": " '-es|^#mesondefine[[:space:]]\\+EH_FRAME_FLAGS\\>.*|/* #undef EH_FRAME_FLAGS */|' '-es|^#mesondefine[[:space:]]\\+HAVE_RO_EH_FRAME\\>.*|/* #undef HAVE_RO_EH_FRAME */|'",
-        "//third-party/meson/constraints:compiler[msvc]": " '-es|^#mesondefine[[:space:]]\\+EH_FRAME_FLAGS\\>.*|/* #undef EH_FRAME_FLAGS */|' '-es|^#mesondefine[[:space:]]\\+HAVE_RO_EH_FRAME\\>.*|/* #undef HAVE_RO_EH_FRAME */|'",
     }) + select({
         "//third-party/meson/libffi/constraints:ffi_debug[true]": "",
         "//third-party/meson/libffi/constraints:ffi_debug[false]": " '-es|^#mesondefine[[:space:]]\\+FFI_DEBUG\\>.*|/* #undef FFI_DEBUG */|'",
@@ -840,9 +821,6 @@ genrule(
         }),
         "DEFAULT": "",
     }) + select({
-        "//third-party/meson/constraints:symbols_have_underscore_prefix_expr[true]": "",
-        "//third-party/meson/constraints:symbols_have_underscore_prefix_expr[false]": " '-es|^#mesondefine[[:space:]]\\+SYMBOL_UNDERSCORE\\>.*|/* #undef SYMBOL_UNDERSCORE */|'",
-    }) + select({
         "//third-party/meson/libffi/constraints:purify_safety[true]": "",
         "//third-party/meson/libffi/constraints:purify_safety[false]": " '-es|^#mesondefine[[:space:]]\\+USING_PURIFY\\>.*|/* #undef USING_PURIFY */|'",
     }) + select({
@@ -1027,6 +1005,8 @@ cxx_library(
             "DEFAULT": [
                 ":libffi[src/x86/ffi64.c]",
                 ":libffi[src/x86/ffiw64.c]",
+                ":libffi[src/x86/unix64.S]",
+                ":libffi[src/x86/win64.S]",
             ],
         }),
         "prelude//cpu/constraints:cpu[arm32]": [],
@@ -1039,6 +1019,8 @@ cxx_library(
                 "DEFAULT": [
                     ":libffi[src/x86/ffi64.c]",
                     ":libffi[src/x86/ffiw64.c]",
+                    ":libffi[src/x86/unix64.S]",
+                    ":libffi[src/x86/win64.S]",
                 ],
             }),
             "prelude//os/constraints:os[netbsd]": select({
@@ -1047,23 +1029,40 @@ cxx_library(
                 "DEFAULT": [
                     ":libffi[src/x86/ffi64.c]",
                     ":libffi[src/x86/ffiw64.c]",
+                    ":libffi[src/x86/unix64.S]",
+                    ":libffi[src/x86/win64.S]",
                 ],
             }),
             "DEFAULT": [],
         }),
     }) + select({
-        "prelude//cpu/constraints:cpu[riscv64]": [":libffi[src/riscv/ffi.c]"],
+        "prelude//cpu/constraints:cpu[riscv64]": [
+            ":libffi[src/riscv/ffi.c]",
+            ":libffi[src/riscv/sysv.S]",
+        ],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/arm/ffi.c]"],
+        "prelude//cpu/constraints:cpu[arm32]": [
+            ":libffi[src/arm/ffi.c]",
+            ":libffi[src/arm/sysv.S]",
+        ],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm64]": [":libffi[src/aarch64/ffi.c]"],
+        "prelude//cpu/constraints:cpu[arm64]": [
+            ":libffi[src/aarch64/ffi.c]",
+            ":libffi[src/aarch64/sysv.S]",
+        ],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[x86_64]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/x86/ffi.c]"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":libffi[src/x86/ffi.c]"],
+            "prelude//cpu/constraints:cpu[arm32]": [
+                ":libffi[src/x86/ffi.c]",
+                ":libffi[src/x86/sysv.S]",
+            ],
+            "prelude//cpu/constraints:cpu[x86_32]": [
+                ":libffi[src/x86/ffi.c]",
+                ":libffi[src/x86/sysv.S]",
+            ],
             "DEFAULT": [],
         }),
         "prelude//cpu/constraints:cpu[arm32]": [],
@@ -1071,93 +1070,31 @@ cxx_library(
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": select({
             "prelude//os/constraints:os[linux]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/x86/ffi.c]"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":libffi[src/x86/ffi.c]"],
+                "prelude//cpu/constraints:cpu[arm32]": [
+                    ":libffi[src/x86/ffi.c]",
+                    ":libffi[src/x86/sysv.S]",
+                ],
+                "prelude//cpu/constraints:cpu[x86_32]": [
+                    ":libffi[src/x86/ffi.c]",
+                    ":libffi[src/x86/sysv.S]",
+                ],
                 "DEFAULT": [],
             }),
             "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/x86/ffi.c]"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":libffi[src/x86/ffi.c]"],
-                "DEFAULT": [],
-            }),
-            "DEFAULT": [":libffi[src/x86/ffi.c]"],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [],
-                "prelude//cpu/constraints:cpu[x86_32]": [],
-                "DEFAULT": [
-                    ":libffi[src/x86/unix64.S]",
-                    ":libffi[src/x86/win64.S]",
+                "prelude//cpu/constraints:cpu[arm32]": [
+                    ":libffi[src/x86/ffi.c]",
+                    ":libffi[src/x86/sysv.S]",
                 ],
-            }),
-            "prelude//cpu/constraints:cpu[arm32]": [],
-            "prelude//cpu/constraints:cpu[arm64]": [],
-            "prelude//cpu/constraints:cpu[riscv64]": [],
-            "DEFAULT": select({
-                "prelude//os/constraints:os[linux]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": [],
-                    "prelude//cpu/constraints:cpu[x86_32]": [],
-                    "DEFAULT": [
-                        ":libffi[src/x86/unix64.S]",
-                        ":libffi[src/x86/win64.S]",
-                    ],
-                }),
-                "prelude//os/constraints:os[netbsd]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": [],
-                    "prelude//cpu/constraints:cpu[x86_32]": [],
-                    "DEFAULT": [
-                        ":libffi[src/x86/unix64.S]",
-                        ":libffi[src/x86/win64.S]",
-                    ],
-                }),
+                "prelude//cpu/constraints:cpu[x86_32]": [
+                    ":libffi[src/x86/ffi.c]",
+                    ":libffi[src/x86/sysv.S]",
+                ],
                 "DEFAULT": [],
             }),
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[riscv64]": [":libffi[src/riscv/sysv.S]"],
-            "DEFAULT": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/arm/sysv.S]"],
-            "DEFAULT": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm64]": [":libffi[src/aarch64/sysv.S]"],
-            "DEFAULT": [],
-        }),
-    }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/x86/sysv.S]"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":libffi[src/x86/sysv.S]"],
-                "DEFAULT": [],
-            }),
-            "prelude//cpu/constraints:cpu[arm32]": [],
-            "prelude//cpu/constraints:cpu[arm64]": [],
-            "prelude//cpu/constraints:cpu[riscv64]": [],
-            "DEFAULT": select({
-                "prelude//os/constraints:os[linux]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/x86/sysv.S]"],
-                    "prelude//cpu/constraints:cpu[x86_32]": [":libffi[src/x86/sysv.S]"],
-                    "DEFAULT": [],
-                }),
-                "prelude//os/constraints:os[netbsd]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": [":libffi[src/x86/sysv.S]"],
-                    "prelude//cpu/constraints:cpu[x86_32]": [":libffi[src/x86/sysv.S]"],
-                    "DEFAULT": [],
-                }),
-                "DEFAULT": [":libffi[src/x86/sysv.S]"],
-            }),
+            "DEFAULT": [
+                ":libffi[src/x86/ffi.c]",
+                ":libffi[src/x86/sysv.S]",
+            ],
         }),
     }),
     exported_headers = {
@@ -1191,11 +1128,10 @@ cxx_library(
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-I$(location :libffi[src/x86])"],
     }),
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[gcc]": ["-fexceptions"],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": [],
-    }) + ["-DFFI_BUILDING_DLL"],
+    compiler_flags = [
+        "-fexceptions",
+        "-DFFI_BUILDING_DLL",
+    ],
     linker_flags = select({
         "//third-party/meson/libffi/constraints:ffi_build_versioned[true]": ["-Wl,--version-script=$(location :libffi.map)"],
         "//third-party/meson/libffi/constraints:ffi_build_versioned[false]": [],

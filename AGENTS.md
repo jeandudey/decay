@@ -104,22 +104,24 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   harmless on `abi[gnu]`, and no `example/` platform exercises `abi[musl]`.
 
 - **Compile/link probes resolved by `zig cc` at import time.** `cc.has_header`,
-  `cc.has_type`, `cc.has_header_symbol`, `cc.has_member`, and `cc.compiles` —
-  none with `dependencies:` (a `pkg-config` answer the importer cannot
-  reconstruct) —
-  are answered by linking against `zig cc -target <triple>` per `(os, cpu,
-  abi)` in decay's configured matrix (`src/probe.rs`,
-  `oracle::Probe::Matrix`); compiles everywhere → plain `true`, compiles
-  nowhere → dead branch, compiles on some → a real `select()`, never a
-  synthetic `has_foo_bar` constraint. An explicit `decay.toml [probes]`
+  `cc.check_header`, `cc.has_type`, `cc.has_header_symbol`, `cc.has_member`,
+  `cc.compiles`, `cc.links` and `cc.symbols_have_underscore_prefix` are built
+  with `zig cc -target <triple>` per `(os, cpu, abi)` in decay's configured
+  matrix (`src/probe.rs`, `oracle::Probe::Matrix`), linux-gnu pinned to the
+  newest glibc zig ships; built everywhere → plain `true`, nowhere → dead
+  branch, on some → a real `select()`, never a synthetic `has_foo_bar`
+  constraint. A `prefix:`/code/`args:` that differs by configuration is built
+  once per region it is constant in (`compile_probes` in
+  `decay_meson_eval/src/methods.rs`). An explicit `decay.toml [probes]`
   answer still wins first. Systems zig cannot probe end to end (`darwin`,
   `windows`, `illumos`, `android`, `fuchsia`) are meant to be left out of
   `[systems]` entirely.
 
   Still in scope:
-  - **`cc.links`** — needs a real link (output file, `main` handling), not
-    just `-c`. Still defaults present and needs a `[probes]` answer (glib's
-    `pthread_setname_np(const char*)`, `res_ndestroy()`).
+  - **`dependencies:` other than `threads` or a system library** — a
+    `pkg-config` or sibling dependency's include dirs and flags are not
+    replayed on the `zig cc` line, so the probe stays an open knob.
+  - **C++ probes** — `cpp.has_header()` and kin are built as C.
   - **compile-time `cc.sizeof` of a *type*** — the `static_assert` binary
     search meson falls back to when it cannot run. Goes through
     `Oracle::type_size`, not `compile_probe`.
@@ -141,11 +143,13 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   - **Kernel/libc-header-vintage probes** (`HAVE_FUTEX_TIME64` and kin)
     resolve against `zig`'s *bundled* headers — a version pin, not a real
     per-host fact (see "An unanswered probe defaults to `true`" below).
-  - **Probe context threading** — a header behind a dependency's include dir
-    reads as absent (`cc.has_header('x.h', dependencies: dep)` gets none of
-    that dependency's flags).
   - **Determinism / golden tree** — `example/`'s golden tree shifts whenever
     the pinned `zig`'s libc or headers change.
+
+- **No MSVC.** The `compiler` constraint is `gcc`/`clang` only, `[compilers]`
+  refuses `msvc`, and `windows` means mingw: every probe is answered by
+  `zig cc`, a gcc-compatible driver. Needs real clang-cl or MSVC probing
+  before it can come back.
 
 - **Python3 genrules.** the genrules using python should try to use python rules if possible
   to define the scripts, and only fallback to genrule with an override in decay.toml if it
@@ -257,22 +261,14 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
-  hardcoded `default = 0` ("true"), reasoning that "a compiler capability ...
-  is what a working toolchain normally reports." That is right for most
-  `cc.has_argument()`/`cc.compiles()` checks, but wrong for one that is
-  really a *kernel/libc vintage* question with no constraint decay tracks:
-  glib's `HAVE_FUTEX_TIME64` (`cc.compiles(..., name: 'futex_time64(2)
-  system call')`) defaults to present and fails to compile
-  (`gthreadprivate.h`'s `__NR_futex_time64` branch) on any host whose
-  `<sys/syscall.h>` predates it — this one can't be tied to `[systems]` or
-  any other existing constraint the way `has_header:crt_externs.h` (now
-  answered via the `darwin` system) can, because real Linux systems
-  genuinely disagree on it. Fixing it means either running the real
-  compiler against the probe at import time (a bigger change to the
-  "importer never shells out to `cc`" design) or letting `decay.toml`
-  override just the default half of a `[probes]` entry, independent of
-  fixing/tying it. Until then, building a project with such a probe needs an
-  explicit `-c` override for the affected constraint.
+  hardcoded `default = 0` ("true"). Most probes no longer reach it (see
+  "Compile/link probes resolved by `zig cc`" above); what still does is
+  `cc.run()` and a probe with `dependencies:` decay cannot replay. The zig
+  answer itself is a libc *vintage* pin, not a per-host fact: linux-gnu
+  probes see the newest glibc zig ships, so glib's `HAVE_FUTEX_TIME64` and
+  `res_ndestroy()` read present and fail on an older host. `example/`
+  settles both off in `[probes]`. Fixing it for real wants a glibc floor in
+  `decay.toml` that the probes pin to instead.
 
 - **Better diagnostics.** If something fails to import because it needs user input
   we should provide a way for the user to fix it if possible. If it is something
@@ -299,9 +295,6 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   nothing confirms anywhere (`libselinux`, `libelf`, `socket`, `elf`) is
   still an open knob; `decay.toml`'s `[system_libraries]` covers systems zig
   cannot host (`sunos`, `openbsd`, `android`, `fuchsia`). Still to do:
-  - Retire `is_crt_provided_lib` (`decay_buck2`) — `found` is now settled
-    per system, so the `-l…` flag can flow through the normal found-gated
-    select instead of its own `non_msvc_select` arm.
   - `runtimeobject` stays an open knob — mingw ships no
     `libruntimeobject.a`, so the link probe cannot confirm it.
   - A mingw-w64 `.def`-name source for Windows *OS* libs the link probe
@@ -377,14 +370,8 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 ```
 cxx_library(
     name = "threads",
-    exported_preprocessor_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
+    exported_preprocessor_flags = ["-pthread"],
+    exported_linker_flags = ["-pthread"],
     visibility = ["PUBLIC"],
 )
 ```
