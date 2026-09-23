@@ -248,8 +248,19 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `dependency()`'s returned object reports `type_name() == "internal"` for a
   sibling resolution, matching meson's own distinction from `"pkgconfig"`,
   and `subproject(name).get_variable(key)` answers from a sibling's settled
-  top-level variables — both single-valued only; a configuration-varying
-  answer is unsupported either way.
+  top-level variable when it is a single-valued string/bool/int (still
+  single-valued only; a configuration-varying answer is unsupported either
+  way). A variable that is really a list of dicts each carrying just a
+  `name` string — a project's own "what did I end up building" summary
+  (cairo's `built_features`, pango's own `subproject('cairo').
+  get_variable('built_features')`) — has no automatic answer at all: the
+  real value's entries embed `Dep` objects tied to the *other* project's own
+  graph, meaningless once evaluation moves on, so decay never evaluates it
+  itself. `decay.toml`'s `[subprojects.name]` names, as plain strings, which
+  features that project's own configured options mean it actually built
+  (`Oracle::subproject_variable_names`) — the only shape reconstructed so
+  far, since a consumer has only ever read the `name` field back out as a
+  membership test.
 
 - **An unanswered probe defaults to `true`.** `probe_var()`
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
@@ -318,10 +329,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   read either.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay — currently exercises 14 of wrapdb's ~250+ projects in
+  smoke test for decay — currently exercises 15 of wrapdb's ~250+ projects in
   `example/decay.toml` (`zlib`, `bzip2`, `libpng`, `google-brotli`, `pcre2`,
   `libxext`, `libffi`, `fribidi`, `graphite2`, `pixman`, `cairo`, `freetype2`,
-  `harfbuzz`, `fontconfig`).
+  `harfbuzz`, `fontconfig`, `pango`).
 
   **GTK4 end-to-end — what's still missing.** Checked against gtk's own
   `meson.build` (`dependency()` calls, tag `4.22.4`) to turn "try the
@@ -331,25 +342,27 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   font backends and `cairo-gobject` wired in, since both were already
   imported; still not the `xlib`/`xcb`/`png` surface backends — `xlib`/`xcb`
   need real X11, `png` needs libpng wired in too, next), `fontconfig`
-  (`buck2 build`s end to end; not yet wired into pango's FreeType backend,
-  the only other place gtk's own `meson.build` names it), `freetype2` (zlib +
-  bzip2 + libpng + brotli support; `harfbuzz` stays off in freetype2 itself —
-  harfbuzz's own `dependency('freetype2', ..., default_options:
-  ['harfbuzz=disabled'])` is how upstream avoids the cycle, and decay
-  resolves that sibling dependency against freetype2 as already configured
-  rather than re-running it), `harfbuzz` (+ its bundled `harfbuzz-subset`;
-  freetype2, graphite2, glib/gobject, and cairo (`harfbuzz-cairo`)
-  integration all wired in since every one was already imported —
-  `chafa`/`icu` stay off since nothing here provides either, and its
-  `utilities` CLI tools stay off as out of scope).
+  (`buck2 build`s end to end), `freetype2` (zlib + bzip2 + libpng + brotli
+  support; `harfbuzz` stays off in freetype2 itself — harfbuzz's own
+  `dependency('freetype2', ..., default_options: ['harfbuzz=disabled'])` is
+  how upstream avoids the cycle, and decay resolves that sibling dependency
+  against freetype2 as already configured rather than re-running it),
+  `harfbuzz` (+ its bundled `harfbuzz-subset`; freetype2, graphite2,
+  glib/gobject, and cairo (`harfbuzz-cairo`) integration all wired in since
+  every one was already imported — `chafa`/`icu` stay off since nothing here
+  provides either, and its `utilities` CLI tools stay off as out of scope),
+  `pango` (+ `pangocairo`, `pangoft2`; a git checkout pinned to `1.58.2`, not
+  wrapdb's `pango` wrap — its latest release, 1.56.4, calls fontconfig's
+  `FcFreeTypeQueryAll()` without the `#include` current fontconfig split it
+  behind, unguarded under the `-Werror=implicit` pango's own meson.build
+  always turns on; fixed upstream after 1.56.4, first released in 1.58.2.
+  `libthai`/`xft` stay off since nothing here provides either, and
+  `introspection`/docs/tests/examples are out of scope).
   Still needed, in roughly the order a next attempt should reach for them:
-  - `pango` (+ `pangocairo`, `pangoft2`) — text layout, depends on harfbuzz,
-    fribidi, cairo, fontconfig, and freetype all being in place first.
   - `gdk-pixbuf-2.0` — blocked today on the `dependency()`
     configuration-varying-name rewrite (see "`declare_dependency()` provide
     heuristic is narrow" above); GTK4 also wants at least one of its loader
-    backends (`libpng`/`libtiff-4`/`libjpeg`, all `dependency(..., 'x')`
-    two-name lookups, untried).
+    backends (`libpng`/`libtiff-4`/`libjpeg`).
   - `xkbcommon` — required whenever the Wayland backend is enabled.
   - The remaining X11 extension libraries GTK4's X11 backend links against
     directly: `xrandr`, `xrender`, `xi`, `xcursor`, `xdamage`, `xfixes`,

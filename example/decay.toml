@@ -146,6 +146,21 @@ libdir = "lib"
 datadir = "share"
 includedir = "include"
 
+# pango's own `subproject('cairo').get_variable('built_features')` is a list
+# of dicts (`{'name': ..., 'deps': [cairo_dep-internal ...], ...}`) decay
+# cannot evaluate itself -- the real value's `deps` embed Dep objects tied to
+# cairo's own project graph, meaningless once evaluation moves on to pango.
+# pango only ever reads a name back out (`f['name'] == 'cairo-ft'`), so this
+# names, in decay.toml, exactly which features cairo's own configured
+# options mean it actually built: fontconfig font matching (cairo-fc) and
+# the FreeType font backend (cairo-ft) from `fontconfig`/`freetype` =
+# "enabled"; the script/ps/pdf surfaces (cairo-script/cairo-ps/cairo-pdf)
+# from `zlib` = "enabled"; the tee surface (cairo-tee) from `tee` =
+# "enabled". No png/xlib/xcb/quartz/dwrite features, since those options are
+# all "disabled".
+[subprojects.cairo]
+built_features = ["cairo-fc", "cairo-ft", "cairo-script", "cairo-ps", "cairo-pdf", "cairo-tee"]
+
 # TODO:
 #   Error: Failed to import `icu`
 #
@@ -492,3 +507,28 @@ commands."ln -sfn test ./srcdir" = { returncode = 0 }
 # dwrite/quartz are Windows/macOS only, neither a configured system. glib is
 # on for cairo-gobject, one of GTK4's own direct `dependency()`s.
 options = { dwrite = "disabled", fontconfig = "enabled", freetype = "enabled", png = "disabled", quartz = "disabled", tee = "enabled", xcb = "disabled", xlib = "disabled", "xlib-xcb" = "disabled", zlib = "enabled", tests = "disabled", lzo = "disabled", "gtk2-utils" = "disabled", glib = "enabled", spectre = "disabled", "symbol-lookup" = "disabled", gtk_doc = false }
+
+[[project]]
+repo = "https://gitlab.gnome.org/GNOME/pango.git"
+tag = "1.58.2"
+depends = ["glib", "fribidi", "harfbuzz", "fontconfig", "freetype2", "cairo"]
+# A git checkout, not wrapdb's `pango` wrap (latest release 1.56.4): pango
+# 1.56.4's pangofc-fontmap.c calls fontconfig's FcFreeTypeQueryAll() without
+# including fontconfig/fcfreetype.h -- fine against an older fontconfig,
+# whose fontconfig.h still declared it directly, but our fontconfig
+# (2.18.3) split it out into its own header (fontconfig's own
+# `b4b753d66dea`), so building against it hits an unguarded
+# `-Werror=implicit` that pango's own meson.build always turns on for
+# gcc/clang. Upstream's own fix (`926ab863 "Include fcfreetype.h where
+# needed"`) landed after 1.56.4, first released in 1.57.1; 1.58.2 is the
+# latest *stable* tag with it (GNOME's odd/even minor versioning: 1.57 is
+# 1.58's unstable development series). meson.build is otherwise unchanged
+# from 1.56.4 (a version-string bump, higher glib/harfbuzz/fontconfig
+# version floors we already clear, and a macOS-only `subsystem` addition).
+# glib/gobject/gio, fribidi, harfbuzz, fontconfig, freetype2, and cairo are
+# all already imported, so pango's own `dependency()` calls on each resolve
+# directly by name. libthai and xft are not imported anywhere -- disabled
+# rather than left open, matching harfbuzz's own chafa/icu. introspection,
+# sysprof, docs/man-pages, and the test/example programs are all out of
+# scope for a first pango build.
+options = { documentation = false, "man-pages" = false, introspection = "disabled", "build-testsuite" = false, "build-examples" = false, fontconfig = "enabled", sysprof = "disabled", libthai = "disabled", cairo = "enabled", xft = "disabled", freetype = "enabled" }

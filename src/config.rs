@@ -86,6 +86,13 @@ pub struct Config {
     /// Global options applied to every project unless overridden by that project.
     #[serde(default)]
     pub options: BTreeMap<String, OptionValue>,
+    /// `subproject(name).get_variable(key)` answers the importer cannot
+    /// derive automatically, keyed by the sibling project's own name and
+    /// then the variable name — each answer a list of names for a variable
+    /// that is really a list of dicts each carrying just a `name` string
+    /// (cairo's `built_features`; see `Oracle::subproject_variable_names`).
+    #[serde(default)]
+    pub subprojects: BTreeMap<String, BTreeMap<String, Vec<String>>>,
     #[serde(rename = "project")]
     pub projects: Vec<Project>,
 }

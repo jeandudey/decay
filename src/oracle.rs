@@ -470,6 +470,10 @@ impl Oracle for ConfigOracle<'_> {
             .map(str::to_owned)
     }
 
+    fn subproject_variable_names(&self, project: &str, key: &str) -> Option<Vec<String>> {
+        self.config.subprojects.get(project)?.get(key).cloned()
+    }
+
     fn dependency_found(&self, name: &str) -> Option<Probe> {
         // Not a probe about the environment: decay is building this either
         // way, because it is another project it already imported.

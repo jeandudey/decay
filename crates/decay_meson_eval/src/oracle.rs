@@ -131,6 +131,22 @@ pub trait Oracle {
         None
     }
 
+    /// A `subproject(project).get_variable(key)` answer that is a list of
+    /// dicts each carrying just a `name` string — the shape a project's own
+    /// "what did I end up building" summary commonly takes (cairo's
+    /// `built_features`, read by a consumer only as a membership test:
+    /// `foreach f: cairo_features { if f['name'] == 'cairo-ft' ... }`).
+    /// [`Oracle::subproject_variable`] cannot answer this: the real value's
+    /// entries embed `Dep` objects tied to the *other* project's own graph,
+    /// which mean nothing once evaluation moves on — decay never actually
+    /// evaluates cairo's `built_features` list itself, so there is nothing
+    /// automatic to carry, only an explicit `decay.toml` answer naming which
+    /// features that project's own configured options mean it built.
+    fn subproject_variable_names(&self, project: &str, key: &str) -> Option<Vec<String>> {
+        let _ = (project, key);
+        None
+    }
+
     /// Whether `cc.find_library('name')` resolves, when that follows from the
     /// target system rather than from a knob a generated build should carry.
     ///

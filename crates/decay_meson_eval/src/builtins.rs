@@ -1806,10 +1806,86 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     // -- looking things up ------------------------------------------------
 
+    /// `dependency(name)`, and `dependency(name1, name2, ...)` /
+    /// `dependency([name1, name2, ...], ...)` — meson tries each candidate
+    /// in turn and uses the first one found (pango's own
+    /// `dependency(['freetype2', 'freetype'], ...)`). Which one that is can
+    /// differ per configuration, so every candidate is resolved in full —
+    /// each as `required: false`, since only the combined chain has to
+    /// satisfy the call's own `required:`, not any single candidate — and
+    /// the result is one Dep-object variant per candidate, gated on it
+    /// being found and no earlier one being found already, the same shape
+    /// an `if`/`elif` chain's branches take. `required:` is applied once,
+    /// against the merged "found by any candidate" condition, afterward.
     fn fn_dependency(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
-        let name = self.one_string(args.at(0).ok_or_eyre("dependency() needs a name")?)?;
+        let mut names: Vec<Rc<str>> = Vec::new();
+        for arg in &args.pos {
+            for v in self.flat(arg) {
+                let s = string_arg(&v.value).ok_or_else(|| {
+                    eyre::eyre!(
+                        "dependency() name must be a string, found a {}",
+                        v.value.type_name()
+                    )
+                })?;
+                names.push(s);
+            }
+        }
+        let Some(first) = names.first().cloned() else {
+            bail!("dependency() needs a name");
+        };
         let required = self.required(args)?;
+        if names.len() == 1 {
+            return self.dependency_resolve(first, args, required);
+        }
 
+        let mut resolved = Vec::with_capacity(names.len());
+        for name in names {
+            let value = self.dependency_resolve(name.clone(), args, Pc::FALSE)?;
+            let [variant] = value.variants() else {
+                bail!("dependency('{name}') resolved to more than one value");
+            };
+            let Value::Obj(Obj::Dep(d)) = &variant.value else {
+                bail!("dependency('{name}') did not resolve to a dependency");
+            };
+            resolved.push((d.found, variant.value.clone()));
+        }
+
+        let mut merged_found = Pc::FALSE;
+        for (found, _) in &resolved {
+            merged_found = self.logic.or(merged_found, *found);
+        }
+        if !required.is_false() {
+            let must = self.logic.implies(required, merged_found);
+            self.logic.assume(must);
+        }
+
+        let mut out = Variational::empty();
+        let mut remaining = self.pc;
+        let mut last = None;
+        for (found, value) in resolved {
+            let cond = self.logic.and(remaining, found);
+            if !cond.is_false() {
+                out.push(Variant::new(cond, value.clone()));
+            }
+            let not_found = self.logic.not(found);
+            remaining = self.logic.and(remaining, not_found);
+            last = Some(value);
+        }
+        if !remaining.is_false() {
+            // Nobody found: reuse the last candidate's own not-found stub,
+            // the same one a single `dependency(lastName)` call would have
+            // produced on its own.
+            out.push(Variant::new(remaining, last.expect("names is non-empty")));
+        }
+        Ok(out)
+    }
+
+    fn dependency_resolve(
+        &mut self,
+        name: Rc<str>,
+        args: &CallArgs,
+        required: Pc,
+    ) -> eyre::Result<Variational<Value>> {
         // `dependency('')` is meson's guaranteed-not-found sentinel — the
         // `dep_null = dependency('', required: false)` idiom for a variable
         // that may or may not be reassigned to a real dependency later. It is

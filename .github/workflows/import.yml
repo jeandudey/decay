@@ -136,7 +136,8 @@ jobs:
             //third-party/meson/bzip2/... \
             //third-party/meson/libpng/... \
             //third-party/meson/google-brotli/... \
-            //third-party/meson/harfbuzz/...
+            //third-party/meson/harfbuzz/... \
+            //third-party/meson/pango/...
 
       - name: Stop buck2 daemon
         if: always()

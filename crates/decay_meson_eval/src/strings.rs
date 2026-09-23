@@ -164,6 +164,26 @@ pub(crate) fn text_of(value: &Value) -> eyre::Result<Rc<str>> {
         Value::Int(i) => Rc::from(i.to_string().as_str()),
         Value::Bool(b) => Rc::from(if *b { "true" } else { "false" }),
         Value::Obj(Obj::File(p)) => p.clone(),
+        // A list/dict interpolated into a diagnostic `message()` string
+        // (pango's own `'Cairo font backend "@0@" enabled'.format(b)`, `b`
+        // a `[name, version, ...]` list entry) has no build-graph meaning to
+        // preserve — just a readable approximation of what meson's own
+        // `str()` would produce, ignoring each element's own presence
+        // condition, since nothing downstream reads this text back.
+        Value::List(items) => {
+            let parts: Vec<Rc<str>> = items
+                .iter()
+                .map(|v| text_of(&v.value))
+                .collect::<eyre::Result<_>>()?;
+            Rc::from(format!("[{}]", parts.join(", ")).as_str())
+        }
+        Value::Dict(items) => {
+            let parts: Vec<String> = items
+                .iter()
+                .map(|v| Ok::<_, eyre::Report>(format!("{}: {}", v.value.0, text_of(&v.value.1)?)))
+                .collect::<eyre::Result<_>>()?;
+            Rc::from(format!("{{{}}}", parts.join(", ")).as_str())
+        }
         other => bail!("cannot interpolate a {}", other.type_name()),
     })
 }
