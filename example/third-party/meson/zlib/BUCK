@@ -91,14 +91,7 @@ cxx_library(
         "zlib.h": ":zlib[zlib.h]",
     },
     header_namespace = "",
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": [
-            "-D_CRT_SECURE_NO_DEPRECATE",
-            "-D_CRT_NONSTDC_NO_DEPRECATE",
-        ],
-    }) + ["-D_LARGEFILE64_SOURCE"],
+    compiler_flags = ["-D_LARGEFILE64_SOURCE"],
     linker_flags = ["-Wl,--version-script,$(location :zlib[zlib.map])"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],

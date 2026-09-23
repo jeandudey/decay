@@ -325,75 +325,67 @@ _headers = {
     "config.h": ":config.h",
 }
 _ldflags = ["-Wl,-Bsymbolic-functions"] + select({
-    "//third-party/meson/constraints:links_pthreads[true]": ["-lpthread"],
-    "//third-party/meson/constraints:links_pthreads[false]": [],
+    "prelude//os/constraints:os[netbsd]": select({
+        "prelude//cpu/constraints:cpu[arm32]": ["-lpthread"],
+        "prelude//cpu/constraints:cpu[arm64]": ["-lpthread"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["-lpthread"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["-lpthread"],
+        "DEFAULT": [],
+    }),
+    "DEFAULT": ["-lpthread"],
 })
-_cflags_compiler = select({
-    "//third-party/meson/constraints:compiler[msvc]": [
-        "/wd4244",
-        "/wd4146",
-        "/wd4305",
-    ],
-    "DEFAULT": [
-        "-Wmissing-declarations",
-        "-Werror-implicit-function-declaration",
-        "-Wpointer-arith",
-        "-Wwrite-strings",
-        "-Wsign-compare",
-        "-Wpacked",
-        "-Wswitch-enum",
-        "-Wmissing-format-attribute",
-        "-Wvolatile-register-var",
-        "-Wstrict-aliasing=2",
-        "-Winit-self",
-        "-Wunsafe-loop-optimizations",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-attributes",
-        "-Wno-long-long",
-        "-Winline",
-        "-Wno-unused-but-set-variable",
-        "-Wno-enum-conversion",
-        "-fno-strict-aliasing",
-        "-fno-common",
-        "-Wp,-D_FORTIFY_SOURCE=2",
-    ],
-}) + ["-D_GNU_SOURCE"]
+_cflags = [
+    "-Wmissing-declarations",
+    "-Werror-implicit-function-declaration",
+    "-Wpointer-arith",
+    "-Wwrite-strings",
+    "-Wsign-compare",
+    "-Wpacked",
+    "-Wswitch-enum",
+    "-Wmissing-format-attribute",
+    "-Wvolatile-register-var",
+    "-Wstrict-aliasing=2",
+    "-Winit-self",
+    "-Wunsafe-loop-optimizations",
+    "-Wno-missing-field-initializers",
+    "-Wno-unused-parameter",
+    "-Wno-attributes",
+    "-Wno-long-long",
+    "-Winline",
+    "-Wno-unused-but-set-variable",
+    "-Wno-enum-conversion",
+    "-fno-strict-aliasing",
+    "-fno-common",
+    "-Wp,-D_FORTIFY_SOURCE=2",
+    "-D_GNU_SOURCE",
+]
 _headers2 = {
     "src/cairo-features.h": ":cairo-features.h",
     "config.h": ":config.h",
 }
-_cflags_compiler2 = select({
-    "//third-party/meson/constraints:compiler[msvc]": [
-        "/wd4244",
-        "/wd4146",
-        "/wd4305",
-    ],
-    "DEFAULT": [
-        "-Wmissing-declarations",
-        "-Werror-implicit-function-declaration",
-        "-Wpointer-arith",
-        "-Wwrite-strings",
-        "-Wsign-compare",
-        "-Wpacked",
-        "-Wswitch-enum",
-        "-Wmissing-format-attribute",
-        "-Wvolatile-register-var",
-        "-Wstrict-aliasing=2",
-        "-Winit-self",
-        "-Wunsafe-loop-optimizations",
-        "-Wno-missing-field-initializers",
-        "-Wno-unused-parameter",
-        "-Wno-attributes",
-        "-Wno-long-long",
-        "-Winline",
-        "-Wno-unused-but-set-variable",
-        "-Wno-enum-conversion",
-        "-fno-strict-aliasing",
-        "-fno-common",
-        "-Wp,-D_FORTIFY_SOURCE=2",
-    ],
-}) + [
+_cflags2 = [
+    "-Wmissing-declarations",
+    "-Werror-implicit-function-declaration",
+    "-Wpointer-arith",
+    "-Wwrite-strings",
+    "-Wsign-compare",
+    "-Wpacked",
+    "-Wswitch-enum",
+    "-Wmissing-format-attribute",
+    "-Wvolatile-register-var",
+    "-Wstrict-aliasing=2",
+    "-Winit-self",
+    "-Wunsafe-loop-optimizations",
+    "-Wno-missing-field-initializers",
+    "-Wno-unused-parameter",
+    "-Wno-attributes",
+    "-Wno-long-long",
+    "-Winline",
+    "-Wno-unused-but-set-variable",
+    "-Wno-enum-conversion",
+    "-fno-strict-aliasing",
+    "-fno-common",
+    "-Wp,-D_FORTIFY_SOURCE=2",
     "-D_GNU_SOURCE",
     "-DCAIRO_COMPILATION",
 ]
@@ -447,7 +439,7 @@ _deps = [
     "//third-party/meson/freetype2:freetype2-dep",
     "//third-party/meson/pixman:pixman-dep",
 ]
-_needs = ["//third-party/meson/constraints:links_pthreads[true]"] + select({
+_needs = select({
     "prelude//os/constraints:os[linux]": select({
         "prelude//abi/constraints:abi[gnu]": select({
             "prelude//cpu/constraints:cpu[arm32]": [],
@@ -483,13 +475,11 @@ _deps2 = [
 ]
 
 # meson: find_library("m")
-# `m` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "m",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-lm"],
-    }),
+    exported_linker_flags = [
+        "-lm",
+    ],
     visibility = ["PUBLIC"],
 )
 
@@ -510,13 +500,11 @@ cxx_library(
 )
 
 # meson: find_library("dl")
-# `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "dl",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-ldl"],
-    }),
+    exported_linker_flags = [
+        "-ldl",
+    ],
     visibility = ["PUBLIC"],
 )
 
@@ -562,13 +550,11 @@ cxx_library(
 )
 
 # meson: find_library("rt")
-# `rt` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "rt",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-lrt"],
-    }),
+    exported_linker_flags = [
+        "-lrt",
+    ],
     visibility = ["PUBLIC"],
 )
 
@@ -709,37 +695,29 @@ cxx_library(
         "-I$(location :cairo)",
         "-I$(location :cairo[src])",
     ],
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [
-            "/wd4244",
-            "/wd4146",
-            "/wd4305",
-        ],
-        "DEFAULT": [
-            "-Wmissing-declarations",
-            "-Werror-implicit-function-declaration",
-            "-Wpointer-arith",
-            "-Wwrite-strings",
-            "-Wsign-compare",
-            "-Wpacked",
-            "-Wswitch-enum",
-            "-Wmissing-format-attribute",
-            "-Wvolatile-register-var",
-            "-Wstrict-aliasing=2",
-            "-Winit-self",
-            "-Wunsafe-loop-optimizations",
-            "-Wno-missing-field-initializers",
-            "-Wno-unused-parameter",
-            "-Wno-attributes",
-            "-Wno-long-long",
-            "-Winline",
-            "-Wno-unused-but-set-variable",
-            "-Wno-enum-conversion",
-            "-fno-strict-aliasing",
-            "-fno-common",
-            "-Wp,-D_FORTIFY_SOURCE=2",
-        ],
-    }) + [
+    compiler_flags = [
+        "-Wmissing-declarations",
+        "-Werror-implicit-function-declaration",
+        "-Wpointer-arith",
+        "-Wwrite-strings",
+        "-Wsign-compare",
+        "-Wpacked",
+        "-Wswitch-enum",
+        "-Wmissing-format-attribute",
+        "-Wvolatile-register-var",
+        "-Wstrict-aliasing=2",
+        "-Winit-self",
+        "-Wunsafe-loop-optimizations",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-attributes",
+        "-Wno-long-long",
+        "-Winline",
+        "-Wno-unused-but-set-variable",
+        "-Wno-enum-conversion",
+        "-fno-strict-aliasing",
+        "-fno-common",
+        "-Wp,-D_FORTIFY_SOURCE=2",
         "-D_GNU_SOURCE",
         "-Wno-attributes",
         "-Wno-unused-but-set-variable",
@@ -754,11 +732,29 @@ cxx_library(
         "-Wno-long-long",
         "-DCAIRO_COMPILATION",
     ] + select({
-        "//third-party/meson/constraints:links_pthreads[true]": [
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": [
+                "-D_REENTRANT",
+                "-D_REENTRANT",
+            ],
+            "prelude//cpu/constraints:cpu[arm64]": [
+                "-D_REENTRANT",
+                "-D_REENTRANT",
+            ],
+            "prelude//cpu/constraints:cpu[x86_32]": [
+                "-D_REENTRANT",
+                "-D_REENTRANT",
+            ],
+            "prelude//cpu/constraints:cpu[x86_64]": [
+                "-D_REENTRANT",
+                "-D_REENTRANT",
+            ],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": [
             "-D_REENTRANT",
             "-D_REENTRANT",
         ],
-        "//third-party/meson/constraints:links_pthreads[false]": [],
     }),
     linker_flags = _ldflags,
     deps = [
@@ -998,7 +994,7 @@ cxx_library(
         "-I$(location :cairo[src])",
         "-I$(location :cairo[util/cairo-missing])",
     ],
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -1028,7 +1024,7 @@ cxx_library(
         "-I$(location :cairo)",
         "-I$(location :cairo[util/cairo-gobject])",
     ],
-    compiler_flags = _cflags_compiler2,
+    compiler_flags = _cflags2,
     linker_flags = _ldflags,
     deps = [
         "//third-party/meson/glib:glib-dep-3",
@@ -1069,7 +1065,7 @@ cxx_library(
     headers = _headers2,
     header_namespace = "",
     exported_preprocessor_flags = _cppflags,
-    compiler_flags = _cflags_compiler2,
+    compiler_flags = _cflags2,
     linker_flags = _ldflags,
     deps = [
         ":m",
@@ -1134,7 +1130,7 @@ cxx_binary(
     headers = _headers2,
     header_namespace = "",
     preprocessor_flags = _cppflags,
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_os_abi_cpu,
     visibility = ["PUBLIC"],
@@ -1146,7 +1142,7 @@ cxx_binary(
     headers = _headers2,
     header_namespace = "",
     preprocessor_flags = _cppflags,
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_os_abi_cpu,
     visibility = ["PUBLIC"],
@@ -1158,7 +1154,7 @@ cxx_binary(
     headers = _headers2,
     header_namespace = "",
     preprocessor_flags = _cppflags,
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = _deps_os_abi_cpu,
     target_compatible_with = select({
@@ -1185,37 +1181,29 @@ cxx_library(
         "-I$(location :cairo[src])",
         "-I$(location :cairo[util/cairo-trace])",
     ],
-    compiler_flags = select({
-        "//third-party/meson/constraints:compiler[msvc]": [
-            "/wd4244",
-            "/wd4146",
-            "/wd4305",
-        ],
-        "DEFAULT": [
-            "-Wmissing-declarations",
-            "-Werror-implicit-function-declaration",
-            "-Wpointer-arith",
-            "-Wwrite-strings",
-            "-Wsign-compare",
-            "-Wpacked",
-            "-Wswitch-enum",
-            "-Wmissing-format-attribute",
-            "-Wvolatile-register-var",
-            "-Wstrict-aliasing=2",
-            "-Winit-self",
-            "-Wunsafe-loop-optimizations",
-            "-Wno-missing-field-initializers",
-            "-Wno-unused-parameter",
-            "-Wno-attributes",
-            "-Wno-long-long",
-            "-Winline",
-            "-Wno-unused-but-set-variable",
-            "-Wno-enum-conversion",
-            "-fno-strict-aliasing",
-            "-fno-common",
-            "-Wp,-D_FORTIFY_SOURCE=2",
-        ],
-    }) + [
+    compiler_flags = [
+        "-Wmissing-declarations",
+        "-Werror-implicit-function-declaration",
+        "-Wpointer-arith",
+        "-Wwrite-strings",
+        "-Wsign-compare",
+        "-Wpacked",
+        "-Wswitch-enum",
+        "-Wmissing-format-attribute",
+        "-Wvolatile-register-var",
+        "-Wstrict-aliasing=2",
+        "-Winit-self",
+        "-Wunsafe-loop-optimizations",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+        "-Wno-attributes",
+        "-Wno-long-long",
+        "-Winline",
+        "-Wno-unused-but-set-variable",
+        "-Wno-enum-conversion",
+        "-fno-strict-aliasing",
+        "-fno-common",
+        "-Wp,-D_FORTIFY_SOURCE=2",
         "-D_GNU_SOURCE",
         "-DSHARED_LIB_EXT=\"cairo\"",
         "-D_REENTRANT",
@@ -1250,7 +1238,7 @@ cxx_library(
         "-I$(location :cairo[src])",
         "-I$(location :cairo[util/cairo-fdr])",
     ],
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = [
         "-Wl,-Bsymbolic-functions",
         "-lpthread",
@@ -1264,11 +1252,7 @@ cxx_library(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + select({
-        "//third-party/meson/constraints:compiler[gcc]": " '#define WARN_UNUSED_RESULT '",
-        "//third-party/meson/constraints:compiler[clang]": " '#define WARN_UNUSED_RESULT '",
-        "//third-party/meson/constraints:compiler[msvc]": "",
-    }) + select({
+    cmd = "printf '%s\\n'" + " '#define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))' '#define HAVE_ZLIB 1' '#define HAVE_FCINIT 1' '#define HAVE_FCFINI 1' '#define CAIRO_HAS_INTERPRETER 1' '#define HAS_PIXMAN_GLYPHS 1' '#define SIZEOF_INT 4' '#define SIZEOF_LONG_LONG 8' '#define HAVE_STDINT_H 1' '#define HAVE_UINT64_T 1'" + select({
         "//third-party/meson/constraints:endian[little]": "",
         "//third-party/meson/constraints:endian[big]": " '#define WORDS_BIGENDIAN 1' '#define FLOAT_WORDS_BIGENDIAN 1'",
     }) + select({
@@ -1306,7 +1290,7 @@ genrule(
             "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_DLSYM 1'",
             "DEFAULT": "",
         }),
-    }) + " '#define HAVE_ZLIB 1' '#define HAVE_FCINIT 1' '#define HAVE_FCFINI 1' '#define CAIRO_HAS_INTERPRETER 1' '#define HAS_PIXMAN_GLYPHS 1' '#define SIZEOF_INT 4' '#define SIZEOF_LONG_LONG 8' '#define HAVE_STDINT_H 1' '#define HAVE_UINT64_T 1'" + select({
+    }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_VOID_P 4' '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4'",
         "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_VOID_P 4' '#define SIZEOF_LONG 4' '#define SIZEOF_SIZE_T 4'",
         "DEFAULT": "",
@@ -2201,41 +2185,32 @@ genrule(
             "DEFAULT": " '/* #undef HAVE_STRNDUP */'",
         }),
     }) + select({
-        "//third-party/meson/constraints:links_pthreads[true]": " '#define CAIRO_HAS_PTHREAD 1' '#define CAIRO_HAS_REAL_PTHREAD 1'",
-        "//third-party/meson/constraints:links_pthreads[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:links_Atomic_ops_c11[true]": " '#define HAVE_C11_ATOMIC_PRIMITIVES 1'",
-        "//third-party/meson/constraints:links_Atomic_ops_c11[false]": "",
-    }) + select({
-        "//third-party/meson/constraints:links_Atomic_ops_c11[true]": "",
-        "//third-party/meson/constraints:links_Atomic_ops_c11[false]": select({
-            "//third-party/meson/constraints:links_Atomic_ops_cxx11[true]": " '#define HAVE_CXX11_ATOMIC_PRIMITIVES 1'",
-            "//third-party/meson/constraints:links_Atomic_ops_cxx11[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define CAIRO_HAS_PTHREAD 1' '#define CAIRO_HAS_REAL_PTHREAD 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define CAIRO_HAS_PTHREAD 1' '#define CAIRO_HAS_REAL_PTHREAD 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define CAIRO_HAS_PTHREAD 1' '#define CAIRO_HAS_REAL_PTHREAD 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_PTHREAD 1' '#define CAIRO_HAS_REAL_PTHREAD 1'",
+            "DEFAULT": "",
         }),
+        "DEFAULT": " '#define CAIRO_HAS_PTHREAD 1' '#define CAIRO_HAS_REAL_PTHREAD 1'",
     }) + select({
-        "//third-party/meson/constraints:links_Atomic_ops_c11[true]": "",
-        "//third-party/meson/constraints:links_Atomic_ops_c11[false]": select({
-            "//third-party/meson/constraints:links_Atomic_ops_cxx11[true]": "",
-            "//third-party/meson/constraints:links_Atomic_ops_cxx11[false]": select({
-                "//third-party/meson/constraints:links_Atomic_ops_gcc_legacy[true]": " '#define HAVE_GCC_LEGACY_ATOMICS 1'",
-                "//third-party/meson/constraints:links_Atomic_ops_gcc_legacy[false]": "",
-            }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_C11_ATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_C11_ATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_C11_ATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_C11_ATOMIC_PRIMITIVES 1'",
+            "DEFAULT": " '#define HAVE_MKDIR 0'",
         }),
+        "DEFAULT": " '#define HAVE_C11_ATOMIC_PRIMITIVES 1'",
     }) + select({
-        "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_1_c[true]": "",
-        "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_1_c[false]": select({
-            "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_2_c[true]": "",
-            "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_2_c[false]": " '#define HAVE_MKDIR 0'",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKDIR 2'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKDIR 2'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKDIR 2'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKDIR 2'",
+            "DEFAULT": "",
         }),
-    }) + select({
-        "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_1_c[true]": "",
-        "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_1_c[false]": select({
-            "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_2_c[true]": " '#define HAVE_MKDIR 2'",
-            "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_2_c[false]": "",
-        }),
-    }) + select({
-        "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_1_c[true]": " '#define HAVE_MKDIR 1'",
-        "//third-party/meson/constraints:links_meson_cc_tests_mkdir_variant_1_c[false]": "",
+        "DEFAULT": " '#define HAVE_MKDIR 2'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define ATOMIC_OP_NEEDS_MEMORY_BARRIER 1'",
         "prelude//cpu/constraints:cpu[arm64]": " '#define ATOMIC_OP_NEEDS_MEMORY_BARRIER 1'",
@@ -2243,30 +2218,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "//third-party/meson/constraints:links_pthreads[true]": select({
-                "prelude//abi/constraints:abi[gnu]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_TRACE 1'",
-                    "DEFAULT": "",
-                }),
-                "prelude//abi/constraints:abi[musl]": select({
-                    "prelude//cpu/constraints:cpu[arm32]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[arm64]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[riscv64]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define CAIRO_HAS_TRACE 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_TRACE 1'",
-                    "DEFAULT": "",
-                }),
-                "DEFAULT": "",
-            }),
-            "//third-party/meson/constraints:links_pthreads[false]": "",
-        }),
-        "prelude//os/constraints:os[netbsd]": "",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:links_pthreads[true]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
                 "prelude//cpu/constraints:cpu[arm32]": " '#define CAIRO_HAS_TRACE 1'",
                 "prelude//cpu/constraints:cpu[arm64]": " '#define CAIRO_HAS_TRACE 1'",
                 "prelude//cpu/constraints:cpu[riscv64]": " '#define CAIRO_HAS_TRACE 1'",
@@ -2274,7 +2226,24 @@ genrule(
                 "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_TRACE 1'",
                 "DEFAULT": "",
             }),
-            "//third-party/meson/constraints:links_pthreads[false]": "",
+            "prelude//abi/constraints:abi[musl]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define CAIRO_HAS_TRACE 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define CAIRO_HAS_TRACE 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define CAIRO_HAS_TRACE 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define CAIRO_HAS_TRACE 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_TRACE 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": "",
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define CAIRO_HAS_TRACE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define CAIRO_HAS_TRACE 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define CAIRO_HAS_TRACE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define CAIRO_HAS_TRACE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define CAIRO_HAS_TRACE 1'",
+            "DEFAULT": "",
         }),
     }) + " > $OUT",
     visibility = ["PUBLIC"],

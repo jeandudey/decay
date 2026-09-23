@@ -196,38 +196,28 @@ _cppflags2 = [
 ]
 
 # meson: find_library("m")
-# `m` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "m",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-lm"],
-    }),
+    exported_linker_flags = [
+        "-lm",
+    ],
     visibility = ["PUBLIC"],
 )
 
 # meson: find_library("dl")
-# `dl` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "dl",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-ldl"],
-    }),
+    exported_linker_flags = [
+        "-ldl",
+    ],
     visibility = ["PUBLIC"],
 )
 
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
-    exported_preprocessor_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
+    exported_preprocessor_flags = ["-pthread"],
+    exported_linker_flags = ["-pthread"],
     visibility = ["PUBLIC"],
 )
 
@@ -269,7 +259,7 @@ genrule(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define XML_SYSCONFDIR \"/usr/local/etc\"' '#define HAVE_STDINT_H 1' '#define XML_THREAD_LOCAL _Thread_local' '#define HAVE_DLOPEN 1'" + select({
+    cmd = "printf '%s\\n'" + " '#define XML_SYSCONFDIR \"/usr/local/etc\"' '#define HAVE_STDINT_H 1' '#define XML_THREAD_LOCAL _Thread_local' '#define HAVE_FUNC_ATTRIBUTE_DESTRUCTOR 1' '#define HAVE_DLOPEN 1'" + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_DECL_GETENTROPY 1'",
             "DEFAULT": " '#define HAVE_DECL_GETENTROPY 0'",
@@ -293,10 +283,6 @@ genrule(
             "DEFAULT": " '#define HAVE_DECL_MMAP 0'",
         }),
         "DEFAULT": " '#define HAVE_DECL_MMAP 1'",
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": " '#define HAVE_FUNC_ATTRIBUTE_DESTRUCTOR 1'",
-        "//third-party/meson/constraints:compiler[clang]": " '#define HAVE_FUNC_ATTRIBUTE_DESTRUCTOR 1'",
-        "//third-party/meson/constraints:compiler[msvc]": "",
     }) + " > $OUT",
     visibility = ["PUBLIC"],
 )
@@ -359,21 +345,16 @@ cxx_library(
         "-Wno-long-long",
         "-Wno-format-extra-args",
         "-Wno-array-bounds",
+        "-Wshadow",
+        "-Wpointer-arith",
+        "-Wcast-align",
+        "-Wwrite-strings",
+        "-Wstrict-prototypes",
+        "-Wmissing-prototypes",
+        "-Wno-long-long",
+        "-Wno-format-extra-args",
+        "-Wno-array-bounds",
     ] + select({
-        "//third-party/meson/constraints:compiler[gcc]": [
-            "-Wshadow",
-            "-Wpointer-arith",
-            "-Wcast-align",
-            "-Wwrite-strings",
-            "-Wstrict-prototypes",
-            "-Wmissing-prototypes",
-            "-Wno-long-long",
-            "-Wno-format-extra-args",
-            "-Wno-array-bounds",
-        ],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": [],
-    }) + select({
         "//third-party/meson/libxml2/constraints:icu[enabled]": [""],
         "//third-party/meson/libxml2/constraints:icu[disabled]": [],
         "//third-party/meson/libxml2/constraints:icu[auto]": [],

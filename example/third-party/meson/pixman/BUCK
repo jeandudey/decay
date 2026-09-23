@@ -168,20 +168,7 @@ _needs_gtk_3_0_demos = ["//third-party/meson/constraints:gtk_3_0[true]"] + selec
     "//third-party/meson/pixman/constraints:demos[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
     "//third-party/meson/pixman/constraints:demos[auto]": [],
 })
-_cflags_compiler = [
-    "-Wdeclaration-after-statement",
-    "-fno-strict-aliasing",
-    "-fvisibility=hidden",
-    "-Wundef",
-    "-ftrapping-math",
-    "-Wno-unused-local-typedefs",
-    "-DHAVE_CONFIG_H",
-] + select({
-    "//third-party/meson/constraints:compiler[gcc]": [],
-    "//third-party/meson/constraints:compiler[clang]": [],
-    "//third-party/meson/constraints:compiler[msvc]": ["-D_USE_MATH_DEFINES"],
-})
-_deps_glib_2_0_openmp_compiler = [
+_deps_glib_2_0_openmp_libpng10 = [
     ":demo",
     ":pixman-dep",
     ":pixman-dep-2",
@@ -191,12 +178,9 @@ _deps_glib_2_0_openmp_compiler = [
     "//third-party/meson/constraints:glib_2_0[false]": [],
 }) + select({
     "//third-party/meson/constraints:openmp[true]": select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-        }),
+        "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
+        "//third-party/meson/pixman/constraints:openmp[disabled]": [],
+        "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
     }),
     "//third-party/meson/constraints:openmp[false]": [],
 }) + select({
@@ -306,553 +290,23 @@ _deps_glib_2_0_openmp_compiler = [
     }),
     "//third-party/meson/constraints:libpng[false]": [],
 })
-_deps_pthreadVCE2_os_cpu = [
+_deps_os_cpu_openmp = [
     ":pixman-dep",
     ":pixman-dep-2",
 ] + select({
-    "//third-party/meson/constraints:pthreadVCE2[true]": select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "DEFAULT": [],
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:pthreadVCE2[false]": [],
-}) + select({
-    "//third-party/meson/constraints:pthreadVSE2[true]": select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "DEFAULT": [],
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:pthreadVSE2[false]": [],
-}) + select({
-    "//third-party/meson/constraints:pthreadVC2[true]": select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                        }),
-                    }),
-                }),
-            }),
-            "DEFAULT": [],
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:pthreadVC2[false]": [],
-}) + select({
-    "//third-party/meson/constraints:pthreadVCE3[true]": select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                    }),
-                }),
-            }),
-            "DEFAULT": [],
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:pthreadVCE3[false]": [],
-}) + select({
-    "//third-party/meson/constraints:pthreadVSE3[true]": select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                }),
-            }),
-            "DEFAULT": [],
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:pthreadVSE3[false]": [],
-}) + select({
-    "//third-party/meson/constraints:pthreadVC3[true]": select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-            }),
-            "DEFAULT": [],
-        }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-        }),
-    }),
-    "//third-party/meson/constraints:pthreadVC3[false]": [],
-}) + select({
     "prelude//os/constraints:os[netbsd]": select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-            "//third-party/meson/constraints:compiler[clang]": [":threads"],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "prelude//cpu/constraints:cpu[arm64]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-            "//third-party/meson/constraints:compiler[clang]": [":threads"],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "prelude//cpu/constraints:cpu[x86_32]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-            "//third-party/meson/constraints:compiler[clang]": [":threads"],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "prelude//cpu/constraints:cpu[x86_64]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-            "//third-party/meson/constraints:compiler[clang]": [":threads"],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": [":threads"],
+        "prelude//cpu/constraints:cpu[arm64]": [":threads"],
+        "prelude//cpu/constraints:cpu[x86_32]": [":threads"],
+        "prelude//cpu/constraints:cpu[x86_64]": [":threads"],
         "DEFAULT": [],
     }),
-    "DEFAULT": select({
-        "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-        "//third-party/meson/constraints:compiler[clang]": [":threads"],
-        "//third-party/meson/constraints:compiler[msvc]": select({
-            "//third-party/meson/constraints:pthreadVC3[true]": [],
-            "//third-party/meson/constraints:pthreadVC3[false]": select({
-                "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                    "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVC2[true]": [],
-                        "//third-party/meson/constraints:pthreadVC2[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }),
+    "DEFAULT": [":threads"],
 }) + select({
     "//third-party/meson/constraints:openmp[true]": select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-        }),
+        "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
+        "//third-party/meson/pixman/constraints:openmp[disabled]": [],
+        "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
     }),
     "//third-party/meson/constraints:openmp[false]": [],
 }) + select({
@@ -967,17 +421,14 @@ _needs_tests = select({
     "//third-party/meson/pixman/constraints:tests[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
     "//third-party/meson/pixman/constraints:tests[auto]": [],
 })
-_deps_openmp_compiler = [
+_deps_openmp = [
     ":pixman-dep",
     ":pixman-dep-2",
 ] + select({
     "//third-party/meson/constraints:openmp[true]": select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-        }),
+        "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
+        "//third-party/meson/pixman/constraints:openmp[disabled]": [],
+        "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
     }),
     "//third-party/meson/constraints:openmp[false]": [],
 })
@@ -1044,81 +495,19 @@ cxx_library(
 )
 
 # meson: find_library("m")
-# `m` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "m",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-lm"],
-    }),
+    exported_linker_flags = [
+        "-lm",
+    ],
     visibility = ["PUBLIC"],
 )
 
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
-    exported_preprocessor_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pthreadVC3")
-cxx_library(
-    name = "pthreadVC3",
-    exported_linker_flags = [
-        "-lpthreadVC3",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pthreadVSE3")
-cxx_library(
-    name = "pthreadVSE3",
-    exported_linker_flags = [
-        "-lpthreadVSE3",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pthreadVCE3")
-cxx_library(
-    name = "pthreadVCE3",
-    exported_linker_flags = [
-        "-lpthreadVCE3",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pthreadVC2")
-cxx_library(
-    name = "pthreadVC2",
-    exported_linker_flags = [
-        "-lpthreadVC2",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pthreadVSE2")
-cxx_library(
-    name = "pthreadVSE2",
-    exported_linker_flags = [
-        "-lpthreadVSE2",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("pthreadVCE2")
-cxx_library(
-    name = "pthreadVCE2",
-    exported_linker_flags = [
-        "-lpthreadVCE2",
-    ],
+    exported_preprocessor_flags = ["-pthread"],
+    exported_linker_flags = ["-pthread"],
     visibility = ["PUBLIC"],
 )
 
@@ -1128,33 +517,14 @@ genrule(
     cmd = "printf '%s\\n'" + select({
         "//third-party/meson/pixman/constraints:mmx[disabled]": "",
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": " '#define USE_X86_MMX 1'",
-                "//third-party/meson/constraints:compiler[clang]": " '#define USE_X86_MMX 1'",
-                "//third-party/meson/constraints:compiler[msvc]": "",
-            }),
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": "",
-                "//third-party/meson/constraints:compiler[clang]": "",
-                "//third-party/meson/constraints:compiler[msvc]": " '#define USE_X86_MMX 1'",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": "",
-                "//third-party/meson/constraints:compiler[clang]": "",
-                "//third-party/meson/constraints:compiler[msvc]": " '#define USE_X86_MMX 1'",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": "",
-                "//third-party/meson/constraints:compiler[clang]": "",
-                "//third-party/meson/constraints:compiler[msvc]": " '#define USE_X86_MMX 1'",
-            }),
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_X86_MMX 1'",
+            "prelude//cpu/constraints:cpu[arm32]": "",
+            "prelude//cpu/constraints:cpu[arm64]": "",
+            "prelude//cpu/constraints:cpu[riscv64]": "",
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[msvc]": " '#define USE_X86_MMX 1'",
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_X86_MMX 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_X86_MMX 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_X86_MMX 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_X86_MMX 1'",
+                "DEFAULT": "",
             }),
         }),
     }) + select({
@@ -1173,34 +543,18 @@ genrule(
     }) + select({
         "//third-party/meson/pixman/constraints:ssse3[disabled]": "",
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": "",
-                "prelude//cpu/constraints:cpu[arm32]": "",
-                "prelude//cpu/constraints:cpu[arm64]": "",
-                "prelude//cpu/constraints:cpu[riscv64]": "",
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_SSSE3 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_SSSE3 1'",
-                    "DEFAULT": "",
-                }),
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": "",
+            "prelude//cpu/constraints:cpu[arm64]": "",
+            "prelude//cpu/constraints:cpu[riscv64]": "",
             "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": "",
-                "prelude//cpu/constraints:cpu[arm64]": "",
-                "prelude//cpu/constraints:cpu[riscv64]": "",
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_SSSE3 1'",
-                    "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_SSSE3 1'",
-                    "DEFAULT": "",
-                }),
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_SSSE3 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_SSSE3 1'",
+                "DEFAULT": "",
             }),
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define ASM_HAVE_SYNTAX_UNIFIED 1'",
         "DEFAULT": "",
-    }) + select({
-        "//third-party/meson/constraints:links_test_for_ASM_leading_underscore[true]": " '#define ASM_LEADING_UNDERSCORE 1'",
-        "//third-party/meson/constraints:links_test_for_ASM_leading_underscore[false]": "",
     }) + select({
         "//third-party/meson/pixman/constraints:gnu_inline_asm[enabled]": " '#define USE_GCC_INLINE_ASM 1'",
         "//third-party/meson/pixman/constraints:gnu_inline_asm[disabled]": "",
@@ -1212,15 +566,12 @@ genrule(
         "//third-party/meson/pixman/constraints:gnuplot[true]": " '#define PIXMAN_GNUPLOT 1'",
         "//third-party/meson/pixman/constraints:gnuplot[false]": "",
     }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": "",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:openmp[true]": select({
-                "//third-party/meson/pixman/constraints:openmp[enabled]": " '#define USE_OPENMP 1'",
-                "//third-party/meson/pixman/constraints:openmp[disabled]": "",
-                "//third-party/meson/pixman/constraints:openmp[auto]": " '#define USE_OPENMP 1'",
-            }),
-            "//third-party/meson/constraints:openmp[false]": "",
+        "//third-party/meson/constraints:openmp[true]": select({
+            "//third-party/meson/pixman/constraints:openmp[enabled]": " '#define USE_OPENMP 1'",
+            "//third-party/meson/pixman/constraints:openmp[disabled]": "",
+            "//third-party/meson/pixman/constraints:openmp[auto]": " '#define USE_OPENMP 1'",
         }),
+        "//third-party/meson/constraints:openmp[false]": "",
     }) + select({
         "//third-party/meson/pixman/constraints:libpng[disabled]": "",
         "DEFAULT": select({
@@ -1247,123 +598,13 @@ genrule(
         }),
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[clang]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": " '#define HAVE_PTHREADS 1'",
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": " '#define HAVE_PTHREADS 1'",
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": " '#define HAVE_PTHREADS 1'",
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": " '#define HAVE_PTHREADS 1'",
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": " '#define HAVE_PTHREADS 1'",
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": " '#define HAVE_PTHREADS 1'",
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": "",
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[clang]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": " '#define HAVE_PTHREADS 1'",
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": " '#define HAVE_PTHREADS 1'",
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": " '#define HAVE_PTHREADS 1'",
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": " '#define HAVE_PTHREADS 1'",
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": " '#define HAVE_PTHREADS 1'",
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": " '#define HAVE_PTHREADS 1'",
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": "",
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[clang]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": " '#define HAVE_PTHREADS 1'",
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": " '#define HAVE_PTHREADS 1'",
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": " '#define HAVE_PTHREADS 1'",
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": " '#define HAVE_PTHREADS 1'",
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": " '#define HAVE_PTHREADS 1'",
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": " '#define HAVE_PTHREADS 1'",
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": "",
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[clang]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": " '#define HAVE_PTHREADS 1'",
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": " '#define HAVE_PTHREADS 1'",
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": " '#define HAVE_PTHREADS 1'",
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": " '#define HAVE_PTHREADS 1'",
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": " '#define HAVE_PTHREADS 1'",
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": " '#define HAVE_PTHREADS 1'",
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": "",
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_PTHREADS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_PTHREADS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_PTHREADS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_PTHREADS 1'",
             "DEFAULT": "",
         }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": " '#define HAVE_PTHREADS 1'",
-            "//third-party/meson/constraints:compiler[clang]": " '#define HAVE_PTHREADS 1'",
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": " '#define HAVE_PTHREADS 1'",
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": " '#define HAVE_PTHREADS 1'",
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": " '#define HAVE_PTHREADS 1'",
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": " '#define HAVE_PTHREADS 1'",
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": " '#define HAVE_PTHREADS 1'",
-                                "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVCE2[true]": " '#define HAVE_PTHREADS 1'",
-                                    "//third-party/meson/constraints:pthreadVCE2[false]": "",
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
+        "DEFAULT": " '#define HAVE_PTHREADS 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
@@ -1707,30 +948,67 @@ genrule(
         }),
         "DEFAULT": " '#define HAVE_FEDIVBYZERO 1'",
     }) + select({
-        "//third-party/meson/constraints:check_header_sys_mman_h[true]": " '#define HAVE_SYS_MMAN_H 1'",
-        "//third-party/meson/constraints:check_header_sys_mman_h[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_MMAN_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_MMAN_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_MMAN_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_MMAN_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_SYS_MMAN_H 1'",
     }) + select({
-        "//third-party/meson/constraints:check_header_fenv_h[true]": " '#define HAVE_FENV_H 1'",
-        "//third-party/meson/constraints:check_header_fenv_h[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FENV_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FENV_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FENV_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FENV_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_FENV_H 1'",
     }) + select({
-        "//third-party/meson/constraints:check_header_unistd_h[true]": " '#define HAVE_UNISTD_H 1'",
-        "//third-party/meson/constraints:check_header_unistd_h[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UNISTD_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_UNISTD_H 1'",
     }) + select({
         "//third-party/meson/pixman/constraints:tls[enabled]": " '#define TLS __thread'",
         "//third-party/meson/pixman/constraints:tls[disabled]": "",
         "//third-party/meson/pixman/constraints:tls[auto]": " '#define TLS __thread'",
     }) + select({
-        "//third-party/meson/constraints:links_attribute_constructor[true]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
-        "//third-party/meson/constraints:links_attribute_constructor[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
     }) + select({
-        "//third-party/meson/constraints:links_attribute_destructor[true]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
-        "//third-party/meson/constraints:links_attribute_destructor[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
     }) + select({
-        "//third-party/meson/constraints:links_Has_float128_support[true]": " '#define HAVE_FLOAT128 1'",
-        "//third-party/meson/constraints:links_Has_float128_support[false]": "",
+        "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FLOAT128 1'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FLOAT128 1'",
+        "DEFAULT": "",
     }) + select({
-        "//third-party/meson/constraints:links_Support_for_GCC_vector_extensions[true]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
-        "//third-party/meson/constraints:links_Support_for_GCC_vector_extensions[false]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
     }) + select({
         "//third-party/meson/constraints:endian[little]": "",
         "//third-party/meson/constraints:endian[big]": " '#define WORDS_BIGENDIAN 1'",
@@ -1773,44 +1051,21 @@ cxx_library(
         "-ftrapping-math",
         "-Wno-unused-local-typedefs",
         "-DHAVE_CONFIG_H",
-    ] + select({
-        "//third-party/meson/constraints:compiler[msvc]": [
-            "/w14710",
-            "/w14714",
-            "/wd4244",
-        ],
-        "DEFAULT": [
-            "-mmmx",
-            "-Winline",
-        ],
-    }),
+        "-mmmx",
+        "-Winline",
+    ],
     preferred_linkage = "static",
     target_compatible_with = select({
         "//third-party/meson/pixman/constraints:mmx[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[x86_64]": [],
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "//third-party/meson/constraints:compiler[clang]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "//third-party/meson/constraints:compiler[msvc]": [],
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "//third-party/meson/constraints:compiler[clang]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "//third-party/meson/constraints:compiler[msvc]": [],
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "//third-party/meson/constraints:compiler[clang]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "//third-party/meson/constraints:compiler[msvc]": [],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[msvc]": [],
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": [],
-                    "prelude//cpu/constraints:cpu[x86_64]": [],
-                    "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                }),
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             }),
         }),
     }),
@@ -1837,13 +1092,9 @@ cxx_library(
         "-ftrapping-math",
         "-Wno-unused-local-typedefs",
         "-DHAVE_CONFIG_H",
-    ] + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": [
-            "-msse2",
-            "-Winline",
-        ],
-    }),
+        "-msse2",
+        "-Winline",
+    ],
     preferred_linkage = "static",
     target_compatible_with = select({
         "//third-party/meson/pixman/constraints:sse2[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
@@ -1881,37 +1132,20 @@ cxx_library(
         "-ftrapping-math",
         "-Wno-unused-local-typedefs",
         "-DHAVE_CONFIG_H",
-    ] + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": [
-            "-mssse3",
-            "-Winline",
-        ],
-    }),
+        "-mssse3",
+        "-Winline",
+    ],
     preferred_linkage = "static",
     target_compatible_with = select({
         "//third-party/meson/pixman/constraints:ssse3[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": [],
-                    "prelude//cpu/constraints:cpu[x86_64]": [],
-                    "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                }),
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": [],
-                    "prelude//cpu/constraints:cpu[x86_64]": [],
-                    "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                }),
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             }),
         }),
     }),
@@ -1969,45 +1203,18 @@ cxx_library(
         "pixman-region.c": ":pixman[pixman/pixman-region.c]",
     },
     header_namespace = "",
-    compiler_flags = [
-        "-Wdeclaration-after-statement",
-        "-fno-strict-aliasing",
-        "-fvisibility=hidden",
-        "-Wundef",
-        "-ftrapping-math",
-        "-Wno-unused-local-typedefs",
-        "-DHAVE_CONFIG_H",
-    ] + select({
-        "//third-party/meson/constraints:compiler[gcc]": [],
-        "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": ["-DPIXMAN_API=__declspec(dllexport)"],
-    }),
+    compiler_flags = _cflags,
     deps = select({
         "//third-party/meson/pixman/constraints:mmx[disabled]": [],
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[x86_64]": [":pixman-mmx"],
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pixman-mmx"],
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pixman-mmx"],
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pixman-mmx"],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": [],
+            "prelude//cpu/constraints:cpu[arm64]": [],
+            "prelude//cpu/constraints:cpu[riscv64]": [],
             "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[msvc]": [":pixman-mmx"],
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": [":pixman-mmx"],
-                    "prelude//cpu/constraints:cpu[x86_64]": [":pixman-mmx"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[x86_32]": [":pixman-mmx"],
+                "prelude//cpu/constraints:cpu[x86_64]": [":pixman-mmx"],
+                "DEFAULT": [],
             }),
         }),
     }) + select({
@@ -2026,564 +1233,24 @@ cxx_library(
     }) + select({
         "//third-party/meson/pixman/constraints:ssse3[disabled]": [],
         "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "prelude//cpu/constraints:cpu[x86_64]": [],
-                "prelude//cpu/constraints:cpu[arm32]": [],
-                "prelude//cpu/constraints:cpu[arm64]": [],
-                "prelude//cpu/constraints:cpu[riscv64]": [],
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": [":pixman-ssse3"],
-                    "prelude//cpu/constraints:cpu[x86_64]": [":pixman-ssse3"],
-                    "DEFAULT": [],
-                }),
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": [],
+            "prelude//cpu/constraints:cpu[arm64]": [],
+            "prelude//cpu/constraints:cpu[riscv64]": [],
             "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[arm32]": [],
-                "prelude//cpu/constraints:cpu[arm64]": [],
-                "prelude//cpu/constraints:cpu[riscv64]": [],
-                "DEFAULT": select({
-                    "prelude//cpu/constraints:cpu[x86_32]": [":pixman-ssse3"],
-                    "prelude//cpu/constraints:cpu[x86_64]": [":pixman-ssse3"],
-                    "DEFAULT": [],
-                }),
+                "prelude//cpu/constraints:cpu[x86_32]": [":pixman-ssse3"],
+                "prelude//cpu/constraints:cpu[x86_64]": [":pixman-ssse3"],
+                "DEFAULT": [],
             }),
         }),
     }) + [":m"] + select({
-        "//third-party/meson/constraints:pthreadVCE2[true]": select({
-            "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVCE2[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVSE2[true]": select({
-            "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVSE2[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVC2[true]": select({
-            "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                            }),
-                        }),
-                    }),
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVC2[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVCE3[true]": select({
-            "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                        }),
-                    }),
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVCE3[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVSE3[true]": select({
-            "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                    }),
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVSE3[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVC3[true]": select({
-            "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-                }),
-                "DEFAULT": [],
-            }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVC3[false]": [],
-    }) + select({
         "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-                "//third-party/meson/constraints:compiler[clang]": [":threads"],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-                "//third-party/meson/constraints:compiler[clang]": [":threads"],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-                "//third-party/meson/constraints:compiler[clang]": [":threads"],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-                "//third-party/meson/constraints:compiler[clang]": [":threads"],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": [":threads"],
+            "prelude//cpu/constraints:cpu[arm64]": [":threads"],
+            "prelude//cpu/constraints:cpu[x86_32]": [":threads"],
+            "prelude//cpu/constraints:cpu[x86_64]": [":threads"],
             "DEFAULT": [],
         }),
-        "DEFAULT": select({
-            "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-            "//third-party/meson/constraints:compiler[clang]": [":threads"],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVCE2[false]": [":threads"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
+        "DEFAULT": [":threads"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -2640,12 +1307,9 @@ cxx_library(
         ":m",
     ] + select({
         "//third-party/meson/constraints:openmp[true]": select({
-            "//third-party/meson/constraints:compiler[msvc]": [],
-            "DEFAULT": select({
-                "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-                "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-                "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-            }),
+            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
+            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
+            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
         }),
         "//third-party/meson/constraints:openmp[false]": [],
     }) + select({
@@ -2916,12 +1580,9 @@ cxx_library(
         "//third-party/meson/constraints:libpng[false]": [],
     }) + select({
         "//third-party/meson/constraints:openmp[true]": select({
-            "//third-party/meson/constraints:compiler[msvc]": [],
-            "DEFAULT": select({
-                "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-                "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-                "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-            }),
+            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
+            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
+            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
         }),
         "//third-party/meson/constraints:openmp[false]": [],
     }),
@@ -2935,9 +1596,9 @@ cxx_binary(
     srcs = [":pixman[demos/gradient-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -2947,9 +1608,9 @@ cxx_binary(
     srcs = [":pixman[demos/alpha-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -2964,9 +1625,9 @@ cxx_binary(
         "parrot.c": ":pixman[demos/parrot.c]",
     },
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -2976,9 +1637,9 @@ cxx_binary(
     srcs = [":pixman[demos/clip-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -2988,9 +1649,9 @@ cxx_binary(
     srcs = [":pixman[demos/trap-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3000,9 +1661,9 @@ cxx_binary(
     srcs = [":pixman[demos/screen-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3012,9 +1673,9 @@ cxx_binary(
     srcs = [":pixman[demos/convolution-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3024,9 +1685,9 @@ cxx_binary(
     srcs = [":pixman[demos/radial-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3036,9 +1697,9 @@ cxx_binary(
     srcs = [":pixman[demos/linear-gradient.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3048,9 +1709,9 @@ cxx_binary(
     srcs = [":pixman[demos/conical-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3060,9 +1721,9 @@ cxx_binary(
     srcs = [":pixman[demos/tri-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3072,9 +1733,9 @@ cxx_binary(
     srcs = [":pixman[demos/checkerboard.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3084,9 +1745,9 @@ cxx_binary(
     srcs = [":pixman[demos/srgb-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3096,9 +1757,9 @@ cxx_binary(
     srcs = [":pixman[demos/srgb-trap-test.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3108,9 +1769,9 @@ cxx_binary(
     srcs = [":pixman[demos/scale.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3120,9 +1781,9 @@ cxx_binary(
     srcs = [":pixman[demos/dither.c]"],
     headers = _headers3,
     header_namespace = "",
-    compiler_flags = _cflags_compiler,
+    compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_compiler,
+    deps = _deps_glib_2_0_openmp_libpng10,
     target_compatible_with = _needs_gtk_3_0_demos,
     visibility = ["PUBLIC"],
 )
@@ -3134,7 +1795,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3146,7 +1807,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3158,7 +1819,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3170,7 +1831,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3182,7 +1843,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3194,7 +1855,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3206,7 +1867,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3218,7 +1879,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3230,7 +1891,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3242,7 +1903,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3254,7 +1915,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3266,7 +1927,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3278,7 +1939,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3290,7 +1951,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3302,7 +1963,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3314,7 +1975,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3326,7 +1987,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3338,7 +1999,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3350,7 +2011,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3362,7 +2023,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3374,7 +2035,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3386,7 +2047,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3398,7 +2059,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3410,7 +2071,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3422,7 +2083,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3434,7 +2095,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3446,7 +2107,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3458,7 +2119,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3470,7 +2131,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3482,7 +2143,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3494,7 +2155,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3506,7 +2167,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3518,7 +2179,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3530,7 +2191,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_pthreadVCE2_os_cpu,
+    deps = _deps_os_cpu_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3545,105 +2206,12 @@ cxx_binary(
     deps = [
         ":pixman-dep",
         ":pixman-dep-2",
+        ":threads",
     ] + select({
-        "//third-party/meson/constraints:pthreadVCE2[true]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                "//third-party/meson/constraints:pthreadVSE2[false]": [":pthreadVCE2"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVCE2[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVSE2[true]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVC2[true]": [],
-                            "//third-party/meson/constraints:pthreadVC2[false]": [":pthreadVSE2"],
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVSE2[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVC2[true]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                        "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVCE3[false]": [":pthreadVC2"],
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVC2[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVCE3[true]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": select({
-                    "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                    "//third-party/meson/constraints:pthreadVSE3[false]": [":pthreadVCE3"],
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVCE3[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVSE3[true]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": select({
-                "//third-party/meson/constraints:pthreadVC3[true]": [],
-                "//third-party/meson/constraints:pthreadVC3[false]": [":pthreadVSE3"],
-            }),
-        }),
-        "//third-party/meson/constraints:pthreadVSE3[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:pthreadVC3[true]": select({
-            "//third-party/meson/constraints:compiler[gcc]": [],
-            "//third-party/meson/constraints:compiler[clang]": [],
-            "//third-party/meson/constraints:compiler[msvc]": [":pthreadVC3"],
-        }),
-        "//third-party/meson/constraints:pthreadVC3[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:compiler[gcc]": [":threads"],
-        "//third-party/meson/constraints:compiler[clang]": [":threads"],
-        "//third-party/meson/constraints:compiler[msvc]": [],
-    }) + select({
         "//third-party/meson/constraints:openmp[true]": select({
-            "//third-party/meson/constraints:compiler[msvc]": [],
-            "DEFAULT": select({
-                "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-                "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-                "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-            }),
+            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
+            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
+            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
         }),
         "//third-party/meson/constraints:openmp[false]": [],
     }) + select({
@@ -3757,123 +2325,13 @@ cxx_binary(
         "//third-party/meson/pixman/constraints:tests[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
         "DEFAULT": select({
             "prelude//os/constraints:os[netbsd]": select({
-                "prelude//cpu/constraints:cpu[arm32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                            "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                            "//third-party/meson/constraints:pthreadVCE2[false]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                                        }),
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[arm64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                            "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                            "//third-party/meson/constraints:pthreadVCE2[false]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                                        }),
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_32]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                            "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                            "//third-party/meson/constraints:pthreadVCE2[false]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                                        }),
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-                "prelude//cpu/constraints:cpu[x86_64]": select({
-                    "//third-party/meson/constraints:compiler[gcc]": [],
-                    "//third-party/meson/constraints:compiler[clang]": [],
-                    "//third-party/meson/constraints:compiler[msvc]": select({
-                        "//third-party/meson/constraints:pthreadVC3[true]": [],
-                        "//third-party/meson/constraints:pthreadVC3[false]": select({
-                            "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                                "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                    "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                            "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                            "//third-party/meson/constraints:pthreadVCE2[false]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                                        }),
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
                 "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             }),
-            "DEFAULT": select({
-                "//third-party/meson/constraints:compiler[gcc]": [],
-                "//third-party/meson/constraints:compiler[clang]": [],
-                "//third-party/meson/constraints:compiler[msvc]": select({
-                    "//third-party/meson/constraints:pthreadVC3[true]": [],
-                    "//third-party/meson/constraints:pthreadVC3[false]": select({
-                        "//third-party/meson/constraints:pthreadVSE3[true]": [],
-                        "//third-party/meson/constraints:pthreadVSE3[false]": select({
-                            "//third-party/meson/constraints:pthreadVCE3[true]": [],
-                            "//third-party/meson/constraints:pthreadVCE3[false]": select({
-                                "//third-party/meson/constraints:pthreadVC2[true]": [],
-                                "//third-party/meson/constraints:pthreadVC2[false]": select({
-                                    "//third-party/meson/constraints:pthreadVSE2[true]": [],
-                                    "//third-party/meson/constraints:pthreadVSE2[false]": select({
-                                        "//third-party/meson/constraints:pthreadVCE2[true]": [],
-                                        "//third-party/meson/constraints:pthreadVCE2[false]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-                                    }),
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
+            "DEFAULT": [],
         }),
     }),
     visibility = ["PUBLIC"],
@@ -3886,7 +2344,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_compiler,
+    deps = _deps_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3898,7 +2356,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_compiler,
+    deps = _deps_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3910,7 +2368,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_compiler,
+    deps = _deps_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3922,7 +2380,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_compiler,
+    deps = _deps_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -3934,7 +2392,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_compiler,
+    deps = _deps_openmp,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )

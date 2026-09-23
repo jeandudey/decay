@@ -60,27 +60,19 @@ git_fetch(
 )
 
 # meson: find_library("m")
-# `m` has no standalone link library on MSVC / clang-cl (folded into the CRT, or absent); not found there.
 cxx_library(
     name = "m",
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-lm"],
-    }),
+    exported_linker_flags = [
+        "-lm",
+    ],
     visibility = ["PUBLIC"],
 )
 
 # meson: dependency('threads') — the platform's threading support
 cxx_library(
     name = "threads",
-    exported_preprocessor_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
-    exported_linker_flags = select({
-        "prelude//abi/constraints:abi[msvc]": [],
-        "DEFAULT": ["-pthread"],
-    }),
+    exported_preprocessor_flags = ["-pthread"],
+    exported_linker_flags = ["-pthread"],
     visibility = ["PUBLIC"],
 )
 
@@ -122,10 +114,7 @@ genrule(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define HAVE_STDLIB_H' '#define HAVE_STDINT_H' '#define HAVE_STDBOOL_H' '#define HAVE_MEMORY_H' '#define HAVE_SINCOSF' '#define _GRAPHENE_PUBLIC __attribute__((visibility(\"default\"))) extern'" + select({
-        "//third-party/meson/constraints:has_header_pthread_h[true]": " '#define HAVE_PTHREAD_H'",
-        "//third-party/meson/constraints:has_header_pthread_h[false]": " '/* #undef HAVE_PTHREAD_H */'",
-    }) + select({
+    cmd = "printf '%s\\n'" + " '#define HAVE_STDLIB_H' '#define HAVE_STDINT_H' '#define HAVE_STDBOOL_H' '#define HAVE_MEMORY_H' '#define HAVE_PTHREAD_H' '#define HAVE_SINCOSF' '#define _GRAPHENE_PUBLIC __attribute__((visibility(\"default\"))) extern'" + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//cpu/constraints:cpu[arm32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
@@ -251,85 +240,50 @@ cxx_library(
     compiler_flags = [
         "-D_GNU_SOURCE",
         "-fvisibility=hidden",
+        "-ffast-math",
+        "-fstrict-aliasing",
+        "-Wpointer-arith",
+        "-Wstrict-prototypes",
+        "-Wnested-externs",
+        "-Wold-style-definition",
+        "-Wunused",
+        "-Wmissing-noreturn",
+        "-Wmissing-format-attribute",
+        "-Wcast-align",
+        "-Wno-unused-local-typedefs",
+        "-Werror=float-conversion",
+        "-Werror=float-equal",
+        "-Werror=redundant-decls",
+        "-Werror=missing-prototypes",
+        "-Werror=missing-declarations",
+        "-Werror=format=2",
+        "-Werror=uninitialized",
+        "-Werror=shadow",
+        "-Werror=implicit",
+        "-Werror=init-self",
+        "-Werror=main",
+        "-Werror=missing-braces",
+        "-Werror=return-type",
+        "-Werror=array-bounds",
+        "-Werror=write-strings",
+        "-Werror=undef",
         "-DG_DISABLE_ASSERT",
         "-DGRAPHENE_COMPILATION",
     ] + select({
-        "//third-party/meson/constraints:compiler[msvc]": [
-            "/FImsvc_recommended_pragmas.h",
-            "-we4002",
-            "-we4003",
-            "-w14010",
-            "-we4013",
-            "-w14016",
-            "-we4020",
-            "-we4021",
-            "-we4027",
-            "-we4029",
-            "-we4033",
-            "-we4035",
-            "-we4045",
-            "-we4047",
-            "-we4049",
-            "-we4053",
-            "-we4071",
-            "-we4244",
-            "-we4150",
-            "-utf-8",
-        ],
-        "DEFAULT": [
-            "-ffast-math",
-            "-fstrict-aliasing",
-            "-Wpointer-arith",
-            "-Wstrict-prototypes",
-            "-Wnested-externs",
-            "-Wold-style-definition",
-            "-Wunused",
-            "-Wmissing-noreturn",
-            "-Wmissing-format-attribute",
-            "-Wcast-align",
-            "-Wno-unused-local-typedefs",
-            "-Werror=float-conversion",
-            "-Werror=float-equal",
-            "-Werror=redundant-decls",
-            "-Werror=missing-prototypes",
-            "-Werror=missing-declarations",
-            "-Werror=format=2",
-            "-Werror=uninitialized",
-            "-Werror=shadow",
-            "-Werror=implicit",
-            "-Werror=init-self",
-            "-Werror=main",
-            "-Werror=missing-braces",
-            "-Werror=return-type",
-            "-Werror=array-bounds",
-            "-Werror=write-strings",
-            "-Werror=undef",
-        ],
-    }) + select({
         "//third-party/meson/constraints:compiler[gcc]": ["-Wlogical-op"],
         "//third-party/meson/constraints:compiler[clang]": [],
-        "//third-party/meson/constraints:compiler[msvc]": [],
     }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": [
-                "-mfpmath=sse",
-                "-msse",
-                "-msse2",
-            ],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[x86_64]": [
+            "-mfpmath=sse",
+            "-msse",
+            "-msse2",
+        ],
+        "DEFAULT": [],
     }) + select({
-        "//third-party/meson/constraints:compiler[msvc]": [],
+        "prelude//cpu/constraints:cpu[arm64]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//cpu/constraints:cpu[arm64]": [],
-                "DEFAULT": ["-mfpu=neon"],
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//cpu/constraints:cpu[arm64]": [],
-                "DEFAULT": ["-mfpu=neon"],
-            }),
+            "prelude//cpu/constraints:cpu[arm32]": ["-mfpu=neon"],
+            "prelude//cpu/constraints:cpu[arm64]": ["-mfpu=neon"],
             "DEFAULT": [],
         }),
     }),
