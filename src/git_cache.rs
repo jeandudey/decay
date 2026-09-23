@@ -37,8 +37,12 @@ impl GitCache {
         let ident = repo.ident()?;
         let db = self.db_dir(&ident);
 
+        // Same key `materialize` publishes under below: the first 16 hex
+        // digits of the commit, which `rev-parse` spells in lowercase.
         if is_full_sha(rev) {
-            let dest = self.checkouts_dir(&ident).join(&rev[16..]);
+            let dest = self
+                .checkouts_dir(&ident)
+                .join(rev[..16].to_ascii_lowercase());
             if dest.join(".ok").exists() {
                 return Ok(dest);
             }

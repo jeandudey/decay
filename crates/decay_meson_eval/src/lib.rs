@@ -137,20 +137,32 @@ pub fn eval(
 
 /// Statement-level control flow.
 ///
-/// `Break`/`Continue` carry the path condition they fired under, so a loop
-/// over a static list can still translate a `break` that only some
-/// configurations take — the remaining iterations run under its negation.
+/// Each field is the set of configurations that have left normal execution
+/// that way. A jump taken under only some configurations removes just those
+/// from the path: [`Interp::block`] runs the statements after it under the
+/// rest, so a `break` inside an `if` still lets the other configurations
+/// finish the iteration, and a `subdir_done()` in one arm still lets the
+/// `else` run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Flow {
-    Normal,
-    Break(Pc),
-    Continue(Pc),
-    /// `subdir_done()` was reached under this condition: the rest of the
-    /// current `meson.build` is skipped for those configurations, the others
-    /// carry on past the `subdir()` that entered it.
-    Done(Pc),
+struct Flow {
+    /// `break`: the rest of this iteration and every later one is skipped.
+    brk: Pc,
+    /// `continue`: the rest of this iteration is skipped.
+    cont: Pc,
+    /// `subdir_done()`: the rest of the current `meson.build` is skipped; the
+    /// file that `subdir()`ed into it carries on.
+    done: Pc,
     /// `error()` was reached: this path does not configure at all.
-    Abort,
+    abort: bool,
+}
+
+impl Flow {
+    const NORMAL: Self = Self {
+        brk: Pc::FALSE,
+        cont: Pc::FALSE,
+        done: Pc::FALSE,
+        abort: false,
+    };
 }
 
 /// What [`Interp::loop_entries`] hands back: one entry per taken iteration,
@@ -235,7 +247,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             oracle,
             sources,
             pc: Pc::TRUE,
-            flow: Flow::Normal,
+            flow: Flow::NORMAL,
             vars,
             graph: Graph::new(),
             options: ProjectOptions::new(),
@@ -267,7 +279,17 @@ impl<'a, S: Solver> Interp<'a, S> {
                 bail!("`decay.toml` pins option `{name}`, which this project does not declare");
             }
         }
-        self.subdir(Path::new(""))
+        self.subdir(Path::new(""))?;
+        // `error()` reports its own case; a `required:` lookup or an
+        // `assert()` can also rule out the last configuration standing, and a
+        // graph evaluated under none of them is empty, not a result.
+        if !self.logic.is_consistent() {
+            bail!(
+                "no configuration of this project can be configured: its `required:` \
+                 lookups and `assert()`s rule them all out"
+            );
+        }
+        Ok(())
     }
 
     /// The finished graph, together with the logic it was built against.
@@ -383,9 +405,12 @@ impl<'a, S: Solver> Interp<'a, S> {
             .build(&abs)
             .wrap_err_with(|| format!("in {}", abs.display()))?;
 
+        // A `subdir_done()` in there ends that file, not this one, and an
+        // `error()` there has already removed its configurations from the
+        // space; either way the caller carries on from the `subdir()` call.
         self.dirs.push(dir.to_path_buf());
-        let saved_flow = mem::replace(&mut self.flow, Flow::Normal);
-        let r = self.file_block(&block);
+        let saved_flow = mem::replace(&mut self.flow, Flow::NORMAL);
+        let r = self.block(&block);
         self.flow = saved_flow;
         self.dirs.pop();
         r.wrap_err_with(|| format!("in {}/meson.build", dir.display()))
@@ -393,41 +418,39 @@ impl<'a, S: Solver> Interp<'a, S> {
 
     // -- statements -------------------------------------------------------
 
+    /// Run a block's statements in order. A `break`/`continue`/`subdir_done()`
+    /// reached under only some configurations drops exactly those from the
+    /// statements that follow, which keep running under the rest.
     pub fn block(&mut self, block: &Block) -> eyre::Result<()> {
-        for stmt in &block.0 {
-            self.stmt(stmt)?;
-            if self.flow != Flow::Normal {
-                break;
-            }
-        }
-        Ok(())
+        let entry = self.pc;
+        let r = self.block_inner(block, entry);
+        self.pc = entry;
+        r
     }
 
-    /// Like [`Self::block`], but for a whole `meson.build`. A `subdir_done()`
-    /// under a partial condition drops the rest of the file for exactly those
-    /// configurations and keeps interpreting it under the complement, rather
-    /// than stopping the file for everything.
-    fn file_block(&mut self, block: &Block) -> eyre::Result<()> {
-        let entry = self.pc;
+    fn block_inner(&mut self, block: &Block, entry: Pc) -> eyre::Result<()> {
         for stmt in &block.0 {
+            let before = self.flow;
             self.stmt(stmt)?;
-            match self.flow {
-                Flow::Normal => {}
-                Flow::Done(done) => {
-                    self.flow = Flow::Normal;
-                    let rest = {
-                        let not_done = self.logic.not(done);
-                        self.logic.and(self.pc, not_done)
-                    };
-                    if rest.is_false() || !self.logic.is_sat(rest) {
-                        break;
-                    }
-                    self.pc = rest;
-                }
-                _ => break,
+            if self.flow.abort {
+                break;
             }
+            if self.flow == before {
+                continue;
+            }
+            let gone = {
+                let jumped = self.logic.or(self.flow.brk, self.flow.cont);
+                self.logic.or(jumped, self.flow.done)
+            };
+            let rest = {
+                let alive = self.logic.not(gone);
+                self.logic.and(entry, alive)
+            };
+            if rest.is_false() || !self.logic.is_sat(rest) {
+                break;
+            }
+            self.pc = rest;
         }
-        self.pc = entry;
         Ok(())
     }
 
@@ -459,8 +482,8 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
             Stmt::If(v) => self.exec_if(v)?,
             Stmt::Foreach(v) => self.exec_foreach(v)?,
-            Stmt::Break => self.flow = Flow::Break(self.pc),
-            Stmt::Continue => self.flow = Flow::Continue(self.pc),
+            Stmt::Break => self.flow.brk = self.logic.or(self.flow.brk, self.pc),
+            Stmt::Continue => self.flow.cont = self.logic.or(self.flow.cont, self.pc),
         }
         Ok(())
     }
@@ -498,11 +521,11 @@ impl<'a, S: Solver> Interp<'a, S> {
             if taken.is_false() || !self.logic.is_sat(taken) {
                 continue;
             }
+            // A jump inside the arm only concerns the configurations that
+            // took it; `open` already excludes those, so the remaining arms
+            // still run, and the enclosing block drops the jumped ones from
+            // whatever follows.
             self.run_branch(taken, block)?;
-            if self.flow != Flow::Normal {
-                self.pc = entry;
-                return Ok(());
-            }
         }
 
         if !open.is_false()
@@ -523,17 +546,19 @@ impl<'a, S: Solver> Interp<'a, S> {
         let r = self.block(block);
         self.pc = saved;
         r?;
-        if self.flow == Flow::Abort {
-            // The configurations that reached `error()` no longer exist; the
-            // ones that did not carry on normally.
-            self.flow = Flow::Normal;
-        }
+        // The configurations that reached `error()` no longer exist; the ones
+        // that did not carry on normally.
+        self.flow.abort = false;
         Ok(())
     }
 
     fn exec_foreach(&mut self, stmt: &ForeachStmt) -> eyre::Result<()> {
         let iter = self.expr(&stmt.iter)?;
         let entry = self.pc;
+
+        // `break`/`continue` belong to this loop; the enclosing one's, if any,
+        // are restored once it finishes.
+        let outer = self.flow;
 
         // Each variant of the iterable is a different sequence; run the loop
         // once per variant, under that variant's configurations.
@@ -543,15 +568,16 @@ impl<'a, S: Solver> Interp<'a, S> {
                 continue;
             }
             let entries = self.loop_entries(&variant.value, &stmt.names, base)?;
-            let last = entries.len().saturating_sub(1);
 
-            // Configurations in which an earlier iteration has already `break`ed.
-            // Later iterations run under the negation, so a "first match wins"
-            // loop over a static list becomes a chain of conditions.
+            // Configurations in which an earlier iteration has already
+            // `break`ed, or reached `subdir_done()`. Later iterations run under
+            // the negation, so a "first match wins" loop over a static list
+            // becomes a chain of conditions.
             let mut broken = Pc::FALSE;
 
-            for (i, (cond, bindings)) in entries.into_iter().enumerate() {
-                let alive = self.logic.not(broken);
+            for (cond, bindings) in entries {
+                let stopped = self.logic.or(broken, self.flow.done);
+                let alive = self.logic.not(stopped);
                 let g = {
                     let gc = self.logic.and(base, cond);
                     self.logic.and(gc, alive)
@@ -565,46 +591,22 @@ impl<'a, S: Solver> Interp<'a, S> {
                     }
                 });
 
+                self.flow.brk = Pc::FALSE;
+                self.flow.cont = Pc::FALSE;
                 let saved = mem::replace(&mut self.pc, g);
                 let r = self.block(&stmt.body);
                 self.pc = saved;
                 r?;
 
-                match self.flow {
-                    Flow::Abort => {
-                        self.flow = Flow::Normal;
-                    }
-                    Flow::Break(bpc) => {
-                        self.flow = Flow::Normal;
-                        broken = self.logic.or(broken, bpc);
-                        if self.logic.entails(base, broken) {
-                            break;
-                        }
-                    }
-                    Flow::Continue(cpc) => {
-                        self.flow = Flow::Normal;
-                        // Everything after a `continue` in the body was skipped
-                        // for the whole iteration; that is only faithful if the
-                        // `continue` covers it, or there is no later iteration
-                        // whose bindings those statements would have seen.
-                        if i != last && !self.logic.entails(g, cpc) {
-                            bail!(
-                                "`continue` inside a loop over a configuration-dependent \
-                                 element has no static translation"
-                            );
-                        }
-                    }
-                    // `subdir_done()` fired in the body: unwind the loop and
-                    // let `file_block` skip the rest of the file.
-                    Flow::Done(_) => break,
-                    Flow::Normal => {}
-                }
-            }
-            if matches!(self.flow, Flow::Done(_)) {
-                break;
+                // An `error()` only removed its own configurations; a
+                // `continue` only ended this iteration.
+                self.flow.abort = false;
+                broken = self.logic.or(broken, self.flow.brk);
             }
         }
 
+        self.flow.brk = outer.brk;
+        self.flow.cont = outer.cont;
         self.pc = entry;
         Ok(())
     }
@@ -1429,14 +1431,14 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// Give up on the configurations currently being executed: they hit an
     /// `error()` and do not configure.
     pub(crate) fn abort(&mut self) {
-        self.flow = Flow::Abort;
+        self.flow.abort = true;
     }
 
     /// `subdir_done()`: stop interpreting the current `meson.build` for the
-    /// configurations executing right now. [`Self::file_block`] resumes the
+    /// configurations executing right now. [`Self::block`] resumes the
     /// file under the complement.
     pub(crate) fn subdir_done(&mut self) {
-        self.flow = Flow::Done(self.pc);
+        self.flow.done = self.logic.or(self.flow.done, self.pc);
     }
 
     pub(crate) fn warn_unsupported(&self, what: &str, loc: Loc) {

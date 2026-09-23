@@ -132,6 +132,14 @@ impl<S: Solver> Logic<S> {
         );
     }
 
+    /// Whether any configuration is left at all, once everything
+    /// [`Self::assume`]d so far is taken into account. [`Self::is_sat`] answers
+    /// `true` for [`Pc::TRUE`] without asking, so it cannot tell.
+    pub fn is_consistent(&mut self) -> bool {
+        let top = self.solver.top();
+        self.solver.is_sat(&top)
+    }
+
     pub fn is_sat(&mut self, pc: Pc) -> bool {
         stats::bump(&stats::IS_SAT_CALLS);
         if pc.is_false() {

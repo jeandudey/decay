@@ -2454,6 +2454,13 @@ impl<'a, S: Solver> Interp<'a, S> {
         let dead = self.pc;
         let alive = self.logic.not(dead);
         self.logic.assume(alive);
+        if !self.logic.is_consistent() {
+            bail!(
+                "every configuration reaches `error({})`, so the project cannot be \
+                 configured; check the options `decay.toml` pins",
+                text.join(" ")
+            );
+        }
         self.abort();
         Ok(self.pure(Value::Unset))
     }
