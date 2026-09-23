@@ -40,7 +40,10 @@ use {
         rc::Rc,
         str::FromStr, //
     },
-    tracing::debug,
+    tracing::{
+        debug,
+        warn, //
+    },
 };
 
 /// Function attribute names `cc.has_function_attribute()` recognizes —
@@ -539,8 +542,20 @@ impl<'a, S: Solver> Interp<'a, S> {
             (Obj::Module(Module::GNOME), "genmarshal") => self.fn_genmarshal(args),
             (Obj::Module(Module::Fs), "exists" | "is_file" | "is_dir") => {
                 let path = self.one_string(args.at(0).ok_or_eyre("expected a path")?)?;
-                let resolved = self.resolve(&path)?;
-                let exists = self.sources.exists(&self.root.join(&resolved));
+                // A path outside the checkout asks about the machine running
+                // meson (fontconfig's `/usr/X11R6/lib/X11/fonts`), which the
+                // generated build never sees: it is not there for the build.
+                let exists = match self.resolve_in_tree(&path) {
+                    Some(resolved) => self.sources.exists(&self.root.join(resolved)),
+                    None => {
+                        warn!(
+                            at = %self.here(loc),
+                            "`fs.{name}('{path}')` asks about the host outside the project; \
+                             answering false"
+                        );
+                        false
+                    }
+                };
                 Ok(self.bool_value(if exists { self.pc } else { Pc::FALSE }))
             }
             (Obj::Module(Module::Fs), "copyfile") => self.fn_fs_copyfile(args),

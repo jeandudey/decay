@@ -294,3 +294,26 @@ endif
     let cond = target_cond(&graph, "uses");
     assert_eq!(systems(&mut logic, cond), ["linux"]);
 }
+
+#[test]
+fn a_host_path_probe_is_not_there_for_the_build() {
+    let (graph, _) = eval(
+        "fs-host",
+        &TestOracle::default(),
+        &[
+            MAIN,
+            (
+                "meson.build",
+                r#"
+project('t', 'c')
+fs = import('fs')
+if fs.is_dir('/usr') or fs.exists('../outside')
+  executable('never', 'main.c')
+endif
+"#,
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(graph.targets.iter().all(|t| t.name != "never"));
+}
