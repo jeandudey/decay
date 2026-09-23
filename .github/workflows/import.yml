@@ -70,10 +70,11 @@ jobs:
 
       # zig's own cache: the libc it builds per target the first time a link
       # probe runs for it (musl, glibc and BSD stubs), minutes when cold.
-      - uses: actions/cache@v4
+      # Saved even when a later step fails.
+      - uses: actions/cache/restore@v4
         with:
           path: ~/.cache/zig
-          key: zig-cache-0.15.2-${{ hashFiles('example/decay.toml') }}
+          key: zig-cache-0.15.2-${{ github.sha }}
           restore-keys: zig-cache-0.15.2-
 
       - run: cargo build --release --bin decay
@@ -148,6 +149,12 @@ jobs:
             git diff -- example/
             exit 1
           fi
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.cache/zig
+          key: zig-cache-0.15.2-${{ github.sha }}
 
       - name: Stop buck2 daemon
         if: always()

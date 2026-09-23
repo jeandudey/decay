@@ -990,7 +990,10 @@ impl<'a, S: Solver> Interp<'a, S> {
         }
         let link = name == "links";
 
-        let arg0 = self.strings(args.at(0)?).ok()?;
+        let arg0 = match name {
+            "compiles" | "links" => self.probe_code(args.at(0)?)?,
+            _ => self.strings(args.at(0)?).ok()?,
+        };
         let arg1 = match two_args {
             true => self.strings(args.at(1)?).ok()?,
             false => Variational::empty(),
@@ -1063,6 +1066,27 @@ impl<'a, S: Solver> Interp<'a, S> {
                 _ => return None,
             };
             out.push((region, CompileProbe { kind, args }));
+        }
+        Some(out)
+    }
+
+    /// A `cc.compiles()` / `cc.links()` source: the text itself, or the
+    /// contents of a `files()` entry (never its path).
+    fn probe_code(&mut self, v: &Variational<Value>) -> Option<Variational<Rc<str>>> {
+        let flat = self.flat(v);
+        if !flat
+            .iter()
+            .any(|f| matches!(f.value, Value::Obj(Obj::File(_) | Obj::PrefixedFile(..))))
+        {
+            return self.strings(v).ok();
+        }
+        let mut out = Variational::empty();
+        for f in flat {
+            let Value::Obj(Obj::File(path)) = &f.value else {
+                return None;
+            };
+            let text = self.sources.read(&self.root.join(&**path)).ok()?;
+            out.push(Variant::new(f.cond, Rc::from(text)));
         }
         Some(out)
     }

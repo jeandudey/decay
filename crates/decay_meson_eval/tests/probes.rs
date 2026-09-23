@@ -88,6 +88,7 @@ fn eval(name: &str, oracle: &TestOracle, build: &str) -> (Graph, Logic<Z3Solver>
     std::fs::remove_dir_all(&root).ok();
     std::fs::create_dir_all(&root).unwrap();
     std::fs::write(root.join("main.c"), "int main(void) { return 0; }\n").unwrap();
+    std::fs::write(root.join("HAVE_A.c"), "int HAVE_A;\n").unwrap();
     std::fs::write(root.join("meson.build"), build).unwrap();
     let r = decay_meson_eval::eval(oracle, &TestSources, &root);
     std::fs::remove_dir_all(&root).ok();
@@ -173,6 +174,24 @@ cc.symbols_have_underscore_prefix()
     assert!(asked[3].links());
     assert_eq!(asked[3].args, ["-lrt"]);
     assert!(asked[4].snippet().contains("__USER_LABEL_PREFIX__"));
+}
+
+#[test]
+fn a_file_argument_is_probed_by_its_contents() {
+    let oracle = TestOracle::default();
+    let (graph, _) = eval(
+        "file",
+        &oracle,
+        r#"
+project('t', 'c')
+cc = meson.get_compiler('c')
+if cc.links(files('HAVE_A.c'), name: 'from a file')
+  executable('uses', 'main.c')
+endif
+"#,
+    );
+    assert_eq!(oracle.asked.borrow()[0].snippet(), "int HAVE_A;\n\n");
+    assert!(graph.targets.iter().any(|t| t.name == "uses"));
 }
 
 #[test]
