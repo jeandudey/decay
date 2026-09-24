@@ -172,9 +172,11 @@ impl<'a> ConfigOracle<'a> {
                     }
                 }
             }
+            let (axes, rows) =
+                collapse_full_axes(self.probe_axes(system), rows, &probe::unprobed_cpus(system));
             systems.push(MatrixSystem {
                 system: system.to_owned(),
-                axes: self.probe_axes(system),
+                axes,
                 rows,
             });
         }
