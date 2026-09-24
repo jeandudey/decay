@@ -71,6 +71,16 @@ pub trait Oracle {
         None
     }
 
+    /// The number a [`CompileProbeKind::Sizeof`] / [`CompileProbeKind::Alignment`]
+    /// probe measures, built once per target like [`Oracle::compile_probe`]:
+    /// each distinct value with the matrix of targets it holds on, `None` for
+    /// the targets it did not compile for. A target outside every matrix was
+    /// not probed. `None` overall when the importer cannot build it.
+    fn value_probe(&self, probe: &CompileProbe) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
+        let _ = probe;
+        None
+    }
+
     /// Whether toolchain and dependency probes (`cc.has_header`,
     /// `dependency()`, ...) should be left open.
     ///
@@ -318,7 +328,17 @@ pub enum CompileProbeKind {
     Compiles { prefix: String, code: String },
     /// `cc.links(code)`: built into an executable, not just an object.
     Links { code: String },
+    /// `cc.sizeof('t', prefix: p)`: a number, read back through
+    /// [`VALUE_SYMBOL`] (see [`Oracle::value_probe`]).
+    Sizeof { name: String, prefix: String },
+    /// `cc.alignment('t', prefix: p)`, measured the way meson does: the
+    /// offset of `t` after a leading `char`.
+    Alignment { name: String, prefix: String },
 }
+
+/// The array a [`CompileProbeKind::Sizeof`] / [`CompileProbeKind::Alignment`]
+/// snippet sizes to the number it asks for.
+pub const VALUE_SYMBOL: &str = "decay_value";
 
 impl CompileProbe {
     /// The C translation unit to build.
@@ -349,6 +369,13 @@ impl CompileProbe {
             ),
             CompileProbeKind::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
             CompileProbeKind::Links { code } => format!("{code}\n"),
+            CompileProbeKind::Sizeof { name, prefix } => format!(
+                "{prefix}\n#include <stddef.h>\nconst char {VALUE_SYMBOL}[sizeof({name})] = {{0}};\n"
+            ),
+            CompileProbeKind::Alignment { name, prefix } => format!(
+                "{prefix}\n#include <stddef.h>\nstruct decay_align {{ char c; {name} target; }};\n\
+                 const char {VALUE_SYMBOL}[offsetof(struct decay_align, target)] = {{0}};\n"
+            ),
         }
     }
 

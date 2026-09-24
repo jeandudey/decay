@@ -33,6 +33,7 @@ use {
     },
     std::{
         cell::RefCell,
+        collections::BTreeMap,
         path::Path,
         rc::Rc, //
     },
@@ -339,6 +340,36 @@ impl<'a> ConfigOracle<'a> {
         (!systems.is_empty()).then_some(Probe::Matrix(systems))
     }
 
+    /// [`Oracle::value_probe`]: each distinct number `probe` measured, with
+    /// the per-system rows it holds on.
+    fn value_probe_answer(
+        &self,
+        probe: &CompileProbe,
+    ) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
+        let mut by_value: BTreeMap<Option<i64>, Vec<MatrixSystem>> = BTreeMap::new();
+        let mut any = false;
+        for system in probe::PROBE_SYSTEMS {
+            if !self.config.systems.contains_key(system) {
+                continue;
+            }
+            any = true;
+            let rows = probe::value_rows(&mut self.probe_cache.borrow_mut(), probe, system);
+            let mut split: BTreeMap<Option<i64>, Vec<Vec<String>>> = BTreeMap::new();
+            for (row, value) in rows {
+                split.entry(value.map(|v| v as i64)).or_default().push(row);
+            }
+            for (value, rows) in split {
+                let (axes, rows) = collapse_full_axes(self.probe_axes(system), rows);
+                by_value.entry(value).or_default().push(MatrixSystem {
+                    system: system.to_owned(),
+                    axes,
+                    rows,
+                });
+            }
+        }
+        any.then(|| by_value.into_iter().collect())
+    }
+
     /// The `[sizeof]` / `[alignment]` entry for `type_name`, turned into a
     /// [`SizeAnswer`].
     fn size_answer(&self, query: SizeQuery, type_name: &str) -> Option<SizeAnswer> {
@@ -412,6 +443,10 @@ impl Oracle for ConfigOracle<'_> {
 
     fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
         self.compile_probe_answer(probe)
+    }
+
+    fn value_probe(&self, probe: &CompileProbe) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
+        self.value_probe_answer(probe)
     }
 
     fn has_program(&self, name: &str) -> bool {

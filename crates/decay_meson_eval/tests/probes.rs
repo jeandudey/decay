@@ -14,6 +14,7 @@ use {
         oracle::{
             CompileProbe,
             CompileProbeKind,
+            MatrixSystem,
             Oracle,
             Pinned,
             Probe, //
@@ -80,6 +81,23 @@ impl Oracle for TestOracle {
     fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
         self.asked.borrow_mut().push(probe.clone());
         Some(Probe::Fixed(probe.snippet().contains("HAVE_A")))
+    }
+
+    /// `sizeof`: 8 on linux, 4 on freebsd; a `struct nope` compiles nowhere.
+    fn value_probe(&self, probe: &CompileProbe) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
+        self.asked.borrow_mut().push(probe.clone());
+        let on = |system: &str| MatrixSystem {
+            system: system.to_owned(),
+            axes: Vec::new(),
+            rows: vec![Vec::new()],
+        };
+        if probe.snippet().contains("struct nope") {
+            return Some(vec![(None, vec![on("linux"), on("freebsd")])]);
+        }
+        Some(vec![
+            (Some(8), vec![on("linux")]),
+            (Some(4), vec![on("freebsd")]),
+        ])
     }
 }
 
@@ -208,4 +226,31 @@ cc.has_header('foo.h', dependencies: dependency('foo', required: false))
     );
     assert!(oracle.asked.borrow().is_empty());
     assert!(logic.arena().var_id("probe:c:has_header:foo.h").is_some());
+}
+
+#[test]
+fn sizeof_is_measured_per_system() {
+    let oracle = TestOracle::default();
+    let (graph, mut logic) = eval(
+        "sizeof",
+        &oracle,
+        r#"
+project('t', 'c')
+cc = meson.get_compiler('c')
+if cc.sizeof('long', prefix: '#include <stddef.h>') == 8
+  executable('wide', 'main.c')
+endif
+if cc.sizeof('struct nope') == -1
+  executable('nope', 'main.c')
+endif
+"#,
+    );
+    assert!(matches!(
+        &oracle.asked.borrow()[0].kind,
+        CompileProbeKind::Sizeof { name, prefix } if name == "long" && prefix == "#include <stddef.h>"
+    ));
+    let wide = target_cond(&graph, "wide");
+    assert_eq!(systems(&mut logic, wide), ["linux"]);
+    let nope = target_cond(&graph, "nope");
+    assert_eq!(systems(&mut logic, nope), ["linux", "freebsd"]);
 }
