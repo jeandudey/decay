@@ -123,14 +123,11 @@ impl Graph {
 
     /// Rename a target whose auto-assigned name collides with `reserved` —
     /// the label the project's own fetch (`Project::repo_target`) or wrapdb
-    /// overlay (`Project::wrapdb_target`) is about to use. Those names are
-    /// only known once the project's `Origin` resolves, which happens after
-    /// every real target already went through [`Self::add`] and claimed
-    /// whatever name it wanted — so a project whose own `library()`/etc.
-    /// happens to share the project's name (fribidi's `library('fribidi',
-    /// ...)`, same as `project('fribidi', ...)`) would otherwise collide
-    /// with the fetch silently until the backend tries to emit both under
-    /// one label. Picks a fresh name through the same uniquification
+    /// overlay (`Project::wrapdb_target`) is about to use. Every real target
+    /// already went through [`Self::add`] and claimed whatever name it
+    /// wanted, so one a project happens to call `source` or `wrapdb` would
+    /// otherwise collide with the fetch silently until the backend tries to
+    /// emit both under one label. Picks a fresh name through the same uniquification
     /// [`Self::add`] used, so the result is exactly what a second real
     /// target named `reserved` would have gotten.
     pub fn avoid_name_collision(&mut self, reserved: &str) {
