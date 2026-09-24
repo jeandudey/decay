@@ -609,6 +609,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let out = relative_path(&to_path(&a)?, &to_path(&b)?);
                 Ok(self.pure(Value::from(out)))
             }
+            (Obj::Module(Module::I18n), "merge_file") => self.fn_i18n_merge_file(args),
             (Obj::Module(Module::I18n), "gettext") => {
                 // A ninja build compiles `.mo` files only at `meson install`
                 // time, not as part of the normal build; there is nothing here

@@ -847,6 +847,33 @@ impl<'a, S: Solver> Interp<'a, S> {
         let output = self
             .opt_string(args, "output")?
             .ok_or_eyre("configure_file() needs an `output:`")?;
+        // `@PLAINNAME@`/`@BASENAME@` in `output:` name the one `input:`
+        // (shared-mime-info's `output: '@BASENAME@'` for its `.pc.in`);
+        // meson refuses them with no input or more than one.
+        let output: Rc<str> = if output.contains("@PLAINNAME@") || output.contains("@BASENAME@") {
+            let inputs = match args.get("input") {
+                Some(v) => self.sources(v)?,
+                None => Variational::empty(),
+            };
+            let [input] = inputs.variants() else {
+                bail!(
+                    "configure_file() `output: '{output}'` needs exactly one `input:` to \
+                     substitute, found {}",
+                    inputs.variants().len()
+                );
+            };
+            let plain = self.source_plainname(&input.value);
+            let base = Path::new(&plain)
+                .file_stem()
+                .map_or_else(|| plain.clone(), |s| s.to_string_lossy().into_owned());
+            Rc::from(
+                output
+                    .replace("@PLAINNAME@", &plain)
+                    .replace("@BASENAME@", &base),
+            )
+        } else {
+            output
+        };
 
         // A `command:` makes this behave like `custom_target()`: an
         // arbitrary command produces the output, rather than a template or
@@ -1004,6 +1031,111 @@ impl<'a, S: Solver> Interp<'a, S> {
             unreachable!("find_program() always returns a Program")
         };
         Ok(program.target)
+    }
+
+    /// `i18n.merge_file()`: merge a template's translations back in with
+    /// `msgfmt`, the command meson's own `msgfmthelper` runs —
+    ///
+    ///   `GETTEXTDATADIRS=<data_dirs> msgfmt --<type> -d <po_dir>
+    ///    --template <input> -o <output> <args>`
+    ///
+    /// `po_dir:` is relative to this call's directory, as are `data_dirs:`
+    /// (where msgfmt finds the ITS rules an `xml` merge needs). msgfmt reads
+    /// `LINGUAS` and every catalog it names out of `po_dir` itself, so the
+    /// directory is handed over whole, like `gnome.compile_resources()`'s
+    /// `source_dir`.
+    pub(crate) fn fn_i18n_merge_file(
+        &mut self,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        if !args.pos.is_empty() {
+            bail!("i18n.merge_file() takes no positional arguments");
+        }
+        let output = self
+            .opt_string(args, "output")?
+            .ok_or_eyre("i18n.merge_file() needs an `output:`")?
+            .to_string();
+        let kind = self
+            .opt_string(args, "type")?
+            .map_or_else(|| "xml".to_owned(), |t| t.to_string());
+        if kind != "xml" && kind != "desktop" {
+            bail!("i18n.merge_file() `type:` must be 'xml' or 'desktop', not '{kind}'");
+        }
+        let install = self.flag(args, "install", Pc::FALSE)?;
+        let install_dir = self.opt_string(args, "install_dir")?.map(|v| v.to_string());
+        if !install.is_false() && install_dir.is_none() {
+            bail!(
+                "i18n.merge_file(): \"install_dir\" keyword argument must be set when \"install\" is true"
+            );
+        }
+
+        let dir_arg = |this: &mut Self, s: &str, what: &str| -> eyre::Result<PathBuf> {
+            let path = PathBuf::from(this.resolve(s)?);
+            if !this.sources.exists(&this.root.join(&path)) {
+                bail!(
+                    "i18n.merge_file() `{what}:` names `{s}`, which is not a directory in the project"
+                );
+            }
+            Ok(path)
+        };
+        let po_dir = self
+            .opt_string(args, "po_dir")?
+            .ok_or_eyre("i18n.merge_file() needs a `po_dir:`")?;
+        let po_dir = dir_arg(self, &po_dir, "po_dir")?;
+        let mut data_dirs = Vec::new();
+        if let Some(v) = args.get("data_dirs") {
+            for s in self.strings(v)?.into_variants() {
+                if s.cond != self.pc {
+                    bail!("i18n.merge_file() `data_dirs:` differs between configurations");
+                }
+                data_dirs.push(dir_arg(self, &s.value, "data_dirs")?);
+            }
+        }
+
+        let msgfmt = self.tool("msgfmt")?;
+        let dir = self.cur_dir().to_path_buf();
+        let id = self.graph.add(&output, &dir, self.pc, Kind::Custom);
+
+        let mut srcs = Variational::empty();
+        let input = args
+            .get("input")
+            .ok_or_eyre("i18n.merge_file() needs an `input:`")?;
+        srcs.extend(self.sources(input)?);
+
+        let pc = self.pc;
+        let mut cmd = Variational::empty();
+        if !data_dirs.is_empty() {
+            cmd.push(Variant::new(
+                pc,
+                CmdArg::Env("GETTEXTDATADIRS".to_owned(), data_dirs),
+            ));
+        }
+        for arg in [
+            CmdArg::Target(msgfmt),
+            CmdArg::Literal(format!("--{kind}")),
+            CmdArg::Literal("-d".to_owned()),
+            CmdArg::File(po_dir),
+            CmdArg::Literal("--template".to_owned()),
+            CmdArg::Inputs,
+            CmdArg::Literal("-o".to_owned()),
+            CmdArg::Outputs,
+        ] {
+            cmd.push(Variant::new(pc, arg));
+        }
+        if let Some(v) = args.get("args") {
+            for s in self.strings(v)?.into_variants() {
+                cmd.push(Variant::new(s.cond, CmdArg::Literal(s.value.to_string())));
+            }
+        }
+
+        let target = self.graph.target_mut(id);
+        target.attrs.srcs = srcs;
+        target.attrs.outs = vec![output];
+        target.attrs.cmd = cmd;
+        target.attrs.install = install;
+        target.attrs.install_dir = install_dir;
+
+        Ok(self.pure(Value::Obj(Obj::Target(id))))
     }
 
     /// `gnome.compile_resources()`: a `glib-compile-resources` genrule.
