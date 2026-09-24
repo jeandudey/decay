@@ -338,9 +338,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   behind, unguarded under the `-Werror=implicit` pango's own meson.build
   always turns on; fixed upstream after 1.56.4, first released in 1.58.2.
   `libthai`/`xft` stay off since nothing here provides either, and
-  `introspection`/docs/tests/examples are out of scope), `gdk-pixbuf` (png
-  and gif loaders built in; jpeg/tiff wait on the two libraries below, and
-  `gio_sniffing` is off until `shared-mime-info` is provided).
+  `introspection`/docs/tests/examples are out of scope), `shared-mime-info`
+  (the translated MIME database and `update-mime-database`), `gdk-pixbuf`
+  (png and gif loaders built in, GIO MIME sniffing against
+  `shared-mime-info`; jpeg/tiff wait on the two libraries below).
   Still needed, hardest first. Hard-required regardless of options:
   - `libtiff-4` and `libjpeg` — gtk's own `meson.build` requires both
     directly, alongside the already-imported `libpng`, not as optional

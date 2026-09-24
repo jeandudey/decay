@@ -20,6 +20,8 @@ jobs:
       # (//third-party/system:X11, flags from `pkg-config x11`) -- everything
       # else (libglvnd's GL/EGL, glib, its codegen tools, zlib, ...) is
       # imported from source.
+      # gettext: //third-party/tools:msgfmt execs the system copy at build
+      # time (shared-mime-info's i18n.merge_file()).
       # gperf: //third-party/tools:gperf execs the system copy at build time
       # (fontconfig's fcobjshash.h/fcgenericfamily.h codegen), same shape as
       # python3 there. glib-mkenums/glib-genmarshal/glib-compile-resources
@@ -36,6 +38,7 @@ jobs:
             unzip zstd \
             libx11-dev \
             gperf \
+            gettext \
             gcc-14 g++-14
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
@@ -139,7 +142,8 @@ jobs:
             //third-party/meson/google-brotli/... \
             //third-party/meson/harfbuzz/... \
             //third-party/meson/pango/... \
-            //third-party/meson/gdk-pixbuf/...
+            //third-party/meson/gdk-pixbuf/... \
+            //third-party/meson/shared-mime-info/...
 
       # The generated tree is committed; any drift from decay's output fails
       # the run. Regenerate with `cd example && decay` and commit the result.

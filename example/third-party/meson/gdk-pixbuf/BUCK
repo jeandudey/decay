@@ -272,7 +272,7 @@ _cflags = [
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define HAVE_UNISTD_H 1' '#define HAVE_SYS_RESOURCE_H 1' '#define HAVE_SYS_TIME_H 1' '#define HAVE_ROUND 1' '#define HAVE_LRINT 1' '#define HAVE_SETRLIMIT 1' '#define HAVE_READLINK 1' '#define HAVE_SIGSETJMP' '#define _GDK_PIXBUF_EXTERN __attribute__((visibility(\"default\"))) extern' '#define USE_GMODULE' '#define GETTEXT_PACKAGE \"gdk-pixbuf\"'" + select({
+    cmd = "printf '%s\\n'" + " '#define HAVE_UNISTD_H 1' '#define HAVE_SYS_RESOURCE_H 1' '#define HAVE_SYS_TIME_H 1' '#define HAVE_ROUND 1' '#define HAVE_LRINT 1' '#define HAVE_SETRLIMIT 1' '#define HAVE_READLINK 1' '#define HAVE_SIGSETJMP' '#define _GDK_PIXBUF_EXTERN __attribute__((visibility(\"default\"))) extern' '#define GDK_PIXBUF_USE_GIO_MIME 1' '#define USE_GMODULE' '#define GETTEXT_PACKAGE \"gdk-pixbuf\"'" + select({
         "prelude//os/constraints:os[linux]": " '#define HAVE_BIND_TEXTDOMAIN_CODESET 1'",
         "DEFAULT": "",
     }) + select({
