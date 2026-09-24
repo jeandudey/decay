@@ -338,18 +338,16 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   behind, unguarded under the `-Werror=implicit` pango's own meson.build
   always turns on; fixed upstream after 1.56.4, first released in 1.58.2.
   `libthai`/`xft` stay off since nothing here provides either, and
-  `introspection`/docs/tests/examples are out of scope).
+  `introspection`/docs/tests/examples are out of scope), `gdk-pixbuf` (png
+  and gif loaders built in; jpeg/tiff wait on the two libraries below, and
+  `gio_sniffing` is off until `shared-mime-info` is provided).
   Still needed, hardest first. Hard-required regardless of options:
-  - `gdk-pixbuf-2.0` — blocked today on the `dependency()`
-    configuration-varying-name rewrite (see "`declare_dependency()` provide
-    heuristic is narrow" above). gtk asks for it with
-    `png/jpeg/gif=enabled, builtin_loaders=all`, so it pulls in every loader
-    below.
   - `libtiff-4` and `libjpeg` — gtk's own `meson.build` requires both
     directly, alongside the already-imported `libpng`, not as optional
-    loader backends. `libtiff` brings its own codec graph (jpeg, zlib, lzma,
-    zstd, deflate, webp); `libjpeg-turbo` has per-arch SIMD assembly, the
-    same per-arch source-list shape as libffi.
+    loader backends; gtk also asks gdk-pixbuf for `jpeg=enabled`. `libtiff`
+    brings its own codec graph (jpeg, zlib, lzma, zstd, deflate, webp);
+    `libjpeg-turbo` has per-arch SIMD assembly, the same per-arch
+    source-list shape as libffi.
   - The X11 libraries the X11 backend links directly (`x11-backend=true`
     by default; a Linux build needs it or Wayland): `xrandr`, `xrender`,
     `xi`, `xcursor`, `xdamage`, `xfixes`, `xinerama` — same shape as the

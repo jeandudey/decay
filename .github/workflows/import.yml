@@ -138,7 +138,8 @@ jobs:
             //third-party/meson/libpng/... \
             //third-party/meson/google-brotli/... \
             //third-party/meson/harfbuzz/... \
-            //third-party/meson/pango/...
+            //third-party/meson/pango/... \
+            //third-party/meson/gdk-pixbuf/...
 
       # The generated tree is committed; any drift from decay's output fails
       # the run. Regenerate with `cd example && decay` and commit the result.

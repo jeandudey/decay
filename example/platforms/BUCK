@@ -4,6 +4,29 @@
 # its own options, the toolchain, and what the build environment provides — and
 # answer for every imported project at once. Each project's own options live
 # beside its build file.
+load("@prelude//platforms:defs.bzl", "execution_platform", "host_configuration")
+
+# What build-time tools run on (`.buckconfig`'s `execution_platforms`): a C
+# tool the build runs itself — gdk-pixbuf's `gdk-pixbuf-query-loaders`,
+# linked against glib — is compiled here, so it needs the same `abi[gnu]`
+# `//platforms:linux` carries, or glib's glibc `select()`s take their
+# non-glibc arms. `prelude//platforms:default` has only the host OS and CPU.
+config_setting(
+    name = "linux-gnu",
+    constraint_values = [
+        "prelude//os/constraints:os[linux]",
+        "prelude//abi/constraints:abi[gnu]",
+    ],
+)
+
+execution_platform(
+    name = "exec",
+    cpu_configuration = host_configuration.cpu,
+    os_configuration = ":linux-gnu",
+    use_windows_path_separators = False,
+    visibility = ["PUBLIC"],
+)
+
 # The default target platform for a plain `buck2 build` here (wired up in
 # `.buckconfig`'s `target_platform_detector_spec`). `prelude//platforms:default`
 # detects the host OS and CPU but leaves `abi` unset, so a glibc host has to say
