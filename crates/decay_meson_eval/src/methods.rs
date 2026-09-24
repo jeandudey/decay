@@ -900,7 +900,21 @@ impl<'a, S: Solver> Interp<'a, S> {
             let mut out = Variational::empty();
             for (region, probe) in regions {
                 let values = self.oracle.value_probe(&probe).ok_or_else(unanswered)?;
-                let mut probed = Pc::from_bool(false);
+                // Every configured system must have been measured. A cpu or
+                // system outside the matrix (the constraints' "any other"
+                // value) gets no number, as with a `[sizeof]` table.
+                let probed: Vec<&str> = values
+                    .iter()
+                    .flat_map(|(_, systems)| systems.iter().map(|ms| ms.system.as_str()))
+                    .collect();
+                if self
+                    .oracle
+                    .systems()
+                    .iter()
+                    .any(|system| !probed.contains(&system.as_str()))
+                {
+                    return Err(unanswered());
+                }
                 for (value, systems) in values {
                     let key = format!("{what}:{ty}");
                     let mut holds = Pc::from_bool(false);
@@ -910,7 +924,6 @@ impl<'a, S: Solver> Interp<'a, S> {
                         let here = self.logic.and(on, any_row);
                         holds = self.logic.or(holds, here);
                     }
-                    probed = self.logic.or(probed, holds);
                     let cond = self.logic.and(region, holds);
                     if !self.logic.is_sat(cond) {
                         continue;
@@ -927,11 +940,6 @@ impl<'a, S: Solver> Interp<'a, S> {
                         }
                     };
                     out.push(Variant::new(cond, Value::Int(value)));
-                }
-                let unprobed = self.logic.not(probed);
-                let gap = self.logic.and(region, unprobed);
-                if self.logic.is_sat(gap) {
-                    return Err(unanswered());
                 }
             }
             out.normalize(&mut self.logic);
