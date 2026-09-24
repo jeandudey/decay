@@ -9,8 +9,6 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -154,18 +152,6 @@ jobs:
             grep -h '^# [a-z ]*`' example/third-party/meson/constraints/BUCK | cut -c1-160
             exit 1
           fi
-
-      # TEMPORARY: publish the regenerated tree so it can be pulled into the
-      # branch. Removed in the commit that applies it.
-      - name: Publish regenerated tree
-        if: failure() && github.ref == 'refs/heads/claude/codebase-review-decay-ofaz33'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b golden-tree-tmp
-          git add -A example/
-          git commit -qm "Regenerated example tree"
-          git push -f origin golden-tree-tmp
 
       - uses: actions/cache/save@v4
         if: always()
