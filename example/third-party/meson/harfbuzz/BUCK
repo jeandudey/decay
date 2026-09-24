@@ -873,7 +873,6 @@ genrule(
     visibility = ["PUBLIC"],
 )
 
-# meson: harfbuzz
 cxx_library(
     name = "harfbuzz",
     srcs = [

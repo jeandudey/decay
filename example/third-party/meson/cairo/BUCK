@@ -416,7 +416,6 @@ _deps2 = [
     "//third-party/meson/zlib:zlib-dep",
 ]
 
-# meson: cairo
 cxx_library(
     name = "cairo",
     srcs = [

@@ -81,7 +81,6 @@ http_archive(
     visibility = ["PUBLIC"],
 )
 
-# meson: graphite2
 cxx_library(
     name = "graphite2",
     srcs = [

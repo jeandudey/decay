@@ -447,7 +447,6 @@ genrule(
     visibility = ["PUBLIC"],
 )
 
-# meson: fribidi
 cxx_library(
     name = "fribidi",
     srcs = [

@@ -41,7 +41,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: bzip2
 cxx_binary(
     name = "bzip2",
     srcs = [":source[bzip2.c]"],
