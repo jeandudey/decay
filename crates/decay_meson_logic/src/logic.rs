@@ -34,6 +34,8 @@ pub struct Logic<S: Solver> {
     /// the same conjunction share an entry, so a guard checked from many
     /// statements costs one solver call.
     conj_sat: HashMap<ConjLits, bool>,
+    /// Whether anything has been [`Self::assume`]d.
+    assumed: bool,
 }
 
 impl<S: Solver> Logic<S> {
@@ -44,6 +46,7 @@ impl<S: Solver> Logic<S> {
             terms: HashMap::new(),
             sat: HashMap::new(),
             conj_sat: HashMap::new(),
+            assumed: false,
         }
     }
 
@@ -118,6 +121,7 @@ impl<S: Solver> Logic<S> {
     /// configure means those option combinations simply do not exist.
     pub fn assume(&mut self, pc: Pc) {
         stats::bump(&stats::ASSUME_CALLS);
+        self.assumed = true;
         let t = self.term_timed(pc);
         self.solver.assume(&t);
         // Adding a constraint can only shrink the space: an unsatisfiable
@@ -130,6 +134,12 @@ impl<S: Solver> Logic<S> {
             &stats::SAT_MEMO_DROPPED,
             (before - self.sat.len() - self.conj_sat.len()) as u64,
         );
+    }
+
+    /// Whether anything has been [`Self::assume`]d, so two structurally
+    /// different conditions may still mean the same thing.
+    pub fn has_assumptions(&self) -> bool {
+        self.assumed
     }
 
     /// Whether any configuration is left at all, once everything
