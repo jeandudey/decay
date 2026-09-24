@@ -42,13 +42,23 @@ fn write_src(src: &std::path::Path, code: &str) {
     }
 }
 
+/// Run `zig`, once more if it dies by a signal. zig 0.15 can crash when
+/// parallel runs build the same target's libc into a cold cache; a second
+/// run finds it built. A second crash is left for [`check_verdict`].
 fn spawn(cmd: &mut Command) -> std::process::Output {
-    cmd.output().unwrap_or_else(|e| {
-        panic!(
-            "`zig` is required by decay but could not be run ({e}); install zig \
-             (decay is developed against {EXPECTED_VERSION})"
-        )
-    })
+    let run = |cmd: &mut Command| {
+        cmd.output().unwrap_or_else(|e| {
+            panic!(
+                "`zig` is required by decay but could not be run ({e}); install zig \
+                 (decay is developed against {EXPECTED_VERSION})"
+            )
+        })
+    };
+    let output = run(cmd);
+    if output.status.code().is_some() {
+        return output;
+    }
+    run(cmd)
 }
 
 /// Panic when a failed `zig cc` run failed because of zig itself rather than
