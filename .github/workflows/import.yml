@@ -123,12 +123,12 @@ jobs:
             //third-party/meson/pcre2:pcre2-32 \
             //third-party/meson/pcre2:pcre2-posix \
             //third-party/meson/libffi:ffi \
-            //third-party/meson/fribidi:fribidi-2 \
-            //third-party/meson/graphite2:graphite2-2 \
+            //third-party/meson/fribidi:fribidi \
+            //third-party/meson/graphite2:graphite2 \
             //third-party/meson/graphite2:graphite2-dep \
             //third-party/meson/pixman:pixman-1 \
             //third-party/meson/pixman:pixman-dep \
-            //third-party/meson/cairo:cairo-2 \
+            //third-party/meson/cairo:cairo \
             //third-party/meson/cairo:cairo-dep \
             //third-party/meson/cairo:cairo-gobject \
             //third-party/meson/freetype2:freetype \
