@@ -900,6 +900,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             let mut out = Variational::empty();
             for (region, probe) in regions {
                 let values = self.oracle.value_probe(&probe).ok_or_else(unanswered)?;
+                self.assume_impossible_targets()?;
                 // Every configured system must have been measured. A cpu or
                 // system outside the matrix (the constraints' "any other"
                 // value) gets no number, as with a `[sizeof]` table.
@@ -1264,6 +1265,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(cond)
             }
             Some(Probe::Matrix(per_system)) => {
+                self.assume_impossible_targets()?;
                 // Each probed system settles independently — its own axes, its
                 // own compiled rows. A `(cpu[, abi])` not in any row genuinely
                 // did not compile, so within a probed system it is a settled
@@ -1293,6 +1295,32 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .map_err(|e| eyre::eyre!("`{key}`: {e}")),
             None => Ok(self.probe(key, description)),
         }
+    }
+
+    /// Rule out [`Oracle::impossible_targets`], once, before the first probe
+    /// matrix is read.
+    fn assume_impossible_targets(&mut self) -> eyre::Result<()> {
+        if self.impossible_assumed {
+            return Ok(());
+        }
+        self.impossible_assumed = true;
+        let known = self.oracle.systems();
+        for target in self.oracle.impossible_targets() {
+            if !known.contains(&target.system) {
+                continue;
+            }
+            let key = format!("impossible:{}", target.system);
+            let on = self.host_system_is(std::slice::from_ref(&target.system), &key)?;
+            let value = self.constraint_is(
+                &target.setting,
+                target.domain,
+                std::slice::from_ref(&target.value),
+            );
+            let both = self.logic.and(on, value);
+            let never = self.logic.not(both);
+            self.logic.assume(never);
+        }
+        Ok(())
     }
 
     /// The condition that one of `rows` holds — each row an AND across the

@@ -71,6 +71,14 @@ pub trait Oracle {
         None
     }
 
+    /// Targets the importer never builds for: each rules out the
+    /// configurations where host system `system` meets `value` of
+    /// `setting`. A probe matrix has no row for them, and without this they
+    /// would read as "the probe failed there".
+    fn impossible_targets(&self) -> Vec<ImpossibleTarget> {
+        Vec::new()
+    }
+
     /// The number a [`CompileProbeKind::Sizeof`] / [`CompileProbeKind::Alignment`]
     /// probe measures, built once per target like [`Oracle::compile_probe`]:
     /// each distinct value with the matrix of targets it holds on, `None` for
@@ -278,6 +286,15 @@ pub enum Probe {
     /// of that project's arena: a `pkg.generate()` it only runs on some
     /// systems is found only on those.
     Formula(Formula),
+}
+
+/// See [`Oracle::impossible_targets`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImpossibleTarget {
+    pub system: String,
+    pub setting: String,
+    pub domain: Vec<String>,
+    pub value: String,
 }
 
 /// One operating system's slice of a [`Probe::Matrix`] answer: the

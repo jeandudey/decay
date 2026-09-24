@@ -14,6 +14,7 @@ use {
         oracle::{
             CompileProbe,
             CompileProbeKind,
+            ImpossibleTarget,
             MatrixSystem,
             Oracle,
             Pinned,
@@ -253,4 +254,79 @@ endif
     assert_eq!(systems(&mut logic, wide), ["linux"]);
     let nope = target_cond(&graph, "nope");
     assert_eq!(systems(&mut logic, nope), ["linux", "freebsd"]);
+}
+
+/// Builds everywhere except riscv64 on freebsd, which it never builds for.
+struct NoRiscvFreebsd;
+
+const CPU: &str = "prelude//cpu/constraints:cpu";
+
+impl Oracle for NoRiscvFreebsd {
+    fn option(&self, _name: &str) -> Option<Pinned> {
+        None
+    }
+
+    fn machine(&self, _machine: Machine, _property: &str) -> Option<String> {
+        None
+    }
+
+    fn systems(&self) -> Vec<String> {
+        ["linux", "freebsd"].map(str::to_owned).to_vec()
+    }
+
+    fn compile_probe(&self, _probe: &CompileProbe) -> Option<Probe> {
+        let cpus = vec!["riscv64".to_owned(), "x86_64".to_owned()];
+        Some(Probe::Matrix(vec![
+            MatrixSystem {
+                system: "linux".to_owned(),
+                axes: Vec::new(),
+                rows: vec![Vec::new()],
+            },
+            MatrixSystem {
+                system: "freebsd".to_owned(),
+                axes: vec![(CPU.to_owned(), cpus)],
+                rows: vec![vec!["x86_64".to_owned()]],
+            },
+        ]))
+    }
+
+    fn impossible_targets(&self) -> Vec<ImpossibleTarget> {
+        vec![ImpossibleTarget {
+            system: "freebsd".to_owned(),
+            setting: CPU.to_owned(),
+            domain: vec!["riscv64".to_owned(), "x86_64".to_owned()],
+            value: "riscv64".to_owned(),
+        }]
+    }
+}
+
+#[test]
+fn an_impossible_target_is_ruled_out() {
+    let root = std::env::temp_dir().join(format!("decay-probes-impossible-{}", std::process::id()));
+    std::fs::remove_dir_all(&root).ok();
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(root.join("main.c"), "int main(void) { return 0; }\n").unwrap();
+    std::fs::write(
+        root.join("meson.build"),
+        "project('t', 'c')\nif meson.get_compiler('c').has_header('stdio.h')\n  executable('uses', 'main.c')\nendif\n",
+    )
+    .unwrap();
+    let (graph, mut logic) = decay_meson_eval::eval(&NoRiscvFreebsd, &TestSources, &root).unwrap();
+    std::fs::remove_dir_all(&root).ok();
+    let cond = target_cond(&graph, "uses");
+    let system = logic.arena().var_id("machine:host:system").unwrap();
+    let cpu = logic.arena().var_id(&format!("constraint:{CPU}")).unwrap();
+    let freebsd = logic.var(system).choice_index("freebsd").unwrap();
+    let freebsd = logic.lit(system, freebsd);
+    let at = |logic: &mut Logic<Z3Solver>, value: &str| {
+        let choice = logic.var(cpu).choice_index(value).unwrap();
+        let lit = logic.lit(cpu, choice);
+        logic.and(freebsd, lit)
+    };
+    let riscv = at(&mut logic, "riscv64");
+    assert!(!logic.is_sat(riscv), "riscv64 on freebsd is ruled out");
+    let x86 = at(&mut logic, "x86_64");
+    let missing = logic.not(cond);
+    let missing = logic.and(x86, missing);
+    assert!(!logic.is_sat(missing), "builds on x86_64 freebsd");
 }

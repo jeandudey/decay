@@ -22,6 +22,7 @@ use {
         oracle::{
             CompileProbe,
             CompileProbeKind,
+            ImpossibleTarget,
             MatrixSystem,
             Oracle,
             Pinned,
@@ -448,6 +449,28 @@ impl Oracle for ConfigOracle<'_> {
 
     fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
         self.compile_probe_answer(probe)
+    }
+
+    fn impossible_targets(&self) -> Vec<ImpossibleTarget> {
+        let mut out = Vec::new();
+        for system in probe::PROBE_SYSTEMS {
+            if !self.config.systems.contains_key(system) {
+                continue;
+            }
+            let axes = self.probe_axes(system);
+            let Some((setting, domain)) = axes.iter().find(|(s, _)| s == probe::CPU_SETTING) else {
+                continue;
+            };
+            for cpu in probe::unprobed_cpus(system) {
+                out.push(ImpossibleTarget {
+                    system: system.to_owned(),
+                    setting: setting.clone(),
+                    domain: domain.clone(),
+                    value: cpu.to_owned(),
+                });
+            }
+        }
+        out
     }
 
     fn value_probe(&self, probe: &CompileProbe) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
