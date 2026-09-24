@@ -1816,72 +1816,122 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// `dependency(name)`, and `dependency(name1, name2, ...)` /
     /// `dependency([name1, name2, ...], ...)` — meson tries each candidate
     /// in turn and uses the first one found (pango's own
-    /// `dependency(['freetype2', 'freetype'], ...)`). Which one that is can
-    /// differ per configuration, so every candidate is resolved in full —
-    /// each as `required: false`, since only the combined chain has to
-    /// satisfy the call's own `required:`, not any single candidate — and
-    /// the result is one Dep-object variant per candidate, gated on it
-    /// being found and no earlier one being found already, the same shape
-    /// an `if`/`elif` chain's branches take. `required:` is applied once,
-    /// against the merged "found by any candidate" condition, afterward.
+    /// `dependency(['freetype2', 'freetype'], ...)`).
+    ///
+    /// The candidate list is itself variational: a name can differ by
+    /// configuration (gdk-pixbuf's `dependency(is_msvc_like ? 'png' :
+    /// 'libpng')`), and a list entry can be present in only some. Flattened,
+    /// candidate `i` is named where `p_i` holds, in the order meson would try
+    /// it there; flattening keeps each configuration's own order, so a
+    /// candidate only ever competes with the ones before it that are named in
+    /// the same configuration. Each is resolved under `p_i` alone, as
+    /// `required: false`, since only the chain as a whole answers the call's
+    /// own `required:`. With `f_i` its `found`, candidate `i` is the result
+    /// where
+    ///
+    ///   `p_i ∧ f_i ∧ ⋀_{j<i} ¬(p_j ∧ f_j)`
+    ///
+    /// — the same shape an `if`/`elif` chain's branches take — and where no
+    /// named candidate is found, the result is the not-found stub of the last
+    /// candidate named there, as meson returns. `required:` is applied once,
+    /// against `⋁_i (p_i ∧ f_i)`.
     fn fn_dependency(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
-        let mut names: Vec<Rc<str>> = Vec::new();
+        let mut names: Vec<Variant<Rc<str>>> = Vec::new();
         for arg in &args.pos {
-            for v in self.flat(arg) {
-                let s = string_arg(&v.value).ok_or_else(|| {
-                    eyre::eyre!(
-                        "dependency() name must be a string, found a {}",
-                        v.value.type_name()
-                    )
-                })?;
-                names.push(s);
-            }
+            let strings = self
+                .strings(arg)
+                .map_err(|e| eyre::eyre!("dependency() name: {e}"))?;
+            names.extend(strings.into_variants().filter(|v| !v.cond.is_false()));
         }
-        let Some(first) = names.first().cloned() else {
-            bail!("dependency() needs a name");
-        };
         let required = self.required(args)?;
-        if names.len() == 1 {
-            return self.dependency_resolve(first, args, required);
+
+        // Somewhere no name at all is given: meson refuses the call there.
+        let mut named = Pc::FALSE;
+        for n in &names {
+            named = self.logic.or(named, n.cond);
+        }
+        let unnamed = {
+            let not_named = self.logic.not(named);
+            self.logic.and(self.pc, not_named)
+        };
+        if self.logic.is_sat(unnamed) {
+            bail!("dependency() needs a name");
         }
 
-        let quoted: Vec<String> = names.iter().map(|n| format!("'{n}'")).collect();
+        if let [only] = names.as_slice()
+            && only.cond == self.pc
+        {
+            let name = only.value.clone();
+            return self.dependency_resolve(name, args, required);
+        }
+
+        let mut distinct: Vec<&str> = Vec::new();
+        for n in &names {
+            if !distinct.contains(&&*n.value) {
+                distinct.push(&n.value);
+            }
+        }
+        let quoted: Vec<String> = distinct.iter().map(|n| format!("'{n}'")).collect();
         let call = format!("dependency({})", quoted.join(", "));
+        let first = names[0].value.clone();
+
+        // `(p_i ∧ f_i, value)` per candidate, in order.
         let mut resolved = Vec::with_capacity(names.len());
-        for name in names {
-            let value = self.dependency_resolve(name.clone(), args, Pc::FALSE)?;
+        for Variant { cond, value: name } in names.iter().cloned() {
+            let value = self.with_pc(cond, |this| {
+                this.dependency_resolve(name.clone(), args, Pc::FALSE)
+            })?;
             let [variant] = value.variants() else {
                 bail!("dependency('{name}') resolved to more than one value");
             };
             let Value::Obj(Obj::Dep(d)) = &variant.value else {
                 bail!("dependency('{name}') did not resolve to a dependency");
             };
-            resolved.push((d.found, variant.value.clone()));
+            // `remaining` below already lies inside the current path, so a
+            // candidate named everywhere on it needs no `p_i` conjunct —
+            // leaving it off keeps the formula the same one it always was.
+            let hit = if cond == self.pc {
+                d.found
+            } else {
+                self.logic.and(cond, d.found)
+            };
+            resolved.push((cond, hit, variant.value.clone()));
         }
 
-        let mut merged_found = Pc::FALSE;
-        for (found, _) in &resolved {
-            merged_found = self.logic.or(merged_found, *found);
+        let mut any_found = Pc::FALSE;
+        for (_, hit, _) in &resolved {
+            any_found = self.logic.or(any_found, *hit);
         }
-        self.require_found(&call, &first, required, merged_found)?;
+        self.require_found(&call, &first, required, any_found)?;
 
         let mut out = Variational::empty();
+        // Configurations where no candidate tried so far was found.
         let mut remaining = self.pc;
-        let mut last = None;
-        for (found, value) in resolved {
-            let cond = self.logic.and(remaining, found);
+        for (_, hit, value) in &resolved {
+            let cond = self.logic.and(remaining, *hit);
             if !cond.is_false() {
                 out.push(Variant::new(cond, value.clone()));
             }
-            let not_found = self.logic.not(found);
-            remaining = self.logic.and(remaining, not_found);
-            last = Some(value);
+            let missed = self.logic.not(*hit);
+            remaining = self.logic.and(remaining, missed);
         }
-        if !remaining.is_false() {
-            // Nobody found: reuse the last candidate's own not-found stub,
-            // the same one a single `dependency(lastName)` call would have
-            // produced on its own.
-            out.push(Variant::new(remaining, last.expect("names is non-empty")));
+        // Nobody found: each configuration gets the not-found stub of the
+        // last candidate named in it, the one a meson run there would have
+        // tried last. Walk backwards, handing each candidate the
+        // configurations no later one is named in.
+        let mut later = Pc::FALSE;
+        for (named, _, value) in resolved.iter().rev() {
+            let not_later = self.logic.not(later);
+            let last_here = self.logic.and(*named, not_later);
+            let cond = if last_here == self.pc {
+                remaining
+            } else {
+                self.logic.and(remaining, last_here)
+            };
+            if !cond.is_false() {
+                out.push(Variant::new(cond, value.clone()));
+            }
+            later = self.logic.or(later, *named);
         }
         Ok(out)
     }
