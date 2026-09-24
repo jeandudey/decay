@@ -394,7 +394,7 @@ _cppflags = [
     "-I$(location :cairo[util/cairo-script])",
 ]
 _deps_os_abi_cpu = [
-    ":m",
+    "//third-party/meson/system:m",
     "//third-party/meson/zlib:zlib-dep",
     "//third-party/meson/fontconfig:fontconfig",
     "//third-party/meson/freetype2:freetype2-dep",
@@ -404,36 +404,36 @@ _deps_os_abi_cpu = [
 ] + select({
     "prelude//os/constraints:os[linux]": select({
         "prelude//abi/constraints:abi[gnu]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-            "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-            "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
             "DEFAULT": [],
         }),
         "prelude//abi/constraints:abi[musl]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-            "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-            "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
             "DEFAULT": [],
         }),
         "DEFAULT": [],
     }),
     "prelude//os/constraints:os[netbsd]": [],
     "DEFAULT": select({
-        "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-        "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-        "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-        "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-        "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+        "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+        "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+        "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
         "DEFAULT": [],
     }),
 })
 _deps = [
-    ":m",
-    ":dl",
+    "//third-party/meson/system:m",
+    "//third-party/meson/system:dl",
     "//third-party/meson/zlib:zlib-dep",
     "//third-party/meson/fontconfig:fontconfig",
     "//third-party/meson/freetype2:freetype2-dep",
@@ -473,24 +473,6 @@ _deps2 = [
     ":cairo-dep",
     "//third-party/meson/zlib:zlib-dep",
 ]
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("dl")
-cxx_library(
-    name = "dl",
-    exported_linker_flags = [
-        "-ldl",
-    ],
-    visibility = ["PUBLIC"],
-)
 
 # meson: cairo
 cxx_library(
@@ -692,7 +674,7 @@ cxx_library(
     }),
     linker_flags = _ldflags,
     deps = [
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/zlib:zlib-dep",
         "//third-party/meson/fontconfig:fontconfig",
         "//third-party/meson/freetype2:freetype2-dep",
@@ -700,30 +682,30 @@ cxx_library(
     ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-                "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-                "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
                 "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-                "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-                "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
                 "DEFAULT": [],
             }),
             "DEFAULT": [],
         }),
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-            "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-            "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
             "DEFAULT": [],
         }),
     }),
@@ -876,7 +858,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":cairo-2",
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/zlib:zlib-dep",
         "//third-party/meson/fontconfig:fontconfig",
         "//third-party/meson/freetype2:freetype2-dep",
@@ -884,30 +866,30 @@ cxx_library(
     ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-                "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-                "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
                 "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-                "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-                "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
                 "DEFAULT": [],
             }),
             "DEFAULT": [],
         }),
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-            "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-            "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
             "DEFAULT": [],
         }),
     }),
@@ -1002,7 +984,7 @@ cxx_library(
     compiler_flags = _cflags2,
     linker_flags = _ldflags,
     deps = [
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/zlib:zlib-dep",
         "//third-party/meson/fontconfig:fontconfig",
         "//third-party/meson/freetype2:freetype2-dep",
@@ -1011,30 +993,30 @@ cxx_library(
     ] + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-                "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-                "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
                 "DEFAULT": [],
             }),
             "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-                "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-                "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+                "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+                "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
                 "DEFAULT": [],
             }),
             "DEFAULT": [],
         }),
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":dl"],
-            "prelude//cpu/constraints:cpu[arm64]": [":dl"],
-            "prelude//cpu/constraints:cpu[riscv64]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":dl"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":dl"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:dl"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:dl"],
             "DEFAULT": [],
         }),
     }),

@@ -193,44 +193,6 @@ _cppflags2 = [
     "-I$(location :libxml2.git[example])",
 ]
 
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("dl")
-cxx_library(
-    name = "dl",
-    exported_linker_flags = [
-        "-ldl",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('iconv') — the platform's iconv (libc, or -liconv on macOS/Windows)
-cxx_library(
-    name = "iconv",
-    exported_linker_flags = select({
-        "prelude//os/constraints:os[linux]": [],
-        "prelude//os/constraints:os[freebsd]": [],
-        "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": ["-liconv"],
-    }),
-    visibility = ["PUBLIC"],
-)
-
 genrule(
     name = "xmlversion.h",
     out = "xmlversion.h",
@@ -338,13 +300,13 @@ cxx_library(
         "-Wno-array-bounds",
     ],
     deps = [
-        ":m",
-        ":threads",
+        "//third-party/meson/system:m",
+        "//third-party/meson/system:threads",
         "//third-party/meson/zlib:zlib-dep",
-        ":iconv",
+        "//third-party/meson/system:iconv",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -562,7 +524,7 @@ cxx_binary(
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
-        ":threads",
+        "//third-party/meson/system:threads",
         "//third-party/meson/zlib:zlib-dep",
         ":libxml2-dep",
     ],

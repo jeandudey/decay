@@ -144,13 +144,13 @@ _deps_os_cpu = [
     ":pixman-dep-2",
 ] + select({
     "prelude//os/constraints:os[netbsd]": select({
-        "prelude//cpu/constraints:cpu[arm32]": [":threads"],
-        "prelude//cpu/constraints:cpu[arm64]": [":threads"],
-        "prelude//cpu/constraints:cpu[x86_32]": [":threads"],
-        "prelude//cpu/constraints:cpu[x86_64]": [":threads"],
+        "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
         "DEFAULT": [],
     }),
-    "DEFAULT": [":threads"],
+    "DEFAULT": ["//third-party/meson/system:threads"],
 })
 _needs_tests = select({
     "//third-party/meson/pixman/constraints:tests[enabled]": [],
@@ -161,23 +161,6 @@ _deps = [
     ":pixman-dep",
     ":pixman-dep-2",
 ]
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
 
 genrule(
     name = "pixman-config.h",
@@ -879,15 +862,15 @@ cxx_library(
                 "DEFAULT": [],
             }),
         }),
-    }) + [":m"] + select({
+    }) + ["//third-party/meson/system:m"] + select({
         "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":threads"],
-            "prelude//cpu/constraints:cpu[arm64]": [":threads"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":threads"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":threads"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
             "DEFAULT": [],
         }),
-        "DEFAULT": [":threads"],
+        "DEFAULT": ["//third-party/meson/system:threads"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -941,7 +924,7 @@ cxx_library(
     compiler_flags = _cflags,
     deps = [
         ":pixman-dep",
-        ":m",
+        "//third-party/meson/system:m",
     ],
     preferred_linkage = "static",
     target_compatible_with = _needs_tests_demos,
@@ -1380,7 +1363,7 @@ cxx_binary(
     deps = [
         ":pixman-dep",
         ":pixman-dep-2",
-        ":threads",
+        "//third-party/meson/system:threads",
     ],
     target_compatible_with = select({
         "//third-party/meson/pixman/constraints:tests[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],

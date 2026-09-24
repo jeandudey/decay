@@ -1123,12 +1123,12 @@ _ldflags = [
 ]
 _deps_run_C99_vsnprintf_run_C99_snprintf_run_Unix98_printf_positional_parameters = [
     ":charset",
-    ":atomic",
-    ":m",
-    ":iconv",
-    ":intl",
+    "//third-party/meson/system:atomic",
+    "//third-party/meson/system:m",
+    "//third-party/meson/system:iconv",
+    "//third-party/meson/system:intl",
     "//third-party/meson/pcre2:pcre2-dep",
-    ":threads",
+    "//third-party/meson/system:threads",
 ] + select({
     "//third-party/meson/constraints:run_C99_vsnprintf[true]": select({
         "//third-party/meson/constraints:run_C99_snprintf[true]": select({
@@ -2956,54 +2956,6 @@ _deps3 = [
     ":glib-dep-2",
 ]
 
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('iconv') — the platform's iconv (libc, or -liconv on macOS/Windows)
-cxx_library(
-    name = "iconv",
-    exported_linker_flags = select({
-        "prelude//os/constraints:os[linux]": [],
-        "prelude//os/constraints:os[freebsd]": [],
-        "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": ["-liconv"],
-    }),
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("atomic")
-cxx_library(
-    name = "atomic",
-    exported_linker_flags = [
-        "-latomic",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('intl') — the platform's gettext (libc, or -lintl elsewhere)
-cxx_library(
-    name = "intl",
-    exported_linker_flags = select({
-        "prelude//os/constraints:os[linux]": [],
-        "DEFAULT": ["-lintl"],
-    }),
-    visibility = ["PUBLIC"],
-)
-
 cxx_library(
     name = "glib-dep",
     headers = _headers,
@@ -4609,7 +4561,7 @@ cxx_library(
         ],
         "//third-party/meson/constraints:cpp_compiler[clang]": [],
     }),
-    deps = [":m"],
+    deps = ["//third-party/meson/system:m"],
     preferred_linkage = "static",
     target_compatible_with = _needs,
     visibility = ["PUBLIC"],
@@ -5520,7 +5472,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":glib-2.0",
-        ":intl",
+        "//third-party/meson/system:intl",
     ],
     visibility = ["PUBLIC"],
 )
@@ -10963,7 +10915,7 @@ cxx_library(
     deps = [
         ":glib-dep-3",
         ":glib-dep-5",
-        ":m",
+        "//third-party/meson/system:m",
     ],
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
