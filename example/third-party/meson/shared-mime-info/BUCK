@@ -38,7 +38,7 @@ cxx_binary(
         "config.h": ":config.h",
     },
     header_namespace = "",
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
+    linker_flags = ["-lstdc++fs"] + ["-Wl,--allow-shlib-undefined"],
     deps = [
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/libxml2:libxml2-dep",
@@ -53,7 +53,7 @@ cxx_binary(
         "config.h": ":config.h",
     },
     header_namespace = "",
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
+    linker_flags = ["-lstdc++fs"] + ["-Wl,--allow-shlib-undefined"],
     deps = [
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/libxml2:libxml2-dep",
@@ -68,7 +68,7 @@ cxx_binary(
         "config.h": ":config.h",
     },
     header_namespace = "",
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
+    linker_flags = ["-lstdc++fs"] + ["-Wl,--allow-shlib-undefined"],
     deps = [
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/glib:glib-dep-10",
