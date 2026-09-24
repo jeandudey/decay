@@ -877,21 +877,82 @@ impl<'a, S: Solver> Interp<'a, S> {
         (id, choices)
     }
 
-    /// `cc.sizeof()` / `cc.alignment()`: a target-dependent integer the
-    /// configuration has to pin, since the importer cannot run the compiler
-    /// and the number is baked into a generated header.
+    /// `cc.sizeof()` / `cc.alignment()`: a target-dependent integer baked
+    /// into a generated header, so it is never left open. An explicit
+    /// `[sizeof]` / `[alignment]` entry wins; otherwise it is measured with
+    /// `zig` per target, like a compile probe, and becomes a `select()` of
+    /// numbers.
     fn type_size(&mut self, query: SizeQuery, args: &CallArgs) -> eyre::Result<Variational<Value>> {
         let ty = self.one_string(
             args.at(0)
                 .ok_or_eyre("`sizeof()` / `alignment()` needs a type name")?,
         )?;
-        match self.oracle.type_size(query, &ty) {
-            Some(SizeAnswer::Fixed(n)) => Ok(self.pure(Value::Int(n))),
-            Some(SizeAnswer::Constraint {
+        let what = query.as_str();
+        let unanswered = || {
+            eyre::eyre!(
+                "`{what}('{ty}')` yields a target-dependent number that cannot be left open, \
+                 and zig cannot measure it for every configured system; add `{what}.\"{ty}\"` \
+                 to decay.toml (a single integer, or a table of constraint value to integer)"
+            )
+        };
+        let Some(answer) = self.oracle.type_size(query, &ty) else {
+            let regions = self.compile_probes(what, args).ok_or_else(unanswered)?;
+            let mut out = Variational::empty();
+            for (region, probe) in regions {
+                let values = self.oracle.value_probe(&probe).ok_or_else(unanswered)?;
+                self.assume_impossible_targets()?;
+                // Every configured system must have been measured. A cpu or
+                // system outside the matrix (the constraints' "any other"
+                // value) gets no number, as with a `[sizeof]` table.
+                let probed: Vec<&str> = values
+                    .iter()
+                    .flat_map(|(_, systems)| systems.iter().map(|ms| ms.system.as_str()))
+                    .collect();
+                if self
+                    .oracle
+                    .systems()
+                    .iter()
+                    .any(|system| !probed.contains(&system.as_str()))
+                {
+                    return Err(unanswered());
+                }
+                for (value, systems) in values {
+                    let key = format!("{what}:{ty}");
+                    let mut holds = Pc::from_bool(false);
+                    for ms in &systems {
+                        let on = self.host_system_is(std::slice::from_ref(&ms.system), &key)?;
+                        let any_row = self.matrix_any_row(&ms.axes, &ms.rows);
+                        let here = self.logic.and(on, any_row);
+                        holds = self.logic.or(holds, here);
+                    }
+                    let cond = self.logic.and(region, holds);
+                    if !self.logic.is_sat(cond) {
+                        continue;
+                    }
+                    // meson: a type that does not exist has size -1; its
+                    // alignment is an error.
+                    let value = match (value, query) {
+                        (Some(n), _) => n,
+                        (None, SizeQuery::Sizeof) => -1,
+                        (None, SizeQuery::Alignment) => {
+                            bail!(
+                                "`alignment('{ty}')`: the type does not compile everywhere it is asked for"
+                            )
+                        }
+                    };
+                    out.push(Variant::new(cond, Value::Int(value)));
+                }
+            }
+            out.normalize(&mut self.logic);
+            return Ok(out);
+        };
+        match answer {
+            SizeAnswer::Fixed(n) => Ok(self.pure(Value::Int(n))),
+            SizeAnswer::Constraint {
                 setting,
                 domain,
                 cases,
-            }) => {
+            } => {
                 let (id, choices) = self.constraint_var(&setting, domain);
                 let mut out = Variational::empty();
                 for (value, size) in cases {
@@ -908,20 +969,12 @@ impl<'a, S: Solver> Interp<'a, S> {
                 out.normalize(&mut self.logic);
                 if out.is_empty() {
                     bail!(
-                        "`{}('{ty}')` is configured, but none of its constraint values \
-                         apply where it is used here",
-                        query.as_str()
+                        "`{what}('{ty}')` is configured, but none of its constraint values \
+                         apply where it is used here"
                     );
                 }
                 Ok(out)
             }
-            None => bail!(
-                "`{}('{ty}')` yields a target-dependent number that cannot be left open; \
-                 add `{}.\"{ty}\"` to decay.toml (a single integer, or a table of \
-                 constraint value to integer)",
-                query.as_str(),
-                query.as_str(),
-            ),
         }
     }
 
@@ -985,7 +1038,12 @@ impl<'a, S: Solver> Interp<'a, S> {
             return Some(vec![(self.pc, probe)]);
         }
         let two_args = matches!(name, "has_header_symbol" | "has_member");
-        if !two_args && !matches!(name, "has_header" | "has_type" | "compiles" | "links") {
+        if !two_args
+            && !matches!(
+                name,
+                "has_header" | "has_type" | "compiles" | "links" | "sizeof" | "alignment"
+            )
+        {
             return None;
         }
         let link = name == "links";
@@ -1063,6 +1121,8 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
                 ("compiles", _) => CompileProbeKind::Compiles { prefix, code: arg0 },
                 ("links", _) => CompileProbeKind::Links { code: arg0 },
+                ("sizeof", _) => CompileProbeKind::Sizeof { name: arg0, prefix },
+                ("alignment", _) => CompileProbeKind::Alignment { name: arg0, prefix },
                 _ => return None,
             };
             out.push((region, CompileProbe { kind, args }));
@@ -1205,6 +1265,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 Ok(cond)
             }
             Some(Probe::Matrix(per_system)) => {
+                self.assume_impossible_targets()?;
                 // Each probed system settles independently — its own axes, its
                 // own compiled rows. A `(cpu[, abi])` not in any row genuinely
                 // did not compile, so within a probed system it is a settled
@@ -1234,6 +1295,32 @@ impl<'a, S: Solver> Interp<'a, S> {
                 .map_err(|e| eyre::eyre!("`{key}`: {e}")),
             None => Ok(self.probe(key, description)),
         }
+    }
+
+    /// Rule out [`Oracle::impossible_targets`], once, before the first probe
+    /// matrix is read.
+    fn assume_impossible_targets(&mut self) -> eyre::Result<()> {
+        if self.impossible_assumed {
+            return Ok(());
+        }
+        self.impossible_assumed = true;
+        let known = self.oracle.systems();
+        for target in self.oracle.impossible_targets() {
+            if !known.contains(&target.system) {
+                continue;
+            }
+            let key = format!("impossible:{}", target.system);
+            let on = self.host_system_is(std::slice::from_ref(&target.system), &key)?;
+            let value = self.constraint_is(
+                &target.setting,
+                target.domain,
+                std::slice::from_ref(&target.value),
+            );
+            let both = self.logic.and(on, value);
+            let never = self.logic.not(both);
+            self.logic.assume(never);
+        }
+        Ok(())
     }
 
     /// The condition that one of `rows` holds — each row an AND across the

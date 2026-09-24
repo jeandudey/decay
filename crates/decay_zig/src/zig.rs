@@ -42,13 +42,23 @@ fn write_src(src: &std::path::Path, code: &str) {
     }
 }
 
+/// Run `zig`, once more if it dies by a signal. zig 0.15 can crash when
+/// parallel runs build the same target's libc into a cold cache; a second
+/// run finds it built. A second crash is left for [`check_verdict`].
 fn spawn(cmd: &mut Command) -> std::process::Output {
-    cmd.output().unwrap_or_else(|e| {
-        panic!(
-            "`zig` is required by decay but could not be run ({e}); install zig \
-             (decay is developed against {EXPECTED_VERSION})"
-        )
-    })
+    let run = |cmd: &mut Command| {
+        cmd.output().unwrap_or_else(|e| {
+            panic!(
+                "`zig` is required by decay but could not be run ({e}); install zig \
+                 (decay is developed against {EXPECTED_VERSION})"
+            )
+        })
+    };
+    let output = run(cmd);
+    if output.status.code().is_some() {
+        return output;
+    }
+    run(cmd)
 }
 
 /// Panic when a failed `zig cc` run failed because of zig itself rather than
@@ -148,6 +158,44 @@ pub fn compiles(code: &str, target: &str, flags: &[&str]) -> bool {
         check_verdict(&output);
     }
     output.status.success()
+}
+
+/// The byte size of `symbol` once `code` compiles for `-target <target>`,
+/// read back from the assembly's `.size <symbol>, N` directive — how a probe
+/// gets a compile-time number out without running anything: it declares
+/// `const char symbol[EXPR]`. `None` when `code` does not compile.
+///
+/// ponytail: ELF only (`.size` is an ELF directive), which is every target
+/// decay compile-probes.
+pub fn symbol_size(code: &str, target: &str, flags: &[&str], symbol: &str) -> Option<u64> {
+    let stem = tmp_stem("decay-zig-size");
+    let src = stem.with_extension("c");
+    let asm = stem.with_extension("s");
+    write_src(&src, code);
+    let output = spawn(
+        Command::new("zig")
+            .args(["cc", "-target", target, "-w", "-S"])
+            .args(flags)
+            .arg(&src)
+            .arg("-o")
+            .arg(&asm)
+            .stdout(Stdio::null()),
+    );
+    let text = fs::read_to_string(&asm).unwrap_or_default();
+    let _ = fs::remove_file(&src);
+    let _ = fs::remove_file(&asm);
+    if !output.status.success() {
+        check_verdict(&output);
+        return None;
+    }
+    let size = text.lines().find_map(|line| {
+        let rest = line.trim().strip_prefix(".size")?.trim_start();
+        let (name, n) = rest.split_once(',')?;
+        (name.trim() == symbol).then(|| n.trim().parse().ok())?
+    });
+    Some(size.unwrap_or_else(|| {
+        panic!("`zig cc -S` for {target} compiled but emitted no `.size {symbol}`:\n{text}")
+    }))
 }
 
 /// Whether `code` links for `-target <target>` with each `-l<lib>`. `Ok`
@@ -270,6 +318,16 @@ mod tests {
         for stderr in verdicts {
             assert!(!is_zig_failure(Some(1), stderr), "{stderr:?}");
         }
+    }
+
+    #[test]
+    fn symbol_size_reads_a_compile_time_number() {
+        let code = "const char v[sizeof(long double)] = {0};\n";
+        assert_eq!(symbol_size(code, "x86_64-linux-gnu", &[], "v"), Some(16));
+        assert_eq!(symbol_size(code, "x86-linux-musl", &[], "v"), Some(12));
+        assert_eq!(symbol_size(code, "arm-linux-musleabihf", &[], "v"), Some(8));
+        let missing = "const char v[sizeof(struct decay_nope)] = {0};\n";
+        assert_eq!(symbol_size(missing, "x86_64-linux-gnu", &[], "v"), None);
     }
 
     #[test]

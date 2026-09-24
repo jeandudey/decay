@@ -200,6 +200,8 @@ pub struct Interp<'a, S: Solver> {
     /// same variable as the first.
     option_vars: HashMap<String, VarId>,
     probe_vars: HashMap<String, VarId>,
+    /// Whether [`Oracle::impossible_targets`] has been assumed away yet.
+    pub(crate) impossible_assumed: bool,
     /// Interned external dependency targets, keyed the same way.
     externals: HashMap<String, TargetId>,
 
@@ -258,6 +260,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             visited: HashMap::new(),
             option_vars: HashMap::new(),
             probe_vars: HashMap::new(),
+            impossible_assumed: false,
             externals: HashMap::new(),
             project_args: Variational::empty(),
             project_link_args: Variational::empty(),

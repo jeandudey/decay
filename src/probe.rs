@@ -8,7 +8,10 @@
 //! per-run cache on top of [`decay_zig::zig`]'s bare `compiles` / `link`.
 
 use {
-    decay_meson_eval::oracle::CompileProbe,
+    decay_meson_eval::oracle::{
+        CompileProbe,
+        VALUE_SYMBOL, //
+    },
     decay_zig::{
         Cpu,
         zig, //
@@ -26,7 +29,11 @@ pub const CPU_SETTING: &str = "prelude//cpu/constraints:cpu";
 /// ponytail: unbounded and never evicted — one process imports a bounded
 /// set of projects, so it stays small; add an LRU if that stops being true.
 #[derive(Default)]
-pub struct ProbeCache(HashMap<(String, String), bool>);
+pub struct ProbeCache(HashMap<(String, String), bool>, ValueCache);
+
+/// `(target triple, source) -> the number it measured`, for
+/// [`value_rows`]; `None` when it did not compile.
+type ValueCache = HashMap<(String, String), Option<u64>>;
 
 impl ProbeCache {
     /// Whether `snippet` builds for `triple` — compiled to an object, or
@@ -47,6 +54,21 @@ impl ProbeCache {
         };
         self.0.insert(key, ok);
         ok
+    }
+
+    /// What `snippet` measures for `triple`: the size of its
+    /// [`VALUE_SYMBOL`] array, `None` if it does not compile.
+    fn value(&mut self, triple: &str, snippet: &str, extra: &[&str]) -> Option<u64> {
+        let key = (
+            triple.to_owned(),
+            format!("{snippet}\u{0}{}", extra.join(" ")),
+        );
+        if let Some(hit) = self.1.get(&key) {
+            return *hit;
+        }
+        let value = zig::symbol_size(snippet, triple, extra, VALUE_SYMBOL);
+        self.1.insert(key, value);
+        value
     }
 
     /// Whether `zig cc -target <triple> … -l<lib>` links — i.e. whether
@@ -123,9 +145,21 @@ fn probe_targets(system: &str, cpu: Cpu) -> Vec<(&'static str, String)> {
     match system {
         "linux" => vec![("gnu", cpu.glibc_target()), ("musl", cpu.musl_target())],
         "freebsd" => vec![("", format!("{}-freebsd", cpu.zig_arch()))],
+        // NetBSD has no riscv64 release sets, so zig ships no headers for it.
+        "netbsd" if cpu == Cpu::Riscv64 => Vec::new(),
         "netbsd" => vec![("", format!("{}-netbsd", cpu.zig_arch()))],
         _ => Vec::new(),
     }
+}
+
+/// The CPUs decay cannot probe on `system` (buck2 values). A probe says
+/// nothing about them, so collapsing an axis ignores them.
+pub fn unprobed_cpus(system: &str) -> Vec<&'static str> {
+    Cpu::ALL
+        .into_iter()
+        .filter(|cpu| probe_targets(system, *cpu).is_empty())
+        .map(Cpu::buck2_value)
+        .collect()
 }
 
 /// Build `probe`'s snippet for every `system` target in the matrix, replaying
@@ -134,6 +168,35 @@ fn probe_targets(system: &str, cpu: Cpu) -> Vec<(&'static str, String)> {
 /// an abi split, `[cpu]` otherwise.
 pub fn probe_rows(cache: &mut ProbeCache, probe: &CompileProbe, system: &str) -> Vec<Vec<String>> {
     let snippet = probe.snippet();
+    let link = probe.links();
+    for_each_target(probe, system, |triple, flags| {
+        cache.builds(triple, &snippet, flags, link).then_some(())
+    })
+    .into_iter()
+    .map(|(row, ())| row)
+    .collect()
+}
+
+/// Like [`probe_rows`], for a `cc.sizeof()` / `cc.alignment()` probe: every
+/// row, with the number it measured there (`None` where it did not compile).
+pub fn value_rows(
+    cache: &mut ProbeCache,
+    probe: &CompileProbe,
+    system: &str,
+) -> Vec<(Vec<String>, Option<u64>)> {
+    let snippet = probe.snippet();
+    for_each_target(probe, system, |triple, flags| {
+        Some(cache.value(triple, &snippet, flags))
+    })
+}
+
+/// Run `build` for every `system` target in the matrix with the flags that
+/// target gets, keeping each row it answers for.
+fn for_each_target<T>(
+    probe: &CompileProbe,
+    system: &str,
+    mut build: impl FnMut(&str, &[&str]) -> Option<T>,
+) -> Vec<(Vec<String>, T)> {
     let mut rows = Vec::new();
     for cpu in Cpu::ALL {
         let arch = match cpu.zig_arch() {
@@ -147,11 +210,12 @@ pub fn probe_rows(cache: &mut ProbeCache, probe: &CompileProbe, system: &str) ->
             if abi == "gnu" && cpu == Cpu::Arm64 {
                 flags.extend(AARCH64_GLIBC_VECTOR_TYPES);
             }
-            if cache.builds(&triple, &snippet, &flags, probe.links()) {
-                rows.push(match abi {
+            if let Some(answer) = build(&triple, &flags) {
+                let row = match abi {
                     "" => vec![cpu.buck2_value().to_owned()],
                     _ => vec![abi.to_owned(), cpu.buck2_value().to_owned()],
-                });
+                };
+                rows.push((row, answer));
             }
         }
     }
@@ -268,6 +332,50 @@ mod tests {
     }
 
     #[test]
+    fn value_rows_measure_per_target() {
+        let mut cache = ProbeCache::default();
+        let rows = value_rows(
+            &mut cache,
+            &probe(CompileProbeKind::Sizeof {
+                name: "void *".to_owned(),
+                prefix: String::new(),
+            }),
+            "linux",
+        );
+        assert_eq!(rows.len(), Cpu::ALL.len() * 2, "{rows:?}");
+        for (row, size) in &rows {
+            let want = match row[1].as_str() {
+                "x86_32" | "arm32" => 4,
+                _ => 8,
+            };
+            assert_eq!(*size, Some(want), "{row:?}");
+        }
+
+        // meson's alignment: `double` sits at offset 4 after a `char` on
+        // i386, whatever `_Alignof` says.
+        let rows = value_rows(
+            &mut cache,
+            &probe(CompileProbeKind::Alignment {
+                name: "double".to_owned(),
+                prefix: String::new(),
+            }),
+            "freebsd",
+        );
+        let x86: Vec<_> = rows.iter().filter(|(r, _)| r[0] == "x86_32").collect();
+        assert_eq!(x86, [&(vec!["x86_32".to_owned()], Some(4))]);
+
+        let missing = value_rows(
+            &mut cache,
+            &probe(CompileProbeKind::Sizeof {
+                name: "struct decay_nope".to_owned(),
+                prefix: String::new(),
+            }),
+            "linux",
+        );
+        assert!(missing.iter().all(|(_, size)| size.is_none()));
+    }
+
+    #[test]
     fn arch_isa_flags_gate_by_target() {
         // ARM `-mfpu=` only ever reaches an arm32 target.
         let neon = vec!["-mfpu=neon".to_owned(), "-D_GNU_SOURCE".to_owned()];
@@ -365,6 +473,13 @@ int main (void) { return 0; }
             "linux",
         );
         assert_eq!(with_prefix.len(), Cpu::ALL.len() * 2);
+    }
+
+    #[test]
+    fn netbsd_riscv64_is_not_probed() {
+        assert_eq!(unprobed_cpus("netbsd"), ["riscv64"]);
+        assert!(unprobed_cpus("freebsd").is_empty());
+        assert!(unprobed_cpus("linux").is_empty());
     }
 
     #[test]

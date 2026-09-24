@@ -203,30 +203,12 @@ genrule(
 genrule(
     name = "config.h",
     out = "config.h",
-    cmd = "printf '%s\\n'" + " '#define XML_SYSCONFDIR \"/usr/local/etc\"' '#define HAVE_STDINT_H 1' '#define XML_THREAD_LOCAL _Thread_local' '#define HAVE_FUNC_ATTRIBUTE_DESTRUCTOR 1' '#define HAVE_DLOPEN 1'" + select({
+    cmd = "printf '%s\\n'" + " '#define XML_SYSCONFDIR \"/usr/local/etc\"' '#define HAVE_STDINT_H 1' '#define HAVE_DECL_GLOB 1' '#define HAVE_DECL_MMAP 1' '#define XML_THREAD_LOCAL _Thread_local' '#define HAVE_FUNC_ATTRIBUTE_DESTRUCTOR 1' '#define HAVE_DLOPEN 1'" + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_DECL_GETENTROPY 1'",
             "DEFAULT": " '#define HAVE_DECL_GETENTROPY 0'",
         }),
         "DEFAULT": " '#define HAVE_DECL_GETENTROPY 0'",
-    }) + select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DECL_GLOB 1'",
-            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DECL_GLOB 1'",
-            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DECL_GLOB 1'",
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DECL_GLOB 1'",
-            "DEFAULT": " '#define HAVE_DECL_GLOB 0'",
-        }),
-        "DEFAULT": " '#define HAVE_DECL_GLOB 1'",
-    }) + select({
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DECL_MMAP 1'",
-            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DECL_MMAP 1'",
-            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DECL_MMAP 1'",
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DECL_MMAP 1'",
-            "DEFAULT": " '#define HAVE_DECL_MMAP 0'",
-        }),
-        "DEFAULT": " '#define HAVE_DECL_MMAP 1'",
     }) + " > $OUT",
     visibility = ["PUBLIC"],
 )

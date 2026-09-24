@@ -22,6 +22,7 @@ use {
         oracle::{
             CompileProbe,
             CompileProbeKind,
+            ImpossibleTarget,
             MatrixSystem,
             Oracle,
             Pinned,
@@ -33,6 +34,7 @@ use {
     },
     std::{
         cell::RefCell,
+        collections::BTreeMap,
         path::Path,
         rc::Rc, //
     },
@@ -170,9 +172,11 @@ impl<'a> ConfigOracle<'a> {
                     }
                 }
             }
+            let (axes, rows) =
+                collapse_full_axes(self.probe_axes(system), rows, &probe::unprobed_cpus(system));
             systems.push(MatrixSystem {
                 system: system.to_owned(),
-                axes: self.probe_axes(system),
+                axes,
                 rows,
             });
         }
@@ -329,7 +333,8 @@ impl<'a> ConfigOracle<'a> {
                 continue;
             }
             let rows = probe::probe_rows(&mut self.probe_cache.borrow_mut(), probe, system);
-            let (axes, rows) = collapse_full_axes(self.probe_axes(system), rows);
+            let (axes, rows) =
+                collapse_full_axes(self.probe_axes(system), rows, &probe::unprobed_cpus(system));
             systems.push(MatrixSystem {
                 system: system.to_owned(),
                 axes,
@@ -337,6 +342,40 @@ impl<'a> ConfigOracle<'a> {
             });
         }
         (!systems.is_empty()).then_some(Probe::Matrix(systems))
+    }
+
+    /// [`Oracle::value_probe`]: each distinct number `probe` measured, with
+    /// the per-system rows it holds on.
+    fn value_probe_answer(
+        &self,
+        probe: &CompileProbe,
+    ) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
+        let mut by_value: BTreeMap<Option<i64>, Vec<MatrixSystem>> = BTreeMap::new();
+        let mut any = false;
+        for system in probe::PROBE_SYSTEMS {
+            if !self.config.systems.contains_key(system) {
+                continue;
+            }
+            any = true;
+            let rows = probe::value_rows(&mut self.probe_cache.borrow_mut(), probe, system);
+            let mut split: BTreeMap<Option<i64>, Vec<Vec<String>>> = BTreeMap::new();
+            for (row, value) in rows {
+                split.entry(value.map(|v| v as i64)).or_default().push(row);
+            }
+            for (value, rows) in split {
+                let (axes, rows) = collapse_full_axes(
+                    self.probe_axes(system),
+                    rows,
+                    &probe::unprobed_cpus(system),
+                );
+                by_value.entry(value).or_default().push(MatrixSystem {
+                    system: system.to_owned(),
+                    axes,
+                    rows,
+                });
+            }
+        }
+        any.then(|| by_value.into_iter().collect())
     }
 
     /// The `[sizeof]` / `[alignment]` entry for `type_name`, turned into a
@@ -412,6 +451,32 @@ impl Oracle for ConfigOracle<'_> {
 
     fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
         self.compile_probe_answer(probe)
+    }
+
+    fn impossible_targets(&self) -> Vec<ImpossibleTarget> {
+        let mut out = Vec::new();
+        for system in probe::PROBE_SYSTEMS {
+            if !self.config.systems.contains_key(system) {
+                continue;
+            }
+            let axes = self.probe_axes(system);
+            let Some((setting, domain)) = axes.iter().find(|(s, _)| s == probe::CPU_SETTING) else {
+                continue;
+            };
+            for cpu in probe::unprobed_cpus(system) {
+                out.push(ImpossibleTarget {
+                    system: system.to_owned(),
+                    setting: setting.clone(),
+                    domain: domain.clone(),
+                    value: cpu.to_owned(),
+                });
+            }
+        }
+        out
+    }
+
+    fn value_probe(&self, probe: &CompileProbe) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
+        self.value_probe_answer(probe)
     }
 
     fn has_program(&self, name: &str) -> bool {
@@ -543,14 +608,25 @@ type MatrixRows = Vec<Vec<String>>;
 /// is emitted. The `constraint_var` fallback value (`ANY_OTHER`) is what
 /// otherwise keeps such a probe non-tautological forever — every attribute
 /// touching it would grow an `abi` — then `cpu` — `select()`.
-fn collapse_full_axes(mut axes: Vec<Axis>, mut rows: MatrixRows) -> (Vec<Axis>, MatrixRows) {
+///
+/// `unprobed` values (a CPU decay cannot build for on this system) say
+/// nothing either way, so they count as covered.
+fn collapse_full_axes(
+    mut axes: Vec<Axis>,
+    mut rows: MatrixRows,
+    unprobed: &[&str],
+) -> (Vec<Axis>, MatrixRows) {
     if rows.is_empty() {
         return (axes, rows);
     }
     'again: loop {
         for i in 0..axes.len() {
-            let domain: std::collections::BTreeSet<&str> =
-                axes[i].1.iter().map(String::as_str).collect();
+            let domain: std::collections::BTreeSet<&str> = axes[i]
+                .1
+                .iter()
+                .map(String::as_str)
+                .filter(|v| !unprobed.contains(v))
+                .collect();
             let mut groups: std::collections::HashMap<
                 Vec<String>,
                 std::collections::BTreeSet<String>,
@@ -628,6 +704,7 @@ mod tests {
                 &["gnu", "arm64"],
                 &["musl", "arm64"],
             ]),
+            &[],
         );
         assert_eq!(axes.len(), 1);
         assert_eq!(axes[0].0, "cpu");
@@ -640,7 +717,7 @@ mod tests {
             ax(&[("abi", &["gnu", "musl"]), ("cpu", &["x86_64", "arm64"])]),
             rows(&[&["gnu", "x86_64"], &["musl", "x86_64"], &["gnu", "arm64"]]),
         );
-        let after = collapse_full_axes(before.0.clone(), before.1.clone());
+        let after = collapse_full_axes(before.0.clone(), before.1.clone(), &[]);
         assert_eq!(after, before);
     }
 
@@ -649,6 +726,7 @@ mod tests {
         let (axes, r) = collapse_full_axes(
             ax(&[("cpu", &["x86_64", "arm64"])]),
             rows(&[&["x86_64"], &["arm64"]]),
+            &[],
         );
         assert!(axes.is_empty());
         assert_eq!(r, vec![Vec::<String>::new()]);
@@ -657,7 +735,7 @@ mod tests {
     #[test]
     fn partial_coverage_keeps_axis() {
         let before = (ax(&[("cpu", &["x86_64", "arm64"])]), rows(&[&["x86_64"]]));
-        let after = collapse_full_axes(before.0.clone(), before.1.clone());
+        let after = collapse_full_axes(before.0.clone(), before.1.clone(), &[]);
         assert_eq!(after, before);
     }
 
@@ -670,6 +748,7 @@ mod tests {
                 ("cpu", &["x86_64", "arm64"]),
             ]),
             rows(&[&["gnu", "x86_64"], &["musl", "x86_64"]]),
+            &[],
         );
         assert_eq!(axes.len(), 1);
         assert_eq!(axes[0].0, "cpu");

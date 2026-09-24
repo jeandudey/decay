@@ -71,6 +71,24 @@ pub trait Oracle {
         None
     }
 
+    /// Targets the importer never builds for: each rules out the
+    /// configurations where host system `system` meets `value` of
+    /// `setting`. A probe matrix has no row for them, and without this they
+    /// would read as "the probe failed there".
+    fn impossible_targets(&self) -> Vec<ImpossibleTarget> {
+        Vec::new()
+    }
+
+    /// The number a [`CompileProbeKind::Sizeof`] / [`CompileProbeKind::Alignment`]
+    /// probe measures, built once per target like [`Oracle::compile_probe`]:
+    /// each distinct value with the matrix of targets it holds on, `None` for
+    /// the targets it did not compile for. A target outside every matrix was
+    /// not probed. `None` overall when the importer cannot build it.
+    fn value_probe(&self, probe: &CompileProbe) -> Option<Vec<(Option<i64>, Vec<MatrixSystem>)>> {
+        let _ = probe;
+        None
+    }
+
     /// Whether toolchain and dependency probes (`cc.has_header`,
     /// `dependency()`, ...) should be left open.
     ///
@@ -270,6 +288,15 @@ pub enum Probe {
     Formula(Formula),
 }
 
+/// See [`Oracle::impossible_targets`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImpossibleTarget {
+    pub system: String,
+    pub setting: String,
+    pub domain: Vec<String>,
+    pub value: String,
+}
+
 /// One operating system's slice of a [`Probe::Matrix`] answer: the
 /// `(cpu[, abi])` combinations the probe compiled for on that system. `axes`
 /// varies by system — `linux` splits on `abi` (glibc vs musl), the BSDs do
@@ -318,7 +345,17 @@ pub enum CompileProbeKind {
     Compiles { prefix: String, code: String },
     /// `cc.links(code)`: built into an executable, not just an object.
     Links { code: String },
+    /// `cc.sizeof('t', prefix: p)`: a number, read back through
+    /// [`VALUE_SYMBOL`] (see [`Oracle::value_probe`]).
+    Sizeof { name: String, prefix: String },
+    /// `cc.alignment('t', prefix: p)`, measured the way meson does: the
+    /// offset of `t` after a leading `char`.
+    Alignment { name: String, prefix: String },
 }
+
+/// The array a [`CompileProbeKind::Sizeof`] / [`CompileProbeKind::Alignment`]
+/// snippet sizes to the number it asks for.
+pub const VALUE_SYMBOL: &str = "decay_value";
 
 impl CompileProbe {
     /// The C translation unit to build.
@@ -349,6 +386,13 @@ impl CompileProbe {
             ),
             CompileProbeKind::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
             CompileProbeKind::Links { code } => format!("{code}\n"),
+            CompileProbeKind::Sizeof { name, prefix } => format!(
+                "{prefix}\n#include <stddef.h>\nconst char {VALUE_SYMBOL}[sizeof({name})] = {{0}};\n"
+            ),
+            CompileProbeKind::Alignment { name, prefix } => format!(
+                "{prefix}\n#include <stddef.h>\nstruct decay_align {{ char c; {name} target; }};\n\
+                 const char {VALUE_SYMBOL}[offsetof(struct decay_align, target)] = {{0}};\n"
+            ),
         }
     }
 

@@ -98,34 +98,6 @@ genrule(
     name = "config.h",
     out = "config.h",
     cmd = "printf '%s\\n'" + " '#define HAVE_STDLIB_H' '#define HAVE_STDINT_H' '#define HAVE_STDBOOL_H' '#define HAVE_MEMORY_H' '#define HAVE_PTHREAD_H' '#define HAVE_SINCOSF' '#define _GRAPHENE_PUBLIC __attribute__((visibility(\"default\"))) extern'" + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//cpu/constraints:cpu[arm32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
-                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
-            }),
-            "prelude//cpu/constraints:cpu[arm64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
-                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
-            }),
-            "prelude//cpu/constraints:cpu[riscv64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
-                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
-            }),
-            "prelude//cpu/constraints:cpu[x86_32]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
-                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
-            }),
-            "prelude//cpu/constraints:cpu[x86_64]": select({
-                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MEMALIGN 1'",
-                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MEMALIGN 1'",
-                "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
-            }),
-            "DEFAULT": " '#define HAVE_ALIGNED_ALLOC 1'",
-        }),
         "prelude//os/constraints:os[netbsd]": " '#define HAVE_ALIGNED_ALLOC 1'",
         "DEFAULT": " '#define HAVE_MEMALIGN 1'",
     }) + select({
@@ -133,24 +105,11 @@ genrule(
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ISINFF'",
             "DEFAULT": " '/* #undef HAVE_ISINFF */'",
         }),
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ISINFF'",
-            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ISINFF'",
-            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ISINFF'",
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ISINFF'",
-            "DEFAULT": " '/* #undef HAVE_ISINFF */'",
-        }),
+        "prelude//os/constraints:os[netbsd]": " '#define HAVE_ISINFF'",
         "DEFAULT": " '/* #undef HAVE_ISINFF */'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ISNANF'",
-            "DEFAULT": " '/* #undef HAVE_ISNANF */'",
-        }),
-        "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ISNANF'",
-            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ISNANF'",
-            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ISNANF'",
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ISNANF'",
             "DEFAULT": " '/* #undef HAVE_ISNANF */'",
         }),
         "DEFAULT": " '#define HAVE_ISNANF'",

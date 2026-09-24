@@ -103,28 +103,30 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `abi[musl]` arm (the solver allows an axis var to take "no value") —
   harmless on `abi[gnu]`, and no `example/` platform exercises `abi[musl]`.
 
-- **Compile/link probes resolved by `zig cc` at import time.** `cc.has_header`,
-  `cc.check_header`, `cc.has_type`, `cc.has_header_symbol`, `cc.has_member`,
-  `cc.compiles`, `cc.links` and `cc.symbols_have_underscore_prefix` are built
-  with `zig cc -target <triple>` per `(os, cpu, abi)` in decay's configured
-  matrix (`src/probe.rs`, `oracle::Probe::Matrix`), linux-gnu pinned to the
-  newest glibc zig ships; built everywhere → plain `true`, nowhere → dead
-  branch, on some → a real `select()`, never a synthetic `has_foo_bar`
-  constraint. A `prefix:`/code/`args:` that differs by configuration is built
-  once per region it is constant in (`compile_probes` in
-  `decay_meson_eval/src/methods.rs`). An explicit `decay.toml [probes]`
-  answer still wins first. Systems zig cannot probe end to end (`darwin`,
-  `windows`, `illumos`, `android`, `fuchsia`) are meant to be left out of
-  `[systems]` entirely.
+- **Compile/link probes resolved by `zig cc` at import time.**
+  `cc.has_header`, `cc.check_header`, `cc.has_type`, `cc.has_header_symbol`,
+  `cc.has_member`, `cc.compiles`, `cc.links`,
+  `cc.symbols_have_underscore_prefix`, `cc.sizeof` and `cc.alignment` are
+  built with `zig cc -target <triple>` per `(os, cpu, abi)` in decay's
+  configured matrix (`src/probe.rs`, `oracle::Probe::Matrix`), linux-gnu
+  pinned to the newest glibc zig ships; built everywhere → plain `true`,
+  nowhere → dead branch, on some → a real `select()`, never a synthetic
+  `has_foo_bar` constraint (`sizeof`/`alignment`: a `select()` of the numbers,
+  read back from the compiled array's `.size`). A `prefix:`/code/`args:` that
+  differs by configuration is built once per region it is constant in
+  (`compile_probes` in `decay_meson_eval/src/methods.rs`). An explicit
+  `decay.toml [probes]` (or `[sizeof]`/`[alignment]`) answer still wins first.
+  Systems zig cannot probe end to end (`darwin`, `windows`, `illumos`,
+  `android`, `fuchsia`) are meant to be left out of `[systems]` entirely. zig
+  ships no riscv64-netbsd headers (NetBSD has no riscv64 release sets), so
+  that pair is not probed: its `select()`s have no riscv64 arm under
+  `os[netbsd]`.
 
   Still in scope:
   - **`dependencies:` other than `threads` or a system library** — a
     `pkg-config` or sibling dependency's include dirs and flags are not
     replayed on the `zig cc` line, so the probe stays an open knob.
   - **C++ probes** — `cpp.has_header()` and kin are built as C.
-  - **compile-time `cc.sizeof` of a *type*** — the `static_assert` binary
-    search meson falls back to when it cannot run. Goes through
-    `Oracle::type_size`, not `compile_probe`.
   - **gcc-only builtins.** `-fgnuc-version=` fixes the version-guard class
     of probe, not one that uses a GCC extension clang never implemented
     (graphene's `__builtin_shuffle`, no `GRAPHENE_HAS_GCC`). Needs a
@@ -137,9 +139,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
     warning flags are gated (`GCC_ONLY_WARNING_ARGS`/`CLANG_ONLY_WARNING_ARGS`
     in `decay_meson_eval/src/methods.rs` — extend as projects turn up more);
     the general case wants a real per-toolchain answer.
-  - **`cc.run()` proper, `cc.alignment()`'s value, `cc.compute_int()`** need
-    the probe *executed*, not just linked — decay does not cross-run. Stay
-    on the `decay.toml` path (see `cc.compute_int()`'s own entry below).
+  - **`cc.run()` proper, `cc.compute_int()`** need the probe *executed*, not
+    just linked — decay does not cross-run. Stay on the `decay.toml` path
+    (see `cc.compute_int()`'s own entry below).
   - **Kernel/libc-header-vintage probes** (`HAVE_FUTEX_TIME64` and kin)
     resolve against `zig`'s *bundled* headers — a version pin, not a real
     per-host fact (see "An unanswered probe defaults to `true`" below).

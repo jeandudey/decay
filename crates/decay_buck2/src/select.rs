@@ -208,8 +208,15 @@ impl Selects {
             return no(depth);
         }
 
-        let support = logic.support(cond);
-        let Some(&var) = support.first() else {
+        let (cond, var) = relevant_var(logic, &[cond], context);
+        let cond = cond[0];
+        if cond.is_true() {
+            return yes(depth);
+        }
+        if cond.is_false() {
+            return no(depth);
+        }
+        let Some(var) = var else {
             return yes(depth);
         };
 
@@ -237,14 +244,7 @@ impl Selects {
     /// Used to carry on down a variable that turned out not to matter: any
     /// value it can still take answers for all of them.
     fn settled<S: Solver>(&self, logic: &mut Logic<S>, var: VarId, context: Pc) -> u32 {
-        let default = logic.var(var).default as u32;
-        if !logic.restrict(context, var, default).is_false() {
-            return default;
-        }
-        let choices = logic.var(var).choices.len() as u32;
-        (0..choices)
-            .find(|&choice| !logic.restrict(context, var, choice).is_false())
-            .unwrap_or(default)
+        settled_choice(logic, var, context)
     }
 
     /// Render a list attribute whose entries may each be conditional.
@@ -530,10 +530,18 @@ impl Selects {
         if let Some((_, value)) = arms.iter().find(|(cond, _)| cond.is_true()) {
             return value.clone();
         }
-        let Some(var) = arms
-            .iter()
-            .find_map(|(cond, _)| logic.support(*cond).first().copied())
-        else {
+        let conds: Vec<Pc> = arms.iter().map(|(cond, _)| *cond).collect();
+        let (conds, var) = relevant_var(logic, &conds, context);
+        let arms: Vec<(Pc, String)> = conds
+            .into_iter()
+            .zip(arms.iter().map(|(_, value)| value.clone()))
+            .filter(|(cond, _)| !cond.is_false())
+            .collect();
+        let arms = &arms;
+        if let Some((_, value)) = arms.iter().find(|(cond, _)| cond.is_true()) {
+            return value.clone();
+        }
+        let Some(var) = var else {
             return fallback.to_owned();
         };
 
@@ -662,6 +670,85 @@ fn opposite<S: Solver>(logic: &mut Logic<S>, a: Pc, b: Pc, context: Pc) -> bool 
     !logic.is_sat(neither)
 }
 
+/// The first variable `conds` really depend on within `context`, with
+/// `conds` rewritten free of every variable passed over on the way.
+///
+/// Structurally a condition names every variable it was built from, but
+/// under [`Logic::assume`]d facts it may not depend on one: with riscv64
+/// ruled out on netbsd, "arm64, riscv64 or x86_64 off netbsd; arm64 or
+/// x86_64 on it" is just "arm64, riscv64 or x86_64". Splitting on `os` there
+/// would write the same answer twice.
+fn relevant_var<S: Solver>(
+    logic: &mut Logic<S>,
+    conds: &[Pc],
+    context: Pc,
+) -> (Vec<Pc>, Option<VarId>) {
+    let mut conds = conds.to_vec();
+    let mut skipped: Vec<VarId> = Vec::new();
+    loop {
+        let var = conds.iter().find_map(|cond| {
+            logic
+                .support(*cond)
+                .into_iter()
+                .find(|var| !skipped.contains(var))
+        });
+        let Some(var) = var else {
+            return (conds, None);
+        };
+        if !logic.has_assumptions() || !ignorable(logic, &conds, context, var) {
+            return (conds, Some(var));
+        }
+        let reference = settled_choice(logic, var, context);
+        conds = conds
+            .iter()
+            .map(|cond| logic.restrict(*cond, var, reference))
+            .collect();
+        skipped.push(var);
+    }
+}
+
+/// Whether every one of `conds` reads the same whichever value `var` takes
+/// within `context`, once assumed facts are counted.
+fn ignorable<S: Solver>(logic: &mut Logic<S>, conds: &[Pc], context: Pc, var: VarId) -> bool {
+    let reference = settled_choice(logic, var, context);
+    let choices = logic.var(var).choices.len() as u32;
+    for cond in conds {
+        let fixed = logic.restrict(*cond, var, reference);
+        for choice in 0..choices {
+            if choice == reference {
+                continue;
+            }
+            let here = logic.restrict(*cond, var, choice);
+            if here == fixed {
+                continue;
+            }
+            let lit = logic.lit(var, choice);
+            let at = logic.and(context, lit);
+            let (a, b) = (logic.not(here), logic.not(fixed));
+            let only_here = logic.and(here, b);
+            let only_fixed = logic.and(fixed, a);
+            let differ = logic.or(only_here, only_fixed);
+            let differ = logic.and(at, differ);
+            if logic.is_sat(differ) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// A value of `var` `context` allows, preferring its default.
+fn settled_choice<S: Solver>(logic: &mut Logic<S>, var: VarId, context: Pc) -> u32 {
+    let default = logic.var(var).default as u32;
+    if !logic.restrict(context, var, default).is_false() {
+        return default;
+    }
+    let choices = logic.var(var).choices.len() as u32;
+    (0..choices)
+        .find(|&choice| !logic.restrict(context, var, choice).is_false())
+        .unwrap_or(default)
+}
+
 /// Drop from `cond` whatever `context` already guarantees.
 ///
 /// A source file that is only present when GLX is enabled, inside a target that
@@ -681,6 +768,61 @@ pub fn simplify<S: Solver>(logic: &mut Logic<S>, cond: Pc, context: Pc) -> Pc {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use decay_meson_logic::{
+        Var,
+        VarKind,
+        Z3Solver, //
+    };
+
+    fn var(logic: &mut Logic<Z3Solver>, key: &str, choices: &[&str]) -> VarId {
+        logic.declare(Var {
+            key: key.to_owned(),
+            description: None,
+            kind: VarKind::Machine,
+            choices: choices.iter().map(|c| (*c).to_owned()).collect(),
+            default: choices.len() - 1,
+        })
+    }
+
+    #[test]
+    fn an_assumed_away_case_does_not_split_a_select() {
+        let mut logic = Logic::new(Z3Solver::new());
+        let os = var(&mut logic, "os", &["linux", "netbsd", "other"]);
+        let cpu = var(&mut logic, "cpu", &["arm64", "riscv64", "other"]);
+        let mut labels = BTreeMap::new();
+        for (v, n) in [(os, 3), (cpu, 3)] {
+            for c in 0..n {
+                labels.insert((v, c), format!("//:{v:?}[{c}]"));
+            }
+        }
+        let selects = Selects::new(labels, BTreeSet::new(), "//:impossible".to_owned());
+
+        let netbsd = logic.lit(os, 1);
+        let riscv = logic.lit(cpu, 1);
+        let never = logic.and(netbsd, riscv);
+        let never = logic.not(never);
+        logic.assume(never);
+
+        // arm64 or riscv64 off netbsd; arm64 on it.
+        let off = logic.not(netbsd);
+        let wide = logic.any_of(cpu, [0, 1]);
+        let off = logic.and(off, wide);
+        let arm = logic.lit(cpu, 0);
+        let on = logic.and(netbsd, arm);
+        let cond = logic.or(off, on);
+
+        let text = selects.render(
+            &mut logic,
+            cond,
+            Pc::TRUE,
+            &|_| "yes".to_owned(),
+            &|_| "no".to_owned(),
+            0,
+        );
+        assert!(!text.contains(&format!("{os:?}")), "{text}");
+        assert!(text.contains(&format!("{cpu:?}")), "{text}");
+    }
 
     #[test]
     fn list_formats_empty_as_brackets() {
