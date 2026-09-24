@@ -596,14 +596,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("json-c") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.json-c = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "json-c",
-    visibility = ["PUBLIC"],
-)
-
 # meson: dependency('intl') — the platform's gettext (libc, or -lintl elsewhere)
 cxx_library(
     name = "intl",

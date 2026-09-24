@@ -483,77 +483,11 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("gtk+-2.0") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.gtk+-2.0 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "gtk_-2.0",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("lzo2") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.lzo2 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "lzo2",
-    visibility = ["PUBLIC"],
-)
-
 # meson: find_library("dl")
 cxx_library(
     name = "dl",
     exported_linker_flags = [
         "-ldl",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("xcb") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.xcb = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "xcb",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("xcb-render") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.xcb-render = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "xcb-render",
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("bfd")
-cxx_library(
-    name = "bfd",
-    exported_linker_flags = [
-        "-lbfd",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("libspectre") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.libspectre = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "libspectre",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("poppler-glib") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.poppler-glib = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "poppler-glib",
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("rt")
-cxx_library(
-    name = "rt",
-    exported_linker_flags = [
-        "-lrt",
     ],
     visibility = ["PUBLIC"],
 )

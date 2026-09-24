@@ -805,46 +805,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-# meson: dependency("gobject-introspection-1.0") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.gobject-introspection-1.0 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "gobject-introspection-1.0",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("libthai") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.libthai = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "libthai",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("freetype") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.freetype = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "freetype",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("xft") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.xft = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "xft",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("sysprof-capture-4") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.sysprof-capture-4 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "sysprof-capture-4",
-    visibility = ["PUBLIC"],
-)
-
 genrule(
     name = "config.h",
     out = "config.h",
