@@ -469,7 +469,7 @@ fn repo_target(graph: &Graph) -> String {
 /// Fetch the sources instead of keeping a copy of them.
 ///
 /// Every file the build refers to is listed as a sub-target, which is how a
-/// rule elsewhere in the file names one: `:libepoxy.git[src/dispatch.c]`.
+/// rule elsewhere in the file names one: `:source[src/dispatch.c]`.
 /// `git_fetch` and `http_archive` both support that the same way, so the two
 /// origins share everything but the rule name and its own address.
 ///

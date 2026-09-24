@@ -4,7 +4,7 @@
 # Configuration lives in //third-party/meson/pixman/constraints.
 
 http_archive(
-    name = "pixman",
+    name = "source",
     urls = ["https://www.cairographics.org/releases/pixman-0.46.4.tar.gz"],
     sha256 = "d09c44ebc3bd5bee7021c79f922fe8fb2fb57f7320f55e97ff9914d2346a591c",
     strip_prefix = "pixman-0.46.4",
@@ -247,20 +247,20 @@ genrule(
 genrule(
     name = "pixman-version.h",
     out = "pixman-version.h",
-    cmd = "sed" + " -e ''" + " '-es|@PIXMAN_VERSION_MAJOR@|0|g' '-es|@PIXMAN_VERSION_MINOR@|46|g' '-es|@PIXMAN_VERSION_MICRO@|4|g'" + " '-es|^#mesondefine[[:space:]]\\+PIXMAN_VERSION_MAJOR\\>.*|#define PIXMAN_VERSION_MAJOR 0|' '-es|^#mesondefine[[:space:]]\\+PIXMAN_VERSION_MINOR\\>.*|#define PIXMAN_VERSION_MINOR 46|' '-es|^#mesondefine[[:space:]]\\+PIXMAN_VERSION_MICRO\\>.*|#define PIXMAN_VERSION_MICRO 4|'" + " $(location :pixman[pixman/pixman-version.h.in]) > $OUT",
+    cmd = "sed" + " -e ''" + " '-es|@PIXMAN_VERSION_MAJOR@|0|g' '-es|@PIXMAN_VERSION_MINOR@|46|g' '-es|@PIXMAN_VERSION_MICRO@|4|g'" + " '-es|^#mesondefine[[:space:]]\\+PIXMAN_VERSION_MAJOR\\>.*|#define PIXMAN_VERSION_MAJOR 0|' '-es|^#mesondefine[[:space:]]\\+PIXMAN_VERSION_MINOR\\>.*|#define PIXMAN_VERSION_MINOR 46|' '-es|^#mesondefine[[:space:]]\\+PIXMAN_VERSION_MICRO\\>.*|#define PIXMAN_VERSION_MICRO 4|'" + " $(location :source[pixman/pixman-version.h.in]) > $OUT",
     visibility = ["PUBLIC"],
 )
 
 cxx_library(
     name = "pixman-mmx",
-    srcs = [":pixman[pixman/pixman-mmx.c]"],
+    srcs = [":source[pixman/pixman-mmx.c]"],
     exported_headers = _headers,
     headers = {
         "pixman-config.h": ":pixman-config.h",
         "pixman-version.h": ":pixman-version.h",
-        "pixman-private.h": ":pixman[pixman/pixman-private.h]",
-        "pixman-combine32.h": ":pixman[pixman/pixman-combine32.h]",
-        "pixman-inlines.h": ":pixman[pixman/pixman-inlines.h]",
+        "pixman-private.h": ":source[pixman/pixman-private.h]",
+        "pixman-combine32.h": ":source[pixman/pixman-combine32.h]",
+        "pixman-inlines.h": ":source[pixman/pixman-inlines.h]",
     },
     header_namespace = "",
     compiler_flags = [
@@ -294,14 +294,14 @@ cxx_library(
 
 cxx_library(
     name = "pixman-sse2",
-    srcs = [":pixman[pixman/pixman-sse2.c]"],
+    srcs = [":source[pixman/pixman-sse2.c]"],
     exported_headers = _headers,
     headers = {
         "pixman-config.h": ":pixman-config.h",
         "pixman-version.h": ":pixman-version.h",
-        "pixman-private.h": ":pixman[pixman/pixman-private.h]",
-        "pixman-combine32.h": ":pixman[pixman/pixman-combine32.h]",
-        "pixman-inlines.h": ":pixman[pixman/pixman-inlines.h]",
+        "pixman-private.h": ":source[pixman/pixman-private.h]",
+        "pixman-combine32.h": ":source[pixman/pixman-combine32.h]",
+        "pixman-inlines.h": ":source[pixman/pixman-inlines.h]",
     },
     header_namespace = "",
     compiler_flags = [
@@ -335,13 +335,13 @@ cxx_library(
 
 cxx_library(
     name = "pixman-ssse3",
-    srcs = [":pixman[pixman/pixman-ssse3.c]"],
+    srcs = [":source[pixman/pixman-ssse3.c]"],
     exported_headers = _headers,
     headers = {
         "pixman-config.h": ":pixman-config.h",
         "pixman-version.h": ":pixman-version.h",
-        "pixman-private.h": ":pixman[pixman/pixman-private.h]",
-        "pixman-inlines.h": ":pixman[pixman/pixman-inlines.h]",
+        "pixman-private.h": ":source[pixman/pixman-private.h]",
+        "pixman-inlines.h": ":source[pixman/pixman-inlines.h]",
     },
     header_namespace = "",
     compiler_flags = [
@@ -375,52 +375,52 @@ cxx_library(
 cxx_library(
     name = "pixman-1",
     srcs = [
-        ":pixman[pixman/pixman.c]",
-        ":pixman[pixman/pixman-access.c]",
-        ":pixman[pixman/pixman-access-accessors.c]",
-        ":pixman[pixman/pixman-arm.c]",
-        ":pixman[pixman/pixman-bits-image.c]",
-        ":pixman[pixman/pixman-combine32.c]",
-        ":pixman[pixman/pixman-combine-float.c]",
-        ":pixman[pixman/pixman-conical-gradient.c]",
-        ":pixman[pixman/pixman-edge.c]",
-        ":pixman[pixman/pixman-edge-accessors.c]",
-        ":pixman[pixman/pixman-fast-path.c]",
-        ":pixman[pixman/pixman-filter.c]",
-        ":pixman[pixman/pixman-glyph.c]",
-        ":pixman[pixman/pixman-general.c]",
-        ":pixman[pixman/pixman-gradient-walker.c]",
-        ":pixman[pixman/pixman-image.c]",
-        ":pixman[pixman/pixman-implementation.c]",
-        ":pixman[pixman/pixman-linear-gradient.c]",
-        ":pixman[pixman/pixman-matrix.c]",
-        ":pixman[pixman/pixman-mips.c]",
-        ":pixman[pixman/pixman-noop.c]",
-        ":pixman[pixman/pixman-ppc.c]",
-        ":pixman[pixman/pixman-radial-gradient.c]",
-        ":pixman[pixman/pixman-region16.c]",
-        ":pixman[pixman/pixman-region32.c]",
-        ":pixman[pixman/pixman-region64f.c]",
-        ":pixman[pixman/pixman-riscv.c]",
-        ":pixman[pixman/pixman-solid-fill.c]",
-        ":pixman[pixman/pixman-timer.c]",
-        ":pixman[pixman/pixman-trap.c]",
-        ":pixman[pixman/pixman-utils.c]",
-        ":pixman[pixman/pixman-x86.c]",
+        ":source[pixman/pixman.c]",
+        ":source[pixman/pixman-access.c]",
+        ":source[pixman/pixman-access-accessors.c]",
+        ":source[pixman/pixman-arm.c]",
+        ":source[pixman/pixman-bits-image.c]",
+        ":source[pixman/pixman-combine32.c]",
+        ":source[pixman/pixman-combine-float.c]",
+        ":source[pixman/pixman-conical-gradient.c]",
+        ":source[pixman/pixman-edge.c]",
+        ":source[pixman/pixman-edge-accessors.c]",
+        ":source[pixman/pixman-fast-path.c]",
+        ":source[pixman/pixman-filter.c]",
+        ":source[pixman/pixman-glyph.c]",
+        ":source[pixman/pixman-general.c]",
+        ":source[pixman/pixman-gradient-walker.c]",
+        ":source[pixman/pixman-image.c]",
+        ":source[pixman/pixman-implementation.c]",
+        ":source[pixman/pixman-linear-gradient.c]",
+        ":source[pixman/pixman-matrix.c]",
+        ":source[pixman/pixman-mips.c]",
+        ":source[pixman/pixman-noop.c]",
+        ":source[pixman/pixman-ppc.c]",
+        ":source[pixman/pixman-radial-gradient.c]",
+        ":source[pixman/pixman-region16.c]",
+        ":source[pixman/pixman-region32.c]",
+        ":source[pixman/pixman-region64f.c]",
+        ":source[pixman/pixman-riscv.c]",
+        ":source[pixman/pixman-solid-fill.c]",
+        ":source[pixman/pixman-timer.c]",
+        ":source[pixman/pixman-trap.c]",
+        ":source[pixman/pixman-utils.c]",
+        ":source[pixman/pixman-x86.c]",
     ],
     exported_headers = _headers,
     headers = {
         "pixman-config.h": ":pixman-config.h",
         "pixman-version.h": ":pixman-version.h",
-        "pixman-private.h": ":pixman[pixman/pixman-private.h]",
-        "pixman-accessor.h": ":pixman[pixman/pixman-accessor.h]",
-        "pixman-access.c": ":pixman[pixman/pixman-access.c]",
-        "pixman-combine32.h": ":pixman[pixman/pixman-combine32.h]",
-        "pixman-inlines.h": ":pixman[pixman/pixman-inlines.h]",
-        "pixman-combine-float.h": ":pixman[pixman/pixman-combine-float.h]",
-        "pixman-edge-imp.h": ":pixman[pixman/pixman-edge-imp.h]",
-        "pixman-edge.c": ":pixman[pixman/pixman-edge.c]",
-        "pixman-region.c": ":pixman[pixman/pixman-region.c]",
+        "pixman-private.h": ":source[pixman/pixman-private.h]",
+        "pixman-accessor.h": ":source[pixman/pixman-accessor.h]",
+        "pixman-access.c": ":source[pixman/pixman-access.c]",
+        "pixman-combine32.h": ":source[pixman/pixman-combine32.h]",
+        "pixman-inlines.h": ":source[pixman/pixman-inlines.h]",
+        "pixman-combine-float.h": ":source[pixman/pixman-combine-float.h]",
+        "pixman-edge-imp.h": ":source[pixman/pixman-edge-imp.h]",
+        "pixman-edge.c": ":source[pixman/pixman-edge.c]",
+        "pixman-region.c": ":source[pixman/pixman-region.c]",
     },
     header_namespace = "",
     compiler_flags = _cflags,
@@ -473,23 +473,23 @@ cxx_library(
 cxx_library(
     name = "pixman-dep",
     exported_headers = {
-        "dither/blue-noise-64x64.h": ":pixman[pixman/dither/blue-noise-64x64.h]",
-        "loongson-mmintrin.h": ":pixman[pixman/loongson-mmintrin.h]",
-        "pixman-accessor.h": ":pixman[pixman/pixman-accessor.h]",
-        "pixman-arm-asm.h": ":pixman[pixman/pixman-arm-asm.h]",
-        "pixman-arm-common.h": ":pixman[pixman/pixman-arm-common.h]",
-        "pixman-arm-neon-asm.h": ":pixman[pixman/pixman-arm-neon-asm.h]",
-        "pixman-arm-simd-asm.h": ":pixman[pixman/pixman-arm-simd-asm.h]",
-        "pixman-arma64-neon-asm.h": ":pixman[pixman/pixman-arma64-neon-asm.h]",
-        "pixman-combine-float.h": ":pixman[pixman/pixman-combine-float.h]",
-        "pixman-combine32.h": ":pixman[pixman/pixman-combine32.h]",
-        "pixman-compiler.h": ":pixman[pixman/pixman-compiler.h]",
-        "pixman-edge-imp.h": ":pixman[pixman/pixman-edge-imp.h]",
-        "pixman-inlines.h": ":pixman[pixman/pixman-inlines.h]",
-        "pixman-mips-dspr2-asm.h": ":pixman[pixman/pixman-mips-dspr2-asm.h]",
-        "pixman-mips-dspr2.h": ":pixman[pixman/pixman-mips-dspr2.h]",
-        "pixman-private.h": ":pixman[pixman/pixman-private.h]",
-        "pixman.h": ":pixman[pixman/pixman.h]",
+        "dither/blue-noise-64x64.h": ":source[pixman/dither/blue-noise-64x64.h]",
+        "loongson-mmintrin.h": ":source[pixman/loongson-mmintrin.h]",
+        "pixman-accessor.h": ":source[pixman/pixman-accessor.h]",
+        "pixman-arm-asm.h": ":source[pixman/pixman-arm-asm.h]",
+        "pixman-arm-common.h": ":source[pixman/pixman-arm-common.h]",
+        "pixman-arm-neon-asm.h": ":source[pixman/pixman-arm-neon-asm.h]",
+        "pixman-arm-simd-asm.h": ":source[pixman/pixman-arm-simd-asm.h]",
+        "pixman-arma64-neon-asm.h": ":source[pixman/pixman-arma64-neon-asm.h]",
+        "pixman-combine-float.h": ":source[pixman/pixman-combine-float.h]",
+        "pixman-combine32.h": ":source[pixman/pixman-combine32.h]",
+        "pixman-compiler.h": ":source[pixman/pixman-compiler.h]",
+        "pixman-edge-imp.h": ":source[pixman/pixman-edge-imp.h]",
+        "pixman-inlines.h": ":source[pixman/pixman-inlines.h]",
+        "pixman-mips-dspr2-asm.h": ":source[pixman/pixman-mips-dspr2-asm.h]",
+        "pixman-mips-dspr2.h": ":source[pixman/pixman-mips-dspr2.h]",
+        "pixman-private.h": ":source[pixman/pixman-private.h]",
+        "pixman.h": ":source[pixman/pixman.h]",
         "pixman-config.h": ":pixman-config.h",
         "pixman-version.h": ":pixman-version.h",
     },
@@ -502,8 +502,8 @@ cxx_library(
 cxx_library(
     name = "testutils",
     srcs = [
-        ":pixman[test/utils/utils.c]",
-        ":pixman[test/utils/utils-prng.c]",
+        ":source[test/utils/utils.c]",
+        ":source[test/utils/utils-prng.c]",
     ],
     exported_headers = {
         "pixman-config.h": ":pixman-config.h",
@@ -511,8 +511,8 @@ cxx_library(
     headers = {
         "pixman-config.h": ":pixman-config.h",
         "pixman-version.h": ":pixman-version.h",
-        "utils.h": ":pixman[test/utils/utils.h]",
-        "utils-prng.h": ":pixman[test/utils/utils-prng.h]",
+        "utils.h": ":source[test/utils/utils.h]",
+        "utils-prng.h": ":source[test/utils/utils-prng.h]",
     },
     header_namespace = "",
     compiler_flags = _cflags,
@@ -529,8 +529,8 @@ cxx_library(
 cxx_library(
     name = "pixman-dep-2",
     exported_headers = {
-        "utils-prng.h": ":pixman[test/utils/utils-prng.h]",
-        "utils.h": ":pixman[test/utils/utils.h]",
+        "utils-prng.h": ":source[test/utils/utils-prng.h]",
+        "utils.h": ":source[test/utils/utils.h]",
     },
     headers = _headers2,
     header_namespace = "",
@@ -541,7 +541,7 @@ cxx_library(
 
 cxx_binary(
     name = "oob-test",
-    srcs = [":pixman[test/oob-test.c]"],
+    srcs = [":source[test/oob-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -553,7 +553,7 @@ cxx_binary(
 
 cxx_binary(
     name = "infinite-loop",
-    srcs = [":pixman[test/infinite-loop.c]"],
+    srcs = [":source[test/infinite-loop.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -565,7 +565,7 @@ cxx_binary(
 
 cxx_binary(
     name = "trap-crasher",
-    srcs = [":pixman[test/trap-crasher.c]"],
+    srcs = [":source[test/trap-crasher.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -577,7 +577,7 @@ cxx_binary(
 
 cxx_binary(
     name = "fence-image-self-test",
-    srcs = [":pixman[test/fence-image-self-test.c]"],
+    srcs = [":source[test/fence-image-self-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -589,7 +589,7 @@ cxx_binary(
 
 cxx_binary(
     name = "region-translate-test",
-    srcs = [":pixman[test/region-translate-test.c]"],
+    srcs = [":source[test/region-translate-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -601,7 +601,7 @@ cxx_binary(
 
 cxx_binary(
     name = "fetch-test",
-    srcs = [":pixman[test/fetch-test.c]"],
+    srcs = [":source[test/fetch-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -613,7 +613,7 @@ cxx_binary(
 
 cxx_binary(
     name = "a1-trap-test",
-    srcs = [":pixman[test/a1-trap-test.c]"],
+    srcs = [":source[test/a1-trap-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -625,7 +625,7 @@ cxx_binary(
 
 cxx_binary(
     name = "prng-test",
-    srcs = [":pixman[test/prng-test.c]"],
+    srcs = [":source[test/prng-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -637,7 +637,7 @@ cxx_binary(
 
 cxx_binary(
     name = "radial-invalid",
-    srcs = [":pixman[test/radial-invalid.c]"],
+    srcs = [":source[test/radial-invalid.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -649,7 +649,7 @@ cxx_binary(
 
 cxx_binary(
     name = "pdf-op-test",
-    srcs = [":pixman[test/pdf-op-test.c]"],
+    srcs = [":source[test/pdf-op-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -661,7 +661,7 @@ cxx_binary(
 
 cxx_binary(
     name = "region-test",
-    srcs = [":pixman[test/region-test.c]"],
+    srcs = [":source[test/region-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -673,7 +673,7 @@ cxx_binary(
 
 cxx_binary(
     name = "region-fractional-test",
-    srcs = [":pixman[test/region-fractional-test.c]"],
+    srcs = [":source[test/region-fractional-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -685,7 +685,7 @@ cxx_binary(
 
 cxx_binary(
     name = "combiner-test",
-    srcs = [":pixman[test/combiner-test.c]"],
+    srcs = [":source[test/combiner-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -697,7 +697,7 @@ cxx_binary(
 
 cxx_binary(
     name = "scaling-crash-test",
-    srcs = [":pixman[test/scaling-crash-test.c]"],
+    srcs = [":source[test/scaling-crash-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -709,7 +709,7 @@ cxx_binary(
 
 cxx_binary(
     name = "alpha-loop",
-    srcs = [":pixman[test/alpha-loop.c]"],
+    srcs = [":source[test/alpha-loop.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -721,7 +721,7 @@ cxx_binary(
 
 cxx_binary(
     name = "scaling-helpers-test",
-    srcs = [":pixman[test/scaling-helpers-test.c]"],
+    srcs = [":source[test/scaling-helpers-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -733,7 +733,7 @@ cxx_binary(
 
 cxx_binary(
     name = "rotate-test",
-    srcs = [":pixman[test/rotate-test.c]"],
+    srcs = [":source[test/rotate-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -745,7 +745,7 @@ cxx_binary(
 
 cxx_binary(
     name = "alphamap",
-    srcs = [":pixman[test/alphamap.c]"],
+    srcs = [":source[test/alphamap.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -757,7 +757,7 @@ cxx_binary(
 
 cxx_binary(
     name = "gradient-crash-test",
-    srcs = [":pixman[test/gradient-crash-test.c]"],
+    srcs = [":source[test/gradient-crash-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -769,7 +769,7 @@ cxx_binary(
 
 cxx_binary(
     name = "pixel-test",
-    srcs = [":pixman[test/pixel-test.c]"],
+    srcs = [":source[test/pixel-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -781,7 +781,7 @@ cxx_binary(
 
 cxx_binary(
     name = "matrix-test",
-    srcs = [":pixman[test/matrix-test.c]"],
+    srcs = [":source[test/matrix-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -793,7 +793,7 @@ cxx_binary(
 
 cxx_binary(
     name = "filter-reduction-test",
-    srcs = [":pixman[test/filter-reduction-test.c]"],
+    srcs = [":source[test/filter-reduction-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -805,7 +805,7 @@ cxx_binary(
 
 cxx_binary(
     name = "composite-traps-test",
-    srcs = [":pixman[test/composite-traps-test.c]"],
+    srcs = [":source[test/composite-traps-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -817,7 +817,7 @@ cxx_binary(
 
 cxx_binary(
     name = "region-contains-test",
-    srcs = [":pixman[test/region-contains-test.c]"],
+    srcs = [":source[test/region-contains-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -829,7 +829,7 @@ cxx_binary(
 
 cxx_binary(
     name = "glyph-test",
-    srcs = [":pixman[test/glyph-test.c]"],
+    srcs = [":source[test/glyph-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -841,7 +841,7 @@ cxx_binary(
 
 cxx_binary(
     name = "solid-test",
-    srcs = [":pixman[test/solid-test.c]"],
+    srcs = [":source[test/solid-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -853,7 +853,7 @@ cxx_binary(
 
 cxx_binary(
     name = "stress-test",
-    srcs = [":pixman[test/stress-test.c]"],
+    srcs = [":source[test/stress-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -865,7 +865,7 @@ cxx_binary(
 
 cxx_binary(
     name = "cover-test",
-    srcs = [":pixman[test/cover-test.c]"],
+    srcs = [":source[test/cover-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -877,7 +877,7 @@ cxx_binary(
 
 cxx_binary(
     name = "blitters-test",
-    srcs = [":pixman[test/blitters-test.c]"],
+    srcs = [":source[test/blitters-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -889,7 +889,7 @@ cxx_binary(
 
 cxx_binary(
     name = "affine-test",
-    srcs = [":pixman[test/affine-test.c]"],
+    srcs = [":source[test/affine-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -901,7 +901,7 @@ cxx_binary(
 
 cxx_binary(
     name = "scaling-test",
-    srcs = [":pixman[test/scaling-test.c]"],
+    srcs = [":source[test/scaling-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -913,7 +913,7 @@ cxx_binary(
 
 cxx_binary(
     name = "composite",
-    srcs = [":pixman[test/composite.c]"],
+    srcs = [":source[test/composite.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -925,7 +925,7 @@ cxx_binary(
 
 cxx_binary(
     name = "tolerance-test",
-    srcs = [":pixman[test/tolerance-test.c]"],
+    srcs = [":source[test/tolerance-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -937,7 +937,7 @@ cxx_binary(
 
 cxx_binary(
     name = "neg-stride-test",
-    srcs = [":pixman[test/neg-stride-test.c]"],
+    srcs = [":source[test/neg-stride-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -949,7 +949,7 @@ cxx_binary(
 
 cxx_binary(
     name = "thread-test",
-    srcs = [":pixman[test/thread-test.c]"],
+    srcs = [":source[test/thread-test.c]"],
     headers = _headers,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -961,7 +961,7 @@ cxx_binary(
 
 cxx_binary(
     name = "lowlevel-blt-bench",
-    srcs = [":pixman[test/lowlevel-blt-bench.c]"],
+    srcs = [":source[test/lowlevel-blt-bench.c]"],
     headers = _headers2,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -973,7 +973,7 @@ cxx_binary(
 
 cxx_binary(
     name = "radial-perf-test",
-    srcs = [":pixman[test/radial-perf-test.c]"],
+    srcs = [":source[test/radial-perf-test.c]"],
     headers = _headers2,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -985,7 +985,7 @@ cxx_binary(
 
 cxx_binary(
     name = "check-formats",
-    srcs = [":pixman[test/check-formats.c]"],
+    srcs = [":source[test/check-formats.c]"],
     headers = _headers2,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -997,7 +997,7 @@ cxx_binary(
 
 cxx_binary(
     name = "scaling-bench",
-    srcs = [":pixman[test/scaling-bench.c]"],
+    srcs = [":source[test/scaling-bench.c]"],
     headers = _headers2,
     header_namespace = "",
     compiler_flags = _cflags,
@@ -1009,7 +1009,7 @@ cxx_binary(
 
 cxx_binary(
     name = "affine-bench",
-    srcs = [":pixman[test/affine-bench.c]"],
+    srcs = [":source[test/affine-bench.c]"],
     headers = _headers2,
     header_namespace = "",
     compiler_flags = _cflags,

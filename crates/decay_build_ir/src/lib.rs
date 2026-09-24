@@ -66,20 +66,18 @@ pub struct Project {
 impl Project {
     /// The name of the target that fetches this project's sources.
     ///
-    /// `.git` names a `git_fetch`; an `http_archive` (a wrap's tarball) isn't
-    /// one, so it doesn't get the suffix — `zlib.git` naming a plain tarball
-    /// fetch reads as a lie about where the archive came from.
+    /// Fixed rather than derived from the project name: every project gets
+    /// its own package, so one name never clashes across projects, and a
+    /// `library()` named after its own project (fribidi's) no longer lands
+    /// on the fetch's label.
     pub fn repo_target(&self) -> String {
-        match &self.origin {
-            Some(Origin::Archive(_)) => self.name.clone(),
-            Some(Origin::Git { .. }) | None => format!("{}.git", self.name),
-        }
+        "source".to_owned()
     }
 
     /// The name of the target that fetches wrapdb itself, for a file
     /// [`WrapdbOverlay`]'s `patch_directory` provided.
     pub fn wrapdb_target(&self) -> String {
-        format!("{}.wrapdb.git", self.name)
+        "wrapdb".to_owned()
     }
 }
 

@@ -246,9 +246,8 @@ pub(crate) fn execute(
     graph.project.origin = Some(origin);
     graph.project.wrapdb_overlay = wrapdb_overlay;
 
-    // The fetch target's own name is only known now — a real target claimed
-    // during evaluation just above can happen to share it (a `library()`
-    // named after its own project, as fribidi's is).
+    // A real target claimed during evaluation just above can happen to share
+    // the fetch target's name.
     let repo_target = graph.project.repo_target();
     graph.avoid_name_collision(&repo_target);
     if graph.project.wrapdb_overlay.is_some() {

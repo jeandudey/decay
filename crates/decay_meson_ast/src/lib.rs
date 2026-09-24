@@ -209,11 +209,13 @@ impl FromStr for BinOpKind {
             ">=" => Self::Ge,
             "in" => Self::In,
             "notin" | "not in" => Self::NotIn,
-            "add" => Self::Add,
-            "sub" => Self::Sub,
-            "mul" => Self::Mul,
-            "div" => Self::Div,
-            "mod" => Self::Mod,
+            // meson >= 1.11 reports arithmetic by its symbol, older releases
+            // by name.
+            "add" | "+" => Self::Add,
+            "sub" | "-" => Self::Sub,
+            "mul" | "*" => Self::Mul,
+            "div" | "/" => Self::Div,
+            "mod" | "%" => Self::Mod,
             _ => bail!("unknown binary operator `{s}`"),
         })
     }
@@ -301,6 +303,25 @@ impl ProjectOptionKind {
                 Some((choices, default))
             }
             Self::String { .. } | Self::Integer { .. } | Self::Array { .. } => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn arithmetic_parses_both_meson_spellings() {
+        for (name, symbol, kind) in [
+            ("add", "+", BinOpKind::Add),
+            ("sub", "-", BinOpKind::Sub),
+            ("mul", "*", BinOpKind::Mul),
+            ("div", "/", BinOpKind::Div),
+            ("mod", "%", BinOpKind::Mod),
+        ] {
+            assert_eq!(name.parse::<BinOpKind>().unwrap(), kind);
+            assert_eq!(symbol.parse::<BinOpKind>().unwrap(), kind);
         }
     }
 }

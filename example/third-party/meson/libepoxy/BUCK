@@ -2,7 +2,7 @@
 # Do not edit; re-run `decay` instead.
 
 git_fetch(
-    name = "libepoxy.git",
+    name = "source",
     repo = "https://github.com/anholt/libepoxy",
     rev = "70a20c62fa0d095c386a5eb62eaf9ebf7cc4cb38",
     sub_targets = [
@@ -38,21 +38,21 @@ _headers = {
 genrule(
     name = "gl_generated.h",
     out = "gl_generated.h",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/gl.xml])",
+    cmd = " python3 $(location :source[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :source[registry/gl.xml])",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "egl_generated.h",
     out = "egl_generated.h",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/egl.xml])",
+    cmd = " python3 $(location :source[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :source[registry/egl.xml])",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "glx_generated.h",
     out = "glx_generated.h",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/glx.xml])",
+    cmd = " python3 $(location :source[src/gen_dispatch.py]) '--header' '--no-source' '--outputdir='${OUT%/*} $(location :source[registry/glx.xml])",
     visibility = ["PUBLIC"],
 )
 
@@ -66,52 +66,52 @@ genrule(
 genrule(
     name = "gl_generated_dispatch.c",
     out = "gl_generated_dispatch.c",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/gl.xml])",
+    cmd = " python3 $(location :source[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :source[registry/gl.xml])",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "egl_generated_dispatch.c",
     out = "egl_generated_dispatch.c",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/egl.xml])",
+    cmd = " python3 $(location :source[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :source[registry/egl.xml])",
     visibility = ["PUBLIC"],
 )
 
 genrule(
     name = "glx_generated_dispatch.c",
     out = "glx_generated_dispatch.c",
-    cmd = " python3 $(location :libepoxy.git[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :libepoxy.git[registry/glx.xml])",
+    cmd = " python3 $(location :source[src/gen_dispatch.py]) '--source' '--no-header' '--outputdir='${OUT%/*} $(location :source[registry/glx.xml])",
     visibility = ["PUBLIC"],
 )
 
 cxx_library(
     name = "epoxy",
     srcs = [
-        ":libepoxy.git[src/dispatch_common.c]",
-        ":libepoxy.git[src/dispatch_egl.c]",
-        ":libepoxy.git[src/dispatch_glx.c]",
+        ":source[src/dispatch_common.c]",
+        ":source[src/dispatch_egl.c]",
+        ":source[src/dispatch_glx.c]",
         ":gl_generated_dispatch.c",
         ":egl_generated_dispatch.c",
         ":glx_generated_dispatch.c",
     ],
     exported_headers = {
-        "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
-        "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-        "common.h": ":libepoxy.git[include/epoxy/common.h]",
-        "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-        "gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-        "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-        "egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-        "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-        "glx.h": ":libepoxy.git[include/epoxy/glx.h]",
+        "dispatch_common.h": ":source[src/dispatch_common.h]",
+        "epoxy/common.h": ":source[include/epoxy/common.h]",
+        "common.h": ":source[include/epoxy/common.h]",
+        "epoxy/gl.h": ":source[include/epoxy/gl.h]",
+        "gl.h": ":source[include/epoxy/gl.h]",
+        "epoxy/egl.h": ":source[include/epoxy/egl.h]",
+        "egl.h": ":source[include/epoxy/egl.h]",
+        "epoxy/glx.h": ":source[include/epoxy/glx.h]",
+        "glx.h": ":source[include/epoxy/glx.h]",
         "epoxy/gl_generated.h": ":gl_generated.h",
         "gl_generated.h": ":gl_generated.h",
         "epoxy/egl_generated.h": ":egl_generated.h",
         "egl_generated.h": ":egl_generated.h",
         "epoxy/glx_generated.h": ":glx_generated.h",
         "glx_generated.h": ":glx_generated.h",
-        "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
-        "wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
+        "epoxy/wgl.h": ":source[include/epoxy/wgl.h]",
+        "wgl.h": ":source[include/epoxy/wgl.h]",
     },
     headers = _headers,
     header_namespace = "",
@@ -175,23 +175,23 @@ cxx_library(
 cxx_library(
     name = "libepoxy-dep",
     exported_headers = {
-        "epoxy/common.h": ":libepoxy.git[include/epoxy/common.h]",
-        "common.h": ":libepoxy.git[include/epoxy/common.h]",
-        "epoxy/gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-        "gl.h": ":libepoxy.git[include/epoxy/gl.h]",
-        "epoxy/egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-        "egl.h": ":libepoxy.git[include/epoxy/egl.h]",
-        "epoxy/glx.h": ":libepoxy.git[include/epoxy/glx.h]",
-        "glx.h": ":libepoxy.git[include/epoxy/glx.h]",
+        "epoxy/common.h": ":source[include/epoxy/common.h]",
+        "common.h": ":source[include/epoxy/common.h]",
+        "epoxy/gl.h": ":source[include/epoxy/gl.h]",
+        "gl.h": ":source[include/epoxy/gl.h]",
+        "epoxy/egl.h": ":source[include/epoxy/egl.h]",
+        "egl.h": ":source[include/epoxy/egl.h]",
+        "epoxy/glx.h": ":source[include/epoxy/glx.h]",
+        "glx.h": ":source[include/epoxy/glx.h]",
         "epoxy/gl_generated.h": ":gl_generated.h",
         "gl_generated.h": ":gl_generated.h",
         "epoxy/egl_generated.h": ":egl_generated.h",
         "egl_generated.h": ":egl_generated.h",
         "epoxy/glx_generated.h": ":glx_generated.h",
         "glx_generated.h": ":glx_generated.h",
-        "epoxy/wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
-        "wgl.h": ":libepoxy.git[include/epoxy/wgl.h]",
-        "dispatch_common.h": ":libepoxy.git[src/dispatch_common.h]",
+        "epoxy/wgl.h": ":source[include/epoxy/wgl.h]",
+        "wgl.h": ":source[include/epoxy/wgl.h]",
+        "dispatch_common.h": ":source[src/dispatch_common.h]",
         "config.h": ":config.h",
     },
     headers = _headers,
