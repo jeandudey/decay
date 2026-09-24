@@ -117,7 +117,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   (`compile_probes` in `decay_meson_eval/src/methods.rs`). An explicit
   `decay.toml [probes]` (or `[sizeof]`/`[alignment]`) answer still wins first.
   Systems zig cannot probe end to end (`darwin`, `windows`, `illumos`,
-  `android`, `fuchsia`) are meant to be left out of `[systems]` entirely.
+  `android`, `fuchsia`) are meant to be left out of `[systems]` entirely. zig
+  ships no riscv64-netbsd headers (NetBSD has no riscv64 release sets), so
+  that pair is not probed: its `select()`s have no riscv64 arm under
+  `os[netbsd]`.
 
   Still in scope:
   - **`dependencies:` other than `threads` or a system library** — a

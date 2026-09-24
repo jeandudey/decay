@@ -330,7 +330,8 @@ impl<'a> ConfigOracle<'a> {
                 continue;
             }
             let rows = probe::probe_rows(&mut self.probe_cache.borrow_mut(), probe, system);
-            let (axes, rows) = collapse_full_axes(self.probe_axes(system), rows);
+            let (axes, rows) =
+                collapse_full_axes(self.probe_axes(system), rows, &probe::unprobed_cpus(system));
             systems.push(MatrixSystem {
                 system: system.to_owned(),
                 axes,
@@ -359,7 +360,11 @@ impl<'a> ConfigOracle<'a> {
                 split.entry(value.map(|v| v as i64)).or_default().push(row);
             }
             for (value, rows) in split {
-                let (axes, rows) = collapse_full_axes(self.probe_axes(system), rows);
+                let (axes, rows) = collapse_full_axes(
+                    self.probe_axes(system),
+                    rows,
+                    &probe::unprobed_cpus(system),
+                );
                 by_value.entry(value).or_default().push(MatrixSystem {
                     system: system.to_owned(),
                     axes,
@@ -578,14 +583,25 @@ type MatrixRows = Vec<Vec<String>>;
 /// is emitted. The `constraint_var` fallback value (`ANY_OTHER`) is what
 /// otherwise keeps such a probe non-tautological forever — every attribute
 /// touching it would grow an `abi` — then `cpu` — `select()`.
-fn collapse_full_axes(mut axes: Vec<Axis>, mut rows: MatrixRows) -> (Vec<Axis>, MatrixRows) {
+///
+/// `unprobed` values (a CPU decay cannot build for on this system) say
+/// nothing either way, so they count as covered.
+fn collapse_full_axes(
+    mut axes: Vec<Axis>,
+    mut rows: MatrixRows,
+    unprobed: &[&str],
+) -> (Vec<Axis>, MatrixRows) {
     if rows.is_empty() {
         return (axes, rows);
     }
     'again: loop {
         for i in 0..axes.len() {
-            let domain: std::collections::BTreeSet<&str> =
-                axes[i].1.iter().map(String::as_str).collect();
+            let domain: std::collections::BTreeSet<&str> = axes[i]
+                .1
+                .iter()
+                .map(String::as_str)
+                .filter(|v| !unprobed.contains(v))
+                .collect();
             let mut groups: std::collections::HashMap<
                 Vec<String>,
                 std::collections::BTreeSet<String>,
@@ -663,6 +679,7 @@ mod tests {
                 &["gnu", "arm64"],
                 &["musl", "arm64"],
             ]),
+            &[],
         );
         assert_eq!(axes.len(), 1);
         assert_eq!(axes[0].0, "cpu");
@@ -675,7 +692,7 @@ mod tests {
             ax(&[("abi", &["gnu", "musl"]), ("cpu", &["x86_64", "arm64"])]),
             rows(&[&["gnu", "x86_64"], &["musl", "x86_64"], &["gnu", "arm64"]]),
         );
-        let after = collapse_full_axes(before.0.clone(), before.1.clone());
+        let after = collapse_full_axes(before.0.clone(), before.1.clone(), &[]);
         assert_eq!(after, before);
     }
 
@@ -684,6 +701,7 @@ mod tests {
         let (axes, r) = collapse_full_axes(
             ax(&[("cpu", &["x86_64", "arm64"])]),
             rows(&[&["x86_64"], &["arm64"]]),
+            &[],
         );
         assert!(axes.is_empty());
         assert_eq!(r, vec![Vec::<String>::new()]);
@@ -692,7 +710,7 @@ mod tests {
     #[test]
     fn partial_coverage_keeps_axis() {
         let before = (ax(&[("cpu", &["x86_64", "arm64"])]), rows(&[&["x86_64"]]));
-        let after = collapse_full_axes(before.0.clone(), before.1.clone());
+        let after = collapse_full_axes(before.0.clone(), before.1.clone(), &[]);
         assert_eq!(after, before);
     }
 
@@ -705,6 +723,7 @@ mod tests {
                 ("cpu", &["x86_64", "arm64"]),
             ]),
             rows(&[&["gnu", "x86_64"], &["musl", "x86_64"]]),
+            &[],
         );
         assert_eq!(axes.len(), 1);
         assert_eq!(axes[0].0, "cpu");

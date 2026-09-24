@@ -145,9 +145,21 @@ fn probe_targets(system: &str, cpu: Cpu) -> Vec<(&'static str, String)> {
     match system {
         "linux" => vec![("gnu", cpu.glibc_target()), ("musl", cpu.musl_target())],
         "freebsd" => vec![("", format!("{}-freebsd", cpu.zig_arch()))],
+        // NetBSD has no riscv64 release sets, so zig ships no headers for it.
+        "netbsd" if cpu == Cpu::Riscv64 => Vec::new(),
         "netbsd" => vec![("", format!("{}-netbsd", cpu.zig_arch()))],
         _ => Vec::new(),
     }
+}
+
+/// The CPUs decay cannot probe on `system` (buck2 values). A probe says
+/// nothing about them, so collapsing an axis ignores them.
+pub fn unprobed_cpus(system: &str) -> Vec<&'static str> {
+    Cpu::ALL
+        .into_iter()
+        .filter(|cpu| probe_targets(system, *cpu).is_empty())
+        .map(Cpu::buck2_value)
+        .collect()
 }
 
 /// Build `probe`'s snippet for every `system` target in the matrix, replaying
@@ -461,6 +473,13 @@ int main (void) { return 0; }
             "linux",
         );
         assert_eq!(with_prefix.len(), Cpu::ALL.len() * 2);
+    }
+
+    #[test]
+    fn netbsd_riscv64_is_not_probed() {
+        assert_eq!(unprobed_cpus("netbsd"), ["riscv64"]);
+        assert!(unprobed_cpus("freebsd").is_empty());
+        assert!(unprobed_cpus("linux").is_empty());
     }
 
     #[test]
