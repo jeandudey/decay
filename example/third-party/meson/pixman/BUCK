@@ -1018,6 +1018,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '#define SIZEOF_LONG 8'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_LONG 8'",
         "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_LONG 8'",
         "DEFAULT": "",
     }) + " '#define PACKAGE foo'" + " > $OUT",

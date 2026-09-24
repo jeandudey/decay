@@ -1130,7 +1130,7 @@ genrule(
 genrule(
     name = "meson-config.h",
     out = "meson-config.h",
-    cmd = "printf '%s\\n'" + " '#define FC_VERSION_MAJOR 2' '#define FC_VERSION_MINOR 18' '#define FC_VERSION_MICRO 3' '#define ENABLE_FREETYPE 1' '/* #undef FREETYPE_PCF_LONG_FAMILY_NAMES */' '#define ENABLE_LIBXML2 1' '#define PACKAGE_NAME \"fontconfig\"' '#define PACKAGE_TARNAME \"fontconfig\"' '#define PACKAGE_VERSION \"2.18.3\"' '#define PACKAGE_STRING \"fontconfig 2.18.3\"' '#define PACKAGE_BUGREPORT \"https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new\"' '#define PACKAGE_URL \"\"' '#define EXEEXT ' '#define ENABLE_NLS 0' '#define USE_ICONV 0' '#define HAVE_FT_GET_BDF_PROPERTY 1' '#define HAVE_FT_GET_PS_FONT_INFO 1' '#define HAVE_FT_HAS_PS_GLYPH_NAMES 1' '#define HAVE_FT_GET_X11_FONT_FORMAT 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_STDINT_H 1' '#define ALIGNOF_DOUBLE 8' '#define HAVE_C99_VSNPRINTF 1' '#define FC_DEFAULT_FONTS \"\\t<dir>/usr/share/fonts</dir>\\n\\t<dir>/usr/local/share/fonts</dir>\\n\"' '#define FC_FONTPATH \"\"' '#define CONFIGDIR \"/usr/local/etc/fonts/conf.d\"' '#define FC_CACHEDIR \"/usr/local/var/cache/fontconfig\"' '#define FC_TEMPLATEDIR \"/usr/local/share/fontconfig/conf.avail\"' '#define FONTCONFIG_PATH \"/usr/local/etc/fonts\"' '#define FC_GPERF_SIZE_T size_t' '#define _GNU_SOURCE' '#define GETTEXT_PACKAGE \"fontconfig\"'" + select({
+    cmd = "printf '%s\\n'" + " '#define FC_VERSION_MAJOR 2' '#define FC_VERSION_MINOR 18' '#define FC_VERSION_MICRO 3' '#define ENABLE_FREETYPE 1' '/* #undef FREETYPE_PCF_LONG_FAMILY_NAMES */' '#define ENABLE_LIBXML2 1' '#define PACKAGE_NAME \"fontconfig\"' '#define PACKAGE_TARNAME \"fontconfig\"' '#define PACKAGE_VERSION \"2.18.3\"' '#define PACKAGE_STRING \"fontconfig 2.18.3\"' '#define PACKAGE_BUGREPORT \"https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new\"' '#define PACKAGE_URL \"\"' '#define EXEEXT ' '#define ENABLE_NLS 0' '#define USE_ICONV 0' '#define HAVE_FT_GET_BDF_PROPERTY 1' '#define HAVE_FT_GET_PS_FONT_INFO 1' '#define HAVE_FT_HAS_PS_GLYPH_NAMES 1' '#define HAVE_FT_GET_X11_FONT_FORMAT 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_STDINT_H 1' '#define HAVE_C99_VSNPRINTF 1' '#define FC_DEFAULT_FONTS \"\\t<dir>/usr/share/fonts</dir>\\n\\t<dir>/usr/local/share/fonts</dir>\\n\"' '#define FC_FONTPATH \"\"' '#define CONFIGDIR \"/usr/local/etc/fonts/conf.d\"' '#define FC_CACHEDIR \"/usr/local/var/cache/fontconfig\"' '#define FC_TEMPLATEDIR \"/usr/local/share/fontconfig/conf.avail\"' '#define FONTCONFIG_PATH \"/usr/local/etc/fonts\"' '#define FC_GPERF_SIZE_T size_t' '#define _GNU_SOURCE' '#define GETTEXT_PACKAGE \"fontconfig\"'" + select({
         "//third-party/meson/constraints:endian[little]": " '#define WORDS_BIGENDIAN 0'",
         "//third-party/meson/constraints:endian[big]": " '#define WORDS_BIGENDIAN 1'",
     }) + select({
@@ -2599,7 +2599,17 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
         "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
+        "DEFAULT": "",
+    }) + select({
+        "prelude//cpu/constraints:cpu[x86_32]": " '#define ALIGNOF_DOUBLE 4'",
+        "DEFAULT": "",
+    }) + select({
+        "prelude//cpu/constraints:cpu[arm32]": " '#define ALIGNOF_DOUBLE 8'",
+        "prelude//cpu/constraints:cpu[arm64]": " '#define ALIGNOF_DOUBLE 8'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '#define ALIGNOF_DOUBLE 8'",
+        "prelude//cpu/constraints:cpu[x86_64]": " '#define ALIGNOF_DOUBLE 8'",
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[netbsd]": select({

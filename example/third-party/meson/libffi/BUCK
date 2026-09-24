@@ -132,6 +132,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|@SIZEOF_SIZE_T@|8|g' '-es|@SIZEOF_LONG_DOUBLE@|16|g'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|@SIZEOF_SIZE_T@|8|g' '-es|@SIZEOF_LONG_DOUBLE@|16|g'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|@SIZEOF_SIZE_T@|8|g' '-es|@SIZEOF_LONG_DOUBLE@|16|g'",
         "DEFAULT": "",
     }) + select({
@@ -239,6 +240,11 @@ genrule(
                 "prelude//abi/constraints:abi[musl]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
                 "DEFAULT": "",
             }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
+                "prelude//abi/constraints:abi[musl]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
+                "DEFAULT": "",
+            }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
                 "prelude//abi/constraints:abi[musl]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
@@ -255,6 +261,7 @@ genrule(
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
             "prelude//cpu/constraints:cpu[arm64]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
             "prelude//cpu/constraints:cpu[x86_32]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
             "prelude//cpu/constraints:cpu[x86_64]": " '-es|@HAVE_MEMFD_CREATE@|1|g'",
             "DEFAULT": "",
@@ -271,6 +278,11 @@ genrule(
                 "prelude//abi/constraints:abi[musl]": " '-es|@HAVE_MEMCPY@|1|g'",
                 "DEFAULT": "",
             }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|@HAVE_MEMCPY@|1|g'",
+                "prelude//abi/constraints:abi[musl]": " '-es|@HAVE_MEMCPY@|1|g'",
+                "DEFAULT": "",
+            }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '-es|@HAVE_MEMCPY@|1|g'",
                 "prelude//abi/constraints:abi[musl]": " '-es|@HAVE_MEMCPY@|1|g'",
@@ -283,9 +295,17 @@ genrule(
             }),
             "DEFAULT": "",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '-es|@HAVE_MEMCPY@|1|g'",
+            "prelude//cpu/constraints:cpu[arm64]": " '-es|@HAVE_MEMCPY@|1|g'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '-es|@HAVE_MEMCPY@|1|g'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '-es|@HAVE_MEMCPY@|1|g'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": " '-es|@HAVE_MEMCPY@|1|g'",
             "prelude//cpu/constraints:cpu[arm64]": " '-es|@HAVE_MEMCPY@|1|g'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '-es|@HAVE_MEMCPY@|1|g'",
             "prelude//cpu/constraints:cpu[x86_32]": " '-es|@HAVE_MEMCPY@|1|g'",
             "prelude//cpu/constraints:cpu[x86_64]": " '-es|@HAVE_MEMCPY@|1|g'",
             "DEFAULT": "",
@@ -298,11 +318,13 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
         "prelude//cpu/constraints:cpu[x86_32]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|@HAVE_INT128@|1|g'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|@HAVE_INT128@|1|g'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|@HAVE_INT128@|1|g'",
         "DEFAULT": "",
     }) + select({
@@ -366,6 +388,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+SIZEOF_SIZE_T\\>.*|#define SIZEOF_SIZE_T 8|' '-es|^#mesondefine[[:space:]]\\+SIZEOF_LONG_DOUBLE\\>.*|#define SIZEOF_LONG_DOUBLE 16|'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+SIZEOF_SIZE_T\\>.*|#define SIZEOF_SIZE_T 8|' '-es|^#mesondefine[[:space:]]\\+SIZEOF_LONG_DOUBLE\\>.*|#define SIZEOF_LONG_DOUBLE 16|'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+SIZEOF_SIZE_T\\>.*|#define SIZEOF_SIZE_T 8|' '-es|^#mesondefine[[:space:]]\\+SIZEOF_LONG_DOUBLE\\>.*|#define SIZEOF_LONG_DOUBLE 16|'",
         "DEFAULT": "",
     }) + select({
@@ -473,6 +496,11 @@ genrule(
                 "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
                 "DEFAULT": "",
             }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
+                "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
+                "DEFAULT": "",
+            }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
                 "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
@@ -489,6 +517,7 @@ genrule(
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
             "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
             "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
             "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|#define HAVE_MEMFD_CREATE 1|'",
             "DEFAULT": "",
@@ -505,6 +534,11 @@ genrule(
                 "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
                 "DEFAULT": "",
             }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
+                "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
+                "DEFAULT": "",
+            }),
             "prelude//cpu/constraints:cpu[x86_32]": select({
                 "prelude//abi/constraints:abi[gnu]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
                 "prelude//abi/constraints:abi[musl]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
@@ -517,9 +551,17 @@ genrule(
             }),
             "DEFAULT": "",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
+            "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
             "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
             "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
             "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|#define HAVE_MEMCPY 1|'",
             "DEFAULT": "",
@@ -532,11 +574,13 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
         "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_INT128\\>.*|#define HAVE_INT128 1|'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_INT128\\>.*|#define HAVE_INT128 1|'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_INT128\\>.*|#define HAVE_INT128 1|'",
         "DEFAULT": "",
     }) + select({
@@ -657,6 +701,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": "",
+        "prelude//cpu/constraints:cpu[riscv64]": "",
         "prelude//cpu/constraints:cpu[x86_64]": "",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_INT128\\>.*|/* #undef HAVE_INT128 */|'",
     }) + select({
@@ -670,6 +715,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": "",
+        "prelude//cpu/constraints:cpu[riscv64]": "",
         "prelude//cpu/constraints:cpu[x86_32]": "",
         "prelude//cpu/constraints:cpu[x86_64]": "",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|/* #undef HAVE_LONG_DOUBLE */|'",
@@ -681,6 +727,11 @@ genrule(
                 "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|/* #undef HAVE_MEMCPY */|'",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": "",
+                "prelude//abi/constraints:abi[musl]": "",
+                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|/* #undef HAVE_MEMCPY */|'",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
                 "prelude//abi/constraints:abi[gnu]": "",
                 "prelude//abi/constraints:abi[musl]": "",
                 "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|/* #undef HAVE_MEMCPY */|'",
@@ -697,9 +748,17 @@ genrule(
             }),
             "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|/* #undef HAVE_MEMCPY */|'",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": "",
+            "prelude//cpu/constraints:cpu[arm64]": "",
+            "prelude//cpu/constraints:cpu[x86_32]": "",
+            "prelude//cpu/constraints:cpu[x86_64]": "",
+            "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|/* #undef HAVE_MEMCPY */|'",
+        }),
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": "",
             "prelude//cpu/constraints:cpu[arm64]": "",
+            "prelude//cpu/constraints:cpu[riscv64]": "",
             "prelude//cpu/constraints:cpu[x86_32]": "",
             "prelude//cpu/constraints:cpu[x86_64]": "",
             "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMCPY\\>.*|/* #undef HAVE_MEMCPY */|'",
@@ -712,6 +771,11 @@ genrule(
                 "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|/* #undef HAVE_MEMFD_CREATE */|'",
             }),
             "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": "",
+                "prelude//abi/constraints:abi[musl]": "",
+                "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|/* #undef HAVE_MEMFD_CREATE */|'",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
                 "prelude//abi/constraints:abi[gnu]": "",
                 "prelude//abi/constraints:abi[musl]": "",
                 "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|/* #undef HAVE_MEMFD_CREATE */|'",
@@ -732,6 +796,7 @@ genrule(
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": "",
             "prelude//cpu/constraints:cpu[arm64]": "",
+            "prelude//cpu/constraints:cpu[riscv64]": "",
             "prelude//cpu/constraints:cpu[x86_32]": "",
             "prelude//cpu/constraints:cpu[x86_64]": "",
             "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_MEMFD_CREATE\\>.*|/* #undef HAVE_MEMFD_CREATE */|'",
@@ -802,12 +867,14 @@ genrule(
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": "",
         "prelude//cpu/constraints:cpu[arm64]": "",
+        "prelude//cpu/constraints:cpu[riscv64]": "",
         "prelude//cpu/constraints:cpu[x86_32]": "",
         "prelude//cpu/constraints:cpu[x86_64]": "",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+SIZEOF_LONG_DOUBLE\\>.*|/* #undef SIZEOF_LONG_DOUBLE */|'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": "",
         "prelude//cpu/constraints:cpu[arm64]": "",
+        "prelude//cpu/constraints:cpu[riscv64]": "",
         "prelude//cpu/constraints:cpu[x86_32]": "",
         "prelude//cpu/constraints:cpu[x86_64]": "",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+SIZEOF_SIZE_T\\>.*|/* #undef SIZEOF_SIZE_T */|'",
@@ -835,6 +902,7 @@ genrule(
     out = "ffi.h",
     cmd = "sed" + " -e ''" + " '-es|@VERSION@|3.8.0|g' '-es|@FFI_VERSION_STRING@|3.8.0|g' '-es|@FFI_VERSION_NUMBER@|30800|g' '-es|@FFI_EXEC_TRAMPOLINE_TABLE@|0|g'" + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
         "prelude//cpu/constraints:cpu[x86_32]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|@HAVE_LONG_DOUBLE@|1|g'",
         "DEFAULT": "",
@@ -903,6 +971,7 @@ genrule(
         "DEFAULT": "",
     }) + " '-es|^#mesondefine[[:space:]]\\+VERSION\\>.*|#define VERSION 3.8.0|' '-es|^#mesondefine[[:space:]]\\+FFI_VERSION_STRING\\>.*|#define FFI_VERSION_STRING 3.8.0|' '-es|^#mesondefine[[:space:]]\\+FFI_VERSION_NUMBER\\>.*|#define FFI_VERSION_NUMBER 30800|' '-es|^#mesondefine[[:space:]]\\+FFI_EXEC_TRAMPOLINE_TABLE\\>.*|#define FFI_EXEC_TRAMPOLINE_TABLE 0|'" + select({
         "prelude//cpu/constraints:cpu[arm64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
+        "prelude//cpu/constraints:cpu[riscv64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
         "prelude//cpu/constraints:cpu[x86_32]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
         "prelude//cpu/constraints:cpu[x86_64]": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|#define HAVE_LONG_DOUBLE 1|'",
         "DEFAULT": "",
@@ -971,6 +1040,7 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": "",
+        "prelude//cpu/constraints:cpu[riscv64]": "",
         "prelude//cpu/constraints:cpu[x86_32]": "",
         "prelude//cpu/constraints:cpu[x86_64]": "",
         "DEFAULT": " '-es|^#mesondefine[[:space:]]\\+HAVE_LONG_DOUBLE\\>.*|/* #undef HAVE_LONG_DOUBLE */|'",
