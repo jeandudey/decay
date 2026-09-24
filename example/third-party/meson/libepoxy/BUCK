@@ -166,7 +166,7 @@ cxx_library(
         "DEFAULT": ["//third-party/meson/system:dl"],
     }) + [
         "//third-party/system:X11",
-        "//third-party/system:EGL",
+        "//third-party/meson/libglvnd:EGL",
     ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -199,7 +199,7 @@ cxx_library(
     exported_deps = [
         ":epoxy",
         "//third-party/system:X11",
-        "//third-party/system:EGL",
+        "//third-party/meson/libglvnd:EGL",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
         "DEFAULT": ["//third-party/meson/system:dl"],

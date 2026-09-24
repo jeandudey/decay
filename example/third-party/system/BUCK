@@ -1,34 +1,17 @@
 # Hand-written targets for libraries that come from the operating system.
 #
 # `decay.toml` maps meson's `dependency('x11')` and friends onto these, so the
-# generated build files reference a real target instead of an empty stub.
+# generated build files reference a real target instead of an empty stub. Each
+# one asks the host's `pkg-config` for the library's real compile and link
+# flags at build time, so its headers, library path and `Requires:` resolve
+# the same way they would for a meson build on this machine.
+#
+# Only what nothing imported provides belongs here: GL/EGL come from
+# libglvnd, zlib and libffi from their own imported projects.
 
-cxx_library(
+load("@prelude//third-party:pkgconfig.bzl", "external_pkgconfig_library")
+
+external_pkgconfig_library(
     name = "X11",
-    exported_linker_flags = ["-lX11"],
-    visibility = ["PUBLIC"],
-)
-
-cxx_library(
-    name = "GL",
-    exported_linker_flags = ["-lGL"],
-    visibility = ["PUBLIC"],
-)
-
-cxx_library(
-    name = "EGL",
-    exported_linker_flags = ["-lEGL"],
-    visibility = ["PUBLIC"],
-)
-
-cxx_library(
-    name = "FFI",
-    exported_linker_flags = ["-lffi"],
-    visibility = ["PUBLIC"],
-)
-
-cxx_library(
-    name = "Z",
-    exported_linker_flags = ["-lz"],
-    visibility = ["PUBLIC"],
+    package = "x11",
 )

@@ -52,7 +52,8 @@ gperf = "//third-party/tools:gperf"
 
 # Meson looks these up outside the build. Only a dependency the build truly
 # cannot reach itself needs an entry: a system library nothing here provides,
-# like these three. gtk4's `dependency('epoxy')` and `dependency('iso-codes')`
+# like x11, or a name whose answer should be pinned to a specific imported
+# target. gtk4's `dependency('epoxy')` and `dependency('iso-codes')`
 # need none — libepoxy and iso-codes are imported below, and what each of
 # them provides (`pkg.generate()`'s `epoxy`, iso-codes' own generated `.pc`)
 # is exactly what a `dependency()` lookup elsewhere would ask for, resolved
@@ -68,8 +69,10 @@ gperf = "//third-party/tools:gperf"
 x11 = "//third-party/system:X11"
 # TODO: Maybe this should be recognized by depends field.
 xext = "//third-party/meson/libxext:Xext"
-gl = "//third-party/system:GL"
-egl = "//third-party/system:EGL"
+# libglvnd builds the real libGL/libEGL (and ships the Khronos headers), so
+# libepoxy links those rather than whatever the host happens to have.
+gl = "//third-party/meson/libglvnd:GL"
+egl = "//third-party/meson/libglvnd:EGL"
 
 # `cc.sizeof()` / `cc.alignment()` yield a concrete integer a generated
 # config header bakes in, so — unlike a probe — there is no knob to leave
@@ -199,7 +202,6 @@ tag = "v1.7.0"
 options = { asm = "auto", dispatch-tls = true, egl = true, entrypoint-patching = "auto", gles1 = true, gles2 = true, glx = "auto", headers = true, hgl = false, tls = true }
 depends = ["libxext", "xorgproto"]
 
-# TODO: This should find KHR/khrplatform.h from libglvnd.
 [[project]]
 repo = "https://github.com/anholt/libepoxy"
 tag = "1.5.10"

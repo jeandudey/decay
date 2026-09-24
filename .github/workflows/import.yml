@@ -16,9 +16,10 @@ jobs:
       # libz3-dev/python3-dev/pkg-config: build the workspace (z3-sys, pyo3).
       # unzip/zstd: decay extracts wrap archives; zstd also unpacks the buck2
       # binary.
-      # libx11-dev/libegl-dev: the only system libraries the generated example/
-      # tree links (`-lX11`, `-lEGL` via //third-party/system) -- everything
-      # else (glib, its codegen tools, zlib, ...) is imported from source.
+      # libx11-dev: the only system library the generated example/ tree links
+      # (//third-party/system:X11, flags from `pkg-config x11`) -- everything
+      # else (libglvnd's GL/EGL, glib, its codegen tools, zlib, ...) is
+      # imported from source.
       # gperf: //third-party/tools:gperf execs the system copy at build time
       # (fontconfig's fcobjshash.h/fcgenericfamily.h codegen), same shape as
       # python3 there. glib-mkenums/glib-genmarshal/glib-compile-resources
@@ -33,7 +34,7 @@ jobs:
           sudo apt-get install -y \
             libz3-dev python3-dev pkg-config \
             unzip zstd \
-            libx11-dev libegl-dev \
+            libx11-dev \
             gperf \
             gcc-14 g++-14
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
