@@ -58,10 +58,11 @@ impl Sources for TestSources {
 }
 
 /// Records every probe it is asked to build; one "builds" when its source
-/// mentions `HAVE_A`.
+/// mentions `HAVE_A`. `found` lists the dependencies something provides.
 #[derive(Default)]
 struct TestOracle {
     asked: RefCell<Vec<CompileProbe>>,
+    found: Vec<&'static str>,
 }
 
 impl Oracle for TestOracle {
@@ -80,6 +81,10 @@ impl Oracle for TestOracle {
     fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
         self.asked.borrow_mut().push(probe.clone());
         Some(Probe::Fixed(probe.snippet().contains("HAVE_A")))
+    }
+
+    fn dependency_found(&self, name: &str) -> Option<Probe> {
+        self.found.contains(&name).then_some(Probe::Fixed(true))
     }
 }
 
@@ -196,7 +201,10 @@ endif
 
 #[test]
 fn a_pkg_config_dependency_leaves_the_probe_open() {
-    let oracle = TestOracle::default();
+    let oracle = TestOracle {
+        found: vec!["foo"],
+        ..TestOracle::default()
+    };
     let (_, logic) = eval(
         "pkgconfig",
         &oracle,
@@ -208,4 +216,20 @@ cc.has_header('foo.h', dependencies: dependency('foo', required: false))
     );
     assert!(oracle.asked.borrow().is_empty());
     assert!(logic.arena().var_id("probe:c:has_header:foo.h").is_some());
+}
+
+#[test]
+fn a_dependency_nothing_provides_adds_nothing_to_the_probe() {
+    let oracle = TestOracle::default();
+    let (_, logic) = eval(
+        "unprovided",
+        &oracle,
+        r#"
+project('t', 'c')
+cc = meson.get_compiler('c')
+cc.has_header('foo.h', dependencies: dependency('foo', required: false))
+"#,
+    );
+    assert_eq!(oracle.asked.borrow().len(), 1);
+    assert!(logic.arena().var_id("probe:c:has_header:foo.h").is_none());
 }

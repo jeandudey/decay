@@ -517,17 +517,17 @@ _deps_os_cpu = [
     ":patternlib_internal",
     "//third-party/meson/freetype2:freetype2-dep",
     "//third-party/meson/libxml2:libxml2-dep",
-    ":intl",
-    ":m",
+    "//third-party/meson/system:intl",
+    "//third-party/meson/system:m",
 ] + select({
     "prelude//os/constraints:os[netbsd]": select({
-        "prelude//cpu/constraints:cpu[arm32]": [":threads"],
-        "prelude//cpu/constraints:cpu[arm64]": [":threads"],
-        "prelude//cpu/constraints:cpu[x86_32]": [":threads"],
-        "prelude//cpu/constraints:cpu[x86_64]": [":threads"],
+        "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
         "DEFAULT": [],
     }),
-    "DEFAULT": [":threads"],
+    "DEFAULT": ["//third-party/meson/system:threads"],
 })
 _headers3 = {
     "fcstdint.h": ":fcstdint.h",
@@ -579,48 +579,13 @@ _headers3 = {
 }
 _deps = [
     ":fontconfig",
-    ":intl",
+    "//third-party/meson/system:intl",
 ]
 _deps2 = [
     ":fontconfig",
     "//third-party/meson/freetype2:freetype2-dep",
-    ":intl",
+    "//third-party/meson/system:intl",
 ]
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("json-c") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.json-c = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "json-c",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('intl') — the platform's gettext (libc, or -lintl elsewhere)
-cxx_library(
-    name = "intl",
-    exported_linker_flags = select({
-        "prelude//os/constraints:os[linux]": [],
-        "DEFAULT": ["-lintl"],
-    }),
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
 
 genrule(
     name = "fcstdint.h",
@@ -764,16 +729,16 @@ cxx_library(
     deps = [
         "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/libxml2:libxml2-dep",
-        ":intl",
+        "//third-party/meson/system:intl",
     ] + select({
         "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":threads"],
-            "prelude//cpu/constraints:cpu[arm64]": [":threads"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":threads"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":threads"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
             "DEFAULT": [],
         }),
-        "DEFAULT": [":threads"],
+        "DEFAULT": ["//third-party/meson/system:threads"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -852,7 +817,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = [":intl"],
+    deps = ["//third-party/meson/system:intl"],
     visibility = ["PUBLIC"],
 )
 
@@ -966,16 +931,16 @@ cxx_library(
         ":fontconfig",
         "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/libxml2:libxml2-dep",
-        ":intl",
+        "//third-party/meson/system:intl",
     ] + select({
         "prelude//os/constraints:os[netbsd]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":threads"],
-            "prelude//cpu/constraints:cpu[arm64]": [":threads"],
-            "prelude//cpu/constraints:cpu[x86_32]": [":threads"],
-            "prelude//cpu/constraints:cpu[x86_64]": [":threads"],
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
             "DEFAULT": [],
         }),
-        "DEFAULT": [":threads"],
+        "DEFAULT": ["//third-party/meson/system:threads"],
     }),
     visibility = ["PUBLIC"],
 )

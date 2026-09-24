@@ -52,25 +52,9 @@ constraint(
     visibility = ["PUBLIC"],
 )
 
-# build option `option:openmp`: Enable OpenMP for tests
-constraint(
-    name = "openmp",
-    values = ["enabled", "disabled", "auto"],
-    default = "auto",
-    visibility = ["PUBLIC"],
-)
-
 # build option `option:demos`: Build demos
 constraint(
     name = "demos",
-    values = ["enabled", "disabled", "auto"],
-    default = "auto",
-    visibility = ["PUBLIC"],
-)
-
-# build option `option:libpng`: Use libpng in tests
-constraint(
-    name = "libpng",
     values = ["enabled", "disabled", "auto"],
     default = "auto",
     visibility = ["PUBLIC"],

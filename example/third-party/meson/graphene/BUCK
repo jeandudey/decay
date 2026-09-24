@@ -59,23 +59,6 @@ git_fetch(
     visibility = ["PUBLIC"],
 )
 
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
-
 genrule(
     name = "graphene-config.h",
     out = "graphene-config.h",
@@ -296,8 +279,8 @@ cxx_library(
         "DEFAULT": [],
     }),
     deps = [
-        ":m",
-        ":threads",
+        "//third-party/meson/system:m",
+        "//third-party/meson/system:threads",
         "//third-party/meson/glib:glib-dep-5",
     ],
     preferred_linkage = "shared",
@@ -343,8 +326,8 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":graphene-1.0",
-        ":m",
-        ":threads",
+        "//third-party/meson/system:m",
+        "//third-party/meson/system:threads",
         "//third-party/meson/glib:glib-dep-5",
     ],
     visibility = ["PUBLIC"],

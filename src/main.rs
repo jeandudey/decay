@@ -141,6 +141,10 @@ fn buckify(jobs: usize) -> eyre::Result<()> {
 /// third-party directory.
 pub(crate) const SHARED_CONSTRAINTS: &str = "constraints";
 
+/// Where the system libraries every imported project links are declared,
+/// relative to the third-party directory.
+pub(crate) const SHARED_SYSTEM: &str = "system";
+
 /// A project that has been executed and is waiting to be written out.
 pub(crate) struct Imported {
     out: PathBuf,

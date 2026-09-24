@@ -35,15 +35,6 @@ _headers = {
     "config.h": ":config.h",
 }
 
-# meson: find_library("dl")
-cxx_library(
-    name = "dl",
-    exported_linker_flags = [
-        "-ldl",
-    ],
-    visibility = ["PUBLIC"],
-)
-
 genrule(
     name = "gl_generated.h",
     out = "gl_generated.h",
@@ -172,7 +163,7 @@ cxx_library(
     }),
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }) + [
         "//third-party/system:X11",
         "//third-party/system:EGL",
@@ -211,7 +202,7 @@ cxx_library(
         "//third-party/system:EGL",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }),
     visibility = ["PUBLIC"],
 )
