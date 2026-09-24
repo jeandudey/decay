@@ -51,8 +51,9 @@ use {
 mod names;
 mod select;
 mod shared;
+mod system;
 
-pub use shared::Shared;
+pub use {shared::Shared, system::System};
 
 /// Where the constraints a project needs are declared, relative to the
 /// project's own directory.
@@ -217,6 +218,10 @@ pub struct Labels {
     /// `python3 $(location ...)` for a resolved target with no promise about
     /// its execute bit), keyed by the name `find_program()` looked up.
     pub programs: BTreeMap<String, String>,
+    /// Build-file path of the package holding every project's system
+    /// libraries ([`System`]). `None` emits each one in the project that uses
+    /// it instead.
+    pub system: Option<String>,
 }
 
 impl Labels {
@@ -699,6 +704,12 @@ fn render_dep_ref(graph: &Graph, known: &Labels, id: TargetId) -> String {
             .map(|label| format!("{label:?}"))
             .collect::<Vec<_>>()
             .join(", ");
+    }
+    if let Kind::External(external) = &target.kind
+        && let Some(package) = &known.system
+        && let Some(name) = system::name(external)
+    {
+        return format!("\"//{package}:{name}\"");
     }
     // Everything else uses the short name.
     format!("\":{}\"", target.name)
@@ -1350,19 +1361,37 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
         return out;
     }
 
+    // Declared once for every project, in the shared system package.
+    if known.system.is_some() && system::name(external).is_some() {
+        return out;
+    }
+
     match external {
         // A program needs no rule either way: one that lives in the project
         // is reached through the fetch, and buck2 has no equivalent of looking
         // one up on `PATH`, so commands name that kind directly and rely on the
         // execution environment.
         External::Program { .. } => {}
+        // Found only through a sibling project or a `[dependencies]` label,
+        // both resolved in `deps` directly; one answered by `variables` alone
+        // has no rule (`has_rule`).
+        External::PkgConfig { .. } => {}
+        _ => render_flags_rule(&mut out, &target.name, external),
+    }
+    out
+}
+
+/// The `cxx_library` for an external that is nothing but the flags a
+/// consumer compiles and links with.
+fn render_flags_rule(out: &mut String, name: &str, external: &External) {
+    match external {
         // `dependency('threads')`: a real target, not a stub. `-pthread` is
         // the portable spelling on every gcc/clang-driven toolchain
         // (including mingw).
         External::Threads => {
             let _ = writeln!(out, "# meson: {}", describe_external(external));
             let _ = writeln!(out, "cxx_library(");
-            let _ = writeln!(out, "    name = {:?},", target.name);
+            let _ = writeln!(out, "    name = {name:?},");
             let _ = writeln!(out, "    exported_preprocessor_flags = [\"-pthread\"],");
             let _ = writeln!(out, "    exported_linker_flags = [\"-pthread\"],");
             let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
@@ -1374,41 +1403,37 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
         // always available without decay declaring one.
         External::Iconv => {
             render_libc_or_lib(
-                &mut out,
-                target,
+                out,
+                name,
                 external,
                 &["linux", "freebsd", "netbsd"],
                 "iconv",
             );
         }
         External::Intl => {
-            render_libc_or_lib(&mut out, target, external, &["linux"], "intl");
+            render_libc_or_lib(out, name, external, &["linux"], "intl");
         }
         // `find_library` names the library itself, so `-l` is exactly right.
-        External::SystemLibrary { name } => {
-            render_linker_flags(&mut out, target, external, &[format!("-l{name}")]);
+        External::SystemLibrary { name: lib } => {
+            render_linker_flags(out, name, external, &[format!("-l{lib}")]);
         }
         External::Framework { modules } => {
             let flags: Vec<String> = modules
                 .iter()
                 .flat_map(|m| ["-framework".to_owned(), m.clone()])
                 .collect();
-            render_linker_flags(&mut out, target, external, &flags);
+            render_linker_flags(out, name, external, &flags);
         }
-        // Found only through a sibling project or a `[dependencies]` label,
-        // both resolved in `deps` directly; one answered by `variables` alone
-        // has no rule (`has_rule`).
-        External::PkgConfig { .. } => {}
+        External::Program { .. } | External::PkgConfig { .. } => {}
     }
-    out
 }
 
 /// A `cxx_library` carrying nothing but `flags` for its consumers to link
 /// with.
-fn render_linker_flags(out: &mut String, target: &Target, external: &External, flags: &[String]) {
+fn render_linker_flags(out: &mut String, name: &str, external: &External, flags: &[String]) {
     let _ = writeln!(out, "# meson: {}", describe_external(external));
     let _ = writeln!(out, "cxx_library(");
-    let _ = writeln!(out, "    name = {:?},", target.name);
+    let _ = writeln!(out, "    name = {name:?},");
     let _ = writeln!(out, "    exported_linker_flags = [");
     for flag in flags {
         let _ = writeln!(out, "        {flag:?},");
@@ -1423,14 +1448,14 @@ fn render_linker_flags(out: &mut String, target: &Target, external: &External, f
 /// `exported_linker_flags` on each OS in `in_libc`, `-l<lib>` on `DEFAULT`.
 fn render_libc_or_lib(
     out: &mut String,
-    target: &Target,
+    name: &str,
     external: &External,
     in_libc: &[&str],
     lib: &str,
 ) {
     let _ = writeln!(out, "# meson: {}", describe_external(external));
     let _ = writeln!(out, "cxx_library(");
-    let _ = writeln!(out, "    name = {:?},", target.name);
+    let _ = writeln!(out, "    name = {name:?},");
     let _ = writeln!(out, "    exported_linker_flags = select({{");
     for os in in_libc {
         let _ = writeln!(out, "        \"prelude//os/constraints:os[{os}]\": [],");
