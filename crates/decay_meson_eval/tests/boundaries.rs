@@ -317,3 +317,99 @@ endif
     .unwrap();
     assert!(graph.targets.iter().all(|t| t.name != "never"));
 }
+
+#[test]
+fn an_optional_dependency_nothing_provides_is_not_found() {
+    let (graph, logic) = eval(
+        "unprovided-optional",
+        &TestOracle::default(),
+        &[
+            MAIN,
+            (
+                "meson.build",
+                r#"
+project('t', 'c')
+d = dependency('nowhere', required: false)
+l = meson.get_compiler('c').find_library('nolib', required: false)
+executable('always', 'main.c', dependencies: [d, l])
+if d.found() or l.found()
+  executable('never', 'main.c')
+endif
+"#,
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(target_cond(&graph, "always").is_true());
+    assert!(graph.targets.iter().all(|t| t.name != "never"));
+    // No knob, and no stub target standing in for either.
+    assert!(
+        logic
+            .arena()
+            .vars()
+            .iter()
+            .all(|v| !v.key.contains("nowhere") && !v.key.contains("nolib"))
+    );
+    for name in ["nowhere", "nolib"] {
+        let stub = graph.targets.iter().find(|t| t.label == name).unwrap();
+        assert!(stub.cond.is_false(), "`{name}` is still emitted");
+    }
+}
+
+#[test]
+fn a_required_dependency_nothing_provides_is_refused() {
+    let err = eval(
+        "unprovided-required",
+        &TestOracle::default(),
+        &[
+            MAIN,
+            (
+                "meson.build",
+                r#"
+project('t', 'c')
+executable('uses', 'main.c', dependencies: dependency('nowhere'))
+"#,
+            ),
+        ],
+    )
+    .unwrap_err();
+    let msg = format!("{err:#}");
+    assert!(msg.contains("`dependency('nowhere')` is required"), "{msg}");
+    assert!(msg.contains("[dependencies].nowhere"), "{msg}");
+}
+
+#[test]
+fn a_feature_needing_a_dependency_nothing_provides_cannot_be_enabled() {
+    let (graph, mut logic) = eval(
+        "unprovided-feature",
+        &TestOracle::default(),
+        &[
+            MAIN,
+            (
+                "meson.options",
+                "option('feat', type: 'feature', value: 'auto')\n",
+            ),
+            (
+                "meson.build",
+                r#"
+project('t', 'c')
+d = dependency('nowhere', required: get_option('feat'))
+executable('always', 'main.c', dependencies: d)
+"#,
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(target_cond(&graph, "always").is_true());
+    let var = logic
+        .arena()
+        .vars()
+        .iter()
+        .find(|v| v.kind == VarKind::Option && v.key.ends_with("feat"))
+        .map(|v| v.key.clone())
+        .expect("`feat` stays open");
+    let var = logic.arena().var_id(&var).unwrap();
+    let enabled = logic.var(var).choice_index("enabled").unwrap();
+    let lit = logic.lit(var, enabled);
+    assert!(!logic.is_sat(lit));
+}

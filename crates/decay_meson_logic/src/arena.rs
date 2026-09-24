@@ -83,8 +83,6 @@ pub enum VarKind {
     Machine,
     /// The result of a toolchain/environment probe (`cc.has_header`, ...).
     Probe,
-    /// Whether an external dependency is available.
-    Dependency,
     /// A constraint from outside the importer, named in its configuration and
     /// selected on directly. The importer knows only the values that
     /// configuration mentions, so [`ANY_OTHER`] stands for the rest.

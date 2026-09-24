@@ -1845,6 +1845,8 @@ impl<'a, S: Solver> Interp<'a, S> {
             return self.dependency_resolve(first, args, required);
         }
 
+        let quoted: Vec<String> = names.iter().map(|n| format!("'{n}'")).collect();
+        let call = format!("dependency({})", quoted.join(", "));
         let mut resolved = Vec::with_capacity(names.len());
         for name in names {
             let value = self.dependency_resolve(name.clone(), args, Pc::FALSE)?;
@@ -1861,10 +1863,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         for (found, _) in &resolved {
             merged_found = self.logic.or(merged_found, *found);
         }
-        if !required.is_false() {
-            let must = self.logic.implies(required, merged_found);
-            self.logic.assume(must);
-        }
+        self.require_found(&call, &first, required, merged_found)?;
 
         let mut out = Variational::empty();
         let mut remaining = self.pc;
@@ -2026,20 +2025,10 @@ impl<'a, S: Solver> Interp<'a, S> {
         Ok(self.pure(value))
     }
 
-    /// The condition under which a looked-up dependency is available.
-    ///
-    /// The importer answers it outright when it can — a sibling project it is
-    /// building anyway, or a `[dependencies]` entry, which may itself gate the
-    /// answer on a constraint (found on one OS, plain `false` elsewhere, never
-    /// a knob). Otherwise it is a fresh open knob.
-    ///
-    /// Where it was `required:`, a build that does not have it fails to
-    /// configure at all — so rather than tracking a "found" flag that can never
-    /// be false there, the configuration space is narrowed to say so.
     /// `cc.find_library(name)` / the `dependency('dl')` builtin: a system or
     /// C-runtime library is a fact about the target, so ask the oracle for a
-    /// settled per-system answer first and only fall back to an open "found"
-    /// knob when it has nothing.
+    /// settled per-system answer first and only fall back to
+    /// [`Self::dependency_found`] when it has nothing.
     /// `disabled` is [`Self::feature_disabled`]'s answer for the same call's
     /// `required:` argument — shared with `dependency()`'s own handling
     /// (`fn_dependency`) so `cc.find_library(x, required: get_option(feat))`
@@ -2085,6 +2074,19 @@ impl<'a, S: Solver> Interp<'a, S> {
         }))
     }
 
+    /// The condition under which a looked-up dependency is available.
+    ///
+    /// The importer answers it outright when it can — a sibling project it is
+    /// building anyway, or a `[dependencies]` entry, which may itself gate the
+    /// answer on a constraint (found on one OS, plain `false` elsewhere, never
+    /// a knob). Nothing answering means nothing provides it: not found, never
+    /// an open knob or a stub target standing in for it.
+    ///
+    /// Where it was `required:`, a build that does not have it fails to
+    /// configure at all — so rather than tracking a "found" flag that can never
+    /// be false there, the configuration space is narrowed to say so. An
+    /// unprovided dependency that every remaining configuration requires is an
+    /// error naming what to add.
     pub(crate) fn dependency_found(
         &mut self,
         key: &str,
@@ -2094,13 +2096,48 @@ impl<'a, S: Solver> Interp<'a, S> {
         let description = format!("`{name}` is available");
         let found = match self.oracle.dependency_found(name) {
             Some(answer) => self.resolve_probe(Some(answer), key, description)?,
-            None => self.probe(key, description),
+            None => Pc::FALSE,
         };
-        if !required.is_false() {
-            let must = self.logic.implies(required, found);
-            self.logic.assume(must);
-        }
+        let call = match key.strip_prefix("lib:") {
+            Some(_) => format!("cc.find_library('{name}')"),
+            None => format!("dependency('{name}')"),
+        };
+        self.require_found(&call, name, required, found)?;
         Ok(found)
+    }
+
+    /// Narrow the configuration space to where a `required:` lookup is
+    /// `found`. A lookup nothing provides (`found` is `false`) that every
+    /// remaining configuration requires is an error naming what to add;
+    /// required only in some, those are ruled out.
+    pub(crate) fn require_found(
+        &mut self,
+        call: &str,
+        name: &str,
+        required: Pc,
+        found: Pc,
+    ) -> eyre::Result<()> {
+        if required.is_false() {
+            return Ok(());
+        }
+        let must = self.logic.implies(required, found);
+        if !found.is_false() || !self.logic.is_sat(required) {
+            self.logic.assume(must);
+            return Ok(());
+        }
+        self.logic.assume(must);
+        if !self.logic.is_consistent() {
+            bail!(
+                "`{call}` is required, but nothing provides it: import the project that \
+                 does, or map it to a buck2 target with `[dependencies].{name} = \
+                 \"//some:target\"` in `decay.toml`"
+            );
+        }
+        warn!(
+            "`{call}` is required in some configurations, but nothing provides it; \
+             those configurations are ruled out"
+        );
+        Ok(())
     }
 
     /// The `required:` argument as a condition.

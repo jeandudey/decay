@@ -391,7 +391,6 @@ fn describe(var: &Var) -> String {
         VarKind::BuiltinOption => "meson build option",
         VarKind::Machine => "machine property",
         VarKind::Probe => "toolchain probe",
-        VarKind::Dependency => "external dependency",
         VarKind::Constraint => "constraint",
     };
     match &var.description {
@@ -1122,7 +1121,7 @@ fn render_target<S: Solver>(
                 .iter()
                 .chain(a.deps.iter())
                 // A program found on `PATH` has no target to depend on.
-                .filter(|d| has_rule(graph.target(d.value)))
+                .filter(|d| has_rule(known, graph.target(d.value)))
                 .cloned()
                 .collect();
             deps.normalize(logic);
@@ -1339,11 +1338,9 @@ fn static_linkage(kind: &Kind) -> Option<&'static str> {
     }
 }
 
-/// Something the build does not produce itself.
-///
-/// The importer cannot know how a given repository wires up system libraries,
-/// so these are emitted as stubs with the linker flag meson would have used and
-/// a note saying what to replace them with.
+/// Something the build does not produce itself: only ever one a sibling
+/// project, `decay.toml` or the toolchain settled as found, so each is a real
+/// rule (or none at all), never a stub to fill in.
 fn render_external(target: &Target, external: &External, known: &Labels) -> String {
     let mut out = String::new();
 
@@ -1387,44 +1384,38 @@ fn render_external(target: &Target, external: &External, known: &Labels) -> Stri
         External::Intl => {
             render_libc_or_lib(&mut out, target, external, &["linux"], "intl");
         }
-        _ => {
-            // `find_library` names the library itself, so `-l` is exactly
-            // right. A pkg-config module name is not a library name and cannot
-            // be turned into one without running pkg-config, which would bake
-            // this machine's answer into the output — so the stub is left empty
-            // for someone to point at a real target.
-            let flags: Vec<String> = match external {
-                External::SystemLibrary { name } => vec![format!("-l{name}")],
-                External::Framework { modules } => modules
-                    .iter()
-                    .flat_map(|m| ["-framework".to_owned(), m.clone()])
-                    .collect(),
-                _ => Vec::new(),
-            };
-
-            let _ = writeln!(out, "# meson: {}", describe_external(external));
-            if flags.is_empty() {
-                let _ = writeln!(
-                    out,
-                    "# Empty stub: map it to a real target with `dependencies.{} = \"//some:target\"`",
-                    target.label
-                );
-                let _ = writeln!(out, "# in decay.toml, or edit it here.");
-            }
-            let _ = writeln!(out, "cxx_library(");
-            let _ = writeln!(out, "    name = {:?},", target.name);
-            if !flags.is_empty() {
-                let _ = writeln!(out, "    exported_linker_flags = [");
-                for flag in flags {
-                    let _ = writeln!(out, "        {flag:?},");
-                }
-                let _ = writeln!(out, "    ],");
-            }
-            let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
-            let _ = writeln!(out, ")");
+        // `find_library` names the library itself, so `-l` is exactly right.
+        External::SystemLibrary { name } => {
+            render_linker_flags(&mut out, target, external, &[format!("-l{name}")]);
         }
+        External::Framework { modules } => {
+            let flags: Vec<String> = modules
+                .iter()
+                .flat_map(|m| ["-framework".to_owned(), m.clone()])
+                .collect();
+            render_linker_flags(&mut out, target, external, &flags);
+        }
+        // Found only through a sibling project or a `[dependencies]` label,
+        // both resolved in `deps` directly; one answered by `variables` alone
+        // has no rule (`has_rule`).
+        External::PkgConfig { .. } => {}
     }
     out
+}
+
+/// A `cxx_library` carrying nothing but `flags` for its consumers to link
+/// with.
+fn render_linker_flags(out: &mut String, target: &Target, external: &External, flags: &[String]) {
+    let _ = writeln!(out, "# meson: {}", describe_external(external));
+    let _ = writeln!(out, "cxx_library(");
+    let _ = writeln!(out, "    name = {:?},", target.name);
+    let _ = writeln!(out, "    exported_linker_flags = [");
+    for flag in flags {
+        let _ = writeln!(out, "        {flag:?},");
+    }
+    let _ = writeln!(out, "    ],");
+    let _ = writeln!(out, "    visibility = [\"PUBLIC\"],");
+    let _ = writeln!(out, ")");
 }
 
 /// A builtin `cxx_library` for a runtime library (`iconv`, `intl`) that some
@@ -1737,8 +1728,18 @@ fn depends_on(graph: &Graph, from: TargetId, to: TargetId) -> bool {
 }
 
 /// Whether a target turns into a rule a dependent can name.
-fn has_rule(target: &Target) -> bool {
-    !matches!(target.kind, Kind::External(External::Program { .. }))
+///
+/// A pkg-config dependency with no label to map to is one `decay.toml`
+/// answers with `variables` alone: queried, never linked, so there is nothing
+/// to depend on.
+fn has_rule(known: &Labels, target: &Target) -> bool {
+    match &target.kind {
+        Kind::External(External::Program { .. }) => false,
+        Kind::External(External::PkgConfig { .. }) => {
+            known.dependencies.contains_key(&target.label)
+        }
+        _ => true,
+    }
 }
 
 /// Collapse a relative path's own `.`/`..` components lexically (`src/../

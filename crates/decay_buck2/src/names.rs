@@ -40,10 +40,9 @@ pub fn pick(vars: &[Var]) -> Vec<String> {
         VarKind::Option => 0,
         VarKind::BuiltinOption => 1,
         VarKind::Machine => 2,
-        VarKind::Dependency => 3,
-        VarKind::Probe => 4,
+        VarKind::Probe => 3,
         // Never named: its name was given to us, not chosen here.
-        VarKind::Constraint => 5,
+        VarKind::Constraint => 4,
     });
 
     let mut taken: BTreeSet<String> = BTreeSet::new();
