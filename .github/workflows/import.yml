@@ -17,7 +17,7 @@ jobs:
       # unzip/zstd: decay extracts wrap archives; zstd also unpacks the buck2
       # binary.
       # libx11-dev: the only system library the generated example/ tree links
-      # (//third-party/system:X11, flags from `pkg-config x11`) -- everything
+      # (//third-party/system:X11, a prebuilt_cxx_library on `-lX11`) -- everything
       # else (libglvnd's GL/EGL, glib, its codegen tools, zlib, ...) is
       # imported from source.
       # gperf: //third-party/tools:gperf execs the system copy at build time
