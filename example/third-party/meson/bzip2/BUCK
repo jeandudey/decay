@@ -2,7 +2,7 @@
 # Do not edit; re-run `decay` instead.
 
 http_archive(
-    name = "bzip2",
+    name = "source",
     urls = ["https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz"],
     sha256 = "ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269",
     strip_prefix = "bzip2-1.0.8",
@@ -25,16 +25,16 @@ http_archive(
 cxx_library(
     name = "bz2",
     srcs = [
-        ":bzip2[blocksort.c]",
-        ":bzip2[huffman.c]",
-        ":bzip2[crctable.c]",
-        ":bzip2[randtable.c]",
-        ":bzip2[compress.c]",
-        ":bzip2[decompress.c]",
-        ":bzip2[bzlib.c]",
+        ":source[blocksort.c]",
+        ":source[huffman.c]",
+        ":source[crctable.c]",
+        ":source[randtable.c]",
+        ":source[compress.c]",
+        ":source[decompress.c]",
+        ":source[bzlib.c]",
     ],
     headers = {
-        "bzlib_private.h": ":bzip2[bzlib_private.h]",
+        "bzlib_private.h": ":source[bzlib_private.h]",
     },
     header_namespace = "",
     preferred_linkage = "static",
@@ -43,10 +43,10 @@ cxx_library(
 
 # meson: bzip2
 cxx_binary(
-    name = "bzip2-2",
-    srcs = [":bzip2[bzip2.c]"],
+    name = "bzip2",
+    srcs = [":source[bzip2.c]"],
     headers = {
-        "bzlib.h": ":bzip2[bzlib.h]",
+        "bzlib.h": ":source[bzlib.h]",
     },
     header_namespace = "",
     compiler_flags = ["-Wno-unused-result"],
@@ -58,9 +58,9 @@ cxx_binary(
 cxx_library(
     name = "bzip2-dep",
     exported_headers = {
-        "bzlib.h": ":bzip2[bzlib.h]",
-        "bzlib_private.h": ":bzip2[bzlib_private.h]",
-        "libbz2.def": ":bzip2[libbz2.def]",
+        "bzlib.h": ":source[bzlib.h]",
+        "bzlib_private.h": ":source[bzlib_private.h]",
+        "libbz2.def": ":source[libbz2.def]",
     },
     header_namespace = "",
     exported_deps = [":bz2"],
