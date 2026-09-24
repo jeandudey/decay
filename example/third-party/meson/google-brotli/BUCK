@@ -108,15 +108,6 @@ _headers = {
     "c/include/brotli/types.h": ":google-brotli[c/include/brotli/types.h]",
 }
 
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
 cxx_library(
     name = "brotli_common",
     srcs = [
@@ -274,7 +265,7 @@ cxx_library(
         "-DBROTLIENC_SHARED_COMPILATION",
     ],
     deps = [
-        ":m",
+        "//third-party/meson/system:m",
         ":google-brotli-dep",
     ],
     preferred_linkage = "shared",

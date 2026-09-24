@@ -143,7 +143,6 @@ fn is_shared(var: &Var) -> bool {
         VarKind::BuiltinOption
         | VarKind::Machine
         | VarKind::Probe
-        | VarKind::Dependency
         // Not declared anywhere in the generated build, but it belongs to
         // meson's side of the split rather than to the project.
         | VarKind::Constraint => true,

@@ -9,25 +9,6 @@ http_archive(
     sha256 = "d09c44ebc3bd5bee7021c79f922fe8fb2fb57f7320f55e97ff9914d2346a591c",
     strip_prefix = "pixman-0.46.4",
     sub_targets = [
-        "demos/alpha-test.c",
-        "demos/checkerboard.c",
-        "demos/clip-test.c",
-        "demos/composite-test.c",
-        "demos/conical-test.c",
-        "demos/convolution-test.c",
-        "demos/dither.c",
-        "demos/gradient-test.c",
-        "demos/gtk-utils.c",
-        "demos/gtk-utils.h",
-        "demos/linear-gradient.c",
-        "demos/parrot.c",
-        "demos/radial-test.c",
-        "demos/scale.c",
-        "demos/screen-test.c",
-        "demos/srgb-test.c",
-        "demos/srgb-trap-test.c",
-        "demos/trap-test.c",
-        "demos/tri-test.c",
         "pixman/dither/blue-noise-64x64.h",
         "pixman/loongson-mmintrin.h",
         "pixman/pixman-access-accessors.c",
@@ -158,350 +139,28 @@ _headers2 = {
     "pixman/pixman-config.h": ":pixman-config.h",
     "pixman/pixman-version.h": ":pixman-version.h",
 }
-_headers3 = {
-    "pixman-config.h": ":pixman-config.h",
-    "pixman-version.h": ":pixman-version.h",
-    "gtk-utils.h": ":pixman[demos/gtk-utils.h]",
-}
-_needs_gtk_3_0_demos = ["//third-party/meson/constraints:gtk_3_0[true]"] + select({
-    "//third-party/meson/pixman/constraints:demos[enabled]": [],
-    "//third-party/meson/pixman/constraints:demos[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-    "//third-party/meson/pixman/constraints:demos[auto]": [],
-})
-_deps_glib_2_0_openmp_libpng10 = [
-    ":demo",
+_deps_os_cpu = [
     ":pixman-dep",
     ":pixman-dep-2",
-    ":gtk_-3.0",
 ] + select({
-    "//third-party/meson/constraints:glib_2_0[true]": ["//third-party/meson/glib:glib-dep-3"],
-    "//third-party/meson/constraints:glib_2_0[false]": [],
-}) + select({
-    "//third-party/meson/constraints:openmp[true]": select({
-        "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-        "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-        "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
+    "prelude//os/constraints:os[netbsd]": select({
+        "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
+        "DEFAULT": [],
     }),
-    "//third-party/meson/constraints:openmp[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng10[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": select({
-                        "//third-party/meson/constraints:libpng14[true]": [],
-                        "//third-party/meson/constraints:libpng14[false]": select({
-                            "//third-party/meson/constraints:libpng13[true]": [],
-                            "//third-party/meson/constraints:libpng13[false]": select({
-                                "//third-party/meson/constraints:libpng12[true]": [],
-                                "//third-party/meson/constraints:libpng12[false]": [":libpng10"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng10[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng12[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": select({
-                        "//third-party/meson/constraints:libpng14[true]": [],
-                        "//third-party/meson/constraints:libpng14[false]": select({
-                            "//third-party/meson/constraints:libpng13[true]": [],
-                            "//third-party/meson/constraints:libpng13[false]": [":libpng12"],
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng12[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng13[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": select({
-                        "//third-party/meson/constraints:libpng14[true]": [],
-                        "//third-party/meson/constraints:libpng14[false]": [":libpng13"],
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng13[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng14[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": [":libpng14"],
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng14[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng15[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": [":libpng15"],
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng15[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng16[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
-        }),
-    }),
-    "//third-party/meson/constraints:libpng16[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
-    }),
-    "//third-party/meson/constraints:libpng[false]": [],
-})
-_deps_openmp_libpng10_libpng = [
-    ":pixman-dep",
-    ":pixman-dep-2",
-    ":threads",
-] + select({
-    "//third-party/meson/constraints:openmp[true]": select({
-        "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-        "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-        "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-    }),
-    "//third-party/meson/constraints:openmp[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng10[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": select({
-                        "//third-party/meson/constraints:libpng14[true]": [],
-                        "//third-party/meson/constraints:libpng14[false]": select({
-                            "//third-party/meson/constraints:libpng13[true]": [],
-                            "//third-party/meson/constraints:libpng13[false]": select({
-                                "//third-party/meson/constraints:libpng12[true]": [],
-                                "//third-party/meson/constraints:libpng12[false]": [":libpng10"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng10[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng12[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": select({
-                        "//third-party/meson/constraints:libpng14[true]": [],
-                        "//third-party/meson/constraints:libpng14[false]": select({
-                            "//third-party/meson/constraints:libpng13[true]": [],
-                            "//third-party/meson/constraints:libpng13[false]": [":libpng12"],
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng12[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng13[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": select({
-                        "//third-party/meson/constraints:libpng14[true]": [],
-                        "//third-party/meson/constraints:libpng14[false]": [":libpng13"],
-                    }),
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng13[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng14[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": [],
-                    "//third-party/meson/constraints:libpng15[false]": [":libpng14"],
-                }),
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng14[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng15[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": [],
-                "//third-party/meson/constraints:libpng16[false]": [":libpng15"],
-            }),
-        }),
-    }),
-    "//third-party/meson/constraints:libpng15[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng16[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": [],
-            "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
-        }),
-    }),
-    "//third-party/meson/constraints:libpng16[false]": [],
-}) + select({
-    "//third-party/meson/constraints:libpng[true]": select({
-        "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
-        "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-        "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
-    }),
-    "//third-party/meson/constraints:libpng[false]": [],
+    "DEFAULT": ["//third-party/meson/system:threads"],
 })
 _needs_tests = select({
     "//third-party/meson/pixman/constraints:tests[enabled]": [],
     "//third-party/meson/pixman/constraints:tests[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
     "//third-party/meson/pixman/constraints:tests[auto]": [],
 })
-_deps_openmp = [
+_deps = [
     ":pixman-dep",
     ":pixman-dep-2",
-] + select({
-    "//third-party/meson/constraints:openmp[true]": select({
-        "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-        "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-        "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-    }),
-    "//third-party/meson/constraints:openmp[false]": [],
-})
-
-# meson: dependency("openmp") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.openmp = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "openmp",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("gtk+-3.0") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.gtk+-3.0 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "gtk_-3.0",
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("libpng15")
-cxx_library(
-    name = "libpng15",
-    exported_linker_flags = [
-        "-llibpng15",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("libpng14")
-cxx_library(
-    name = "libpng14",
-    exported_linker_flags = [
-        "-llibpng14",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("libpng13")
-cxx_library(
-    name = "libpng13",
-    exported_linker_flags = [
-        "-llibpng13",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("libpng12")
-cxx_library(
-    name = "libpng12",
-    exported_linker_flags = [
-        "-llibpng12",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("libpng10")
-cxx_library(
-    name = "libpng10",
-    exported_linker_flags = [
-        "-llibpng10",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
+]
 
 genrule(
     name = "pixman-config.h",
@@ -558,42 +217,341 @@ genrule(
         "//third-party/meson/pixman/constraints:gnuplot[true]": " '#define PIXMAN_GNUPLOT 1'",
         "//third-party/meson/pixman/constraints:gnuplot[false]": "",
     }) + select({
-        "//third-party/meson/constraints:openmp[true]": select({
-            "//third-party/meson/pixman/constraints:openmp[enabled]": " '#define USE_OPENMP 1'",
-            "//third-party/meson/pixman/constraints:openmp[disabled]": "",
-            "//third-party/meson/pixman/constraints:openmp[auto]": " '#define USE_OPENMP 1'",
-        }),
-        "//third-party/meson/constraints:openmp[false]": "",
-    }) + select({
-        "//third-party/meson/pixman/constraints:libpng[disabled]": "",
-        "DEFAULT": select({
-            "//third-party/meson/constraints:libpng[true]": " '#define HAVE_LIBPNG 1'",
-            "//third-party/meson/constraints:libpng[false]": select({
-                "//third-party/meson/constraints:libpng16[true]": " '#define HAVE_LIBPNG 1'",
-                "//third-party/meson/constraints:libpng16[false]": select({
-                    "//third-party/meson/constraints:libpng15[true]": " '#define HAVE_LIBPNG 1'",
-                    "//third-party/meson/constraints:libpng15[false]": select({
-                        "//third-party/meson/constraints:libpng14[true]": " '#define HAVE_LIBPNG 1'",
-                        "//third-party/meson/constraints:libpng14[false]": select({
-                            "//third-party/meson/constraints:libpng13[true]": " '#define HAVE_LIBPNG 1'",
-                            "//third-party/meson/constraints:libpng13[false]": select({
-                                "//third-party/meson/constraints:libpng12[true]": " '#define HAVE_LIBPNG 1'",
-                                "//third-party/meson/constraints:libpng12[false]": select({
-                                    "//third-party/meson/constraints:libpng10[true]": " '#define HAVE_LIBPNG 1'",
-                                    "//third-party/meson/constraints:libpng10[false]": "",
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-    }) + " '#define HAVE_PTHREADS 1' '#define HAVE_SIGACTION 1' '#define HAVE_ALARM 1' '#define HAVE_MPROTECT 1' '#define HAVE_GETPAGESIZE 1' '#define HAVE_MMAP 1' '#define HAVE_GETTIMEOFDAY 1' '#define HAVE_POSIX_MEMALIGN 1' '#define HAVE_FEDIVBYZERO 1' '#define HAVE_SYS_MMAN_H 1' '#define HAVE_FENV_H 1' '#define HAVE_UNISTD_H 1' '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1' '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1' '#define HAVE_GCC_VECTOR_EXTENSIONS 1' '#define PACKAGE foo'" + select({
-        "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FEENABLEEXCEPT 1'",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_PTHREADS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_PTHREADS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_PTHREADS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_PTHREADS 1'",
             "DEFAULT": "",
         }),
-        "prelude//os/constraints:os[netbsd]": " '#define HAVE_FEENABLEEXCEPT 1'",
+        "DEFAULT": " '#define HAVE_PTHREADS 1'",
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SIGACTION 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SIGACTION 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SIGACTION 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SIGACTION 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SIGACTION 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SIGACTION 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SIGACTION 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SIGACTION 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SIGACTION 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SIGACTION 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SIGACTION 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SIGACTION 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SIGACTION 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SIGACTION 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SIGACTION 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SIGACTION 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SIGACTION 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SIGACTION 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SIGACTION 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ALARM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ALARM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ALARM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ALARM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ALARM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ALARM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ALARM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ALARM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ALARM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ALARM 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ALARM 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ALARM 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ALARM 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ALARM 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ALARM 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ALARM 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ALARM 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ALARM 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ALARM 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MPROTECT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MPROTECT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MPROTECT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MPROTECT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MPROTECT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MPROTECT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MPROTECT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MPROTECT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MPROTECT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MPROTECT 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MPROTECT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MPROTECT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MPROTECT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MPROTECT 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MPROTECT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MPROTECT 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MPROTECT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MPROTECT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MPROTECT 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPAGESIZE 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPAGESIZE 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MMAP 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MMAP 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTIMEOFDAY 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETTIMEOFDAY 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_POSIX_MEMALIGN 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_POSIX_MEMALIGN 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FEENABLEEXCEPT 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FEENABLEEXCEPT 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_FEENABLEEXCEPT 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FEENABLEEXCEPT 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FEENABLEEXCEPT 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FEENABLEEXCEPT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FEENABLEEXCEPT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FEENABLEEXCEPT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FEENABLEEXCEPT 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": select({
             "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FEENABLEEXCEPT 1'",
             "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FEENABLEEXCEPT 1'",
@@ -601,13 +559,76 @@ genrule(
             "DEFAULT": "",
         }),
     }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FEDIVBYZERO 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FEDIVBYZERO 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FEDIVBYZERO 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FEDIVBYZERO 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_FEDIVBYZERO 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_MMAN_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_MMAN_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_MMAN_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_MMAN_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_SYS_MMAN_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FENV_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FENV_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FENV_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FENV_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_FENV_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UNISTD_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_UNISTD_H 1'",
+    }) + select({
         "//third-party/meson/pixman/constraints:tls[enabled]": " '#define TLS __thread'",
         "//third-party/meson/pixman/constraints:tls[disabled]": "",
         "//third-party/meson/pixman/constraints:tls[auto]": " '#define TLS __thread'",
     }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1'",
+    }) + select({
         "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FLOAT128 1'",
         "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FLOAT128 1'",
         "DEFAULT": "",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_GCC_VECTOR_EXTENSIONS 1'",
     }) + select({
         "//third-party/meson/constraints:endian[little]": "",
         "//third-party/meson/constraints:endian[big]": " '#define WORDS_BIGENDIAN 1'",
@@ -617,10 +638,9 @@ genrule(
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '#define SIZEOF_LONG 8'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_LONG 8'",
         "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_LONG 8'",
         "DEFAULT": "",
-    }) + " > $OUT",
+    }) + " '#define PACKAGE foo'" + " > $OUT",
     visibility = ["PUBLIC"],
 )
 
@@ -842,10 +862,16 @@ cxx_library(
                 "DEFAULT": [],
             }),
         }),
-    }) + [
-        ":m",
-        ":threads",
-    ],
+    }) + ["//third-party/meson/system:m"] + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["//third-party/meson/system:threads"],
+    }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
@@ -898,121 +924,8 @@ cxx_library(
     compiler_flags = _cflags,
     deps = [
         ":pixman-dep",
-        ":m",
-    ] + select({
-        "//third-party/meson/constraints:openmp[true]": select({
-            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-        }),
-        "//third-party/meson/constraints:openmp[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng10[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": select({
-                            "//third-party/meson/constraints:libpng14[true]": [],
-                            "//third-party/meson/constraints:libpng14[false]": select({
-                                "//third-party/meson/constraints:libpng13[true]": [],
-                                "//third-party/meson/constraints:libpng13[false]": select({
-                                    "//third-party/meson/constraints:libpng12[true]": [],
-                                    "//third-party/meson/constraints:libpng12[false]": [":libpng10"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng10[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng12[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": select({
-                            "//third-party/meson/constraints:libpng14[true]": [],
-                            "//third-party/meson/constraints:libpng14[false]": select({
-                                "//third-party/meson/constraints:libpng13[true]": [],
-                                "//third-party/meson/constraints:libpng13[false]": [":libpng12"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng12[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng13[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": select({
-                            "//third-party/meson/constraints:libpng14[true]": [],
-                            "//third-party/meson/constraints:libpng14[false]": [":libpng13"],
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng13[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng14[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": [":libpng14"],
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng14[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng15[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": [":libpng15"],
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng15[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng16[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
-            }),
-        }),
-        "//third-party/meson/constraints:libpng16[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
-        }),
-        "//third-party/meson/constraints:libpng[false]": [],
-    }),
+        "//third-party/meson/system:m",
+    ],
     preferred_linkage = "static",
     target_compatible_with = _needs_tests_demos,
     visibility = ["PUBLIC"],
@@ -1032,356 +945,6 @@ cxx_library(
     visibility = ["PUBLIC"],
 )
 
-cxx_library(
-    name = "demo",
-    srcs = [":pixman[demos/gtk-utils.c]"],
-    exported_headers = {
-        "pixman-config.h": ":pixman-config.h",
-        "pixman-version.h": ":pixman-version.h",
-        "dither/blue-noise-64x64.h": ":pixman[pixman/dither/blue-noise-64x64.h]",
-        "loongson-mmintrin.h": ":pixman[pixman/loongson-mmintrin.h]",
-        "pixman-accessor.h": ":pixman[pixman/pixman-accessor.h]",
-        "pixman-arm-asm.h": ":pixman[pixman/pixman-arm-asm.h]",
-        "pixman-arm-common.h": ":pixman[pixman/pixman-arm-common.h]",
-        "pixman-arm-neon-asm.h": ":pixman[pixman/pixman-arm-neon-asm.h]",
-        "pixman-arm-simd-asm.h": ":pixman[pixman/pixman-arm-simd-asm.h]",
-        "pixman-arma64-neon-asm.h": ":pixman[pixman/pixman-arma64-neon-asm.h]",
-        "pixman-combine-float.h": ":pixman[pixman/pixman-combine-float.h]",
-        "pixman-combine32.h": ":pixman[pixman/pixman-combine32.h]",
-        "pixman-compiler.h": ":pixman[pixman/pixman-compiler.h]",
-        "pixman-edge-imp.h": ":pixman[pixman/pixman-edge-imp.h]",
-        "pixman-inlines.h": ":pixman[pixman/pixman-inlines.h]",
-        "pixman-mips-dspr2-asm.h": ":pixman[pixman/pixman-mips-dspr2-asm.h]",
-        "pixman-mips-dspr2.h": ":pixman[pixman/pixman-mips-dspr2.h]",
-        "pixman-private.h": ":pixman[pixman/pixman-private.h]",
-        "pixman.h": ":pixman[pixman/pixman.h]",
-    },
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    deps = [
-        ":pixman-dep-2",
-        ":gtk_-3.0",
-        ":m",
-    ] + select({
-        "//third-party/meson/constraints:glib_2_0[true]": ["//third-party/meson/glib:glib-dep-3"],
-        "//third-party/meson/constraints:glib_2_0[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng10[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": select({
-                            "//third-party/meson/constraints:libpng14[true]": [],
-                            "//third-party/meson/constraints:libpng14[false]": select({
-                                "//third-party/meson/constraints:libpng13[true]": [],
-                                "//third-party/meson/constraints:libpng13[false]": select({
-                                    "//third-party/meson/constraints:libpng12[true]": [],
-                                    "//third-party/meson/constraints:libpng12[false]": [":libpng10"],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng10[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng12[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": select({
-                            "//third-party/meson/constraints:libpng14[true]": [],
-                            "//third-party/meson/constraints:libpng14[false]": select({
-                                "//third-party/meson/constraints:libpng13[true]": [],
-                                "//third-party/meson/constraints:libpng13[false]": [":libpng12"],
-                            }),
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng12[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng13[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": select({
-                            "//third-party/meson/constraints:libpng14[true]": [],
-                            "//third-party/meson/constraints:libpng14[false]": [":libpng13"],
-                        }),
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng13[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng14[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": select({
-                        "//third-party/meson/constraints:libpng15[true]": [],
-                        "//third-party/meson/constraints:libpng15[false]": [":libpng14"],
-                    }),
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng14[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng15[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": select({
-                    "//third-party/meson/constraints:libpng16[true]": [],
-                    "//third-party/meson/constraints:libpng16[false]": [":libpng15"],
-                }),
-            }),
-        }),
-        "//third-party/meson/constraints:libpng15[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng16[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "DEFAULT": select({
-                "//third-party/meson/constraints:libpng[true]": [],
-                "//third-party/meson/constraints:libpng[false]": ["//third-party/meson/libpng:png16"],
-            }),
-        }),
-        "//third-party/meson/constraints:libpng16[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:libpng[true]": select({
-            "//third-party/meson/pixman/constraints:libpng[enabled]": ["//third-party/meson/libpng:libpng-dep"],
-            "//third-party/meson/pixman/constraints:libpng[disabled]": [],
-            "//third-party/meson/pixman/constraints:libpng[auto]": ["//third-party/meson/libpng:libpng-dep"],
-        }),
-        "//third-party/meson/constraints:libpng[false]": [],
-    }) + select({
-        "//third-party/meson/constraints:openmp[true]": select({
-            "//third-party/meson/pixman/constraints:openmp[enabled]": [":openmp"],
-            "//third-party/meson/pixman/constraints:openmp[disabled]": [],
-            "//third-party/meson/pixman/constraints:openmp[auto]": [":openmp"],
-        }),
-        "//third-party/meson/constraints:openmp[false]": [],
-    }),
-    preferred_linkage = "static",
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "gradient-test",
-    srcs = [":pixman[demos/gradient-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "alpha-test",
-    srcs = [":pixman[demos/alpha-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "composite-test",
-    srcs = [":pixman[demos/composite-test.c]"],
-    headers = {
-        "pixman-config.h": ":pixman-config.h",
-        "pixman-version.h": ":pixman-version.h",
-        "gtk-utils.h": ":pixman[demos/gtk-utils.h]",
-        "parrot.c": ":pixman[demos/parrot.c]",
-    },
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "clip-test",
-    srcs = [":pixman[demos/clip-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "trap-test",
-    srcs = [":pixman[demos/trap-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "screen-test",
-    srcs = [":pixman[demos/screen-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "convolution-test",
-    srcs = [":pixman[demos/convolution-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "radial-test",
-    srcs = [":pixman[demos/radial-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "linear-gradient",
-    srcs = [":pixman[demos/linear-gradient.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "conical-test",
-    srcs = [":pixman[demos/conical-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "tri-test",
-    srcs = [":pixman[demos/tri-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "checkerboard",
-    srcs = [":pixman[demos/checkerboard.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "srgb-test",
-    srcs = [":pixman[demos/srgb-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "srgb-trap-test",
-    srcs = [":pixman[demos/srgb-trap-test.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "scale",
-    srcs = [":pixman[demos/scale.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
-cxx_binary(
-    name = "dither",
-    srcs = [":pixman[demos/dither.c]"],
-    headers = _headers3,
-    header_namespace = "",
-    compiler_flags = _cflags,
-    linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_glib_2_0_openmp_libpng10,
-    target_compatible_with = _needs_gtk_3_0_demos,
-    visibility = ["PUBLIC"],
-)
-
 cxx_binary(
     name = "oob-test",
     srcs = [":pixman[test/oob-test.c]"],
@@ -1389,7 +952,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1401,7 +964,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1413,7 +976,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1425,7 +988,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1437,7 +1000,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1449,7 +1012,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1461,7 +1024,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1473,7 +1036,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1485,7 +1048,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1497,7 +1060,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1509,7 +1072,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1521,7 +1084,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1533,7 +1096,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1545,7 +1108,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1557,7 +1120,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1569,7 +1132,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1581,7 +1144,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1593,7 +1156,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1605,7 +1168,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1617,7 +1180,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1629,7 +1192,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1641,7 +1204,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1653,7 +1216,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1665,7 +1228,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1677,7 +1240,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1689,7 +1252,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1701,7 +1264,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1713,7 +1276,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1725,7 +1288,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1737,7 +1300,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1749,7 +1312,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1761,7 +1324,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1773,7 +1336,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1785,7 +1348,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
+    deps = _deps_os_cpu,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1797,8 +1360,24 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp_libpng10_libpng,
-    target_compatible_with = _needs_tests,
+    deps = [
+        ":pixman-dep",
+        ":pixman-dep-2",
+        "//third-party/meson/system:threads",
+    ],
+    target_compatible_with = select({
+        "//third-party/meson/pixman/constraints:tests[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
+        "DEFAULT": select({
+            "prelude//os/constraints:os[netbsd]": select({
+                "prelude//cpu/constraints:cpu[arm32]": [],
+                "prelude//cpu/constraints:cpu[arm64]": [],
+                "prelude//cpu/constraints:cpu[x86_32]": [],
+                "prelude//cpu/constraints:cpu[x86_64]": [],
+                "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
+            }),
+            "DEFAULT": [],
+        }),
+    }),
     visibility = ["PUBLIC"],
 )
 
@@ -1809,7 +1388,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp,
+    deps = _deps,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1821,7 +1400,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp,
+    deps = _deps,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1833,7 +1412,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp,
+    deps = _deps,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1845,7 +1424,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp,
+    deps = _deps,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )
@@ -1857,7 +1436,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = _cflags,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps_openmp,
+    deps = _deps,
     target_compatible_with = _needs_tests,
     visibility = ["PUBLIC"],
 )

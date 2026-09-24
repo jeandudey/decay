@@ -1,6 +1,7 @@
 use {
     crate::{
         Attrs,
+        External,
         Install,
         Kind,
         Package,
@@ -14,7 +15,10 @@ use {
         Var, //
     },
     std::{
-        collections::HashMap,
+        collections::{
+            HashMap,
+            HashSet, //
+        },
         path::{
             Path,
             PathBuf, //
@@ -73,6 +77,33 @@ impl Graph {
             attrs: Attrs::default(),
         });
         id
+    }
+
+    /// Drop every external dependency nothing links against — one only ever
+    /// looked up and found missing, or checked with `.found()` and never
+    /// used. Nothing refers to it, so it has no reason to be emitted.
+    pub fn prune_unused_externals(&mut self) {
+        let mut used: HashSet<TargetId> = HashSet::new();
+        for target in &self.targets {
+            if target.cond.is_false() {
+                continue;
+            }
+            let refs = target
+                .attrs
+                .deps
+                .iter()
+                .chain(target.attrs.link_with.iter());
+            used.extend(refs.filter(|r| !r.cond.is_false()).map(|r| r.value));
+        }
+        used.extend(self.provides.iter().filter_map(|p| p.target));
+        used.extend(self.tests.iter().map(|t| t.target));
+        for target in &mut self.targets {
+            let external =
+                matches!(&target.kind, Kind::External(e) if !matches!(e, External::Program { .. }));
+            if external && !used.contains(&target.id) {
+                target.cond = Pc::FALSE;
+            }
+        }
     }
 
     /// Targets that live in `package`, in declaration order.

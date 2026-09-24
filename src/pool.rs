@@ -14,7 +14,7 @@
 
 use {
     crate::{
-        Imported, SHARED_CONSTRAINTS,
+        Imported, SHARED_CONSTRAINTS, SHARED_SYSTEM,
         config::{
             Config,
             Project, //
@@ -30,6 +30,7 @@ use {
     decay_buck2::{
         Labels,
         Shared,
+        System,
         Used, //
     },
     decay_build_ir::Graph,
@@ -210,7 +211,16 @@ pub(crate) fn import(
         }
 
         // --- barrier: the shared constraints need every graph ---
-        let labels = Arc::new(build_labels(config, &packages));
+        let system_dir = config.third_party_dir.join(SHARED_SYSTEM);
+        let mut labels = build_labels(config, &packages);
+        labels.system = Some(package_path(&system_dir)?);
+        let system = System::collect(
+            &labels,
+            graphs
+                .iter()
+                .map(|g| g.as_ref().expect("every project evaluated")),
+        );
+        let labels = Arc::new(labels);
         let shared_dir = config.third_party_dir.join(SHARED_CONSTRAINTS);
         let shared = Arc::new(Shared::collect(
             package_path(&shared_dir)?,
@@ -273,6 +283,10 @@ pub(crate) fn import(
             .write(&labels, &Used::everywhere(files), &shared_dir)
             .wrap_err("Failed to write shared constraints")?;
         info!(dir = %shared_dir.display(), "wrote shared constraints");
+        system
+            .write(&system_dir)
+            .wrap_err("Failed to write system libraries")?;
+        info!(dir = %system_dir.display(), "wrote system libraries");
 
         Ok(())
     })
@@ -418,5 +432,6 @@ fn build_labels(config: &Config, packages: &Packages) -> Labels {
                     .map(|(k, v)| (k.clone(), format!("$(exe {v})"))),
             )
             .collect(),
+        system: None,
     }
 }

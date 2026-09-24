@@ -744,34 +744,8 @@ _headers10 = {
 }
 _deps = [":EGL"] + select({
     "prelude//os/constraints:os[netbsd]": [],
-    "DEFAULT": [":dl"],
+    "DEFAULT": ["//third-party/meson/system:dl"],
 })
-
-# meson: find_library("dl")
-cxx_library(
-    name = "dl",
-    exported_linker_flags = [
-        "-ldl",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
 
 cxx_library(
     name = "glvnd_pthread",
@@ -790,7 +764,7 @@ cxx_library(
     compiler_flags = _cflags_cpu_x11_run_mtls_dialect_gnu2,
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
@@ -1960,7 +1934,7 @@ cxx_library(
         ":glvnd-dep-2",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }),
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -2185,8 +2159,8 @@ cxx_library(
     linker_flags = ["-Wl,-Bsymbolic"],
     deps = [
         ":egl_dispatch_stubs",
-        ":threads",
-        ":m",
+        "//third-party/meson/system:threads",
+        "//third-party/meson/system:m",
         ":glvnd-dep-4",
         ":glvnd-dep",
         ":glvnd-dep-3",
@@ -2195,7 +2169,7 @@ cxx_library(
         ":glvnd-dep-11",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }) + select({
         "//third-party/meson/libglvnd/constraints:x11[enabled]": ["//third-party/system:X11"],
         "//third-party/meson/libglvnd/constraints:x11[disabled]": [],
@@ -2286,7 +2260,7 @@ cxx_library(
     linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }) + [
         "//third-party/system:X11",
         "//third-party/meson/libxext:Xext",
@@ -2383,7 +2357,7 @@ cxx_library(
     linker_flags = ["-Wl,-Bsymbolic"],
     deps = select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }) + [
         ":glvnd-dep-11",
         ":glvnd-dep-7",
@@ -2801,7 +2775,7 @@ cxx_binary(
         ":patchentrypoints",
         ":glvnd-dep-11",
         ":glvnd-dep-3",
-        ":threads",
+        "//third-party/meson/system:threads",
     ],
     visibility = ["PUBLIC"],
 )
@@ -2815,7 +2789,7 @@ cxx_binary(
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":glvnd-dep-11",
-        ":threads",
+        "//third-party/meson/system:threads",
     ],
     visibility = ["PUBLIC"],
 )
@@ -2937,7 +2911,7 @@ cxx_binary(
         ":glvnd-dep-4",
         ":glvnd-dep-3",
         ":glvnd-dep-14",
-        ":threads",
+        "//third-party/meson/system:threads",
     ],
     target_compatible_with = _needs,
     visibility = ["PUBLIC"],
@@ -3083,7 +3057,7 @@ cxx_binary(
         ":glvnd-dep-3",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }),
     visibility = ["PUBLIC"],
 )
@@ -3103,7 +3077,7 @@ cxx_binary(
         ":OpenGL",
     ] + select({
         "prelude//os/constraints:os[netbsd]": [],
-        "DEFAULT": [":dl"],
+        "DEFAULT": ["//third-party/meson/system:dl"],
     }),
     visibility = ["PUBLIC"],
 )
@@ -3145,7 +3119,7 @@ cxx_binary(
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
         ":EGL",
-        ":threads",
+        "//third-party/meson/system:threads",
     ],
     visibility = ["PUBLIC"],
 )

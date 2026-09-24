@@ -362,6 +362,7 @@ impl<'a, S: Solver> Interp<'a, S> {
             }
         }
 
+        graph.prune_unused_externals();
         (graph, self.logic)
     }
 
@@ -1040,36 +1041,21 @@ impl<'a, S: Solver> Interp<'a, S> {
         builtins::builtin_option(name)
     }
 
-    /// A yes/no variable for something the importer cannot answer: whether a
-    /// header exists, whether a library is installed, and so on.
+    /// A yes/no variable for a toolchain capability the importer cannot
+    /// answer, defaulting to present: what a working toolchain normally
+    /// reports. A dependency is never one — nothing providing it means it is
+    /// not found ([`Self::dependency_found`]).
     pub(crate) fn probe_var(&mut self, key: &str, description: String) -> VarId {
         if let Some(id) = self.probe_vars.get(key) {
             return *id;
         }
 
-        let external = ["dep:", "lib:"]
-            .iter()
-            .any(|prefix| key.starts_with(prefix));
-
-        // Something the build has to find outside itself defaults to absent:
-        // there is no configure step to look for it, and a generated build that
-        // links a library nobody supplied fails outright, while one that leaves
-        // it out usually still works.
-        //
-        // A compiler capability, by contrast, defaults to present, because that
-        // is what a working toolchain normally reports.
-        let (kind, default) = if external {
-            (VarKind::Dependency, 1)
-        } else {
-            (VarKind::Probe, 0)
-        };
-
         let id = self.logic.declare(Var {
             key: key.to_owned(),
             description: Some(description),
-            kind,
+            kind: VarKind::Probe,
             choices: vec!["true".to_owned(), "false".to_owned()],
-            default,
+            default: 0,
         });
         self.probe_vars.insert(key.to_owned(), id);
         id

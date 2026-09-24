@@ -513,14 +513,22 @@ _headers2 = {
     "config.h": ":config.h",
     "config-fixups.h": ":fontconfig.git[config-fixups.h]",
 }
-_deps = [
+_deps_os_cpu = [
     ":patternlib_internal",
     "//third-party/meson/freetype2:freetype2-dep",
     "//third-party/meson/libxml2:libxml2-dep",
-    ":intl",
-    ":threads",
-    ":m",
-]
+    "//third-party/meson/system:intl",
+    "//third-party/meson/system:m",
+] + select({
+    "prelude//os/constraints:os[netbsd]": select({
+        "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+        "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
+        "DEFAULT": [],
+    }),
+    "DEFAULT": ["//third-party/meson/system:threads"],
+})
 _headers3 = {
     "fcstdint.h": ":fcstdint.h",
     "fontconfig/fontconfig.h": ":fontconfig.h",
@@ -569,50 +577,15 @@ _headers3 = {
     "src/ftglue.h": ":fontconfig.git[src/ftglue.h]",
     "ftglue.h": ":fontconfig.git[src/ftglue.h]",
 }
+_deps = [
+    ":fontconfig",
+    "//third-party/meson/system:intl",
+]
 _deps2 = [
     ":fontconfig",
-    ":intl",
-]
-_deps3 = [
-    ":fontconfig",
     "//third-party/meson/freetype2:freetype2-dep",
-    ":intl",
+    "//third-party/meson/system:intl",
 ]
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("json-c") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.json-c = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "json-c",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('intl') — the platform's gettext (libc, or -lintl elsewhere)
-cxx_library(
-    name = "intl",
-    exported_linker_flags = select({
-        "prelude//os/constraints:os[linux]": [],
-        "DEFAULT": ["-lintl"],
-    }),
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
 
 genrule(
     name = "fcstdint.h",
@@ -756,9 +729,17 @@ cxx_library(
     deps = [
         "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/libxml2:libxml2-dep",
-        ":intl",
-        ":threads",
-    ],
+        "//third-party/meson/system:intl",
+    ] + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["//third-party/meson/system:threads"],
+    }),
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -836,7 +817,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = [":intl"],
+    deps = ["//third-party/meson/system:intl"],
     visibility = ["PUBLIC"],
 )
 
@@ -862,7 +843,7 @@ cxx_library(
         "-I$(location :fontconfig.git[src])",
     ] + ["-I$(location :fontconfig-dotdot-shadow)/src"],
     compiler_flags = ["-DHAVE_CONFIG_H"],
-    deps = _deps,
+    deps = _deps_os_cpu,
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
@@ -890,7 +871,7 @@ cxx_library(
         "-I$(location :fontconfig.git[src])",
     ] + ["-I$(location :fontconfig-2-dotdot-shadow)/src"],
     compiler_flags = ["-DHAVE_CONFIG_H"],
-    deps = _deps,
+    deps = _deps_os_cpu,
     preferred_linkage = "static",
     visibility = ["PUBLIC"],
 )
@@ -950,9 +931,17 @@ cxx_library(
         ":fontconfig",
         "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/libxml2:libxml2-dep",
-        ":intl",
-        ":threads",
-    ],
+        "//third-party/meson/system:intl",
+    ] + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_32]": ["//third-party/meson/system:threads"],
+            "prelude//cpu/constraints:cpu[x86_64]": ["//third-party/meson/system:threads"],
+            "DEFAULT": [],
+        }),
+        "DEFAULT": ["//third-party/meson/system:threads"],
+    }),
     visibility = ["PUBLIC"],
 )
 
@@ -963,7 +952,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps2,
+    deps = _deps,
     visibility = ["PUBLIC"],
 )
 
@@ -997,7 +986,7 @@ cxx_binary(
     ],
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps2,
+    deps = _deps,
     visibility = ["PUBLIC"],
 )
 
@@ -1008,7 +997,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps2,
+    deps = _deps,
     visibility = ["PUBLIC"],
 )
 
@@ -1019,7 +1008,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps2,
+    deps = _deps,
     visibility = ["PUBLIC"],
 )
 
@@ -1030,7 +1019,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps2,
+    deps = _deps,
     visibility = ["PUBLIC"],
 )
 
@@ -1041,7 +1030,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps2,
+    deps = _deps,
     visibility = ["PUBLIC"],
 )
 
@@ -1052,7 +1041,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps2,
+    deps = _deps,
     visibility = ["PUBLIC"],
 )
 
@@ -1063,7 +1052,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps3,
+    deps = _deps2,
     visibility = ["PUBLIC"],
 )
 
@@ -1074,7 +1063,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps3,
+    deps = _deps2,
     visibility = ["PUBLIC"],
 )
 
@@ -1085,7 +1074,7 @@ cxx_binary(
     header_namespace = "",
     compiler_flags = ["-DHAVE_CONFIG_H"],
     linker_flags = ["-Wl,--allow-shlib-undefined"],
-    deps = _deps3,
+    deps = _deps2,
     visibility = ["PUBLIC"],
 )
 
@@ -1106,9 +1095,99 @@ genrule(
 genrule(
     name = "meson-config.h",
     out = "meson-config.h",
-    cmd = "printf '%s\\n'" + " '#define FC_VERSION_MAJOR 2' '#define FC_VERSION_MINOR 18' '#define FC_VERSION_MICRO 3' '#define ENABLE_FREETYPE 1' '/* #undef FREETYPE_PCF_LONG_FAMILY_NAMES */' '#define ENABLE_LIBXML2 1' '#define PACKAGE_NAME \"fontconfig\"' '#define PACKAGE_TARNAME \"fontconfig\"' '#define PACKAGE_VERSION \"2.18.3\"' '#define PACKAGE_STRING \"fontconfig 2.18.3\"' '#define PACKAGE_BUGREPORT \"https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new\"' '#define PACKAGE_URL \"\"' '#define EXEEXT ' '#define ENABLE_NLS 0' '#define USE_ICONV 0' '#define HAVE_FT_GET_BDF_PROPERTY 1' '#define HAVE_FT_GET_PS_FONT_INFO 1' '#define HAVE_FT_HAS_PS_GLYPH_NAMES 1' '#define HAVE_FT_GET_X11_FONT_FORMAT 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_DIRENT_H 1' '#define HAVE_DLFCN_H 1' '#define HAVE_FCNTL_H 1' '#define HAVE_INTTYPES_H 1' '#define HAVE_STDINT_H 1' '#define HAVE_STDIO_H 1' '#define HAVE_STDLIB_H 1' '#define HAVE_STRINGS_H 1' '#define HAVE_STRING_H 1' '#define HAVE_UNISTD_H 1' '#define HAVE_SYS_STATVFS_H 1' '#define HAVE_SYS_STAT_H 1' '#define HAVE_SYS_TYPES_H 1' '#define HAVE_SYS_PARAM_H 1' '#define HAVE_SYS_MOUNT_H 1' '#define HAVE_TIME_H 1' '#define HAVE_WCHAR_H 1' '#define HAVE_LINK 1' '#define HAVE_SYMLINK 1' '#define HAVE_MKSTEMP 1' '#define HAVE_MKDTEMP 1' '#define HAVE_GETOPT 1' '#define HAVE_GETOPT_LONG 1' '#define HAVE_RAND 1' '#define HAVE_RANDOM 1' '#define HAVE_LRAND48 1' '#define HAVE_RAND_R 1' '#define HAVE_READLINK 1' '#define HAVE_FSTATVFS 1' '#define HAVE_FSTATFS 1' '#define HAVE_LSTAT 1' '#define HAVE_STRERROR 1' '#define HAVE_STRERROR_R 1' '#define HAVE_MMAP 1' '#define HAVE_VASPRINTF 1' '#define HAVE_VPRINTF 1' '#define HAVE_VSNPRINTF 1' '#define HAVE_VSPRINTF 1' '#define HAVE_GETPAGESIZE 1' '#define HAVE_GETPID 1' '#define HAVE_LOCALTIME_R 1' '#define HAVE_STRDUP 1' '#define HAVE_POSIX_FADVISE 1' '#define HAVE_STRUCT_STAT_ST_MTIM 1' '#define HAVE_STRUCT_DIRENT_D_TYPE 1' '#define FLEXIBLE_ARRAY_MEMBER /**/' '#define HAVE_PTHREAD_PRIO_INHERIT 1' '#define HAVE_STDATOMIC_PRIMITIVES 1' '#define HAVE_INTEL_ATOMIC_PRIMITIVES 1' '#define HAVE_C99_VSNPRINTF 1' '#define FC_DEFAULT_FONTS \"\\t<dir>/usr/share/fonts</dir>\\n\\t<dir>/usr/local/share/fonts</dir>\\n\"' '#define FC_FONTPATH \"\"' '#define HAVE_PTHREAD 1' '#define CONFIGDIR \"/usr/local/etc/fonts/conf.d\"' '#define FC_CACHEDIR \"/usr/local/var/cache/fontconfig\"' '#define FC_TEMPLATEDIR \"/usr/local/share/fontconfig/conf.avail\"' '#define FONTCONFIG_PATH \"/usr/local/etc/fonts\"' '#define FC_GPERF_SIZE_T size_t' '#define _GNU_SOURCE' '#define GETTEXT_PACKAGE \"fontconfig\"'" + select({
+    cmd = "printf '%s\\n'" + " '#define FC_VERSION_MAJOR 2' '#define FC_VERSION_MINOR 18' '#define FC_VERSION_MICRO 3' '#define ENABLE_FREETYPE 1' '/* #undef FREETYPE_PCF_LONG_FAMILY_NAMES */' '#define ENABLE_LIBXML2 1' '#define PACKAGE_NAME \"fontconfig\"' '#define PACKAGE_TARNAME \"fontconfig\"' '#define PACKAGE_VERSION \"2.18.3\"' '#define PACKAGE_STRING \"fontconfig 2.18.3\"' '#define PACKAGE_BUGREPORT \"https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new\"' '#define PACKAGE_URL \"\"' '#define EXEEXT ' '#define ENABLE_NLS 0' '#define USE_ICONV 0' '#define HAVE_FT_GET_BDF_PROPERTY 1' '#define HAVE_FT_GET_PS_FONT_INFO 1' '#define HAVE_FT_HAS_PS_GLYPH_NAMES 1' '#define HAVE_FT_GET_X11_FONT_FORMAT 1' '#define HAVE_FT_DONE_MM_VAR 1' '#define HAVE_STDINT_H 1' '#define ALIGNOF_DOUBLE 8' '#define HAVE_C99_VSNPRINTF 1' '#define FC_DEFAULT_FONTS \"\\t<dir>/usr/share/fonts</dir>\\n\\t<dir>/usr/local/share/fonts</dir>\\n\"' '#define FC_FONTPATH \"\"' '#define CONFIGDIR \"/usr/local/etc/fonts/conf.d\"' '#define FC_CACHEDIR \"/usr/local/var/cache/fontconfig\"' '#define FC_TEMPLATEDIR \"/usr/local/share/fontconfig/conf.avail\"' '#define FONTCONFIG_PATH \"/usr/local/etc/fonts\"' '#define FC_GPERF_SIZE_T size_t' '#define _GNU_SOURCE' '#define GETTEXT_PACKAGE \"fontconfig\"'" + select({
         "//third-party/meson/constraints:endian[little]": " '#define WORDS_BIGENDIAN 0'",
         "//third-party/meson/constraints:endian[big]": " '#define WORDS_BIGENDIAN 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DIRENT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DIRENT_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_DIRENT_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_DLFCN_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_DLFCN_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_DLFCN_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_DLFCN_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_DLFCN_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FCNTL_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FCNTL_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FCNTL_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FCNTL_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_FCNTL_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_INTTYPES_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_INTTYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_INTTYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_INTTYPES_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_INTTYPES_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDIO_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDIO_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDIO_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDIO_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STDIO_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDLIB_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDLIB_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDLIB_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDLIB_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STDLIB_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRINGS_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRINGS_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRINGS_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRINGS_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STRINGS_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRING_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRING_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRING_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRING_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STRING_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_UNISTD_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_UNISTD_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_UNISTD_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STATVFS_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_STATVFS_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_STATVFS_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_STATVFS_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_SYS_STATVFS_H 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": " '#define HAVE_SYS_VFS_H 1'",
         "DEFAULT": "",
@@ -1116,63 +1195,1422 @@ genrule(
         "prelude//os/constraints:os[linux]": " '#define HAVE_SYS_STATFS_H 1'",
         "DEFAULT": "",
     }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_STAT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_STAT_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_SYS_STAT_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_TYPES_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_TYPES_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_SYS_TYPES_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_PARAM_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_PARAM_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_PARAM_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_PARAM_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_SYS_PARAM_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYS_MOUNT_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYS_MOUNT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYS_MOUNT_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYS_MOUNT_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_SYS_MOUNT_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_TIME_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_TIME_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_TIME_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_TIME_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_TIME_H 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_WCHAR_H 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_WCHAR_H 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_WCHAR_H 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_WCHAR_H 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_WCHAR_H 1'",
+    }) + select({
         "prelude//os/constraints:os[linux]": "",
         "prelude//os/constraints:os[netbsd]": "",
         "DEFAULT": " '#define HAVE_XLOCALE_H 1'",
     }) + select({
-        "prelude//os/constraints:os[linux]": "",
-        "DEFAULT": " '#define HAVE_GETPROGNAME 1'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LINK 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LINK 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LINK 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LINK 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LINK 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LINK 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LINK 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_LINK 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LINK 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LINK 1'",
+            "DEFAULT": "",
+        }),
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RANDOM_R 1'",
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYMLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SYMLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYMLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SYMLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYMLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SYMLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYMLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SYMLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_SYMLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_SYMLINK 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYMLINK 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYMLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYMLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYMLINK 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_SYMLINK 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_SYMLINK 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_SYMLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_SYMLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_SYMLINK 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKSTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKSTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKSTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKSTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKSTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKSTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKSTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKSTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKSTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKSTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKSTEMP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKSTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKSTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKSTEMP 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKSTEMP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKSTEMP 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MKSTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKSTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKSTEMP 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKDTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKDTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKDTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKDTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKDTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKDTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKDTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKDTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MKDTEMP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKDTEMP 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKDTEMP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKDTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKDTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKDTEMP 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKDTEMP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKDTEMP 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MKDTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKDTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKDTEMP 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETOPT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETOPT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETOPT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETOPT 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETOPT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETOPT 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_GETOPT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETOPT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETOPT 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT_LONG 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT_LONG 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT_LONG 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT_LONG 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT_LONG 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT_LONG 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT_LONG 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT_LONG 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETOPT_LONG 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETOPT_LONG 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETOPT_LONG 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETOPT_LONG 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETOPT_LONG 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETOPT_LONG 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETOPT_LONG 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETOPT_LONG 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_GETOPT_LONG 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETOPT_LONG 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETOPT_LONG 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPROGNAME 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPROGNAME 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPROGNAME 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPROGNAME 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPROGNAME 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPROGNAME 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_GETPROGNAME 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPROGNAME 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPROGNAME 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_RAND 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_RAND 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_RAND 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_RAND 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_RAND 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_RAND 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_RAND 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_RAND 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_RAND 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RANDOM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RANDOM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RANDOM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RANDOM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RANDOM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RANDOM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RANDOM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RANDOM 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RANDOM 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RANDOM 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_RANDOM 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_RANDOM 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_RANDOM 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_RANDOM 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_RANDOM 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_RANDOM 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_RANDOM 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_RANDOM 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_RANDOM 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LRAND48 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LRAND48 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LRAND48 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LRAND48 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LRAND48 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LRAND48 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LRAND48 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LRAND48 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LRAND48 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LRAND48 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LRAND48 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LRAND48 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LRAND48 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LRAND48 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LRAND48 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LRAND48 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_LRAND48 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LRAND48 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LRAND48 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//abi/constraints:abi[gnu]": select({
+                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_RANDOM_R 1'",
+                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_RANDOM_R 1'",
+                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_RANDOM_R 1'",
+                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_RANDOM_R 1'",
+                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_RANDOM_R 1'",
+                "DEFAULT": "",
+            }),
             "DEFAULT": "",
         }),
         "DEFAULT": "",
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_RAND_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_RAND_R 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_RAND_R 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_RAND_R 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_RAND_R 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_RAND_R 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_RAND_R 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_RAND_R 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_RAND_R 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_RAND_R 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_RAND_R 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_READLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_READLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_READLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_READLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_READLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_READLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_READLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_READLINK 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_READLINK 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_READLINK 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_READLINK 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_READLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_READLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_READLINK 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_READLINK 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_READLINK 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_READLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_READLINK 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_READLINK 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATVFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATVFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATVFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATVFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATVFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATVFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATVFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATVFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATVFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATVFS 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FSTATVFS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FSTATVFS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FSTATVFS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FSTATVFS 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FSTATVFS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FSTATVFS 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_FSTATVFS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FSTATVFS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FSTATVFS 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATFS 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FSTATFS 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_FSTATFS 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FSTATFS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FSTATFS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FSTATFS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FSTATFS 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FSTATFS 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_FSTATFS 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_FSTATFS 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FSTATFS 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FSTATFS 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LSTAT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LSTAT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LSTAT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LSTAT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LSTAT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LSTAT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LSTAT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LSTAT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LSTAT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LSTAT 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LSTAT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LSTAT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LSTAT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LSTAT 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LSTAT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LSTAT 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_LSTAT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LSTAT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LSTAT 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRERROR 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRERROR 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRERROR 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRERROR 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRERROR 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRERROR 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STRERROR 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRERROR 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRERROR 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRERROR_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRERROR_R 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRERROR_R 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRERROR_R 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRERROR_R 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRERROR_R 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRERROR_R 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRERROR_R 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STRERROR_R 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRERROR_R 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRERROR_R 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_MMAP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_MMAP 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MMAP 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MMAP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MMAP 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
         "prelude//os/constraints:os[linux]": "",
-        "DEFAULT": " '#define HAVE_VASPRINTF_L 1'",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VASPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VASPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VASPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VASPRINTF_L 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VASPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VASPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_VASPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VASPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VASPRINTF_L 1'",
+            "DEFAULT": "",
+        }),
     }) + select({
-        "prelude//os/constraints:os[netbsd]": " '#define HAVE__VSNPRINTF_L 1'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VASPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VASPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VASPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VASPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VASPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VASPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VASPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VASPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VASPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VASPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VASPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VASPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VASPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VASPRINTF 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VASPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VASPRINTF 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_VASPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VASPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VASPRINTF 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VPRINTF 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VPRINTF 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_VPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VPRINTF 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSNPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSNPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSNPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSNPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSNPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSNPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSNPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSNPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSNPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSNPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VSNPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VSNPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VSNPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VSNPRINTF 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VSNPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VSNPRINTF 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_VSNPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VSNPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VSNPRINTF 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE__VSNPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE__VSNPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE__VSNPRINTF_L 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE__VSNPRINTF_L 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": "",
     }) + select({
-        "prelude//os/constraints:os[linux]": " '#define HAVE_DCGETTEXT 1'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_VSPRINTF 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_VSPRINTF 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VSPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VSPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VSPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VSPRINTF 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_VSPRINTF 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_VSPRINTF 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_VSPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_VSPRINTF 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_VSPRINTF 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPAGESIZE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPAGESIZE 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPAGESIZE 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPAGESIZE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPAGESIZE 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPID 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPID 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPID 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPID 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPID 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPID 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPID 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPID 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETPID 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETPID 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPID 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPID 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPID 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPID 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_GETPID 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_GETPID 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_GETPID 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_GETPID 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_GETPID 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_DCGETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_DCGETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_DCGETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_DCGETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_DCGETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_DCGETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_DCGETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_DCGETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_DCGETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_DCGETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
         "DEFAULT": "",
     }) + select({
-        "prelude//os/constraints:os[linux]": " '#define HAVE_GETTEXT 1'",
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_GETTEXT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_GETTEXT 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
         "DEFAULT": "",
     }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOCALTIME_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LOCALTIME_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOCALTIME_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LOCALTIME_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOCALTIME_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LOCALTIME_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOCALTIME_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LOCALTIME_R 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_LOCALTIME_R 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_LOCALTIME_R 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LOCALTIME_R 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LOCALTIME_R 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LOCALTIME_R 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LOCALTIME_R 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_LOCALTIME_R 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_LOCALTIME_R 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_LOCALTIME_R 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_LOCALTIME_R 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_LOCALTIME_R 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRDUP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRDUP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRDUP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRDUP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRDUP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRDUP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRDUP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRDUP 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_STRDUP 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_STRDUP 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRDUP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRDUP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRDUP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRDUP 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRDUP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRDUP 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_STRDUP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRDUP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRDUP 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[linux]": select({
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_USELOCALE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_USELOCALE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_USELOCALE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_USELOCALE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_USELOCALE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_USELOCALE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_32]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_USELOCALE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_USELOCALE 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_USELOCALE 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_USELOCALE 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": "",
+        }),
         "prelude//os/constraints:os[netbsd]": "",
-        "DEFAULT": " '#define HAVE_USELOCALE 1'",
+        "DEFAULT": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_USELOCALE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_USELOCALE 1'",
+            "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_USELOCALE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_USELOCALE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_USELOCALE 1'",
+            "DEFAULT": "",
+        }),
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_POSIX_FADVISE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_POSIX_FADVISE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_POSIX_FADVISE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_POSIX_FADVISE 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_POSIX_FADVISE 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[musl]": " '#define HAVE_MKOSTEMP 1'",
             "DEFAULT": "",
         }),
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_MKOSTEMP 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_MKOSTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_MKOSTEMP 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_MKOSTEMP 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": " '#define HAVE_MKOSTEMP 1'",
     }) + select({
-        "prelude//os/constraints:os[netbsd]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRUCT_STATVFS_F_FSTYPENAME 1'",
+            "DEFAULT": "",
+        }),
         "DEFAULT": "",
     }) + select({
         "prelude//os/constraints:os[linux]": " '#define HAVE_STRUCT_STATFS_F_FLAGS 1'",
         "DEFAULT": "",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STRUCT_STAT_ST_MTIM 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STRUCT_DIRENT_D_TYPE 1'",
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_VOID_P 4' '#define ALIGNOF_VOID_P 4'",
         "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_VOID_P 4' '#define ALIGNOF_VOID_P 4'",
         "DEFAULT": "",
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
         "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
         "DEFAULT": "",
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_32]": " '#define ALIGNOF_DOUBLE 4'",
-        "DEFAULT": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define FLEXIBLE_ARRAY_MEMBER /**/'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define FLEXIBLE_ARRAY_MEMBER /**/'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define FLEXIBLE_ARRAY_MEMBER /**/'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define FLEXIBLE_ARRAY_MEMBER /**/'",
+            "DEFAULT": " '#define FLEXIBLE_ARRAY_MEMBER 1'",
+        }),
+        "DEFAULT": " '#define FLEXIBLE_ARRAY_MEMBER /**/'",
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": " '#define ALIGNOF_DOUBLE 8'",
-        "prelude//cpu/constraints:cpu[arm64]": " '#define ALIGNOF_DOUBLE 8'",
-        "prelude//cpu/constraints:cpu[riscv64]": " '#define ALIGNOF_DOUBLE 8'",
-        "prelude//cpu/constraints:cpu[x86_64]": " '#define ALIGNOF_DOUBLE 8'",
-        "DEFAULT": "",
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_PTHREAD_PRIO_INHERIT 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_PTHREAD_PRIO_INHERIT 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_PTHREAD_PRIO_INHERIT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_PTHREAD_PRIO_INHERIT 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_PTHREAD_PRIO_INHERIT 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_STDATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_STDATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_STDATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_STDATOMIC_PRIMITIVES 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_STDATOMIC_PRIMITIVES 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_INTEL_ATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_INTEL_ATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_INTEL_ATOMIC_PRIMITIVES 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_INTEL_ATOMIC_PRIMITIVES 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_INTEL_ATOMIC_PRIMITIVES 1'",
+    }) + select({
+        "prelude//os/constraints:os[netbsd]": select({
+            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_PTHREAD 1'",
+            "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_PTHREAD 1'",
+            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_PTHREAD 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_PTHREAD 1'",
+            "DEFAULT": "",
+        }),
+        "DEFAULT": " '#define HAVE_PTHREAD 1'",
     }) + " > $OUT",
     visibility = ["PUBLIC"],
 )

@@ -427,7 +427,7 @@ _cflags_compiler_debug = [
     "//third-party/meson/constraints:debug[false]": ["-DG_DISABLE_CAST_CHECKS"],
 })
 _deps = [
-    ":m",
+    "//third-party/meson/system:m",
     "//third-party/meson/glib:glib-dep-3",
     "//third-party/meson/glib:glib-dep-5",
     "//third-party/meson/glib:glib-dep-10",
@@ -783,7 +783,7 @@ _cflags_compiler_debug2 = [
     "//third-party/meson/constraints:debug[false]": ["-DG_DISABLE_CAST_CHECKS"],
 })
 _deps2 = [
-    ":m",
+    "//third-party/meson/system:m",
     "//third-party/meson/glib:glib-dep-3",
     "//third-party/meson/glib:glib-dep-5",
     "//third-party/meson/glib:glib-dep-10",
@@ -795,55 +795,6 @@ _deps2 = [
     ":pango-dep",
     ":pango-dep-3",
 ]
-
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("gobject-introspection-1.0") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.gobject-introspection-1.0 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "gobject-introspection-1.0",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("libthai") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.libthai = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "libthai",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("freetype") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.freetype = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "freetype",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("xft") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.xft = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "xft",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("sysprof-capture-4") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.sysprof-capture-4 = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "sysprof-capture-4",
-    visibility = ["PUBLIC"],
-)
 
 genrule(
     name = "config.h",
@@ -1178,7 +1129,7 @@ cxx_library(
     }),
     linker_flags = _ldflags,
     deps = [
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/glib:glib-dep-5",
         "//third-party/meson/glib:glib-dep-10",
@@ -1360,7 +1311,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":pango-1.0",
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/glib:glib-dep-5",
         "//third-party/meson/glib:glib-dep-10",
@@ -1406,7 +1357,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":pangoft2-1.0",
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/glib:glib-dep-5",
         "//third-party/meson/glib:glib-dep-10",
@@ -1436,7 +1387,7 @@ cxx_library(
     compiler_flags = _cflags_compiler_debug,
     linker_flags = _ldflags,
     deps = [
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/glib:glib-dep-5",
         "//third-party/meson/glib:glib-dep-10",
@@ -1460,7 +1411,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":pangocairo-1.0",
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/glib:glib-dep-5",
         "//third-party/meson/glib:glib-dep-10",
@@ -1489,7 +1440,7 @@ cxx_binary(
     compiler_flags = _cflags_compiler_debug2,
     linker_flags = ["-Wl,--allow-shlib-undefined"],
     deps = [
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/glib:glib-dep-5",
         "//third-party/meson/glib:glib-dep-10",

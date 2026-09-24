@@ -838,48 +838,6 @@ _headers3 = {
     "config.h": ":config.h",
 }
 
-# meson: find_library("m")
-cxx_library(
-    name = "m",
-    exported_linker_flags = [
-        "-lm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: find_library("iwasm")
-cxx_library(
-    name = "iwasm",
-    exported_linker_flags = [
-        "-liwasm",
-    ],
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("icu-uc") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.icu-uc = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "icu-uc",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency("chafa") — resolved by pkg-config
-# Empty stub: map it to a real target with `dependencies.chafa = "//some:target"`
-# in decay.toml, or edit it here.
-cxx_library(
-    name = "chafa",
-    visibility = ["PUBLIC"],
-)
-
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
-
 genrule(
     name = "hb-version.h",
     out = "hb-version.h",
@@ -998,8 +956,8 @@ cxx_library(
     compiler_flags = _cflags,
     linker_flags = ["-Bsymbolic-functions"],
     deps = [
-        ":threads",
-        ":m",
+        "//third-party/meson/system:threads",
+        "//third-party/meson/system:m",
         "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/graphite2:graphite2-dep",
@@ -1015,8 +973,8 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":harfbuzz-2",
-        ":threads",
-        ":m",
+        "//third-party/meson/system:threads",
+        "//third-party/meson/system:m",
         "//third-party/meson/freetype2:freetype2-dep",
         "//third-party/meson/glib:glib-dep-3",
         "//third-party/meson/graphite2:graphite2-dep",
@@ -1065,8 +1023,8 @@ cxx_library(
     linker_flags = ["-Bsymbolic-functions"],
     deps = [
         ":harfbuzz-2",
-        ":threads",
-        ":m",
+        "//third-party/meson/system:threads",
+        "//third-party/meson/system:m",
     ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -1087,7 +1045,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":harfbuzz-subset",
-        ":m",
+        "//third-party/meson/system:m",
     ],
     visibility = ["PUBLIC"],
 )
@@ -1120,7 +1078,7 @@ cxx_library(
     linker_flags = ["-Bsymbolic-functions"],
     deps = [
         ":harfbuzz-2",
-        ":m",
+        "//third-party/meson/system:m",
     ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -1165,7 +1123,7 @@ cxx_library(
     linker_flags = ["-Bsymbolic-functions"],
     deps = [
         ":harfbuzz-2",
-        ":m",
+        "//third-party/meson/system:m",
     ],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
@@ -1206,7 +1164,7 @@ cxx_library(
     linker_flags = ["-Bsymbolic-functions"],
     deps = [
         ":harfbuzz-2",
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/cairo:cairo-dep",
     ],
     preferred_linkage = "shared",
@@ -1221,7 +1179,7 @@ cxx_library(
     header_namespace = "",
     exported_deps = [
         ":harfbuzz-cairo",
-        ":m",
+        "//third-party/meson/system:m",
         "//third-party/meson/cairo:cairo-dep",
     ],
     visibility = ["PUBLIC"],

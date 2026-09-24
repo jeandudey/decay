@@ -146,14 +146,6 @@ _headers2 = {
     "config.h": ":config.h",
 }
 
-# meson: dependency('threads') — the platform's threading support
-cxx_library(
-    name = "threads",
-    exported_preprocessor_flags = ["-pthread"],
-    exported_linker_flags = ["-pthread"],
-    visibility = ["PUBLIC"],
-)
-
 genrule(
     name = "pcre2.h",
     out = "pcre2.h",
@@ -222,7 +214,7 @@ cxx_library(
         "-DPCRE2_CODE_UNIT_WIDTH=8",
     ],
     linker_flags = ["-Wl,--version-script,$(location :libpcre2-8.sym)"],
-    deps = [":threads"],
+    deps = ["//third-party/meson/system:threads"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
@@ -283,7 +275,7 @@ cxx_library(
         "-DPCRE2_CODE_UNIT_WIDTH=16",
     ],
     linker_flags = ["-Wl,--version-script,$(location :libpcre2-16.sym)"],
-    deps = [":threads"],
+    deps = ["//third-party/meson/system:threads"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
@@ -311,7 +303,7 @@ cxx_library(
         "-DPCRE2_CODE_UNIT_WIDTH=32",
     ],
     linker_flags = ["-Wl,--version-script,$(location :libpcre2-32.sym)"],
-    deps = [":threads"],
+    deps = ["//third-party/meson/system:threads"],
     preferred_linkage = "shared",
     visibility = ["PUBLIC"],
 )
