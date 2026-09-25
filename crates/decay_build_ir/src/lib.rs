@@ -276,6 +276,8 @@ pub struct Attrs {
     /// The `.in` file a [`Kind::ConfigHeader`] substitutes into, when it has
     /// one instead of being generated from scratch.
     pub template: Option<Source>,
+    /// Which of meson's template syntaxes `template` is written in.
+    pub template_format: TemplateFormat,
     /// Set on a shared library that carries an soname/compatibility version.
     pub version: Option<String>,
     /// The configurations in which the target's output gets installed.
@@ -284,6 +286,31 @@ pub struct Attrs {
     pub install_dir: Option<String>,
     /// Free-form key/value pairs a consumer may read back.
     pub variables: Variational<(String, String)>,
+}
+
+/// `configure_file(format:)`: the syntax a template substitutes in.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub enum TemplateFormat {
+    /// `@NAME@` and `#mesondefine NAME`.
+    #[default]
+    Meson,
+    /// `cmake`/`cmake@`: `@NAME@`, `${NAME}` (`cmake` only),
+    /// `#cmakedefine NAME ...` and `#cmakedefine01 NAME`, with the names the
+    /// template actually uses in each.
+    Cmake(CmakeTemplate),
+}
+
+/// The names a `format: 'cmake'`/`'cmake@'` template substitutes, by syntax.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct CmakeTemplate {
+    /// `@NAME@`.
+    pub at: std::collections::BTreeSet<String>,
+    /// `${NAME}`; always empty for `cmake@`.
+    pub brace: std::collections::BTreeSet<String>,
+    /// `#cmakedefine NAME ...`.
+    pub define: std::collections::BTreeSet<String>,
+    /// `#cmakedefine01 NAME`.
+    pub define01: std::collections::BTreeSet<String>,
 }
 
 /// An input file.
@@ -357,6 +384,10 @@ pub enum DefineValue {
     Number(i64),
     /// `#define NAME` when set, `/* #undef NAME */` when not.
     Flag,
+    /// Set to `false`: `/* #undef NAME */` like [`DefineValue::Undef`], but
+    /// a cmake-format template substitutes it as `0` where an unset name
+    /// substitutes nothing.
+    False,
     /// Present in no configuration: emitted as `#undef`.
     Undef,
 }

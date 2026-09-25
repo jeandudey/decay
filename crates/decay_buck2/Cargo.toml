@@ -8,3 +8,8 @@ decay_build_ir.workspace = true
 decay_meson_logic.workspace = true
 eyre.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+decay_meson_ast.workspace = true
+decay_meson_eval.workspace = true
+decay_meson_parse.workspace = true

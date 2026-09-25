@@ -279,6 +279,16 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   program to let the user know it hasn't been implemented, and also to keep a
   list here in known gaps.
 
+- **`configure_file()` template corners.** `format: 'cmake'`/`'cmake@'`
+  refuses what its `sed` rewrite does not reproduce: a `#cmakedefine`
+  trailing token that is itself a configuration variable (meson substitutes
+  it), a nested `${A${B}}`, and a template that is another target's output
+  (decay reads the template for the names it uses). The `meson` format still
+  differs from meson in three ways: an `@NAME@` no configuration sets stays
+  as is (meson writes nothing), a `false` substitutes as nothing (meson
+  writes `False`), and `#mesondefine` of a `false` writes
+  `/* #undef NAME */` (meson writes `#undef NAME`).
+
 - **Adding meson specific buck2 rules.** A config-header template
   (`#mesondefine`) is emitted as a `genrule` shelling out to `sed`, not a
   native buck2 rule — the emitted `BUCK` should read like a config-header

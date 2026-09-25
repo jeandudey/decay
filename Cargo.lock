@@ -182,7 +182,10 @@ name = "decay_buck2"
 version = "0.1.0"
 dependencies = [
  "decay_build_ir",
+ "decay_meson_ast",
+ "decay_meson_eval",
  "decay_meson_logic",
+ "decay_meson_parse",
  "eyre",
  "tracing",
 ]

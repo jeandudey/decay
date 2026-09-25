@@ -19,6 +19,7 @@ use {
         val::Value,
     },
     decay_build_ir::{
+        CmakeTemplate,
         CmdArg,
         Define,
         DefineValue,
@@ -29,6 +30,7 @@ use {
         Package,
         Source,
         TargetId,
+        TemplateFormat,
         Test, //
     },
     decay_meson_ast::{
@@ -45,6 +47,7 @@ use {
     },
     eyre::{
         OptionExt,
+        WrapErr,
         bail, //
     },
     std::{
@@ -902,12 +905,26 @@ impl<'a, S: Solver> Interp<'a, S> {
             return Ok(self.pure(Value::Obj(Obj::Target(id))));
         }
 
+        // `Some(at_only)` for `format: 'cmake'`/`'cmake@'`.
+        let cmake = match self.opt_string(args, "format")?.as_deref() {
+            None | Some("meson") => None,
+            Some("cmake") => Some(false),
+            Some("cmake@") => Some(true),
+            Some(other) => bail!(
+                "configure_file() `format:` must be 'meson', 'cmake' or 'cmake@', not '{other}'"
+            ),
+        };
+
         let dir = self.cur_dir().to_path_buf();
         let id = self.graph.add(&output, &dir, self.pc, Kind::ConfigHeader);
 
         let template = match args.get("input") {
             Some(v) => self.sources(v)?.variants().first().map(|v| v.value.clone()),
             None => None,
+        };
+        let template_text = match &template {
+            Some(Source::File(path)) => self.sources.read(&self.root.join(path)).ok(),
+            _ => None,
         };
 
         // A `copy: true` (or plain-text) template's own checked-in text can
@@ -939,21 +956,55 @@ impl<'a, S: Solver> Interp<'a, S> {
             None => Variational::empty(),
         };
 
-        // Meson substitutes every `#mesondefine` in a template, including a
-        // name which configuration_data() never set.  Such a name is an
-        // explicit `/* #undef NAME */`; without recording it here the backend
-        // has no sed edit to make and leaves an invalid directive in the
-        // generated header.  This especially matters when the only `.set()`
-        // was in a branch made unreachable by a pinned option.
-        if let Some(Source::File(path)) = &template
-            && let Ok(text) = self.sources.read(&self.root.join(path))
-        {
+        // Meson substitutes every `#mesondefine` (`#cmakedefine`) in a
+        // template, including a name which configuration_data() never set.
+        // Such a name is an explicit `/* #undef NAME */` (`#define NAME 0`
+        // for `#cmakedefine01`); without recording it here the backend has no
+        // sed edit to make and leaves an invalid directive in the generated
+        // header.  This especially matters when the only `.set()` was in a
+        // branch made unreachable by a pinned option.
+        let mut format = TemplateFormat::Meson;
+        if cmake.is_some() && template_text.is_none() {
+            bail!(
+                "configure_file() `{output}`: a cmake `format:` template must be a file in the \
+                 project, which decay reads for the names it substitutes"
+            );
+        }
+        if let Some(text) = &template_text {
             let known: BTreeSet<String> = defines
                 .variants()
                 .iter()
                 .map(|variant| variant.value.name.clone())
                 .collect();
-            for name in mesondefine_names(&text) {
+            let names = match cmake {
+                None => {
+                    if text.contains("#cmakedefine") {
+                        bail!(
+                            "configure_file() `{output}`: the template uses `#cmakedefine`, \
+                             which needs `format: 'cmake'` or `'cmake@'`"
+                        );
+                    }
+                    mesondefine_names(text)
+                }
+                Some(at_only) => {
+                    if text.contains("#mesondefine") {
+                        bail!(
+                            "configure_file() `{output}`: the template uses `#mesondefine` \
+                             under a cmake `format:`"
+                        );
+                    }
+                    let uses = cmake_template(text, at_only, &known)
+                        .wrap_err_with(|| format!("configure_file() `{output}`"))?;
+                    let names = [&uses.at, &uses.brace, &uses.define, &uses.define01]
+                        .into_iter()
+                        .flatten()
+                        .cloned()
+                        .collect();
+                    format = TemplateFormat::Cmake(uses);
+                    names
+                }
+            };
+            for name in names {
                 if !known.contains(&name) {
                     defines.push(Variant::new(
                         self.pc,
@@ -974,7 +1025,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         if output.ends_with(".pc")
             && let Some(Source::File(path)) = &template
         {
-            let variables = self.pc_variables(path, &defines);
+            let variables = self.pc_variables(path, &defines, &format);
             self.graph.provides.push(Package {
                 name: output.trim_end_matches(".pc").to_owned(),
                 target: None,
@@ -992,6 +1043,7 @@ impl<'a, S: Solver> Interp<'a, S> {
         target.attrs.outs = vec![output.to_string()];
         target.attrs.defines = defines;
         target.attrs.template = template;
+        target.attrs.template_format = format;
         target.attrs.sibling_headers = sibling_headers;
         target.attrs.install = install;
         target.attrs.install_dir = install_dir;
@@ -1007,12 +1059,19 @@ impl<'a, S: Solver> Interp<'a, S> {
         &mut self,
         path: &Path,
         defines: &Variational<decay_build_ir::Define>,
+        format: &TemplateFormat,
     ) -> Vec<(String, String)> {
         let Ok(mut text) = self.sources.read(&self.root.join(path)) else {
             return Vec::new();
         };
-        for (name, value) in single_valued(defines) {
+        let cmake = matches!(format, TemplateFormat::Cmake(_));
+        for (name, value) in single_valued(defines, cmake) {
             text = text.replace(&format!("@{name}@"), &value);
+            if let TemplateFormat::Cmake(uses) = format
+                && uses.brace.contains(&name)
+            {
+                text = text.replace(&format!("${{{name}}}"), &value);
+            }
         }
         parse_pc_variables(&text)
     }
@@ -1683,7 +1742,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                                 Entry::Int(v) => DefineValue::Number(*v),
                                 Entry::Ten(v) => DefineValue::Number(i64::from(*v)),
                                 Entry::Flag(true) => DefineValue::Flag,
-                                Entry::Flag(false) => DefineValue::Undef,
+                                Entry::Flag(false) => DefineValue::False,
                             };
                             out.push(Variant::new(
                                 cond,
@@ -1706,7 +1765,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                             Value::Str(s) => DefineValue::Raw(s.to_string()),
                             Value::Int(n) => DefineValue::Number(*n),
                             Value::Bool(true) => DefineValue::Flag,
-                            Value::Bool(false) => DefineValue::Undef,
+                            Value::Bool(false) => DefineValue::False,
                             other => bail!(
                                 "`configuration:` dict values must be str, int, or bool, found a {}",
                                 other.type_name()
@@ -2891,6 +2950,127 @@ fn mesondefine_names(text: &str) -> BTreeSet<String> {
         .collect()
 }
 
+/// The names a `format: 'cmake'`/`'cmake@'` template substitutes, found by
+/// meson's own rules (`do_conf_str_cmake`):
+///
+/// - a line whose first non-blank character is `#`, followed (after optional
+///   blanks) by `cmakedefine`, is a directive: split on whitespace, the
+///   second token is the name, and `cmakedefine01` anywhere on the line makes
+///   it `#cmakedefine01`. Meson splits the line minus its first character, so
+///   an indented directive reads as naming `cmakedefine` itself; that is
+///   refused rather than reproduced;
+/// - anywhere else, `@NAME@` with `NAME` in `[A-Za-z0-9_/.+-]`, and (unless
+///   `at_only`) `${NAME}`.
+///
+/// Meson also looks each token after a `#cmakedefine`'s name up as a variable
+/// of its own; the `sed` rewrite decay emits does not, so a token that names
+/// one of `known` is refused. So is a directive the rewrite could not match
+/// by name: a keyword other than exactly `cmakedefine`/`cmakedefine01`, or a
+/// name that is not a C identifier. A nested `${...${...}}` is refused too.
+fn cmake_template(
+    text: &str,
+    at_only: bool,
+    known: &BTreeSet<String>,
+) -> eyre::Result<CmakeTemplate> {
+    let valid = |name: &str| {
+        !name.is_empty()
+            && name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "_/.+-".contains(c))
+    };
+    let mut uses = CmakeTemplate::default();
+    for line in text.lines() {
+        if let Some(rest) = line.trim_start().strip_prefix('#')
+            && rest.trim_start().starts_with("cmakedefine")
+        {
+            if !line.starts_with('#') {
+                bail!(
+                    "indented `#cmakedefine` directive, which meson misreads: `{}`",
+                    line.trim()
+                );
+            }
+            let mut tokens = rest.split_whitespace();
+            let bool01 = match tokens.next() {
+                Some("cmakedefine") if !line.contains("cmakedefine01") => false,
+                Some("cmakedefine01") => true,
+                _ => bail!("unsupported `#cmakedefine` directive: `{}`", line.trim()),
+            };
+            let Some(name) = tokens.next() else {
+                bail!("`#cmakedefine` names no variable: `{}`", line.trim());
+            };
+            let mut chars = name.chars();
+            if !chars
+                .next()
+                .is_some_and(|c| c == '_' || c.is_ascii_alphabetic())
+                || !chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
+            {
+                bail!("`#cmakedefine` names `{name}`, which is not a C identifier");
+            }
+            if bool01 {
+                // Meson ignores whatever follows a `#cmakedefine01`'s name.
+                uses.define01.insert(name.to_owned());
+                continue;
+            }
+            if let Some(token) = tokens.clone().find(|t| known.contains(*t)) {
+                bail!(
+                    "`#cmakedefine {name}` names the configuration variable `{token}` as a \
+                     bare token, which decay does not substitute"
+                );
+            }
+            uses.define.insert(name.to_owned());
+            // The rest of the line is `@NAME@`/`${NAME}`-substituted like
+            // any other.
+            let rest: Vec<&str> = tokens.collect();
+            cmake_variables(&rest.join(" "), at_only, &valid, &mut uses)?;
+            continue;
+        }
+        cmake_variables(line, at_only, &valid, &mut uses)?;
+    }
+    Ok(uses)
+}
+
+/// The `@NAME@`/`${NAME}` references on one template line, scanned the way
+/// meson's `do_replacement_cmake` does: every `@` opens a candidate that the
+/// next `@` closes, and a candidate that is not a valid name is skipped
+/// without consuming its closing `@`.
+fn cmake_variables(
+    line: &str,
+    at_only: bool,
+    valid: &impl Fn(&str) -> bool,
+    uses: &mut CmakeTemplate,
+) -> eyre::Result<()> {
+    let bytes = line.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'@'
+            && let Some(len) = line[i + 1..].find('@')
+            && len > 0
+            && valid(&line[i + 1..i + 1 + len])
+        {
+            uses.at.insert(line[i + 1..i + 1 + len].to_owned());
+            i += len + 2;
+            continue;
+        }
+        if !at_only && line[i..].starts_with("${") {
+            let Some(len) = line[i + 2..].find('}') else {
+                bail!("incomplete variable `{}`", &line[i..]);
+            };
+            let name = &line[i + 2..i + 2 + len];
+            if name.contains("${") {
+                bail!("nested variable `{}` is not supported", &line[i..]);
+            }
+            if !valid(name) {
+                bail!("invalid variable `${{{name}}}`");
+            }
+            uses.brace.insert(name.to_owned());
+            i += len + 3;
+            continue;
+        }
+        i += 1;
+    }
+    Ok(())
+}
+
 /// Every `#define` whose value does not depend on the configuration, as the
 /// plain text it would substitute into a `.in` template — the same rule
 /// `decay_buck2` renders a template substitution with, so resolving one here
@@ -2898,8 +3078,12 @@ fn mesondefine_names(text: &str) -> BTreeSet<String> {
 ///
 /// A name with more than one variant genuinely depends on a configuration
 /// choice still open at import time, so there is no one answer to give; it is
-/// left out rather than guessed at.
-fn single_valued(defines: &Variational<decay_build_ir::Define>) -> Vec<(String, String)> {
+/// left out rather than guessed at. `cmake` substitutes a `false` as `0`, the
+/// way a `format: 'cmake'`/`'cmake@'` template does.
+fn single_valued(
+    defines: &Variational<decay_build_ir::Define>,
+    cmake: bool,
+) -> Vec<(String, String)> {
     use {decay_build_ir::DefineValue, std::collections::HashMap};
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
@@ -2913,10 +3097,13 @@ fn single_valued(defines: &Variational<decay_build_ir::Define>) -> Vec<(String, 
         .filter(|v| counts[v.value.name.as_str()] == 1)
         .map(|v| {
             let text = match &v.value.value {
-                DefineValue::Quoted(s) | DefineValue::Raw(s) => s.clone(),
+                // `set_quoted()`'s stored form.
+                DefineValue::Quoted(s) => format!("\"{}\"", s.replace('"', "\\\"")),
+                DefineValue::Raw(s) => s.clone(),
                 DefineValue::Number(n) => n.to_string(),
                 DefineValue::Flag => "1".to_owned(),
-                DefineValue::Undef => String::new(),
+                DefineValue::False if cmake => "0".to_owned(),
+                DefineValue::False | DefineValue::Undef => String::new(),
             };
             (v.value.name.clone(), text)
         })
