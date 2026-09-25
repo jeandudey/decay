@@ -847,6 +847,33 @@ impl<'a, S: Solver> Interp<'a, S> {
         let output = self
             .opt_string(args, "output")?
             .ok_or_eyre("configure_file() needs an `output:`")?;
+        // `@PLAINNAME@`/`@BASENAME@` in `output:` name the one `input:`
+        // (shared-mime-info's `output: '@BASENAME@'` for its `.pc.in`);
+        // meson refuses them with no input or more than one.
+        let output: Rc<str> = if output.contains("@PLAINNAME@") || output.contains("@BASENAME@") {
+            let inputs = match args.get("input") {
+                Some(v) => self.sources(v)?,
+                None => Variational::empty(),
+            };
+            let [input] = inputs.variants() else {
+                bail!(
+                    "configure_file() `output: '{output}'` needs exactly one `input:` to \
+                     substitute, found {}",
+                    inputs.variants().len()
+                );
+            };
+            let plain = self.source_plainname(&input.value);
+            let base = Path::new(&plain)
+                .file_stem()
+                .map_or_else(|| plain.clone(), |s| s.to_string_lossy().into_owned());
+            Rc::from(
+                output
+                    .replace("@PLAINNAME@", &plain)
+                    .replace("@BASENAME@", &base),
+            )
+        } else {
+            output
+        };
 
         // A `command:` makes this behave like `custom_target()`: an
         // arbitrary command produces the output, rather than a template or
@@ -1004,6 +1031,111 @@ impl<'a, S: Solver> Interp<'a, S> {
             unreachable!("find_program() always returns a Program")
         };
         Ok(program.target)
+    }
+
+    /// `i18n.merge_file()`: merge a template's translations back in with
+    /// `msgfmt`, the command meson's own `msgfmthelper` runs —
+    ///
+    ///   `GETTEXTDATADIRS=<data_dirs> msgfmt --<type> -d <po_dir>
+    ///    --template <input> -o <output> <args>`
+    ///
+    /// `po_dir:` is relative to this call's directory, as are `data_dirs:`
+    /// (where msgfmt finds the ITS rules an `xml` merge needs). msgfmt reads
+    /// `LINGUAS` and every catalog it names out of `po_dir` itself, so the
+    /// directory is handed over whole, like `gnome.compile_resources()`'s
+    /// `source_dir`.
+    pub(crate) fn fn_i18n_merge_file(
+        &mut self,
+        args: &CallArgs,
+    ) -> eyre::Result<Variational<Value>> {
+        if !args.pos.is_empty() {
+            bail!("i18n.merge_file() takes no positional arguments");
+        }
+        let output = self
+            .opt_string(args, "output")?
+            .ok_or_eyre("i18n.merge_file() needs an `output:`")?
+            .to_string();
+        let kind = self
+            .opt_string(args, "type")?
+            .map_or_else(|| "xml".to_owned(), |t| t.to_string());
+        if kind != "xml" && kind != "desktop" {
+            bail!("i18n.merge_file() `type:` must be 'xml' or 'desktop', not '{kind}'");
+        }
+        let install = self.flag(args, "install", Pc::FALSE)?;
+        let install_dir = self.opt_string(args, "install_dir")?.map(|v| v.to_string());
+        if !install.is_false() && install_dir.is_none() {
+            bail!(
+                "i18n.merge_file(): \"install_dir\" keyword argument must be set when \"install\" is true"
+            );
+        }
+
+        let dir_arg = |this: &mut Self, s: &str, what: &str| -> eyre::Result<PathBuf> {
+            let path = PathBuf::from(this.resolve(s)?);
+            if !this.sources.exists(&this.root.join(&path)) {
+                bail!(
+                    "i18n.merge_file() `{what}:` names `{s}`, which is not a directory in the project"
+                );
+            }
+            Ok(path)
+        };
+        let po_dir = self
+            .opt_string(args, "po_dir")?
+            .ok_or_eyre("i18n.merge_file() needs a `po_dir:`")?;
+        let po_dir = dir_arg(self, &po_dir, "po_dir")?;
+        let mut data_dirs = Vec::new();
+        if let Some(v) = args.get("data_dirs") {
+            for s in self.strings(v)?.into_variants() {
+                if s.cond != self.pc {
+                    bail!("i18n.merge_file() `data_dirs:` differs between configurations");
+                }
+                data_dirs.push(dir_arg(self, &s.value, "data_dirs")?);
+            }
+        }
+
+        let msgfmt = self.tool("msgfmt")?;
+        let dir = self.cur_dir().to_path_buf();
+        let id = self.graph.add(&output, &dir, self.pc, Kind::Custom);
+
+        let mut srcs = Variational::empty();
+        let input = args
+            .get("input")
+            .ok_or_eyre("i18n.merge_file() needs an `input:`")?;
+        srcs.extend(self.sources(input)?);
+
+        let pc = self.pc;
+        let mut cmd = Variational::empty();
+        if !data_dirs.is_empty() {
+            cmd.push(Variant::new(
+                pc,
+                CmdArg::Env("GETTEXTDATADIRS".to_owned(), data_dirs),
+            ));
+        }
+        for arg in [
+            CmdArg::Target(msgfmt),
+            CmdArg::Literal(format!("--{kind}")),
+            CmdArg::Literal("-d".to_owned()),
+            CmdArg::File(po_dir),
+            CmdArg::Literal("--template".to_owned()),
+            CmdArg::Inputs,
+            CmdArg::Literal("-o".to_owned()),
+            CmdArg::Outputs,
+        ] {
+            cmd.push(Variant::new(pc, arg));
+        }
+        if let Some(v) = args.get("args") {
+            for s in self.strings(v)?.into_variants() {
+                cmd.push(Variant::new(s.cond, CmdArg::Literal(s.value.to_string())));
+            }
+        }
+
+        let target = self.graph.target_mut(id);
+        target.attrs.srcs = srcs;
+        target.attrs.outs = vec![output];
+        target.attrs.cmd = cmd;
+        target.attrs.install = install;
+        target.attrs.install_dir = install_dir;
+
+        Ok(self.pure(Value::Obj(Obj::Target(id))))
     }
 
     /// `gnome.compile_resources()`: a `glib-compile-resources` genrule.
@@ -1816,72 +1948,122 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// `dependency(name)`, and `dependency(name1, name2, ...)` /
     /// `dependency([name1, name2, ...], ...)` — meson tries each candidate
     /// in turn and uses the first one found (pango's own
-    /// `dependency(['freetype2', 'freetype'], ...)`). Which one that is can
-    /// differ per configuration, so every candidate is resolved in full —
-    /// each as `required: false`, since only the combined chain has to
-    /// satisfy the call's own `required:`, not any single candidate — and
-    /// the result is one Dep-object variant per candidate, gated on it
-    /// being found and no earlier one being found already, the same shape
-    /// an `if`/`elif` chain's branches take. `required:` is applied once,
-    /// against the merged "found by any candidate" condition, afterward.
+    /// `dependency(['freetype2', 'freetype'], ...)`).
+    ///
+    /// The candidate list is itself variational: a name can differ by
+    /// configuration (gdk-pixbuf's `dependency(is_msvc_like ? 'png' :
+    /// 'libpng')`), and a list entry can be present in only some. Flattened,
+    /// candidate `i` is named where `p_i` holds, in the order meson would try
+    /// it there; flattening keeps each configuration's own order, so a
+    /// candidate only ever competes with the ones before it that are named in
+    /// the same configuration. Each is resolved under `p_i` alone, as
+    /// `required: false`, since only the chain as a whole answers the call's
+    /// own `required:`. With `f_i` its `found`, candidate `i` is the result
+    /// where
+    ///
+    ///   `p_i ∧ f_i ∧ ⋀_{j<i} ¬(p_j ∧ f_j)`
+    ///
+    /// — the same shape an `if`/`elif` chain's branches take — and where no
+    /// named candidate is found, the result is the not-found stub of the last
+    /// candidate named there, as meson returns. `required:` is applied once,
+    /// against `⋁_i (p_i ∧ f_i)`.
     fn fn_dependency(&mut self, args: &CallArgs) -> eyre::Result<Variational<Value>> {
-        let mut names: Vec<Rc<str>> = Vec::new();
+        let mut names: Vec<Variant<Rc<str>>> = Vec::new();
         for arg in &args.pos {
-            for v in self.flat(arg) {
-                let s = string_arg(&v.value).ok_or_else(|| {
-                    eyre::eyre!(
-                        "dependency() name must be a string, found a {}",
-                        v.value.type_name()
-                    )
-                })?;
-                names.push(s);
-            }
+            let strings = self
+                .strings(arg)
+                .map_err(|e| eyre::eyre!("dependency() name: {e}"))?;
+            names.extend(strings.into_variants().filter(|v| !v.cond.is_false()));
         }
-        let Some(first) = names.first().cloned() else {
-            bail!("dependency() needs a name");
-        };
         let required = self.required(args)?;
-        if names.len() == 1 {
-            return self.dependency_resolve(first, args, required);
+
+        // Somewhere no name at all is given: meson refuses the call there.
+        let mut named = Pc::FALSE;
+        for n in &names {
+            named = self.logic.or(named, n.cond);
+        }
+        let unnamed = {
+            let not_named = self.logic.not(named);
+            self.logic.and(self.pc, not_named)
+        };
+        if self.logic.is_sat(unnamed) {
+            bail!("dependency() needs a name");
         }
 
-        let quoted: Vec<String> = names.iter().map(|n| format!("'{n}'")).collect();
+        if let [only] = names.as_slice()
+            && only.cond == self.pc
+        {
+            let name = only.value.clone();
+            return self.dependency_resolve(name, args, required);
+        }
+
+        let mut distinct: Vec<&str> = Vec::new();
+        for n in &names {
+            if !distinct.contains(&&*n.value) {
+                distinct.push(&n.value);
+            }
+        }
+        let quoted: Vec<String> = distinct.iter().map(|n| format!("'{n}'")).collect();
         let call = format!("dependency({})", quoted.join(", "));
+        let first = names[0].value.clone();
+
+        // `(p_i ∧ f_i, value)` per candidate, in order.
         let mut resolved = Vec::with_capacity(names.len());
-        for name in names {
-            let value = self.dependency_resolve(name.clone(), args, Pc::FALSE)?;
+        for Variant { cond, value: name } in names.iter().cloned() {
+            let value = self.with_pc(cond, |this| {
+                this.dependency_resolve(name.clone(), args, Pc::FALSE)
+            })?;
             let [variant] = value.variants() else {
                 bail!("dependency('{name}') resolved to more than one value");
             };
             let Value::Obj(Obj::Dep(d)) = &variant.value else {
                 bail!("dependency('{name}') did not resolve to a dependency");
             };
-            resolved.push((d.found, variant.value.clone()));
+            // `remaining` below already lies inside the current path, so a
+            // candidate named everywhere on it needs no `p_i` conjunct —
+            // leaving it off keeps the formula the same one it always was.
+            let hit = if cond == self.pc {
+                d.found
+            } else {
+                self.logic.and(cond, d.found)
+            };
+            resolved.push((cond, hit, variant.value.clone()));
         }
 
-        let mut merged_found = Pc::FALSE;
-        for (found, _) in &resolved {
-            merged_found = self.logic.or(merged_found, *found);
+        let mut any_found = Pc::FALSE;
+        for (_, hit, _) in &resolved {
+            any_found = self.logic.or(any_found, *hit);
         }
-        self.require_found(&call, &first, required, merged_found)?;
+        self.require_found(&call, &first, required, any_found)?;
 
         let mut out = Variational::empty();
+        // Configurations where no candidate tried so far was found.
         let mut remaining = self.pc;
-        let mut last = None;
-        for (found, value) in resolved {
-            let cond = self.logic.and(remaining, found);
+        for (_, hit, value) in &resolved {
+            let cond = self.logic.and(remaining, *hit);
             if !cond.is_false() {
                 out.push(Variant::new(cond, value.clone()));
             }
-            let not_found = self.logic.not(found);
-            remaining = self.logic.and(remaining, not_found);
-            last = Some(value);
+            let missed = self.logic.not(*hit);
+            remaining = self.logic.and(remaining, missed);
         }
-        if !remaining.is_false() {
-            // Nobody found: reuse the last candidate's own not-found stub,
-            // the same one a single `dependency(lastName)` call would have
-            // produced on its own.
-            out.push(Variant::new(remaining, last.expect("names is non-empty")));
+        // Nobody found: each configuration gets the not-found stub of the
+        // last candidate named in it, the one a meson run there would have
+        // tried last. Walk backwards, handing each candidate the
+        // configurations no later one is named in.
+        let mut later = Pc::FALSE;
+        for (named, _, value) in resolved.iter().rev() {
+            let not_later = self.logic.not(later);
+            let last_here = self.logic.and(*named, not_later);
+            let cond = if last_here == self.pc {
+                remaining
+            } else {
+                self.logic.and(remaining, last_here)
+            };
+            if !cond.is_false() {
+                out.push(Variant::new(cond, value.clone()));
+            }
+            later = self.logic.or(later, *named);
         }
         Ok(out)
     }

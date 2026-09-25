@@ -312,6 +312,10 @@ pub enum CmdArg {
     /// space (`--sourcedir=`/a source-tree path, from `'--sourcedir=' +
     /// meson.current_source_dir()`).
     PrefixedFile(String, PathBuf),
+    /// An environment assignment for the command that follows, set to a
+    /// `:`-separated list of project paths (`GETTEXTDATADIRS=<dir>:<dir>`,
+    /// what meson's own `msgfmthelper` exports for `i18n.merge_file()`).
+    Env(String, Vec<PathBuf>),
     /// Meson's `@INPUT@`, `@OUTPUT@`, `@OUTDIR@`.
     Inputs,
     Outputs,

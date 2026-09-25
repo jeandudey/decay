@@ -115,7 +115,7 @@ const FUNC_ATTRIBUTES: &[&str] = &[
 /// compiler takes; the importer cannot compile-test a flag, so it gates the
 /// few known-divergent ones on the `compiler` constraint and passes the rest
 /// through. Extend as real projects turn up more; a portable `-W…` needs no
-/// entry.
+/// entry. `-Werror=…` names the same warning and is looked up as its `-W…`.
 const GCC_ONLY_WARNING_ARGS: &[&str] = &[
     "-Wduplicated-branches",
     "-Wduplicated-cond",
@@ -127,6 +127,7 @@ const CLANG_ONLY_WARNING_ARGS: &[&str] = &[
     "-Wnewline-eof",
     "-Wshadow-all",
     "-Wshorten-64-to-32",
+    "-Wtautological-unsigned-zero-compare",
     "-Wunreachable-code-aggressive",
 ];
 
@@ -608,6 +609,7 @@ impl<'a, S: Solver> Interp<'a, S> {
                 let out = relative_path(&to_path(&a)?, &to_path(&b)?);
                 Ok(self.pure(Value::from(out)))
             }
+            (Obj::Module(Module::I18n), "merge_file") => self.fn_i18n_merge_file(args),
             (Obj::Module(Module::I18n), "gettext") => {
                 // A ninja build compiles `.mo` files only at `meson install`
                 // time, not as part of the normal build; there is nothing here
@@ -1601,9 +1603,13 @@ impl<'a, S: Solver> Interp<'a, S> {
     /// `-f…`) is taken as accepted — the generated build's real
     /// toolchain has the final say either way. See [`GCC_ONLY_WARNING_ARGS`].
     fn arg_supported_cond(&mut self, lang: Lang, flag: &str, base: Pc) -> eyre::Result<Pc> {
-        let restrict = if GCC_ONLY_WARNING_ARGS.contains(&flag) {
+        let warning = match flag.strip_prefix("-Werror=") {
+            Some(name) => format!("-W{name}"),
+            None => flag.to_owned(),
+        };
+        let restrict = if GCC_ONLY_WARNING_ARGS.contains(&warning.as_str()) {
             Some(self.compiler_is(lang, &["gcc"])?)
-        } else if CLANG_ONLY_WARNING_ARGS.contains(&flag) {
+        } else if CLANG_ONLY_WARNING_ARGS.contains(&warning.as_str()) {
             Some(self.compiler_is(lang, &["clang"])?)
         } else {
             None

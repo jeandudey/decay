@@ -338,24 +338,43 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   behind, unguarded under the `-Werror=implicit` pango's own meson.build
   always turns on; fixed upstream after 1.56.4, first released in 1.58.2.
   `libthai`/`xft` stay off since nothing here provides either, and
-  `introspection`/docs/tests/examples are out of scope).
-  Still needed, in roughly the order a next attempt should reach for them:
-  - `gdk-pixbuf-2.0` — blocked today on the `dependency()`
-    configuration-varying-name rewrite (see "`declare_dependency()` provide
-    heuristic is narrow" above); GTK4 also wants at least one of its loader
-    backends (`libpng`/`libtiff-4`/`libjpeg`).
-  - `xkbcommon` — required whenever the Wayland backend is enabled.
-  - The remaining X11 extension libraries GTK4's X11 backend links against
-    directly: `xrandr`, `xrender`, `xi`, `xcursor`, `xdamage`, `xfixes`,
-    `xinerama` — same shape as the already-imported `libxext`/`xorgproto`,
-    likely each its own small wrapdb or system entry.
-  - `libdrm` (Linux only) and, further out, the optional pieces GTK4 can
-    build without (`gobject-introspection`, `iso-codes` — already blocked
-    above on `subproject().get_variable()` of a non-decay-imported project,
-    `vulkan`, `wayland-client`/`wayland-protocols`/`wayland-egl`,
-    `cloudproviders`, `sysprof`, `tracker-sparql`, `accesskit`) — not needed
-    for a first GTK4 `buck2 build`, since every one of those is
-    `required: false` in gtk's own `meson.build`.
+  `introspection`/docs/tests/examples are out of scope), `shared-mime-info`
+  (the translated MIME database and `update-mime-database`), `gdk-pixbuf`
+  (png and gif loaders built in, GIO MIME sniffing against
+  `shared-mime-info`; jpeg/tiff wait on the two libraries below).
+  Still needed, hardest first. Hard-required regardless of options:
+  - `libtiff-4` and `libjpeg` — gtk's own `meson.build` requires both
+    directly, alongside the already-imported `libpng`, not as optional
+    loader backends; gtk also asks gdk-pixbuf for `jpeg=enabled`. `libtiff`
+    brings its own codec graph (jpeg, zlib, lzma, zstd, deflate, webp);
+    `libjpeg-turbo` has per-arch SIMD assembly, the same per-arch
+    source-list shape as libffi.
+  - The X11 libraries the X11 backend links directly (`x11-backend=true`
+    by default; a Linux build needs it or Wayland): `xrandr`, `xrender`,
+    `xi`, `xcursor`, `xdamage`, `xfixes`, `xinerama` — same shape as the
+    already-imported `libxext`/`xorgproto`. `x11` itself is a system entry
+    today; importing it for real means `libX11` → `libxcb` → `xcb-proto`,
+    `libXau`, `libXdmcp`, `xtrans`.
+  - `libdrm` (Linux only) — gtk only reads `drm_fourcc.h` through
+    `partial_dependency(includes: true)`, so headers are enough.
+  - Build tools: `glib-compile-resources` always, `gdbus-codegen` for the
+    AT-SPI backend.
+
+  On by default but can be switched off for a first `buck2 build`, hardest
+  first:
+  - `media-gstreamer=enabled` — `gstreamer`, `gst-plugins-base` (gl,
+    allocators), `gst-plugins-bad` (play).
+  - `vulkan=enabled` — `vulkan` headers/loader plus `glslc` (shaderc) as a
+    build tool.
+  - `wayland-backend=true` — `wayland` (`wayland-client`, `wayland-egl`,
+    `wayland-scanner`, which needs expat), `wayland-protocols` (data only),
+    and `xkbcommon` (bison at build time, xkeyboard-config data paths).
+  - `introspection` and `print-cups` default to `auto`; set both disabled.
+
+  Optional and off by default: `iso-codes` (also blocked above on
+  `subproject().get_variable()` of a non-decay-imported project),
+  `cloudproviders`, `sysprof`, `tracker-sparql`, `colord`, `accesskit`,
+  `cpdb`.
 
 - **Pretty print errors.** Use annotate-snippets crate from rust-lang for this
   current errors are crap.

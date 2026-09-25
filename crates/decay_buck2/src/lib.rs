@@ -592,6 +592,11 @@ fn referenced_files(graph: &Graph) -> (Vec<String>, Vec<String>) {
                 CmdArg::File(path) | CmdArg::PrefixedFile(_, path) => {
                     classify(graph, path, &mut origin, &mut wrapdb);
                 }
+                CmdArg::Env(_, paths) => {
+                    for path in paths {
+                        classify(graph, path, &mut origin, &mut wrapdb);
+                    }
+                }
                 _ => {}
             }
         }
@@ -2113,6 +2118,10 @@ fn command<S: Solver>(
             }
             CmdArg::File(path) => file_arg(graph, path),
             CmdArg::PrefixedFile(prefix, path) => format!("{prefix}{}", file_arg(graph, path)),
+            CmdArg::Env(name, paths) => {
+                let paths: Vec<String> = paths.iter().map(|p| file_arg(graph, p)).collect();
+                format!("{name}={}", paths.join(":"))
+            }
             CmdArg::Inputs => inputs.join(" "),
             // `$OUT` is the single output file when the genrule declares one,
             // but the output *directory* once it declares more than one —

@@ -43,6 +43,9 @@ nm = "//third-party/tools:nm"
 cargo = "//third-party/tools:cargo"
 cp = "//third-party/tools:cp"
 gperf = "//third-party/tools:gperf"
+msgfmt = "//third-party/tools:msgfmt"
+# libxml2 is imported below and builds its own xmllint.
+xmllint = "//third-party/meson/libxml2:xmllint"
 # glib-compile-resources/glib-mkenums/glib-genmarshal are NOT listed here:
 # glib's own `gobject/meson.build`/`gio/meson.build` build all three from
 # its own `.in` templates and `meson.override_find_program()`s them, so a
@@ -136,23 +139,6 @@ rev = "4e2578450809c2099400cf85caf18eafcd7100aa" # Tag 1.10.8
 depends = ["glib"]
 options = { sse2 = true, gcc_vector = true, arm_neon = true, debug = false, gobject_types = true, gtk_doc = false, tests = false }
 
-# TODO: Fails with:
-#   Error: Failed to import `shared-mime-info`
-#
-#   Caused by:
-#      0: Failed to execute `shared-mime-info`
-#      1: in /meson.build
-#      2: in `subdir()` at /meson.build:50:0
-#      3: in data/meson.build
-#      4: in `.merge_file()` at data/meson.build:6:27
-#      5: module `I18n` has no method `merge_file`
-#
-#   Location:
-#       crates/decay_meson_eval/src/methods.rs:337:36
-#[[project]]
-#repo = "https://gitlab.freedesktop.org/xdg/shared-mime-info"
-#tag = "2.5.1"
-
 [[project]]
 repo = "https://gitlab.freedesktop.org/xorg/proto/xorgproto"
 tag = "xorgproto-2025.1"
@@ -202,37 +188,27 @@ options = { bsymbolic_functions = true, file_monitor_backend = "auto", glib_asse
 #repo = "https://gitlab.gnome.org/GNOME/glycin"
 #rev = "62c5096eaac2c92dab84c2eb896936d8da3dd9c1" # Tag 2.1.5
 
-# TODO: Fails with:
-#
-#   Error: Failed to import `gdk-pixbuf`
-#
-#   Caused by:
-#      0: Failed to execute `gdk-pixbuf`
-#      1: in /meson.build
-#      2: in `dependency()` at /meson.build:292:12
-#      3: expected a single string, but the value differs between configurations (2 variants)
-#
-#   Location:
-#       crates/decay_meson_eval/src/lib.rs:1236:18
-#
-# `dependency(is_msvc_like ? 'png' : 'libpng', required: false)` — the name
-# was configuration-dependent while `compiler` was left open across
-# gcc/clang/msvc. decay no longer supports msvc, so this may now pass; untried.
-# A name that still varies hits `fn_dependency`
-# (decay_meson_eval/src/builtins.rs), which assumes a single fixed name
-# throughout: one `External::PkgConfig` target, one `Packages` lookup.
-# Supporting that needs `fn_dependency` to loop over the name's variants and produce a
-# `Variational<Value>` of `Obj::Dep`s, each under its own condition — a real
-# rewrite of that function's threading model, not a narrow fix. (Got here via
-# two real, kept fixes: `dependency()`'s cross-project resolutions now report
-# `type_name() == 'internal'` matching meson's own distinction — see "Wrap
-# support" above; and `subproject(name).get_variable(key)` now answers from a
-# sibling project's own settled top-level variables, which is what got past
-# the `gmodule-no-export-2.0` blocker this TODO used to describe.)
-#[[project]]
-#repo = "https://gitlab.gnome.org/GNOME/gdk-pixbuf"
-#rev = "0bd66153abb6bd548febb82337db79cbefe694b0" # Tag 2.44.8
-#depends = ["glib"]
+# The freedesktop MIME database: `freedesktop.org.xml` with every
+# translation merged in by msgfmt, `update-mime-database` to compile it, and
+# the `shared-mime-info.pc` gdk-pixbuf's GIO sniffing asks for. The tests
+# need a separate xdgmime checkout; `update-mimedb` only runs at install.
+[[project]]
+repo = "https://gitlab.freedesktop.org/xdg/shared-mime-info"
+tag = "2.5.1"
+depends = ["glib", "libxml2"]
+options = { update-mimedb = false, build-tools = true, build-translations = false, build-tests = false }
+
+# gdk-pixbuf with its PNG loader (against the libpng imported below) and its
+# GIF loader, both built into the library itself (`builtin_loaders = all`,
+# as gtk's own `dependency()` asks for).
+# jpeg/tiff stay off until libjpeg-turbo/libtiff are imported; glycin is
+# Rust and blocked above. `gio_sniffing` detects formats through GIO's
+# MIME database, against the shared-mime-info imported above.
+[[project]]
+repo = "https://gitlab.gnome.org/GNOME/gdk-pixbuf"
+rev = "0bd66153abb6bd548febb82337db79cbefe694b0" # Tag 2.44.8
+depends = ["glib", "libpng", "shared-mime-info"]
+options = { png = "enabled", jpeg = "disabled", tiff = "disabled", gif = "enabled", others = "disabled", glycin = "disabled", android = "disabled", builtin_loaders = ["all"], gtk_doc = false, documentation = false, introspection = "disabled", man = false, tests = false, installed_tests = false, gio_sniffing = true, thumbnailer = "disabled", relocatable = false }
 
 # TODO: Fails with:
 #   Error: Failed to import `gtk`

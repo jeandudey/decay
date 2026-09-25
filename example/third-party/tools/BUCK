@@ -22,3 +22,9 @@ sh_binary(
     main = "gperf.sh",
     visibility = ["PUBLIC"],
 )
+
+sh_binary(
+    name = "msgfmt",
+    main = "msgfmt.sh",
+    visibility = ["PUBLIC"],
+)

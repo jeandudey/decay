@@ -23,4 +23,4 @@
     target:toolchains//...->prelude//platforms:default
 
 [build]
-  execution_platforms = prelude//platforms:default
+  execution_platforms = root//platforms:exec
