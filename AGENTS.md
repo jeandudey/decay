@@ -320,8 +320,8 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   read either.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay — currently exercises 15 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `bzip2`, `libpng`, `google-brotli`, `pcre2`,
+  smoke test for decay — currently exercises 16 of wrapdb's ~250+ projects in
+  `example/decay.toml` (`zlib`, `bzip2`, `libpng`, `libtiff`, `google-brotli`, `pcre2`,
   `libxext`, `libffi`, `fribidi`, `graphite2`, `pixman`, `cairo`, `freetype2`,
   `harfbuzz`, `fontconfig`, `pango`).
 
@@ -351,14 +351,15 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `introspection`/docs/tests/examples are out of scope), `shared-mime-info`
   (the translated MIME database and `update-mime-database`), `gdk-pixbuf`
   (png and gif loaders built in, GIO MIME sniffing against
-  `shared-mime-info`; jpeg/tiff wait on the two libraries below).
+  `shared-mime-info`; jpeg waits on libjpeg below), `libtiff` (zlib-backed
+  codecs only: jpeg waits on libjpeg below, and nothing here provides jbig,
+  lerc, lzma, webp or zstd).
   Still needed, hardest first. Hard-required regardless of options:
-  - `libtiff-4` and `libjpeg` — gtk's own `meson.build` requires both
-    directly, alongside the already-imported `libpng`, not as optional
-    loader backends; gtk also asks gdk-pixbuf for `jpeg=enabled`. `libtiff`
-    brings its own codec graph (jpeg, zlib, lzma, zstd, deflate, webp);
-    `libjpeg-turbo` has per-arch SIMD assembly, the same per-arch
-    source-list shape as libffi.
+  - `libjpeg` — gtk's own `meson.build` requires it directly, alongside the
+    already-imported `libpng` and `libtiff`, not as an optional loader
+    backend; gtk also asks gdk-pixbuf for `jpeg=enabled`. `libjpeg-turbo`
+    has per-arch SIMD assembly, the same per-arch source-list shape as
+    libffi.
   - The X11 libraries the X11 backend links directly (`x11-backend=true`
     by default; a Linux build needs it or Wayland): `xrandr`, `xrender`,
     `xi`, `xcursor`, `xdamage`, `xfixes`, `xinerama` — same shape as the

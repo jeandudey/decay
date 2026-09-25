@@ -320,6 +320,14 @@ wrap = "libpng"
 depends = ["zlib"]
 options = { tests = false }
 
+# gtk requires `libtiff-4` directly. Only the zlib-backed codecs (Deflate,
+# PixarLog) are on: jpeg waits on libjpeg-turbo, and nothing here provides
+# jbig, lerc, lzma, webp or zstd.
+[[project]]
+wrap = "libtiff"
+depends = ["zlib"]
+options = { zlib = "enabled", jpeg = "disabled", jbig = "disabled", lerc = "disabled", lzma = "disabled", webp = "disabled", zstd = "disabled" }
+
 [[project]]
 wrap = "pcre2"
 options = { grep = false, test = false, jit = "auto", jit_sealloc = "auto" }
