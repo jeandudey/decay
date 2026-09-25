@@ -461,7 +461,7 @@ mod tests {
         fs::write(root.join("packagefiles/zlib/meson.build"), "project('z')\n").unwrap();
         fs::write(
             root.join("zlib.wrap"),
-            "[wrap-file]\nsource_url = https://example.test/zlib.tar.gz\nsource_filename = zlib.tar.gz\nsource_hash = deadbeef\npatch_directory = packagefiles/zlib\n",
+            "[wrap-file]\nsource_url = https://example.test/zlib.tar.gz\nsource_filename = zlib.tar.gz\nsource_hash = deadbeef\npatch_directory = zlib\n",
         )
         .unwrap();
 
