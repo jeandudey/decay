@@ -1017,17 +1017,50 @@ impl<'a, S: Solver> Interp<'a, S> {
         let key = format!("probe:{}:{name}:{what}", lang.as_str());
         let description = format!("`{what}` is available to the {} compiler", lang.as_str());
         if let Some(answer) = self.oracle.probe(name, what) {
-            return self.resolve_probe(Some(answer), &key, description);
+            let found = self.resolve_probe(Some(answer), &key, description.clone())?;
+            if name != "has_function" || self.oracle.probe_configured(name, what) {
+                return Ok(found);
+            }
+            // Meson falls back to a compiler builtin when the function does
+            // not link: `alloca`, or a `__builtin_*` name no libc exports.
+            // A call decay cannot replay keeps the libc answer alone.
+            let missing = self.logic.not(found);
+            let missing = self.logic.and(self.pc, missing);
+            if !self.logic.is_sat(missing) {
+                return Ok(found);
+            }
+            let Some(regions) = self.compile_probes(name, args) else {
+                return Ok(found);
+            };
+            let builtin = self.built_probe_cond(regions, &key, &description)?;
+            return Ok(self.logic.or(found, builtin));
         }
-        let Some(regions) = self.compile_probes(name, args) else {
+        // Only the builtin half of `has_function` is built with zig; the
+        // libc half is the oracle's to answer.
+        let regions = match name {
+            "has_function" => None,
+            _ => self.compile_probes(name, args),
+        };
+        let Some(regions) = regions else {
             debug!("`{key}` cannot be rebuilt with zig; left open");
             return Ok(self.probe(&key, description));
         };
+        self.built_probe_cond(regions, &key, &description)
+    }
+
+    /// The condition a probe built with zig holds under: the OR of its
+    /// answer in each region its inputs are constant in.
+    fn built_probe_cond(
+        &mut self,
+        regions: Vec<(Pc, CompileProbe)>,
+        key: &str,
+        description: &str,
+    ) -> eyre::Result<Pc> {
         let single = regions.len() == 1;
         let mut cond = Pc::from_bool(false);
         for (region, probe) in regions {
             let answer = self.oracle.compile_probe(&probe);
-            let holds = self.resolve_probe(answer, &key, description.clone())?;
+            let holds = self.resolve_probe(answer, key, description.to_owned())?;
             let here = if single {
                 holds
             } else {
@@ -1063,7 +1096,13 @@ impl<'a, S: Solver> Interp<'a, S> {
         if !two_args
             && !matches!(
                 name,
-                "has_header" | "has_type" | "compiles" | "links" | "sizeof" | "alignment"
+                "has_header"
+                    | "has_type"
+                    | "has_function"
+                    | "compiles"
+                    | "links"
+                    | "sizeof"
+                    | "alignment"
             )
         {
             return None;
@@ -1143,6 +1182,9 @@ impl<'a, S: Solver> Interp<'a, S> {
                 }
                 ("compiles", _) => CompileProbeKind::Compiles { prefix, code: arg0 },
                 ("links", _) => CompileProbeKind::Links { code: arg0 },
+                ("has_function", _) if is_c_identifier(&arg0) => {
+                    CompileProbeKind::BuiltinFunction { name: arg0, prefix }
+                }
                 ("sizeof", _) => CompileProbeKind::Sizeof { name: arg0, prefix },
                 ("alignment", _) => CompileProbeKind::Alignment { name: arg0, prefix },
                 _ => return None,

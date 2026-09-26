@@ -460,6 +460,10 @@ impl Oracle for ConfigOracle<'_> {
         })
     }
 
+    fn probe_configured(&self, name: &str, what: &str) -> bool {
+        self.config.probes.contains_key(&format!("{name}:{what}"))
+    }
+
     fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
         self.compile_probe_answer(probe)
     }

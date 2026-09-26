@@ -366,6 +366,92 @@ fn eval_with(name: &str, oracle: &dyn Oracle, build: &str) -> (Graph, Logic<Z3So
     r.unwrap()
 }
 
+/// libc exports `memcpy` only; the compiler has `__builtin_ctzl` and
+/// `__builtin_alloca`. `decay.toml` settles `alloca` absent.
+#[derive(Default)]
+struct Functions {
+    asked: RefCell<Vec<CompileProbe>>,
+}
+
+impl Oracle for Functions {
+    fn option(&self, _name: &str) -> Option<Pinned> {
+        None
+    }
+
+    fn machine(&self, _machine: Machine, _property: &str) -> Option<String> {
+        None
+    }
+
+    fn systems(&self) -> Vec<String> {
+        ["linux", "freebsd"].map(str::to_owned).to_vec()
+    }
+
+    fn probe(&self, name: &str, what: &str) -> Option<Probe> {
+        (name == "has_function").then(|| Probe::Fixed(what == "memcpy"))
+    }
+
+    fn probe_configured(&self, name: &str, what: &str) -> bool {
+        name == "has_function" && what == "alloca"
+    }
+
+    fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
+        self.asked.borrow_mut().push(probe.clone());
+        let snippet = probe.snippet();
+        Some(Probe::Fixed(
+            snippet.contains("__has_builtin(__builtin_ctzl)")
+                || snippet.contains("__has_builtin(__builtin_alloca)"),
+        ))
+    }
+}
+
+#[test]
+fn has_function_falls_back_to_a_compiler_builtin() {
+    let oracle = Functions::default();
+    let (graph, _) = eval_with(
+        "builtin",
+        &oracle,
+        r#"
+project('t', 'c')
+cc = meson.get_compiler('c')
+if cc.has_function('__builtin_ctzl')
+  executable('ctzl', 'main.c')
+endif
+if cc.has_function('memcpy')
+  executable('memcpy', 'main.c')
+endif
+if cc.has_function('alloca')
+  executable('alloca', 'main.c')
+endif
+if cc.has_function('nope')
+  executable('nope', 'main.c')
+endif
+"#,
+    );
+    let names: Vec<&str> = graph.targets.iter().map(|t| t.name.as_str()).collect();
+    assert_eq!(names, ["ctzl", "memcpy"]);
+
+    // Only the two libc misses decay.toml does not settle are built, each as
+    // meson's own builtin check.
+    let asked = oracle.asked.borrow();
+    assert_eq!(asked.len(), 2, "{asked:?}");
+    assert!(asked.iter().all(CompileProbe::links));
+    let ctzl = asked[0].snippet();
+    assert!(
+        ctzl.contains("#if !__has_builtin(__builtin_ctzl)"),
+        "{ctzl}"
+    );
+    assert!(
+        ctzl.contains("#if !1 && !defined(__builtin_ctzl) && !1"),
+        "{ctzl}"
+    );
+    let nope = asked[1].snippet();
+    assert!(
+        nope.contains("#if !__has_builtin(__builtin_nope)"),
+        "{nope}"
+    );
+    assert!(nope.contains("__builtin_nope;"), "{nope}");
+}
+
 /// Builds only on arm64, and says `prelude//cpu/constraints:cpu` is how the
 /// generated build spells `cpu_family()`.
 struct Arm64Only;
