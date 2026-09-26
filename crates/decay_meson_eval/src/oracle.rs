@@ -35,6 +35,16 @@ pub trait Oracle {
     /// A machine property the user pinned, e.g. `system` or `cpu_family`.
     fn machine(&self, machine: Machine, property: &str) -> Option<String>;
 
+    /// The host machine property a foreign constraint `setting` is the
+    /// generated build's own spelling of, with the constraint value each of
+    /// the property's values is written as. A probe answer keyed on that
+    /// setting then asks the property's own variable, not a second one the
+    /// solver cannot relate to it.
+    fn machine_setting(&self, setting: &str) -> Option<(&'static str, Vec<(String, String)>)> {
+        let _ = setting;
+        None
+    }
+
     /// The systems a build may target, used as the domain of
     /// `host_machine.system()` when it is left open.
     fn systems(&self) -> Vec<String>;
