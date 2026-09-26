@@ -449,6 +449,21 @@ impl Oracle for ConfigOracle<'_> {
         })
     }
 
+    fn machine_setting(&self, setting: &str) -> Option<(&'static str, Vec<(String, String)>)> {
+        // `zig_arch` is meson's own `cpu_family()` spelling of each CPU.
+        (setting == probe::CPU_SETTING).then(|| {
+            let families = decay_zig::Cpu::ALL
+                .iter()
+                .map(|c| (c.zig_arch().to_owned(), c.buck2_value().to_owned()))
+                .collect();
+            ("cpu_family", families)
+        })
+    }
+
+    fn probe_configured(&self, name: &str, what: &str) -> bool {
+        self.config.probes.contains_key(&format!("{name}:{what}"))
+    }
+
     fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
         self.compile_probe_answer(probe)
     }

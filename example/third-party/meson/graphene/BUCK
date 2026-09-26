@@ -222,12 +222,8 @@ cxx_library(
         ],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm64]": [],
-        "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-mfpu=neon"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-mfpu=neon"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-mfpu=neon"],
+        "DEFAULT": [],
     }),
     linker_flags = select({
         "prelude//os/constraints:os[linux]": [

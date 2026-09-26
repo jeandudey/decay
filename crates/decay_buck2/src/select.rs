@@ -430,18 +430,38 @@ impl Selects {
         context: Pc,
         depth: Depth,
         separator: &str,
+        render: impl FnMut(&T) -> String,
+    ) -> Vec<String> {
+        self.render_words_keyed(logic, items, context, depth, separator, |_| (), render)
+    }
+
+    /// [`Self::render_words`], where neighbouring groups that never hold
+    /// together and carry the same `key`s — one name's values, each under its
+    /// own condition — are one choice, so they share a `select()` too.
+    #[allow(clippy::too_many_arguments)]
+    pub fn render_words_keyed<S: Solver, T, K: Ord>(
+        &self,
+        logic: &mut Logic<S>,
+        items: &Variational<T>,
+        context: Pc,
+        depth: Depth,
+        separator: &str,
+        key: impl Fn(&T) -> K,
         mut render: impl FnMut(&T) -> String,
     ) -> Vec<String> {
-        let mut groups: Vec<(Pc, Vec<String>)> = Vec::new();
+        let mut groups: Vec<(Pc, Vec<String>, BTreeSet<K>)> = Vec::new();
         for Variant { cond, value } in items {
             let cond = simplify(logic, *cond, context);
             if cond.is_false() {
                 continue;
             }
             let text = render(value);
-            match groups.iter_mut().find(|(c, _)| *c == cond) {
-                Some((_, values)) => values.push(text),
-                None => groups.push((cond, vec![text])),
+            match groups.iter_mut().find(|(c, _, _)| *c == cond) {
+                Some((_, values, keys)) => {
+                    values.push(text);
+                    keys.insert(key(value));
+                }
+                None => groups.push((cond, vec![text], BTreeSet::from([key(value)]))),
             }
         }
 
@@ -456,7 +476,7 @@ impl Selects {
 
         let mut parts = Vec::new();
         let mut group = groups.iter().peekable();
-        while let Some((cond, values)) = group.next() {
+        while let Some((cond, values, keys)) = group.next() {
             let text = joined(values);
             let yes = |_: Depth| format!("{text:?}");
             if cond.is_true() {
@@ -466,21 +486,30 @@ impl Selects {
             // The two answers to one question belong in one `select()`. Only
             // neighbours are paired up, so nothing changes place: the order
             // these are written in is the order they reach the command line.
-            match group.next_if(|(next, _)| opposite(logic, *cond, *next, context)) {
-                Some((_, otherwise)) => {
-                    let otherwise = joined(otherwise);
-                    let no = |_: Depth| format!("{otherwise:?}");
-                    parts.push(self.render(logic, *cond, context, &yes, &no, depth));
-                }
-                None => parts.push(self.render(
-                    logic,
-                    *cond,
-                    context,
-                    &yes,
-                    &|_| "\"\"".to_owned(),
-                    depth,
-                )),
+            if let Some((_, otherwise, _)) =
+                group.next_if(|(next, _, _)| opposite(logic, *cond, *next, context))
+            {
+                let otherwise = joined(otherwise);
+                let no = |_: Depth| format!("{otherwise:?}");
+                parts.push(self.render(logic, *cond, context, &yes, &no, depth));
+                continue;
             }
+            // Neighbours no two of which hold at once contribute at most one
+            // of their words anywhere, so they are one choice between them.
+            let mut arms = vec![(*cond, format!("{text:?}"))];
+            while let Some((next, values, _)) = group.next_if(|(next, _, next_keys)| {
+                next_keys == keys
+                    && arms
+                        .iter()
+                        .all(|(arm, _)| disjoint(logic, *arm, *next, context))
+            }) {
+                arms.push((*next, format!("{:?}", joined(values))));
+            }
+            if arms.len() > 1 {
+                parts.push(self.choose(logic, &arms, context, "\"\"", depth));
+                continue;
+            }
+            parts.push(self.render(logic, *cond, context, &yes, &|_| "\"\"".to_owned(), depth));
         }
         parts
     }
@@ -653,14 +682,19 @@ pub fn list(values: &[String], depth: Depth) -> String {
     }
 }
 
+/// Whether `a` and `b` never hold together within `context`.
+fn disjoint<S: Solver>(logic: &mut Logic<S>, a: Pc, b: Pc, context: Pc) -> bool {
+    let both = logic.and(a, b);
+    let both = logic.and(context, both);
+    !logic.is_sat(both)
+}
+
 /// Whether two conditions are each other's answer: never both, never neither.
 ///
 /// `#define X 1` and `#define X 0` are one question written twice, and the
 /// reader can only see that they cover everything if they sit together.
 fn opposite<S: Solver>(logic: &mut Logic<S>, a: Pc, b: Pc, context: Pc) -> bool {
-    let both = logic.and(a, b);
-    let both = logic.and(context, both);
-    if logic.is_sat(both) {
+    if !disjoint(logic, a, b, context) {
         return false;
     }
     let na = logic.not(a);
@@ -822,6 +856,42 @@ mod tests {
         );
         assert!(!text.contains(&format!("{os:?}")), "{text}");
         assert!(text.contains(&format!("{cpu:?}")), "{text}");
+    }
+
+    #[test]
+    fn one_names_values_share_a_select_and_other_names_do_not() {
+        let mut logic = Logic::new(Z3Solver::new());
+        let cpu = var(&mut logic, "cpu", &["x86", "arm", "riscv", "other"]);
+        let mut labels = BTreeMap::new();
+        for c in 0..4 {
+            labels.insert((cpu, c), format!("//:cpu[{c}]"));
+        }
+        let selects = Selects::new(labels, BTreeSet::new(), "//:impossible".to_owned());
+
+        // `ARCH` is one value per cpu, none on `other`; `OTHER` holds on
+        // `other` alone, disjoint from every `ARCH` but another name.
+        let mut items = Variational::empty();
+        for (c, value) in [(0, "X86"), (1, "ARM"), (2, "RISCV")] {
+            let lit = logic.lit(cpu, c);
+            items.push(Variant::new(lit, ("ARCH", value)));
+        }
+        let other = logic.lit(cpu, 3);
+        items.push(Variant::new(other, ("OTHER", "1")));
+
+        let parts = selects.render_words_keyed(
+            &mut logic,
+            &items,
+            Pc::TRUE,
+            0,
+            " ",
+            |(name, _)| *name,
+            |(name, value)| format!("{name}={value}"),
+        );
+        assert_eq!(parts.len(), 2, "{parts:#?}");
+        for value in ["ARCH=X86", "ARCH=ARM", "ARCH=RISCV"] {
+            assert!(parts[0].contains(value), "{parts:#?}");
+        }
+        assert!(!parts[0].contains("OTHER"), "{parts:#?}");
     }
 
     #[test]

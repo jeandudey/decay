@@ -171,3 +171,21 @@ wrapdb_rev = "ba3bb5b3eaf2398adfdde9995f43eab8e8625859"
 source_url = "https://download.gnome.org/sources/pango/1.56/pango-1.56.4.tar.xz"
 source_filename = "pango-1.56.4.tar.xz"
 source_hash = "17065e2fcc5f5a5bdbffc884c956bfc7c451a96e8c4fb2f8ad837c6413cb5a01"
+
+[[wrap]]
+name = "libtiff"
+version = "4.7.2-1"
+wrapdb_rev = "1710e36b06820a1266a82cefb59e114327062626"
+patch_directory = "libtiff"
+source_url = "https://download.osgeo.org/libtiff/tiff-4.7.2.tar.xz"
+source_filename = "tiff-4.7.2.tar.gz"
+source_hash = "4996f0c4f93094719b1ca5c6279b20e588773ba8a247533e486416fb662ddb88"
+
+[[wrap]]
+name = "libjpeg-turbo"
+version = "3.2.0-1"
+wrapdb_rev = "e2c40a16288904747b6e5bee0f28babe9f531e98"
+patch_directory = "libjpeg-turbo"
+source_url = "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz"
+source_filename = "libjpeg-turbo-3.2.0.tar.gz"
+source_hash = "6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e"

@@ -36,6 +36,10 @@ netbsd = "prelude//os/constraints:os[netbsd]"
 # gdk-pixbuf's `subproject('glib').get_variable('g_module_impl')`, which needs
 # one plain answer, not a per-system condition, to resolve at all.
 "links:dlopen() and dlsym() in system libraries" = true
+# libjpeg-turbo's `RIGHT_SHIFT_IS_UNSIGNED` check, an unnamed `cc.run()` keyed
+# by its whole source. `>>` on a negative `long` is arithmetic on every
+# gcc/clang target, so it never holds.
+"run:\n      #include <stdio.h>\n      #include <stdlib.h>\n      static int is_shifting_signed (long arg) {\n        long res = arg >> 4;\n        if (res == -0x7F7E80CL)\n          return 1; /* right shift is signed */\n        /* see if unsigned-shift hack will fix it. */\n        /* we can't just test exact value since it depends on width of long... */\n        res |= 0xFFFFFFFFL << (32-4);\n        if (res == -0x7F7E80CL)\n          return 0; /* right shift is unsigned */\n        printf(\\\"Right shift isn't acting as I expect it to.\\\\\\\\n\\\");\n        printf(\\\"I fear the JPEG software will not work at all.\\\\\\\\n\\\\\\\\n\\\");\n        return 0; /* try it with unsigned anyway */\n      }\n      int main (void) {\n        exit(is_shifting_signed(-0x7F7E80B1L));\n      }\n  " = false
 
 [programs]
 python3 = "//third-party/tools:python3"
@@ -319,6 +323,23 @@ wrap = "google-brotli"
 wrap = "libpng"
 depends = ["zlib"]
 options = { tests = false }
+
+# gtk requires `libtiff-4` directly. Only the zlib-backed codecs (Deflate,
+# PixarLog) are on: jpeg waits on libjpeg-turbo, and nothing here provides
+# jbig, lerc, lzma, webp or zstd.
+[[project]]
+wrap = "libtiff"
+depends = ["zlib"]
+options = { zlib = "enabled", jpeg = "disabled", jbig = "disabled", lerc = "disabled", lzma = "disabled", webp = "disabled", zstd = "disabled" }
+
+# gtk requires `libjpeg` directly. SIMD is plain C on arm, but x86 needs
+# NASM, which decay does not model, so x86 builds the C paths. TurboJPEG
+# needs libspng, which nothing here provides.
+[[project]]
+wrap = "libjpeg-turbo"
+options = { turbojpeg = "disabled", tests = "disabled" }
+# The build date meson stamps into `jconfigint.h`, pinned to the release's.
+commands."python3 -c import datetime; print(datetime.datetime.now().strftime(\"%Y%m%d\"))" = { stdout = "20260630\n" }
 
 [[project]]
 wrap = "pcre2"

@@ -354,3 +354,170 @@ fn an_impossible_target_is_ruled_out() {
     let missing = logic.and(x86, missing);
     assert!(!logic.is_sat(missing), "builds on x86_64 freebsd");
 }
+
+fn eval_with(name: &str, oracle: &dyn Oracle, build: &str) -> (Graph, Logic<Z3Solver>) {
+    let root = std::env::temp_dir().join(format!("decay-probes-{name}-{}", std::process::id()));
+    std::fs::remove_dir_all(&root).ok();
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(root.join("main.c"), "int main(void) { return 0; }\n").unwrap();
+    std::fs::write(root.join("meson.build"), build).unwrap();
+    let r = decay_meson_eval::eval(oracle, &TestSources, &root);
+    std::fs::remove_dir_all(&root).ok();
+    r.unwrap()
+}
+
+/// libc exports `memcpy` only; the compiler has `__builtin_ctzl` and
+/// `__builtin_alloca`. `decay.toml` settles `alloca` absent.
+#[derive(Default)]
+struct Functions {
+    asked: RefCell<Vec<CompileProbe>>,
+}
+
+impl Oracle for Functions {
+    fn option(&self, _name: &str) -> Option<Pinned> {
+        None
+    }
+
+    fn machine(&self, _machine: Machine, _property: &str) -> Option<String> {
+        None
+    }
+
+    fn systems(&self) -> Vec<String> {
+        ["linux", "freebsd"].map(str::to_owned).to_vec()
+    }
+
+    fn probe(&self, name: &str, what: &str) -> Option<Probe> {
+        (name == "has_function").then(|| Probe::Fixed(what == "memcpy"))
+    }
+
+    fn probe_configured(&self, name: &str, what: &str) -> bool {
+        name == "has_function" && what == "alloca"
+    }
+
+    fn compile_probe(&self, probe: &CompileProbe) -> Option<Probe> {
+        self.asked.borrow_mut().push(probe.clone());
+        let snippet = probe.snippet();
+        Some(Probe::Fixed(
+            snippet.contains("__has_builtin(__builtin_ctzl)")
+                || snippet.contains("__has_builtin(__builtin_alloca)"),
+        ))
+    }
+}
+
+#[test]
+fn has_function_falls_back_to_a_compiler_builtin() {
+    let oracle = Functions::default();
+    let (graph, _) = eval_with(
+        "builtin",
+        &oracle,
+        r#"
+project('t', 'c')
+cc = meson.get_compiler('c')
+if cc.has_function('__builtin_ctzl')
+  executable('ctzl', 'main.c')
+endif
+if cc.has_function('memcpy')
+  executable('memcpy', 'main.c')
+endif
+if cc.has_function('alloca')
+  executable('alloca', 'main.c')
+endif
+if cc.has_function('nope')
+  executable('nope', 'main.c')
+endif
+"#,
+    );
+    let names: Vec<&str> = graph.targets.iter().map(|t| t.name.as_str()).collect();
+    assert_eq!(names, ["ctzl", "memcpy"]);
+
+    // Only the two libc misses decay.toml does not settle are built, each as
+    // meson's own builtin check.
+    let asked = oracle.asked.borrow();
+    assert_eq!(asked.len(), 2, "{asked:?}");
+    assert!(asked.iter().all(CompileProbe::links));
+    let ctzl = asked[0].snippet();
+    assert!(
+        ctzl.contains("#if !__has_builtin(__builtin_ctzl)"),
+        "{ctzl}"
+    );
+    assert!(
+        ctzl.contains("#if !1 && !defined(__builtin_ctzl) && !1"),
+        "{ctzl}"
+    );
+    let nope = asked[1].snippet();
+    assert!(
+        nope.contains("#if !__has_builtin(__builtin_nope)"),
+        "{nope}"
+    );
+    assert!(nope.contains("__builtin_nope;"), "{nope}");
+}
+
+/// Builds only on arm64, and says `prelude//cpu/constraints:cpu` is how the
+/// generated build spells `cpu_family()`.
+struct Arm64Only;
+
+impl Oracle for Arm64Only {
+    fn option(&self, _name: &str) -> Option<Pinned> {
+        None
+    }
+
+    fn machine(&self, _machine: Machine, _property: &str) -> Option<String> {
+        None
+    }
+
+    fn systems(&self) -> Vec<String> {
+        vec!["linux".to_owned()]
+    }
+
+    fn machine_setting(&self, setting: &str) -> Option<(&'static str, Vec<(String, String)>)> {
+        (setting == CPU).then(|| {
+            let spelled = [("x86_64", "x86_64"), ("aarch64", "arm64"), ("arm", "arm32")]
+                .map(|(f, v)| (f.to_owned(), v.to_owned()))
+                .to_vec();
+            ("cpu_family", spelled)
+        })
+    }
+
+    fn compile_probe(&self, _probe: &CompileProbe) -> Option<Probe> {
+        Some(Probe::Matrix(vec![MatrixSystem {
+            system: "linux".to_owned(),
+            axes: vec![(
+                CPU.to_owned(),
+                vec!["arm64".to_owned(), "x86_64".to_owned()],
+            )],
+            rows: vec![vec!["arm64".to_owned()]],
+        }]))
+    }
+}
+
+#[test]
+fn a_probe_on_the_cpu_asks_cpu_family_itself() {
+    let (graph, mut logic) = eval_with(
+        "cpu-family",
+        &Arm64Only,
+        r#"
+project('t', 'c')
+cc = meson.get_compiler('c')
+if host_machine.cpu_family() == 'aarch64'
+  if cc.compiles('int y;', name: 'y')
+    executable('neon', 'main.c')
+  endif
+endif
+if cc.compiles('int y;', name: 'y')
+  executable('y', 'main.c')
+endif
+"#,
+    );
+    assert!(
+        logic.arena().var_id(&format!("constraint:{CPU}")).is_none(),
+        "no second variable for the cpu"
+    );
+    // On `cpu_family() == 'aarch64'` the probe holds outright.
+    let neon = target_cond(&graph, "neon");
+    let family = logic.arena().var_id("machine:host:cpu_family").unwrap();
+    let aarch64 = logic.var(family).choice_index("aarch64").unwrap();
+    let aarch64 = logic.lit(family, aarch64);
+    assert_eq!(neon, aarch64);
+    let y = target_cond(&graph, "y");
+    assert_eq!(y, aarch64);
+}

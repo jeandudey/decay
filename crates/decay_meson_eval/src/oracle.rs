@@ -35,6 +35,16 @@ pub trait Oracle {
     /// A machine property the user pinned, e.g. `system` or `cpu_family`.
     fn machine(&self, machine: Machine, property: &str) -> Option<String>;
 
+    /// The host machine property a foreign constraint `setting` is the
+    /// generated build's own spelling of, with the constraint value each of
+    /// the property's values is written as. A probe answer keyed on that
+    /// setting then asks the property's own variable, not a second one the
+    /// solver cannot relate to it.
+    fn machine_setting(&self, setting: &str) -> Option<(&'static str, Vec<(String, String)>)> {
+        let _ = setting;
+        None
+    }
+
     /// The systems a build may target, used as the domain of
     /// `host_machine.system()` when it is left open.
     fn systems(&self) -> Vec<String>;
@@ -56,6 +66,13 @@ pub trait Oracle {
     fn probe(&self, name: &str, what: &str) -> Option<Probe> {
         let _ = (name, what);
         None
+    }
+
+    /// Whether [`Oracle::probe`]'s answer is the configuration's own, which
+    /// settles the probe outright, rather than one decay derived itself.
+    fn probe_configured(&self, name: &str, what: &str) -> bool {
+        let _ = (name, what);
+        false
     }
 
     /// The answer to a probe the importer can settle by actually compiling
@@ -345,6 +362,9 @@ pub enum CompileProbeKind {
     Compiles { prefix: String, code: String },
     /// `cc.links(code)`: built into an executable, not just an object.
     Links { code: String },
+    /// The compiler-builtin half of `cc.has_function('f', prefix: p)`,
+    /// linked the way meson does once `f` itself fails to link.
+    BuiltinFunction { name: String, prefix: String },
     /// `cc.sizeof('t', prefix: p)`: a number, read back through
     /// [`VALUE_SYMBOL`] (see [`Oracle::value_probe`]).
     Sizeof { name: String, prefix: String },
@@ -386,6 +406,27 @@ impl CompileProbe {
             ),
             CompileProbeKind::Compiles { prefix, code } => format!("{prefix}\n{code}\n"),
             CompileProbeKind::Links { code } => format!("{code}\n"),
+            // Meson's own template, with its booleans spelled as 0/1.
+            CompileProbeKind::BuiltinFunction { name, prefix } => {
+                let no_includes = u8::from(!prefix.contains("#include"));
+                let is_builtin = name.starts_with("__builtin_");
+                let builtin = if is_builtin { "" } else { "__builtin_" };
+                let is_builtin = u8::from(is_builtin);
+                format!(
+                    "{prefix}\nint main(void) {{\n\
+                     #if !{no_includes} && !defined({name}) && !{is_builtin}\n\
+                     #error \"No definition for {builtin}{name} found in the prefix\"\n\
+                     #endif\n\
+                     #ifdef __has_builtin\n\
+                     #if !__has_builtin({builtin}{name})\n\
+                     #error \"{builtin}{name} not found\"\n\
+                     #endif\n\
+                     #elif ! defined({name})\n\
+                     {builtin}{name};\n\
+                     #endif\n\
+                     return 0;\n}}\n"
+                )
+            }
             CompileProbeKind::Sizeof { name, prefix } => format!(
                 "{prefix}\n#include <stddef.h>\nconst char {VALUE_SYMBOL}[sizeof({name})] = {{0}};\n"
             ),
@@ -398,7 +439,10 @@ impl CompileProbe {
 
     /// Whether the probe must link, not just compile.
     pub fn links(&self) -> bool {
-        matches!(self.kind, CompileProbeKind::Links { .. })
+        matches!(
+            self.kind,
+            CompileProbeKind::Links { .. } | CompileProbeKind::BuiltinFunction { .. }
+        )
     }
 
     /// The call's `args:`, replayed on the `zig cc` line.

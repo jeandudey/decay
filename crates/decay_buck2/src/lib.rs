@@ -7,6 +7,7 @@
 use {
     crate::select::Selects,
     decay_build_ir::{
+        CmakeTemplate,
         CmdArg,
         Define,
         DefineValue,
@@ -18,7 +19,8 @@ use {
         Origin,
         Source,
         Target,
-        TargetId, //
+        TargetId,
+        TemplateFormat, //
     },
     decay_meson_logic::{
         ANY_OTHER,
@@ -2278,6 +2280,11 @@ fn config_header_cmd<S: Solver>(
     selects: &Selects,
     target: &Target,
 ) -> String {
+    if let (Some(template), TemplateFormat::Cmake(uses)) =
+        (&target.attrs.template, &target.attrs.template_format)
+    {
+        return cmake_template_cmd(graph, logic, selects, target, template, uses);
+    }
     if let Some(template) = &target.attrs.template {
         // A template substitutes a define in whichever of meson's two
         // template syntaxes it actually uses: `@NAME@`, left untouched where
@@ -2287,63 +2294,70 @@ fn config_header_cmd<S: Solver>(
         // ever uses one of these for a given name, so this just tries both;
         // the one that names nothing in the template matches nothing and
         // does not change it.
-        let mut edits = selects.render_words(
+        let mut edits = selects.render_words_keyed(
             logic,
             &target.attrs.defines,
             target.cond,
             1,
             " ",
+            |define| define.name.clone(),
             |define| {
-                let value = match &define.value {
-                    // `set_quoted()`: meson substitutes the value wrapped in C
-                    // string quotes (with `\` and `"` escaped), the same into
-                    // an `@NAME@` slot as into a `#mesondefine`. Dropping the
-                    // quotes here turns e.g. `#define G_GSIZE_FORMAT @gsize_format@`
-                    // into `#define G_GSIZE_FORMAT lu`, which does not compile.
-                    DefineValue::Quoted(v) => {
-                        format!("\"{}\"", v.replace('\\', "\\\\").replace('"', "\\\""))
-                    }
-                    DefineValue::Raw(v) => v.clone(),
-                    DefineValue::Number(v) => v.to_string(),
-                    DefineValue::Flag => "1".to_owned(),
-                    DefineValue::Undef => String::new(),
-                };
-                // `|` is the delimiter, so a value containing one would end the
-                // expression early. A literal newline (fontconfig's
-                // `FC_DEFAULT_FONTS`, a multi-line `<dir>...</dir>` default)
-                // would otherwise end the `-e` script itself ("unterminated
-                // 's' command"); GNU sed's replacement text accepts `\n` as
-                // an escape for one instead.
-                let value = value.replace('|', "\\|").replace('\n', "\\n");
+                // `set_quoted()`: meson substitutes the value wrapped in C
+                // string quotes, the same into an `@NAME@` slot as into a
+                // `#mesondefine`. Dropping the quotes here turns e.g.
+                // `#define G_GSIZE_FORMAT @gsize_format@` into
+                // `#define G_GSIZE_FORMAT lu`, which does not compile.
+                let value = sed_replacement(&template_text(&define.value));
                 shell_quote(&format!("-es|@{}@|{value}|g", define.name))
             },
         );
 
-        let complete = complete_defines(logic, &target.attrs.defines, target.cond);
-        edits.extend(
-            selects.render_words(logic, &complete, target.cond, 1, " ", |define| {
+        // A `false` writes exactly what an unset name does here, so it
+        // completes as one: the configurations where either holds share one
+        // `#mesondefine` edit.
+        let unset_false: Variational<Define> = target
+            .attrs
+            .defines
+            .variants()
+            .iter()
+            .map(|v| match v.value.value {
+                DefineValue::False => Variant::new(
+                    v.cond,
+                    Define {
+                        name: v.value.name.clone(),
+                        value: DefineValue::Undef,
+                    },
+                ),
+                _ => v.clone(),
+            })
+            .collect();
+        let complete = complete_defines(logic, &unset_false, target.cond);
+        edits.extend(selects.render_words_keyed(
+            logic,
+            &complete,
+            target.cond,
+            1,
+            " ",
+            |define| define.name.clone(),
+            |define| {
                 let line = match &define.value {
-                    DefineValue::Quoted(v) => format!("#define {} \"{v}\"", define.name),
+                    DefineValue::Quoted(v) => format!("#define {} {}", define.name, quoted(v)),
                     DefineValue::Raw(v) => format!("#define {} {v}", define.name),
                     DefineValue::Number(v) => format!("#define {} {v}", define.name),
                     DefineValue::Flag => format!("#define {}", define.name),
-                    DefineValue::Undef => format!("/* #undef {} */", define.name),
-                }
-                .replace('|', "\\|")
-                .replace('\n', "\\n");
+                    DefineValue::False | DefineValue::Undef => {
+                        format!("/* #undef {} */", define.name)
+                    }
+                };
+                let line = sed_replacement(&line);
                 shell_quote(&format!(
                     "-es|^#mesondefine[[:space:]]\\+{}\\>.*|{line}|",
                     define.name
                 ))
-            }),
-        );
+            },
+        ));
 
-        let input = match template {
-            Source::File(path) => file_arg(graph, path),
-            Source::Generated(id, index) => {
-                format!("$(location :{})", generated_label(graph, *id, *index))
-            }
-        };
+        let input = source_location(graph, template);
 
         // An empty, always-present `-e` comes first so the command stays
         // valid `sed` even where a configuration substitutes nothing: with no
@@ -2356,19 +2370,22 @@ fn config_header_cmd<S: Solver>(
         return join(&parts);
     }
 
-    let lines = selects.render_words(
+    let lines = selects.render_words_keyed(
         logic,
         &target.attrs.defines,
         target.cond,
         1,
         " ",
+        |define| define.name.clone(),
         |define| {
             let text = match &define.value {
-                DefineValue::Quoted(v) => format!("#define {} \"{}\"", define.name, v),
+                DefineValue::Quoted(v) => format!("#define {} {}", define.name, quoted(v)),
                 DefineValue::Raw(v) => format!("#define {} {}", define.name, v),
                 DefineValue::Number(v) => format!("#define {} {}", define.name, v),
                 DefineValue::Flag => format!("#define {}", define.name),
-                DefineValue::Undef => format!("/* #undef {} */", define.name),
+                DefineValue::False | DefineValue::Undef => {
+                    format!("/* #undef {} */", define.name)
+                }
             };
             shell_quote(&text)
         },
@@ -2378,6 +2395,145 @@ fn config_header_cmd<S: Solver>(
     parts.extend(lines);
     parts.push("\" > $OUT\"".to_owned());
     join(&parts)
+}
+
+/// A `format: 'cmake'`/`'cmake@'` template, substituted by meson's
+/// `do_conf_str_cmake`, as one `sed` over it. Only the names `uses` found in
+/// the template get an edit, each only in the syntax it appears in:
+///
+/// - `@NAME@`/`${NAME}` become the value, and a name no configuration sets
+///   becomes empty, as meson's does;
+/// - `#cmakedefine01 NAME` becomes `#define NAME 1` or `0`;
+/// - `#cmakedefine NAME rest` becomes `#define NAME rest` for a set, truthy
+///   value, `/* #undef NAME */` otherwise. Truthiness is Python's: a non-zero
+///   number, a non-empty string, `true`. Meson rebuilds `rest` from its
+///   whitespace-split tokens, so the first edit collapses each directive
+///   line's blanks the same way, ahead of the substitutions (`sed` runs its
+///   edits in order on each line) so a substituted value keeps its own.
+fn cmake_template_cmd<S: Solver>(
+    graph: &Graph,
+    logic: &mut Logic<S>,
+    selects: &Selects,
+    target: &Target,
+    template: &Source,
+    uses: &CmakeTemplate,
+) -> String {
+    let complete = complete_defines(logic, &target.attrs.defines, target.cond);
+    let used = |names: [&BTreeSet<String>; 2]| -> Variational<Define> {
+        complete
+            .variants()
+            .iter()
+            .filter(|v| names.iter().any(|n| n.contains(&v.value.name)))
+            .cloned()
+            .collect()
+    };
+
+    let mut edits = selects.render_words_keyed(
+        logic,
+        &used([&uses.at, &uses.brace]),
+        target.cond,
+        1,
+        " ",
+        |define| define.name.clone(),
+        |define| {
+            let name = &define.name;
+            // Meson's cmake substitution writes a `false` as `0`.
+            let value = match define.value {
+                DefineValue::False => "0".to_owned(),
+                _ => sed_replacement(&template_text(&define.value)),
+            };
+            let mut words = Vec::new();
+            if uses.at.contains(name) {
+                words.push(shell_quote(&format!("-es|@{name}@|{value}|g")));
+            }
+            if uses.brace.contains(name) {
+                words.push(shell_quote(&format!("-es|\\${{{name}}}|{value}|g")));
+            }
+            words.join(" ")
+        },
+    );
+    edits.extend(selects.render_words_keyed(
+        logic,
+        &used([&uses.define, &uses.define01]),
+        target.cond,
+        1,
+        " ",
+        |define| define.name.clone(),
+        |define| {
+            let name = &define.name;
+            let truthy = match &define.value {
+                DefineValue::Quoted(_) | DefineValue::Flag => true,
+                DefineValue::Raw(v) => !v.is_empty(),
+                DefineValue::Number(n) => *n != 0,
+                DefineValue::False | DefineValue::Undef => false,
+            };
+            let directive = |suffix: &str| format!("{CMAKEDEFINE}{suffix}[[:space:]]\\+{name}\\>");
+            let mut words = Vec::new();
+            if uses.define01.contains(name) {
+                words.push(shell_quote(&format!(
+                    "-es|{}.*|#define {name} {}|",
+                    directive("01"),
+                    u8::from(truthy)
+                )));
+            }
+            if uses.define.contains(name) {
+                words.push(shell_quote(&if truthy {
+                    format!("-es|{}\\(.*\\)|#define {name}\\1|", directive(""))
+                } else {
+                    format!("-es|{}.*|/* #undef {name} */|", directive(""))
+                }));
+            }
+            words.join(" ")
+        },
+    ));
+
+    let input = source_location(graph, template);
+    let mut parts = vec!["\"sed\"".to_owned(), "\" -e ''\"".to_owned()];
+    if !uses.define.is_empty() {
+        parts.push(format!(
+            "{:?}",
+            format!(
+                " {}",
+                shell_quote(&format!("-e/{CMAKEDEFINE}/{{s/[[:space:]]\\+/ /g;s/ $//}}"))
+            )
+        ));
+    }
+    parts.extend(edits);
+    parts.push(format!("{:?}", format!(" {input} > $OUT")));
+    join(&parts)
+}
+
+/// A `#cmakedefine`/`#cmakedefine01` line, as a `sed` regex; the keyword
+/// follows.
+const CMAKEDEFINE: &str = "^#[[:space:]]*cmakedefine";
+
+/// The text a define's value substitutes into a template as: `set_quoted()`
+/// quoted, `true` as `1`, `false` and unset as nothing.
+fn template_text(value: &DefineValue) -> String {
+    match value {
+        DefineValue::Quoted(v) => quoted(v),
+        DefineValue::Raw(v) => v.clone(),
+        DefineValue::Number(v) => v.to_string(),
+        DefineValue::Flag => "1".to_owned(),
+        DefineValue::False | DefineValue::Undef => String::new(),
+    }
+}
+
+/// A `set_quoted()` value as meson stores it: in double quotes, with each
+/// `"` backslash-escaped and nothing else.
+fn quoted(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\\\""))
+}
+
+/// `text` as the replacement of a `sed` `s|...|...|`: `\` and `&` are
+/// special there, `|` is the delimiter, and a literal newline (fontconfig's
+/// multi-line `FC_DEFAULT_FONTS`) would end the script (GNU sed reads `\n`
+/// as one instead).
+fn sed_replacement(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('&', "\\&")
+        .replace('|', "\\|")
+        .replace('\n', "\\n")
 }
 
 /// `cc.preprocess()`: run the real C preprocessor over the target's one

@@ -129,8 +129,10 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   - **C++ probes** — `cpp.has_header()` and kin are built as C.
   - **gcc-only builtins.** `-fgnuc-version=` fixes the version-guard class
     of probe, not one that uses a GCC extension clang never implemented
-    (graphene's `__builtin_shuffle`, no `GRAPHENE_HAS_GCC`). Needs a
-    `compiler` axis on `Probe::Matrix`, or a `[probes]` override.
+    (graphene's `__builtin_shuffle`, no `GRAPHENE_HAS_GCC`). The builtin
+    half of `cc.has_function()` is the same case: clang's `__has_builtin`
+    answers it. Needs a `compiler` axis on `Probe::Matrix`, or a `[probes]`
+    override.
 
   Deferred, each its own follow-up:
   - **`cc.has_argument()`/`has_link_argument()`/`has_multi_arguments()` are
@@ -265,12 +267,19 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   (`decay_meson_eval/src/lib.rs`) gives every `VarKind::Probe` constraint a
   hardcoded `default = 0` ("true"). Most probes no longer reach it (see
   "Compile/link probes resolved by `zig cc`" above); what still does is
-  `cc.run()` and a probe with `dependencies:` decay cannot replay. The zig
+  `cc.run()` and a probe with `dependencies:` decay cannot replay. An
+  unnamed `cc.run()`'s `[probes]` key is its whole source text
+  (libjpeg-turbo's right-shift check in `example/`). The zig
   answer itself is a libc *vintage* pin, not a per-host fact: linux-gnu
   probes see the newest glibc zig ships, so glib's `HAVE_FUTEX_TIME64` and
   `res_ndestroy()` read present and fail on an older host. `example/`
   settles both off in `[probes]`. Fixing it for real wants a glibc floor in
   `decay.toml` that the probes pin to instead.
+
+- **`add_languages('nasm')` reads as unavailable.** decay has no rule for
+  NASM sources, so a project's optional x86 assembly drops out:
+  libjpeg-turbo's x86 SIMD. Needs a nasm toolchain and a rule for `.asm`
+  sources.
 
 - **Better diagnostics.** If something fails to import because it needs user input
   we should provide a way for the user to fix it if possible. If it is something
@@ -278,6 +287,16 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   unimplemented functions and methods in meson and either provide these in the
   program to let the user know it hasn't been implemented, and also to keep a
   list here in known gaps.
+
+- **`configure_file()` template corners.** `format: 'cmake'`/`'cmake@'`
+  refuses what its `sed` rewrite does not reproduce: a `#cmakedefine`
+  trailing token that is itself a configuration variable (meson substitutes
+  it), a nested `${A${B}}`, and a template that is another target's output
+  (decay reads the template for the names it uses). The `meson` format still
+  differs from meson in three ways: an `@NAME@` no configuration sets stays
+  as is (meson writes nothing), a `false` substitutes as nothing (meson
+  writes `False`), and `#mesondefine` of a `false` writes
+  `/* #undef NAME */` (meson writes `#undef NAME`).
 
 - **Adding meson specific buck2 rules.** A config-header template
   (`#mesondefine`) is emitted as a `genrule` shelling out to `sed`, not a
@@ -310,8 +329,9 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   read either.
 
 - **Support all of meson wrapdb.** This should be the biggest showcase and
-  smoke test for decay — currently exercises 15 of wrapdb's ~250+ projects in
-  `example/decay.toml` (`zlib`, `bzip2`, `libpng`, `google-brotli`, `pcre2`,
+  smoke test for decay — currently exercises 17 of wrapdb's ~250+ projects in
+  `example/decay.toml` (`zlib`, `bzip2`, `libpng`, `libtiff`, `libjpeg-turbo`,
+  `google-brotli`, `pcre2`,
   `libxext`, `libffi`, `fribidi`, `graphite2`, `pixman`, `cairo`, `freetype2`,
   `harfbuzz`, `fontconfig`, `pango`).
 
@@ -341,14 +361,14 @@ project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
   `introspection`/docs/tests/examples are out of scope), `shared-mime-info`
   (the translated MIME database and `update-mime-database`), `gdk-pixbuf`
   (png and gif loaders built in, GIO MIME sniffing against
-  `shared-mime-info`; jpeg/tiff wait on the two libraries below).
+  `shared-mime-info`; jpeg not wired in yet, below), `libtiff` (zlib-backed
+  codecs only: jpeg not wired in yet, and nothing here provides jbig, lerc,
+  lzma, webp or zstd), `libjpeg-turbo` (`libjpeg`; NEON SIMD on arm, the C
+  paths on x86 — see the `nasm` gap above — and no `turbojpeg`, which needs
+  libspng).
   Still needed, hardest first. Hard-required regardless of options:
-  - `libtiff-4` and `libjpeg` — gtk's own `meson.build` requires both
-    directly, alongside the already-imported `libpng`, not as optional
-    loader backends; gtk also asks gdk-pixbuf for `jpeg=enabled`. `libtiff`
-    brings its own codec graph (jpeg, zlib, lzma, zstd, deflate, webp);
-    `libjpeg-turbo` has per-arch SIMD assembly, the same per-arch
-    source-list shape as libffi.
+  - jpeg in `gdk-pixbuf` (gtk asks it for `jpeg=enabled`) and in
+    `libtiff`, against the imported `libjpeg-turbo`.
   - The X11 libraries the X11 backend links directly (`x11-backend=true`
     by default; a Linux build needs it or Wayland): `xrandr`, `xrender`,
     `xi`, `xcursor`, `xdamage`, `xfixes`, `xinerama` — same shape as the

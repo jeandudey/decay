@@ -128,14 +128,18 @@ pub fn fetch(git_cache: &GitCache, name: &str, version: &str) -> eyre::Result<Wr
 }
 
 /// Load a `.wrap` from a local Meson subprojects directory.  Meson resolves a
-/// `patch_directory` beside its wrap file, so do the same rather than looking
-/// it up in wrapdb.
+/// `patch_directory` in that directory's `packagefiles/`, so do the same
+/// rather than looking it up in wrapdb.
 pub fn load_local(path: &Path) -> eyre::Result<WrapFile> {
     let text = fs::read_to_string(path)
         .wrap_err_with(|| format!("Failed to read local wrap {}", path.display()))?;
     let mut file = parse_wrap(&text)?;
     if let Some(dir) = &file.patch_directory {
-        let overlay = path.parent().unwrap_or_else(|| Path::new(".")).join(dir);
+        let overlay = path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("packagefiles")
+            .join(dir);
         if !overlay.is_dir() {
             bail!(
                 "local wrap {} names patch_directory `{dir}`, but {} is not a directory",
@@ -370,14 +374,14 @@ mod tests {
     }
 
     #[test]
-    fn local_wrap_resolves_patch_directory_beside_the_wrap() {
+    fn local_wrap_resolves_patch_directory_in_packagefiles() {
         let root = std::env::temp_dir().join(format!("decay-local-wrap-{}", process::id()));
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join("packagefiles/thing")).unwrap();
         let wrap = root.join("thing.wrap");
         fs::write(
             &wrap,
-            "[wrap-file]\nsource_url = https://example.test/thing.tar.gz\nsource_filename = thing.tar.gz\nsource_hash = deadbeef\npatch_directory = packagefiles/thing\n",
+            "[wrap-file]\nsource_url = https://example.test/thing.tar.gz\nsource_filename = thing.tar.gz\nsource_hash = deadbeef\npatch_directory = thing\n",
         )
         .unwrap();
 
