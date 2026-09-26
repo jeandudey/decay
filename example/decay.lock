@@ -180,3 +180,12 @@ patch_directory = "libtiff"
 source_url = "https://download.osgeo.org/libtiff/tiff-4.7.2.tar.xz"
 source_filename = "tiff-4.7.2.tar.gz"
 source_hash = "4996f0c4f93094719b1ca5c6279b20e588773ba8a247533e486416fb662ddb88"
+
+[[wrap]]
+name = "libjpeg-turbo"
+version = "3.2.0-1"
+wrapdb_rev = "e2c40a16288904747b6e5bee0f28babe9f531e98"
+patch_directory = "libjpeg-turbo"
+source_url = "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz"
+source_filename = "libjpeg-turbo-3.2.0.tar.gz"
+source_hash = "6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e"

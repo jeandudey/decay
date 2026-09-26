@@ -140,6 +140,7 @@ jobs:
             //third-party/meson/bzip2/... \
             //third-party/meson/libpng/... \
             //third-party/meson/libtiff/... \
+            //third-party/meson/libjpeg-turbo/... \
             //third-party/meson/google-brotli/... \
             //third-party/meson/harfbuzz/... \
             //third-party/meson/pango/... \
