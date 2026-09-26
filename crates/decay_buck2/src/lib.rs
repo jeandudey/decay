@@ -2294,12 +2294,13 @@ fn config_header_cmd<S: Solver>(
         // ever uses one of these for a given name, so this just tries both;
         // the one that names nothing in the template matches nothing and
         // does not change it.
-        let mut edits = selects.render_words(
+        let mut edits = selects.render_words_keyed(
             logic,
             &target.attrs.defines,
             target.cond,
             1,
             " ",
+            |define| define.name.clone(),
             |define| {
                 // `set_quoted()`: meson substitutes the value wrapped in C
                 // string quotes, the same into an `@NAME@` slot as into a
@@ -2331,8 +2332,14 @@ fn config_header_cmd<S: Solver>(
             })
             .collect();
         let complete = complete_defines(logic, &unset_false, target.cond);
-        edits.extend(
-            selects.render_words(logic, &complete, target.cond, 1, " ", |define| {
+        edits.extend(selects.render_words_keyed(
+            logic,
+            &complete,
+            target.cond,
+            1,
+            " ",
+            |define| define.name.clone(),
+            |define| {
                 let line = match &define.value {
                     DefineValue::Quoted(v) => format!("#define {} {}", define.name, quoted(v)),
                     DefineValue::Raw(v) => format!("#define {} {v}", define.name),
@@ -2347,8 +2354,8 @@ fn config_header_cmd<S: Solver>(
                     "-es|^#mesondefine[[:space:]]\\+{}\\>.*|{line}|",
                     define.name
                 ))
-            }),
-        );
+            },
+        ));
 
         let input = source_location(graph, template);
 
@@ -2363,12 +2370,13 @@ fn config_header_cmd<S: Solver>(
         return join(&parts);
     }
 
-    let lines = selects.render_words(
+    let lines = selects.render_words_keyed(
         logic,
         &target.attrs.defines,
         target.cond,
         1,
         " ",
+        |define| define.name.clone(),
         |define| {
             let text = match &define.value {
                 DefineValue::Quoted(v) => format!("#define {} {}", define.name, quoted(v)),
@@ -2420,12 +2428,13 @@ fn cmake_template_cmd<S: Solver>(
             .collect()
     };
 
-    let mut edits = selects.render_words(
+    let mut edits = selects.render_words_keyed(
         logic,
         &used([&uses.at, &uses.brace]),
         target.cond,
         1,
         " ",
+        |define| define.name.clone(),
         |define| {
             let name = &define.name;
             // Meson's cmake substitution writes a `false` as `0`.
@@ -2443,12 +2452,13 @@ fn cmake_template_cmd<S: Solver>(
             words.join(" ")
         },
     );
-    edits.extend(selects.render_words(
+    edits.extend(selects.render_words_keyed(
         logic,
         &used([&uses.define, &uses.define01]),
         target.cond,
         1,
         " ",
+        |define| define.name.clone(),
         |define| {
             let name = &define.name;
             let truthy = match &define.value {
