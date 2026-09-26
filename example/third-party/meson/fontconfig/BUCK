@@ -1121,23 +1121,16 @@ genrule(
         "prelude//os/constraints:os[linux]": " '#define HAVE_STRUCT_STATFS_F_FLAGS 1'",
         "DEFAULT": "",
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_VOID_P 4' '#define ALIGNOF_VOID_P 4'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_VOID_P 4' '#define ALIGNOF_VOID_P 4'",
-        "DEFAULT": "",
-    }) + select({
+        "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
         "prelude//cpu/constraints:cpu[arm64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
         "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
-        "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_VOID_P 8' '#define ALIGNOF_VOID_P 8'",
-        "DEFAULT": "",
+        "DEFAULT": " '#define SIZEOF_VOID_P 4' '#define ALIGNOF_VOID_P 4'",
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_32]": " '#define ALIGNOF_DOUBLE 4'",
-        "DEFAULT": "",
-    }) + select({
+        "prelude//cpu/constraints:cpu[x86_64]": " '#define ALIGNOF_DOUBLE 8'",
         "prelude//cpu/constraints:cpu[arm32]": " '#define ALIGNOF_DOUBLE 8'",
         "prelude//cpu/constraints:cpu[arm64]": " '#define ALIGNOF_DOUBLE 8'",
         "prelude//cpu/constraints:cpu[riscv64]": " '#define ALIGNOF_DOUBLE 8'",
-        "prelude//cpu/constraints:cpu[x86_64]": " '#define ALIGNOF_DOUBLE 8'",
-        "DEFAULT": "",
+        "DEFAULT": " '#define ALIGNOF_DOUBLE 4'",
     }) + " > $OUT",
     visibility = ["PUBLIC"],
 )

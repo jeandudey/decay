@@ -160,11 +160,7 @@ _cflags_cpu_x11_run_mtls_dialect_gnu2 = select({
     "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
     "DEFAULT": [],
 }) + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-        "DEFAULT": [],
-    }),
+    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -185,11 +181,6 @@ _cflags_cpu_x11_run_mtls_dialect_gnu2 = select({
     "-DGLDISPATCH_ENABLE_PATCHING",
     "-DEGL_NO_X11",
 ] + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-        "DEFAULT": [],
-    }),
     "prelude//cpu/constraints:cpu[riscv64]": [],
     "DEFAULT": ["-DUSE_DISPATCH_ASM"],
 }) + select({
@@ -276,11 +267,6 @@ _headers3 = {
     "lkdhash.h": ":source[include/lkdhash.h]",
 }
 _srcs_cpu_os_abi = [":source[src/GLdispatch/vnd-glapi/stub.c]"] + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "prelude//cpu/constraints:cpu[arm32]": [":source[src/GLdispatch/vnd-glapi/entry_common.c]"],
-        "prelude//cpu/constraints:cpu[arm64]": [":source[src/GLdispatch/vnd-glapi/entry_common.c]"],
-        "DEFAULT": [":source[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-    }),
     "prelude//cpu/constraints:cpu[riscv64]": [":source[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
     "DEFAULT": [":source[src/GLdispatch/vnd-glapi/entry_common.c]"],
 }) + select({
@@ -334,63 +320,13 @@ _srcs_cpu_os_abi = [":source[src/GLdispatch/vnd-glapi/stub.c]"] + select({
     }),
     "DEFAULT": [],
 }) + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "prelude//cpu/constraints:cpu[arm32]": [":source[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-        "prelude//cpu/constraints:cpu[arm64]": [":source[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-        "DEFAULT": [],
-    }),
+    "prelude//cpu/constraints:cpu[arm32]": [":source[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm64]": [":source[src/GLdispatch/vnd-glapi/entry_aarch64_tsd.c]"],
     "DEFAULT": [],
 })
 _headers_cpu = select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "prelude//cpu/constraints:cpu[arm32]": {
-            "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "u_current.h": ":source[src/GLdispatch/vnd-glapi/u_current.h]",
-            "entry.h": ":source[src/GLdispatch/vnd-glapi/entry.h]",
-            "stub.h": ":source[src/GLdispatch/vnd-glapi/stub.h]",
-            "table.h": ":source[src/GLdispatch/vnd-glapi/table.h]",
-            "mapi_tmp.h": ":source[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            "entry_common.h": ":source[src/GLdispatch/vnd-glapi/entry_common.h]",
-            "u_macros.h": ":source[src/GLdispatch/vnd-glapi/u_macros.h]",
-        },
-        "prelude//cpu/constraints:cpu[arm64]": {
-            "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "u_current.h": ":source[src/GLdispatch/vnd-glapi/u_current.h]",
-            "entry.h": ":source[src/GLdispatch/vnd-glapi/entry.h]",
-            "stub.h": ":source[src/GLdispatch/vnd-glapi/stub.h]",
-            "table.h": ":source[src/GLdispatch/vnd-glapi/table.h]",
-            "mapi_tmp.h": ":source[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            "entry_common.h": ":source[src/GLdispatch/vnd-glapi/entry_common.h]",
-            "u_macros.h": ":source[src/GLdispatch/vnd-glapi/u_macros.h]",
-        },
-        "DEFAULT": {
-            "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-            "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-            "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-            "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-            "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-            "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-            "u_current.h": ":source[src/GLdispatch/vnd-glapi/u_current.h]",
-            "entry.h": ":source[src/GLdispatch/vnd-glapi/entry.h]",
-            "stub.h": ":source[src/GLdispatch/vnd-glapi/stub.h]",
-            "table.h": ":source[src/GLdispatch/vnd-glapi/table.h]",
-            "mapi_tmp.h": ":source[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            "glapi.h": ":source[src/GLdispatch/vnd-glapi/glapi.h]",
-        },
-    }),
     "prelude//cpu/constraints:cpu[riscv64]": {
         "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
         "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
@@ -512,11 +448,7 @@ _cflags_cpu_run_mtls_dialect_gnu2_os = select({
     "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
     "DEFAULT": [],
 }) + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-        "DEFAULT": [],
-    }),
+    "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
     "DEFAULT": [],
 }) + select({
     "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -534,11 +466,6 @@ _cflags_cpu_run_mtls_dialect_gnu2_os = select({
     "-DGLDISPATCH_ENABLE_PATCHING",
     "-DEGL_NO_X11",
 ] + select({
-    "prelude//cpu/constraints:cpu[arm32]": select({
-        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-        "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-        "DEFAULT": [],
-    }),
     "prelude//cpu/constraints:cpu[riscv64]": [],
     "DEFAULT": ["-DUSE_DISPATCH_ASM"],
 }) + select({
@@ -1050,11 +977,6 @@ cxx_library(
         ":source[src/GLdispatch/vnd-glapi/table.c]",
         ":source[src/GLdispatch/vnd-glapi/u_current_tls.c]",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":source[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "prelude//cpu/constraints:cpu[arm64]": [":source[src/GLdispatch/vnd-glapi/entry_common.c]"],
-            "DEFAULT": [":source[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [":source[src/GLdispatch/vnd-glapi/entry_pure_c.c]"],
         "DEFAULT": [":source[src/GLdispatch/vnd-glapi/entry_common.c]"],
     }) + select({
@@ -1108,11 +1030,7 @@ cxx_library(
         }),
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": [":source[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-            "prelude//cpu/constraints:cpu[arm64]": [":source[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": [":source[src/GLdispatch/vnd-glapi/entry_armv7_tsd.c]"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": [":source[src/GLdispatch/vnd-glapi/entry_aarch64_tsd.c]"],
@@ -1153,54 +1071,6 @@ cxx_library(
         "lkdhash.h": ":source[include/lkdhash.h]",
     },
     headers = select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": {
-                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "glapi.h": ":source[src/GLdispatch/vnd-glapi/glapi.h]",
-                "u_current.h": ":source[src/GLdispatch/vnd-glapi/u_current.h]",
-                "table.h": ":source[src/GLdispatch/vnd-glapi/table.h]",
-                "stub.h": ":source[src/GLdispatch/vnd-glapi/stub.h]",
-                "entry.h": ":source[src/GLdispatch/vnd-glapi/entry.h]",
-                "mapi_tmp.h": ":source[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "entry_common.h": ":source[src/GLdispatch/vnd-glapi/entry_common.h]",
-                "u_macros.h": ":source[src/GLdispatch/vnd-glapi/u_macros.h]",
-            },
-            "prelude//cpu/constraints:cpu[arm64]": {
-                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "glapi.h": ":source[src/GLdispatch/vnd-glapi/glapi.h]",
-                "u_current.h": ":source[src/GLdispatch/vnd-glapi/u_current.h]",
-                "table.h": ":source[src/GLdispatch/vnd-glapi/table.h]",
-                "stub.h": ":source[src/GLdispatch/vnd-glapi/stub.h]",
-                "entry.h": ":source[src/GLdispatch/vnd-glapi/entry.h]",
-                "mapi_tmp.h": ":source[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-                "entry_common.h": ":source[src/GLdispatch/vnd-glapi/entry_common.h]",
-                "u_macros.h": ":source[src/GLdispatch/vnd-glapi/u_macros.h]",
-            },
-            "DEFAULT": {
-                "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
-                "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
-                "g_glapi_mapi_glesv1_tmp.h": ":g_glapi_mapi_glesv1_tmp.h",
-                "g_glapi_mapi_glesv2_tmp.h": ":g_glapi_mapi_glesv2_tmp.h",
-                "g_glapi_mapi_gl_tmp.h": ":g_glapi_mapi_gl_tmp.h",
-                "g_egldispatchstubs.h": ":g_egldispatchstubs.h",
-                "glapi.h": ":source[src/GLdispatch/vnd-glapi/glapi.h]",
-                "u_current.h": ":source[src/GLdispatch/vnd-glapi/u_current.h]",
-                "table.h": ":source[src/GLdispatch/vnd-glapi/table.h]",
-                "stub.h": ":source[src/GLdispatch/vnd-glapi/stub.h]",
-                "entry.h": ":source[src/GLdispatch/vnd-glapi/entry.h]",
-                "mapi_tmp.h": ":source[src/GLdispatch/vnd-glapi/mapi_tmp.h]",
-            },
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": {
             "glapi_mapi_tmp.h": ":glapi_mapi_tmp.h",
             "g_glapi_mapi_opengl_tmp.h": ":g_glapi_mapi_opengl_tmp.h",
@@ -1243,11 +1113,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -1269,11 +1135,6 @@ cxx_library(
         "-DEGL_NO_X11",
         "-DMAPI_ABI_HEADER=\"glapi_mapi_tmp.h\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -1370,11 +1231,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -1397,11 +1254,6 @@ cxx_library(
         "-DSTATIC_DISPATCH_ONLY",
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_gl_tmp.h\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -1507,11 +1359,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -1534,11 +1382,6 @@ cxx_library(
         "-DSTATIC_DISPATCH_ONLY",
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_opengl_tmp.h\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -1644,11 +1487,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -1671,11 +1510,6 @@ cxx_library(
         "-DSTATIC_DISPATCH_ONLY",
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv1_tmp.h\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -1781,11 +1615,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -1808,11 +1638,6 @@ cxx_library(
         "-DSTATIC_DISPATCH_ONLY",
         "-DMAPI_ABI_HEADER=\"g_glapi_mapi_glesv2_tmp.h\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -2095,11 +1920,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -2121,11 +1942,6 @@ cxx_library(
         "-DEGL_NO_X11",
         "-DDEFAULT_EGL_VENDOR_CONFIG_DIRS=\"/usr/local/etc/glvnd/egl_vendor.d:/usr/local/share/glvnd/egl_vendor.d\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -2609,11 +2425,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -2635,11 +2447,6 @@ cxx_library(
         "-DEGL_NO_X11",
         "-DDUMMY_VENDOR_NAME=\"dummy0\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -2694,11 +2501,7 @@ cxx_library(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -2720,11 +2523,6 @@ cxx_library(
         "-DEGL_NO_X11",
         "-DDUMMY_VENDOR_NAME=\"dummy1\"",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({
@@ -2846,11 +2644,7 @@ cxx_binary(
         "prelude//cpu/constraints:cpu[x86_64]": ["-DUSE_X86_64_ASM"],
         "DEFAULT": [],
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_ARMV7_ASM"],
-            "DEFAULT": [],
-        }),
+        "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_ARMV7_ASM"],
         "DEFAULT": [],
     }) + select({
         "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_AARCH64_ASM"],
@@ -2869,11 +2663,6 @@ cxx_binary(
         "-DEGL_NO_X11",
         "-DUSE_PTHREADS=1",
     ] + select({
-        "prelude//cpu/constraints:cpu[arm32]": select({
-            "prelude//cpu/constraints:cpu[arm32]": ["-DUSE_DISPATCH_ASM"],
-            "prelude//cpu/constraints:cpu[arm64]": ["-DUSE_DISPATCH_ASM"],
-            "DEFAULT": [],
-        }),
         "prelude//cpu/constraints:cpu[riscv64]": [],
         "DEFAULT": ["-DUSE_DISPATCH_ASM"],
     }) + select({

@@ -1304,19 +1304,27 @@ genrule(
         "DEFAULT": " '#define HAVE_XLOCALE_H 1'",
     }) + select({
         "prelude//os/constraints:os[linux]": select({
-            "prelude//abi/constraints:abi[gnu]": select({
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ATEXIT 1'",
+            "prelude//cpu/constraints:cpu[x86_64]": select({
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ATEXIT 1'",
                 "DEFAULT": "",
             }),
-            "prelude//abi/constraints:abi[musl]": select({
-                "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_ATEXIT 1'",
-                "prelude//cpu/constraints:cpu[arm64]": " '#define HAVE_ATEXIT 1'",
-                "prelude//cpu/constraints:cpu[riscv64]": " '#define HAVE_ATEXIT 1'",
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_ATEXIT 1'",
-                "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_ATEXIT 1'",
+            "prelude//cpu/constraints:cpu[arm32]": select({
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ATEXIT 1'",
                 "DEFAULT": "",
             }),
-            "DEFAULT": "",
+            "prelude//cpu/constraints:cpu[arm64]": select({
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ATEXIT 1'",
+                "DEFAULT": "",
+            }),
+            "prelude//cpu/constraints:cpu[riscv64]": select({
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ATEXIT 1'",
+                "DEFAULT": "",
+            }),
+            "DEFAULT": select({
+                "prelude//abi/constraints:abi[gnu]": " '#define HAVE_ATEXIT 1'",
+                "prelude//abi/constraints:abi[musl]": " '#define HAVE_ATEXIT 1'",
+                "DEFAULT": "",
+            }),
         }),
         "DEFAULT": " '#define HAVE_ATEXIT 1'",
     }) + select({

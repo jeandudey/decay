@@ -160,28 +160,18 @@ genrule(
     cmd = "printf '%s\\n'" + select({
         "//third-party/meson/pixman/constraints:mmx[disabled]": "",
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_X86_MMX 1'",
             "prelude//cpu/constraints:cpu[arm32]": "",
             "prelude//cpu/constraints:cpu[arm64]": "",
             "prelude//cpu/constraints:cpu[riscv64]": "",
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_X86_MMX 1'",
-                "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_X86_MMX 1'",
-                "DEFAULT": "",
-            }),
+            "DEFAULT": " '#define USE_X86_MMX 1'",
         }),
     }) + select({
         "//third-party/meson/pixman/constraints:sse2[disabled]": "",
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_SSE2 1'",
             "prelude//cpu/constraints:cpu[arm32]": "",
             "prelude//cpu/constraints:cpu[arm64]": "",
             "prelude//cpu/constraints:cpu[riscv64]": "",
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_SSE2 1'",
-                "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_SSE2 1'",
-                "DEFAULT": "",
-            }),
+            "DEFAULT": " '#define USE_SSE2 1'",
         }),
     }) + select({
         "//third-party/meson/pixman/constraints:ssse3[disabled]": "",
@@ -189,11 +179,7 @@ genrule(
             "prelude//cpu/constraints:cpu[arm32]": "",
             "prelude//cpu/constraints:cpu[arm64]": "",
             "prelude//cpu/constraints:cpu[riscv64]": "",
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": " '#define USE_SSSE3 1'",
-                "prelude//cpu/constraints:cpu[x86_64]": " '#define USE_SSSE3 1'",
-                "DEFAULT": "",
-            }),
+            "DEFAULT": " '#define USE_SSSE3 1'",
         }),
     }) + select({
         "prelude//cpu/constraints:cpu[arm32]": " '#define ASM_HAVE_SYNTAX_UNIFIED 1'",
@@ -208,38 +194,34 @@ genrule(
     }) + select({
         "//third-party/meson/pixman/constraints:gnuplot[true]": " '#define PIXMAN_GNUPLOT 1'",
         "//third-party/meson/pixman/constraints:gnuplot[false]": "",
-    }) + " '#define HAVE_PTHREADS 1' '#define HAVE_SIGACTION 1' '#define HAVE_ALARM 1' '#define HAVE_MPROTECT 1' '#define HAVE_GETPAGESIZE 1' '#define HAVE_MMAP 1' '#define HAVE_GETTIMEOFDAY 1' '#define HAVE_POSIX_MEMALIGN 1' '#define HAVE_FEDIVBYZERO 1' '#define HAVE_SYS_MMAN_H 1' '#define HAVE_FENV_H 1' '#define HAVE_UNISTD_H 1' '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1' '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1' '#define HAVE_GCC_VECTOR_EXTENSIONS 1' '#define PACKAGE foo'" + select({
+    }) + " '#define HAVE_PTHREADS 1' '#define HAVE_SIGACTION 1' '#define HAVE_ALARM 1' '#define HAVE_MPROTECT 1' '#define HAVE_GETPAGESIZE 1' '#define HAVE_MMAP 1' '#define HAVE_GETTIMEOFDAY 1' '#define HAVE_POSIX_MEMALIGN 1' '#define HAVE_FEDIVBYZERO 1' '#define HAVE_SYS_MMAN_H 1' '#define HAVE_FENV_H 1' '#define HAVE_UNISTD_H 1' '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR 1' '#define TOOLCHAIN_SUPPORTS_ATTRIBUTE_DESTRUCTOR 1' '#define HAVE_BUILTIN_CLZ 1' '#define HAVE_GCC_VECTOR_EXTENSIONS 1' '#define PACKAGE foo'" + select({
         "prelude//os/constraints:os[linux]": select({
             "prelude//abi/constraints:abi[gnu]": " '#define HAVE_FEENABLEEXCEPT 1'",
             "DEFAULT": "",
         }),
         "prelude//os/constraints:os[netbsd]": " '#define HAVE_FEENABLEEXCEPT 1'",
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[arm32]": " '#define HAVE_FEENABLEEXCEPT 1'",
-            "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FEENABLEEXCEPT 1'",
-            "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FEENABLEEXCEPT 1'",
-            "DEFAULT": "",
+            "prelude//cpu/constraints:cpu[arm64]": "",
+            "prelude//cpu/constraints:cpu[riscv64]": "",
+            "DEFAULT": " '#define HAVE_FEENABLEEXCEPT 1'",
         }),
     }) + select({
         "//third-party/meson/pixman/constraints:tls[enabled]": " '#define TLS __thread'",
         "//third-party/meson/pixman/constraints:tls[disabled]": "",
         "//third-party/meson/pixman/constraints:tls[auto]": " '#define TLS __thread'",
     }) + select({
-        "prelude//cpu/constraints:cpu[x86_32]": " '#define HAVE_FLOAT128 1'",
-        "prelude//cpu/constraints:cpu[x86_64]": " '#define HAVE_FLOAT128 1'",
-        "DEFAULT": "",
+        "prelude//cpu/constraints:cpu[arm32]": "",
+        "prelude//cpu/constraints:cpu[arm64]": "",
+        "prelude//cpu/constraints:cpu[riscv64]": "",
+        "DEFAULT": " '#define HAVE_FLOAT128 1'",
     }) + select({
         "//third-party/meson/constraints:endian[little]": "",
         "//third-party/meson/constraints:endian[big]": " '#define WORDS_BIGENDIAN 1'",
     }) + select({
-        "prelude//cpu/constraints:cpu[arm32]": " '#define SIZEOF_LONG 4'",
-        "prelude//cpu/constraints:cpu[x86_32]": " '#define SIZEOF_LONG 4'",
-        "DEFAULT": "",
-    }) + select({
+        "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_LONG 8'",
         "prelude//cpu/constraints:cpu[arm64]": " '#define SIZEOF_LONG 8'",
         "prelude//cpu/constraints:cpu[riscv64]": " '#define SIZEOF_LONG 8'",
-        "prelude//cpu/constraints:cpu[x86_64]": " '#define SIZEOF_LONG 8'",
-        "DEFAULT": "",
+        "DEFAULT": " '#define SIZEOF_LONG 4'",
     }) + " > $OUT",
     visibility = ["PUBLIC"],
 )
@@ -278,15 +260,10 @@ cxx_library(
     target_compatible_with = select({
         "//third-party/meson/pixman/constraints:mmx[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": [],
             "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": [],
-                "prelude//cpu/constraints:cpu[x86_64]": [],
-                "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            }),
+            "DEFAULT": [],
         }),
     }),
     visibility = ["PUBLIC"],
@@ -319,15 +296,10 @@ cxx_library(
     target_compatible_with = select({
         "//third-party/meson/pixman/constraints:sse2[disabled]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": [],
             "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": [],
-                "prelude//cpu/constraints:cpu[x86_64]": [],
-                "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            }),
+            "DEFAULT": [],
         }),
     }),
     visibility = ["PUBLIC"],
@@ -362,11 +334,7 @@ cxx_library(
             "prelude//cpu/constraints:cpu[arm32]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "prelude//cpu/constraints:cpu[arm64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
             "prelude//cpu/constraints:cpu[riscv64]": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": [],
-                "prelude//cpu/constraints:cpu[x86_64]": [],
-                "DEFAULT": ["//third-party/meson/constraints:unsatisfiable[yes]"],
-            }),
+            "DEFAULT": [],
         }),
     }),
     visibility = ["PUBLIC"],
@@ -427,28 +395,18 @@ cxx_library(
     deps = select({
         "//third-party/meson/pixman/constraints:mmx[disabled]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": [":pixman-mmx"],
             "prelude//cpu/constraints:cpu[arm32]": [],
             "prelude//cpu/constraints:cpu[arm64]": [],
             "prelude//cpu/constraints:cpu[riscv64]": [],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": [":pixman-mmx"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":pixman-mmx"],
-                "DEFAULT": [],
-            }),
+            "DEFAULT": [":pixman-mmx"],
         }),
     }) + select({
         "//third-party/meson/pixman/constraints:sse2[disabled]": [],
         "DEFAULT": select({
-            "prelude//cpu/constraints:cpu[x86_64]": [":pixman-sse2"],
             "prelude//cpu/constraints:cpu[arm32]": [],
             "prelude//cpu/constraints:cpu[arm64]": [],
             "prelude//cpu/constraints:cpu[riscv64]": [],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": [":pixman-sse2"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":pixman-sse2"],
-                "DEFAULT": [],
-            }),
+            "DEFAULT": [":pixman-sse2"],
         }),
     }) + select({
         "//third-party/meson/pixman/constraints:ssse3[disabled]": [],
@@ -456,11 +414,7 @@ cxx_library(
             "prelude//cpu/constraints:cpu[arm32]": [],
             "prelude//cpu/constraints:cpu[arm64]": [],
             "prelude//cpu/constraints:cpu[riscv64]": [],
-            "DEFAULT": select({
-                "prelude//cpu/constraints:cpu[x86_32]": [":pixman-ssse3"],
-                "prelude//cpu/constraints:cpu[x86_64]": [":pixman-ssse3"],
-                "DEFAULT": [],
-            }),
+            "DEFAULT": [":pixman-ssse3"],
         }),
     }) + [
         "//third-party/meson/system:m",
