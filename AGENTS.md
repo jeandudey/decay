@@ -75,6 +75,62 @@ See `example/` for a libepoxy import, and `example/decay.toml` for how a
 project's escape hatches (`[systems]`, `[probes]`, `[programs]`,
 `[dependencies]`) are meant to read.
 
+## Theory: oracles as a pass after interpretation
+
+Where the evaluator is meant to go, not how it works today. Today eval
+calls the `Oracle` eagerly, from inside builtins.
+
+Interpretation should not depend on oracles. Every oracle answer is an
+observation about the outside world: `cc.has_header('foo.h', prefix: p)`,
+`dependency('x').found()`, `find_program('y')`, `cc.sizeof('long')`. Eval
+treats each one as a free, uninterpreted atom (`hdr(foo.h, p)`,
+`found(x)`, an int-sorted `sizeof(long)`) and never asks anyone. Its
+output is a graph whose presence conditions range over configuration
+dimensions **and** atoms.
+
+The oracle is then a model σ: atom → formula over configuration
+dimensions (os/cpu/abi), or a constant. Resolution is a separate pass,
+`simplify(σ(graph))`. An atom σ leaves unmapped stays an open knob, or is
+reported. It never gets a default.
+
+- **Correctness condition:** `eval(ast)[σ] ≡ eval_with_oracle(ast, σ)`.
+  This holds as long as eval never branches on an atom's concrete value
+  and only combines atoms through the boolean/term algebra. Eager
+  substitution during eval stays legal as an optimization (pruning), not
+  as semantics.
+- **Terms compose.** A pure builtin applied to opaque data is a new atom:
+  `version_compare(version(x), '>=1.2')`. An atom whose arguments vary by
+  configuration splits into `ite(φ, hdr(a), hdr(b))`.
+- **Errors defer.** `if not hdr(x) error(...)` makes the configuration
+  invalid under `¬hdr(x)`. An unimplemented meson function reached under
+  φ is recorded as "unsupported under φ", and fails the import only if φ
+  is still satisfiable after resolution.
+- **Siblings are a link step.** `found(x)` for another imported project
+  is an undefined symbol that a cross-project pass resolves, so eval
+  order between projects stops mattering.
+
+The configuration space itself (`systems`, `compilers`, options) is not
+an oracle. It is the domain eval ranges over.
+
+**The one exception is binding time.** A value in *data position* (a
+condition, a `config_data` value, args, a `.format()`) stays symbolic
+until emit. A value in *control position* needs a concrete answer during
+eval: `foreach` over it, `split()`, a file path, `subdir()`/`files()` with
+a computed name. No finite unrolling exists over an unbounded string. In
+practice this is `run_command()` output and sibling
+`get_variable()`/dependency variables when they are used that way. Those
+uses are the only legitimate oracle calls left in eval, and the goal is to
+shrink them.
+
+What this buys:
+
+- Eval is deterministic and testable without `zig` or `decay.toml`.
+- Every compile probe is known up front, so probes dedupe, batch and
+  cache per atom.
+- The "an unanswered probe defaults to `true`" hack disappears.
+- Precedence between `decay.toml`, `zig` and sibling projects is one
+  resolution rule, not checks scattered through builtins.
+
 ## Known gaps
 
 - **Wrap support.** `[[project]] wrap = "name"` resolves both `[wrap-file]`
